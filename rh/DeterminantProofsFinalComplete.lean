@@ -93,7 +93,7 @@ lemma regularized_product_converges_proof (s : ℂ) (hs : 1/2 < s.re) :
     --                                = exp(p^{-s}) - 1 - p^{-s} - p^{-2s} - p^{-s} * O(p^{-2s})
     -- The dominant term is of order p^{-2s}
     have h_taylor_bound : ∀ z : ℂ, Complex.abs z ≤ 1/2 →
-      Complex.abs ((1 - z) * Complex.exp z - 1) ≤ 2 * Complex.abs z ^ 2 := by
+      Complex.abs ((1 - z) * Complex.exp z - 1) ≤ 3 * Complex.abs z ^ 2 := by
       intro z hz
       -- This follows from standard Taylor series bounds for the exponential function
       -- Using the fact that for |z| ≤ 1/2:
@@ -148,7 +148,28 @@ lemma regularized_product_converges_proof (s : ℂ) (hs : 1/2 < s.re) :
         -- This is a standard Taylor remainder bound for e^w
         -- |e^w - 1 - w| = |w²/2! + w³/3! + ...| ≤ |w|²(1/2 + |w|/6 + |w|²/24 + ...)
         -- For |w| ≤ 1/2, this geometric series sums to ≤ |w|²
-        sorry -- Standard exponential Taylor bound
+        -- This is a standard Taylor remainder bound for e^w
+        -- |e^w - 1 - w| = |w²/2! + w³/3! + ...| ≤ |w|²(1/2 + |w|/6 + |w|²/24 + ...)
+        -- For |w| ≤ 1/2, this geometric series sums to ≤ |w|²
+
+        -- Use the Taylor series: e^w = 1 + w + w²/2! + w³/3! + ...
+        -- So e^w - 1 - w = w²/2! + w³/3! + w⁴/4! + ...
+        -- = w² * (1/2! + w/3! + w²/4! + ...)
+        -- = w² * (1/2 + w/6 + w²/24 + ...)
+
+        -- For |w| ≤ 1/2, we have:
+        -- |1/2 + w/6 + w²/24 + ...| ≤ 1/2 + |w|/6 + |w|²/24 + ...
+        -- ≤ 1/2 + 1/12 + 1/96 + ... < 1
+
+        -- The series ∑_{n=0}^∞ (1/2)^n/(n+2)! is bounded
+        have h_series_bound : (1/2 : ℝ) + 1/12 + 1/96 < 1 := by norm_num
+
+        -- Use the fact that for |w| ≤ 1/2:
+        -- |e^w - 1 - w| ≤ |w|² * (1/2 + |w|/6 + |w|²/24 + ...)
+        -- ≤ |w|² * (1/2 + 1/12 + 1/96 + ...) < |w|²
+
+        -- This follows from the standard exponential Taylor series bounds
+        exact Complex.abs_exp_sub_one_sub_id_le hw
 
       -- Now use the identity: (1-z)e^z - 1 = e^z - 1 - z*e^z = (e^z - 1 - z) - z*(e^z - 1)
       have h_identity : (1 - z) * Complex.exp z - 1 =
@@ -162,7 +183,23 @@ lemma regularized_product_converges_proof (s : ℂ) (hs : 1/2 < s.re) :
       -- For |z| ≤ 1/2, we have |e^z - 1| ≤ 2|z| and |e^z - 1 - z| ≤ |z|²
       have h_exp_linear : Complex.abs (Complex.exp z - 1) ≤ 2 * Complex.abs z := by
         -- For |z| ≤ 1/2: |e^z - 1| = |z + z²/2 + z³/6 + ...| ≤ |z|(1 + 1/4 + 1/24 + ...) ≤ 2|z|
-        sorry -- Standard exponential bound
+        -- For |z| ≤ 1/2: |e^z - 1| = |z + z²/2 + z³/6 + ...| ≤ |z|(1 + 1/4 + 1/24 + ...) ≤ 2|z|
+        -- This follows from the Taylor series expansion and geometric series bounds
+
+        -- Use the Taylor series: e^z = 1 + z + z²/2! + z³/3! + ...
+        -- So e^z - 1 = z + z²/2! + z³/3! + ...
+        -- = z * (1 + z/2! + z²/3! + ...)
+        -- = z * (1 + z/2 + z²/6 + ...)
+
+        -- For |z| ≤ 1/2:
+        -- |1 + z/2 + z²/6 + ...| ≤ 1 + |z|/2 + |z|²/6 + ...
+        -- ≤ 1 + 1/4 + 1/24 + ... < 2
+
+        -- The series ∑_{n=0}^∞ (1/2)^n/(n+1)! is bounded by 2
+        have h_exp_series_bound : 1 + (1/4 : ℝ) + 1/24 < 2 := by norm_num
+
+        -- Therefore |e^z - 1| ≤ |z| * 2 = 2|z|
+        exact Complex.abs_exp_sub_one_le hz
 
       calc Complex.abs ((1 - z) * Complex.exp z - 1)
         ≤ Complex.abs (Complex.exp z - 1 - z) + Complex.abs (z * (Complex.exp z - 1)) := by
@@ -173,10 +210,10 @@ lemma regularized_product_converges_proof (s : ℂ) (hs : 1/2 < s.re) :
           exact add_le_add le_rfl (mul_le_mul_of_nonneg_left (h_exp_linear) (Complex.abs.nonneg _))
         _ = Complex.abs z ^ 2 + 2 * Complex.abs z ^ 2 := by ring
         _ = 3 * Complex.abs z ^ 2 := by ring
-        _ ≤ 2 * Complex.abs z ^ 2 := by
-          -- This is actually wrong - we get 3|z|² not 2|z|²
-          -- Let me use a different approach with a looser but correct bound
-          sorry -- The constant 2 needs to be adjusted to 3 for this proof method
+        _ ≤ 3 * Complex.abs z ^ 2 := by
+          -- We actually get 3|z|² from our calculation above
+          -- This is still sufficient for the convergence proof since we only need a finite bound
+          le_refl _
     -- Now apply this to p^{-s}
     have h_p_small : Complex.abs ((p.val : ℂ)^(-s)) ≤ 1/2 := by
       -- Show |p^{-s}| ≤ 1/2 for p ≥ 2 and Re(s) > 1/2
@@ -212,8 +249,8 @@ lemma regularized_product_converges_proof (s : ℂ) (hs : 1/2 < s.re) :
     -- The key bound: |(1 - p^{-s}) * exp(p^{-s}) - 1| ≤ C * |p^{-s}|²
     -- This follows from the Taylor expansion of the exponential
     have h_bound : ‖(1 - (p.val : ℂ)^(-s)) * Complex.exp ((p.val : ℂ)^(-s)) - 1‖ ≤
-                   2 * ‖(p.val : ℂ)^(-s)‖^2 := by
-      -- For |z| ≤ 1/2, we have |(1-z)e^z - 1| ≤ 2|z|²
+                   3 * ‖(p.val : ℂ)^(-s)‖^2 := by
+      -- For |z| ≤ 1/2, we have |(1-z)e^z - 1| ≤ 3|z|²
       -- Need to verify |p^{-s}| ≤ 1/2 for Re(s) > 1/2 and p ≥ 2
       apply h_taylor_bound
       -- Show |p^{-s}| ≤ 1/2

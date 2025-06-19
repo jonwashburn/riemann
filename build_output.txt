@@ -1,0 +1,8 @@
+⚠ [2132/4315] Replayed Placeholders
+warning: ./././rh/Placeholders.lean:19:6: declaration uses 'sorry'
+warning: ./././rh/Placeholders.lean:59:6: declaration uses 'sorry'
+warning: ./././rh/Placeholders.lean:79:6: declaration uses 'sorry'
+⚠ [2133/4315] Replayed Common
+warning: ./././rh/Common.lean:40:6: declaration uses 'sorry'
+⚠ [2141/4315] Replayed ZetaFunctionalEquation
+warning: ./././rh/ZetaFunctionalEquation.lean:18:8: declaration uses 'sorry'

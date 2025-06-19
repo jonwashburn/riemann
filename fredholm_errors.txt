@@ -1,0 +1,8 @@
+rh/FredholmDeterminant.lean:1:0: error: failed to read file '././.lake/packages/mathlib/.lake/build/lib/Mathlib/Topology/Algebra/Algebra.olean', invalid header
+rh/FredholmDeterminant.lean:13:5: error: unknown namespace 'Complex'
+rh/FredholmDeterminant.lean:16:56: error: expected token
+rh/FredholmDeterminant.lean:20:57: error: expected token
+rh/FredholmDeterminant.lean:80:74: error: unexpected token '['; expected ':=', 'where' or '|'
+rh/FredholmDeterminant.lean:87:7: error: unexpected identifier; expected 'abbrev', 'axiom', 'binder_predicate', 'builtin_initialize', 'class', 'def', 'elab', 'elab_rules', 'example', 'inductive', 'infix', 'infixl', 'infixr', 'initialize', 'instance', 'macro', 'macro_rules', 'notation', 'opaque', 'postfix', 'prefix', 'structure', 'syntax' or 'theorem'
+rh/FredholmDeterminant.lean:102:61: error: expected token
+rh/FredholmDeterminant.lean:106:46: error: expected token

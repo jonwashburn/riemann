@@ -1,0 +1,36 @@
+⚠ [2132/4315] Replayed Placeholders
+warning: ./././rh/Placeholders.lean:19:6: declaration uses 'sorry'
+warning: ./././rh/Placeholders.lean:59:6: declaration uses 'sorry'
+warning: ./././rh/Placeholders.lean:79:6: declaration uses 'sorry'
+⚠ [2133/4315] Replayed Common
+warning: ./././rh/Common.lean:40:6: declaration uses 'sorry'
+⚠ [2141/4315] Replayed ZetaFunctionalEquation
+warning: ./././rh/ZetaFunctionalEquation.lean:18:8: declaration uses 'sorry'
+✖ [4279/4315] Building FredholmDeterminant
+trace: .> LEAN_PATH=././.lake/packages/batteries/.lake/build/lib:././.lake/packages/Qq/.lake/build/lib:././.lake/packages/aesop/.lake/build/lib:././.lake/packages/proofwidgets/.lake/build/lib:././.lake/packages/Cli/.lake/build/lib:././.lake/packages/importGraph/.lake/build/lib:././.lake/packages/mathlib/.lake/build/lib:././.lake/build/lib DYLD_LIBRARY_PATH= /Users/jonathanwashburn/.elan/toolchains/leanprover--lean4---v4.10.0/bin/lean ./././rh/FredholmDeterminant.lean -R ./././rh -o ././.lake/build/lib/FredholmDeterminant.olean -i ././.lake/build/lib/FredholmDeterminant.ilean -c ././.lake/build/ir/FredholmDeterminant.c --json
+error: ./././rh/FredholmDeterminant.lean:1:0: failed to read file '././.lake/packages/mathlib/.lake/build/lib/Mathlib/Tactic/FunProp/Core.olean', invalid header
+error: ./././rh/FredholmDeterminant.lean:13:5: unknown namespace 'Complex'
+error: ./././rh/FredholmDeterminant.lean:16:56: expected token
+error: ./././rh/FredholmDeterminant.lean:20:57: expected token
+error: ./././rh/FredholmDeterminant.lean:80:74: unexpected token '['; expected ':=', 'where' or '|'
+error: ./././rh/FredholmDeterminant.lean:87:7: unexpected identifier; expected 'abbrev', 'axiom', 'binder_predicate', 'builtin_initialize', 'class', 'def', 'elab', 'elab_rules', 'example', 'inductive', 'infix', 'infixl', 'infixr', 'initialize', 'instance', 'macro', 'macro_rules', 'notation', 'opaque', 'postfix', 'prefix', 'structure', 'syntax' or 'theorem'
+error: ./././rh/FredholmDeterminant.lean:102:61: expected token
+error: ./././rh/FredholmDeterminant.lean:106:46: expected token
+error: Lean exited with code 1
+✖ [4283/4315] Building DeterminantProofsFinalComplete
+trace: .> LEAN_PATH=././.lake/packages/batteries/.lake/build/lib:././.lake/packages/Qq/.lake/build/lib:././.lake/packages/aesop/.lake/build/lib:././.lake/packages/proofwidgets/.lake/build/lib:././.lake/packages/Cli/.lake/build/lib:././.lake/packages/importGraph/.lake/build/lib:././.lake/packages/mathlib/.lake/build/lib:././.lake/build/lib DYLD_LIBRARY_PATH= /Users/jonathanwashburn/.elan/toolchains/leanprover--lean4---v4.10.0/bin/lean ./././rh/DeterminantProofsFinalComplete.lean -R ./././rh -o ././.lake/build/lib/DeterminantProofsFinalComplete.olean -i ././.lake/build/lib/DeterminantProofsFinalComplete.ilean -c ././.lake/build/ir/DeterminantProofsFinalComplete.c --json
+error: ./././rh/DeterminantProofsFinalComplete.lean:1:0: failed to read file '././.lake/packages/mathlib/.lake/build/lib/Mathlib/Tactic/FunProp/Core.olean', invalid header
+error: ./././rh/DeterminantProofsFinalComplete.lean:20:5: unknown namespace 'Complex'
+error: ./././rh/DeterminantProofsFinalComplete.lean:23:0: unexpected identifier; expected command
+error: Lean exited with code 1
+✖ [4288/4315] Building PrimeRatioNotUnityProofs
+trace: .> LEAN_PATH=././.lake/packages/batteries/.lake/build/lib:././.lake/packages/Qq/.lake/build/lib:././.lake/packages/aesop/.lake/build/lib:././.lake/packages/proofwidgets/.lake/build/lib:././.lake/packages/Cli/.lake/build/lib:././.lake/packages/importGraph/.lake/build/lib:././.lake/packages/mathlib/.lake/build/lib:././.lake/build/lib DYLD_LIBRARY_PATH= /Users/jonathanwashburn/.elan/toolchains/leanprover--lean4---v4.10.0/bin/lean ./././rh/PrimeRatioNotUnityProofs.lean -R ./././rh -o ././.lake/build/lib/PrimeRatioNotUnityProofs.olean -i ././.lake/build/lib/PrimeRatioNotUnityProofs.ilean -c ././.lake/build/ir/PrimeRatioNotUnityProofs.c --json
+error: ./././rh/PrimeRatioNotUnityProofs.lean:1:0: failed to read file '././.lake/packages/mathlib/.lake/build/lib/Mathlib/Tactic/FunProp/Core.olean', invalid header
+error: ./././rh/PrimeRatioNotUnityProofs.lean:16:5: unknown namespace 'Complex'
+error: ./././rh/PrimeRatioNotUnityProofs.lean:20:13: expected token
+error: Lean exited with code 1
+Some builds logged failures:
+- FredholmDeterminant
+- DeterminantProofsFinalComplete
+- PrimeRatioNotUnityProofs
+error: build failed

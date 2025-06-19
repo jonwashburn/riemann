@@ -1,0 +1,1 @@
+error: configuration file is missing a `package` declaration

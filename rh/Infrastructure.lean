@@ -1,0 +1,31 @@
+-- When importing within the same library with srcDir, use bare names
+import Common
+import DiagonalArithmeticHamiltonian
+import FredholmDeterminant
+import DeterminantProofsFinal
+import FredholmVanishingEigenvalue
+import DiagonalOperatorComponents
+import PrimeRatioNotUnity
+import EigenvalueStabilityComplete
+import DeterminantIdentityCompletion
+import ZetaFunctionalEquation
+
+/-!
+# Infrastructure Hub
+
+This file imports and re-exports all infrastructure modules for convenient access.
+-/
+
+namespace RH
+
+-- Re-export key definitions for easy access
+export WeightedL2 (deltaBasis domainH)
+export FredholmDeterminant (evolution_diagonal_action evolutionOperatorFromEigenvalues)
+export FredholmVanishing (vanishing_product_implies_eigenvalue)
+export DiagonalComponents (diagonal_component_formula)
+export PrimeRatio (log_prime_ratio_irrational complex_eigenvalue_relation)
+export EigenvalueStabilityComplete (domain_preservation_implies_constraint)
+export DeterminantIdentityCompletion (determinant_identity_proof)
+export ZetaFunctionalEquation (zeta_functional_equation_zeros)
+
+end RH
