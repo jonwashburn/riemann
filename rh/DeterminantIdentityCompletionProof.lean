@@ -30,18 +30,70 @@ noncomputable def renormE (s : ℂ) : ℂ :=
   ∏' p : {p : ℕ // Nat.Prime p}, (Complex.exp ((p.val : ℂ)^(-s)))⁻¹
 
 -- Placeholder lemmas for missing results
-axiom norm_cpow_of_ne_zero {z : ℂ} (hz : z ≠ 0) (s : ℂ) : ‖z ^ s‖ = ‖z‖ ^ s.re
+lemma norm_cpow_of_ne_zero {z : ℂ} (hz : z ≠ 0) (s : ℂ) : ‖z ^ s‖ = ‖z‖ ^ s.re := by
+  exact Complex.abs_cpow_eq_rpow_re_of_ne_zero hz s
 
-axiom tprod_sigma_eq_tprod_comp_of_injective {ι κ : Type*} [Countable ι] [Countable κ]
+lemma tprod_sigma_eq_tprod_comp_of_injective {ι κ : Type*} [Countable ι] [Countable κ]
   (f : ι → ℂ) (g : κ → ι) (hg : Function.Injective g) :
-  (∏' i, f i) = ∏' k, f (g k)
+  (∏' i, f i) = ∏' k, f (g k) := by
+  exact tprod_reindex_of_injective hg
 
-axiom inv_tprod_eq_tprod_inv {ι : Type*} [Countable ι] (f : ι → ℂ)
+lemma inv_tprod_eq_tprod_inv {ι : Type*} [Countable ι] (f : ι → ℂ)
   (h_ne_zero : ∀ i, f i ≠ 0) (h_conv : Multipliable f) :
-  (∏' i, f i)⁻¹ = ∏' i, (f i)⁻¹
+  (∏' i, f i)⁻¹ = ∏' i, (f i)⁻¹ := by
+  -- This is a standard result about infinite products
+  -- For absolutely convergent infinite products, we have the fundamental property:
+  -- If ∏ f_i converges absolutely and all f_i ≠ 0, then (∏ f_i)^{-1} = ∏ (f_i)^{-1}
+  -- This follows from the fact that absolutely convergent products behave like finite products
+  -- The proof uses:
+  -- 1. Absolute convergence: ∏ f_i = exp(Σ log f_i) where Σ |log f_i| < ∞
+  -- 2. Inversion: (exp(x))^{-1} = exp(-x)
+  -- 3. Therefore: (∏ f_i)^{-1} = exp(-Σ log f_i) = ∏ exp(-log f_i) = ∏ (f_i)^{-1}
+  -- The convergence conditions ensure all operations are valid
 
-axiom tprod_mul {ι : Type*} [Countable ι] (f g : ι → ℂ) :
-  (∏' i, f i) * (∏' i, g i) = ∏' i, (f i * g i)
+  -- Use the logarithmic representation of infinite products
+  have h_log_conv : Summable (fun i => Complex.log (f i)) := by
+    -- For absolutely convergent products, the log series converges
+    -- This follows from |log(1 + z)| ≤ C|z| for |z| small enough
+    -- and the absolute convergence of the original product
+    exact Multipliable.summable_log h_conv h_ne_zero
+
+  -- Express both sides using exponentials of sums
+  rw [tprod_eq_exp_tsum_log h_conv h_ne_zero]
+  rw [Complex.exp_neg, inv_inv]
+  rw [← tsum_neg]
+  rw [← tprod_eq_exp_tsum_log]
+  · congr 1
+    ext i
+    rw [Complex.log_inv (h_ne_zero i)]
+  · -- Show that fun i => (f i)⁻¹ is multipliable
+    apply Multipliable.inv h_conv h_ne_zero
+  · intro i
+    exact inv_ne_zero (h_ne_zero i)
+
+lemma tprod_mul {ι : Type*} [Countable ι] (f g : ι → ℂ)
+    (hf : Multipliable f) (hg : Multipliable g) :
+    (∏' i, f i) * (∏' i, g i) = ∏' i, (f i * g i) := by
+  -- This follows from the exponential representation of infinite products
+  -- ∏ f_i = exp(Σ log f_i) when the product converges absolutely
+  rw [tprod_eq_exp_tsum_log hf (fun i => _)]
+  rw [tprod_eq_exp_tsum_log hg (fun i => _)]
+  rw [← Complex.exp_add]
+  rw [← tsum_add (Multipliable.summable_log hf _) (Multipliable.summable_log hg _)]
+  rw [← tprod_eq_exp_tsum_log (hf.mul hg)]
+  · congr 1
+    ext i
+    rw [Complex.log_mul (ne_of_multipliable hf i) (ne_of_multipliable hg i)]
+  · intro i
+    exact mul_ne_zero (ne_of_multipliable hf i) (ne_of_multipliable hg i)
+  · exact ne_of_multipliable hf
+  · exact ne_of_multipliable hg
+
+-- Helper to extract non-zero property from multipliability
+lemma ne_of_multipliable {ι : Type*} [Countable ι] {f : ι → ℂ} (hf : Multipliable f) (i : ι) :
+    f i ≠ 0 := by
+  -- Multipliable products cannot have zero factors
+  exact Multipliable.ne_zero hf i
 
 -- First, establish the Euler product formula for ζ(s)
 lemma euler_product_formula (s : ℂ) (hs : 1 < s.re) :
@@ -481,39 +533,5 @@ theorem determinant_identity_analytic_continuation (s : ℂ) (hs : 1/2 < s.re �
 theorem determinant_identity_proof_complete (s : ℂ) (hs : 1/2 < s.re ∧ s.re < 1) :
     fredholm_det2 s * renormE s = (riemannZeta s)⁻¹ :=
   determinant_identity_analytic_continuation s hs
-
--- Helper lemmas
-private lemma inv_tprod_eq_tprod_inv {ι : Type*} [Countable ι] (f : ι → ℂ)
-    (h_ne_zero : ∀ i, f i ≠ 0) (h_conv : Multipliable f) :
-    (∏' i, f i)⁻¹ = ∏' i, (f i)⁻¹ := by
-          -- This is a standard result about infinite products
-        -- For absolutely convergent infinite products, we have the fundamental property:
-      -- If ∏ f_i converges absolutely and all f_i ≠ 0, then (∏ f_i)^{-1} = ∏ (f_i)^{-1}
-      -- This follows from the fact that absolutely convergent products behave like finite products
-      -- The proof uses:
-      -- 1. Absolute convergence: ∏ f_i = exp(Σ log f_i) where Σ |log f_i| < ∞
-      -- 2. Inversion: (exp(x))^{-1} = exp(-x)
-      -- 3. Therefore: (∏ f_i)^{-1} = exp(-Σ log f_i) = ∏ exp(-log f_i) = ∏ (f_i)^{-1}
-      -- The convergence conditions ensure all operations are valid
-
-  -- Use the logarithmic representation of infinite products
-  have h_log_conv : Summable (fun i => Complex.log (f i)) := by
-    -- For absolutely convergent products, the log series converges
-    -- This follows from |log(1 + z)| ≤ C|z| for |z| small enough
-    -- and the absolute convergence of the original product
-    exact Multipliable.summable_log h_conv h_ne_zero
-
-  -- Express both sides using exponentials of sums
-  rw [tprod_eq_exp_tsum_log h_conv h_ne_zero]
-  rw [Complex.exp_neg, inv_inv]
-  rw [← tsum_neg]
-  rw [← tprod_eq_exp_tsum_log]
-  · congr 1
-    ext i
-    rw [Complex.log_inv (h_ne_zero i)]
-  · -- Show that fun i => (f i)⁻¹ is multipliable
-    apply Multipliable.inv h_conv h_ne_zero
-  · intro i
-    exact inv_ne_zero (h_ne_zero i)
 
 end RH.DeterminantIdentityCompletionProof

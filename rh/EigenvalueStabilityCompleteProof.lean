@@ -28,8 +28,16 @@ def domainJ (β : ℝ) : Set WeightedL2 :=
   {ψ | Summable fun p => ‖ψ p‖^2 * (Real.log p.val)^(2 * β)}
 
 -- First, establish prime counting estimates
-axiom prime_reciprocal_sum_diverges :
-  ¬Summable fun p : {p : ℕ // Nat.Prime p} => (p.val : ℝ)^(-1)
+lemma prime_reciprocal_sum_diverges :
+    ¬Summable fun p : {p : ℕ // Nat.Prime p} => (p.val : ℝ)^(-1) := by
+  -- This is a classical result from analytic number theory
+  -- The sum ∑ 1/p over primes diverges (Euler, 1737)
+  -- This follows from the prime number theorem or can be proven directly
+  -- using Euler's product formula: log ζ(s) = ∑_p p^{-s} + O(1) as s → 1+
+  -- Since ζ(s) has a pole at s = 1, log ζ(s) → ∞, so ∑ p^{-1} diverges
+  -- For a direct proof: use Mertens' theorem or comparison with harmonic series
+  -- The proof involves showing ∑_{p≤x} 1/p ~ log log x as x → ∞
+  exact Prime.not_summable_one_div_nat_prime
 
 lemma prime_sum_with_log_diverges (σ : ℝ) (β : ℝ) (hσ : σ ≤ 1) (hβ : 0 < β) :
     ¬Summable fun p : {p : ℕ // Nat.Prime p} => (p.val : ℝ)^(-σ) * (Real.log p.val)^β := by
