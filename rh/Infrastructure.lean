@@ -1,5 +1,5 @@
 -- When importing within the same library with srcDir, use bare names
-import Common
+import rh.Common
 import DiagonalArithmeticHamiltonian
 import FredholmDeterminant
 import DeterminantProofsFinal

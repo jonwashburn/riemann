@@ -7,7 +7,7 @@ package riemann where
 @[default_target]
 lean_lib «riemann» where
   -- set the root module to Main.lean and include Common
-  roots := #[`Main, `Common]
+  roots := #[`Main, `CommonShim]
 
 lean_lib «RH» where
   -- set the root module for the RH library

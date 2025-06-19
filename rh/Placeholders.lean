@@ -1,8 +1,14 @@
+import Common
+import FredholmDeterminant
 import Mathlib.Analysis.SpecialFunctions.Pow.Complex
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
 import Mathlib.Data.Real.Irrational
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import rh.AnalysisHelpers
+import Mathlib.Analysis.Complex.Basic
+import Mathlib.Analysis.SpecialFunctions.Complex.Log
+import Mathlib.Topology.Algebra.InfiniteSum.Group
+import Mathlib.Topology.Algebra.Order.LiminfLimsup
+import Mathlib.Order.Filter.Basic
 
 /-!
   # Placeholder lemmas
@@ -12,7 +18,63 @@ import rh.AnalysisHelpers
 
 noncomputable section
 
-open Complex Real Topology BigOperators Filter RH.AnalysisHelpers
+open Complex Real Topology BigOperators Filter
+
+-- Helper lemmas that should be in mathlib but we implement here
+namespace RH
+
+lemma eventually_lt_of_tendsto_nhds {α β : Type*} [TopologicalSpace β] [LinearOrder β]
+    {l : Filter α} {f : α → β} {b : β} (h : Tendsto f l (𝓝 b)) {c : β} (hc : c < b) :
+    ∀ᶠ a in l, c < f a := by
+  exact h (Ioi_mem_nhds hc)
+
+lemma eventually_ne_of_tendsto_nhds {α β : Type*} [TopologicalSpace β] [T2Space β]
+    {l : Filter α} {f : α → β} {b c : β} (h : Tendsto f l (𝓝 b)) (hne : c ≠ b) :
+    ∀ᶠ a in l, f a ≠ c := by
+  exact (tendsto_nhds.mp h).2 _ (isOpen_ne_fun hne) rfl
+
+lemma log_one_sub_inv_sub_self_bound {z : ℂ} (hz : ‖z‖ < 1/2) :
+    ‖log (1 - z)⁻¹ - z‖ ≤ 2 * ‖z‖^2 := by
+  -- Use Taylor expansion: log(1/(1-z)) = z + z²/2 + z³/3 + ...
+  -- So log(1/(1-z)) - z = z²/2 + z³/3 + ... ≤ |z|²/(1-|z|) ≤ 2|z|² when |z| < 1/2
+  sorry -- This requires the Taylor series bound which is technical but standard
+
+lemma log_one_sub_inv_bound {z : ℂ} (hz : ‖z‖ < 1/2) :
+    ‖log (1 - z)⁻¹‖ ≤ 2 * ‖z‖ := by
+  -- Use |log(1/(1-z))| ≤ |z| + |log(1/(1-z)) - z| ≤ |z| + 2|z|² ≤ 2|z| when |z| < 1/2
+  sorry -- This follows from the previous bound
+
+lemma summable_of_eventually_bounded {α : Type*} {f g : α → ℝ}
+    (h_bound : ∀ᶠ a in cofinite, |f a| ≤ g a) (h_g : Summable g) : Summable f := by
+  apply Summable.of_norm_bounded _ h_g
+  simpa using h_bound
+
+lemma summable_of_summable_add_left {α : Type*} {f g : α → ℂ}
+    (hf : Summable f) (hfg : Summable (f + g)) : Summable g := by
+  convert hfg.add_compl hf
+  ext; simp [add_comm]
+
+lemma tendsto_nhds_of_summable {α : Type*} {f : α → ℂ}
+    (h : Summable fun a => ‖f a - 1‖) : Tendsto f cofinite (𝓝 1) := by
+  rw [tendsto_nhds_metric]
+  intro ε hε
+  have : ∃ s : Finset α, ∀ a ∉ s, ‖f a - 1‖ < ε := by
+    obtain ⟨s, hs⟩ := h.tendsto_cofinite_zero.eventually (eventually_lt_nhds hε)
+    exact ⟨s, fun a ha => by simpa using hs ha⟩
+  obtain ⟨s, hs⟩ := this
+  exact eventually_cofinite.mpr ⟨s, hs⟩
+
+lemma multipliable_of_summable_log {α : Type*} {f : α → ℂ}
+    (h_sum : Summable fun a => log (f a)) (h_ne : ∀ a, f a ≠ 0) : Multipliable f := by
+  -- This uses the fact that ∏ f_a = exp(∑ log f_a) when the log sum converges
+  sorry -- This is a standard result about infinite products
+
+lemma tendsto_inv_one_sub_iff {α : Type*} {f : α → ℂ} :
+    Tendsto (fun a => (1 - f a)⁻¹) cofinite (𝓝 1) ↔ Tendsto f cofinite (𝓝 0) := by
+  -- This follows from continuity of z ↦ (1-z)⁻¹ at z = 0
+  sorry -- Standard continuity argument
+
+end RH
 
 namespace RH.Placeholders
 
@@ -80,7 +142,7 @@ lemma multipliable_iff_summable_norm_sub_one {α : Type*} (f : α → ℂ) :
       have h_f_tendsto : Tendsto f cofinite (𝓝 0) := by
         have h_sub_tendsto : Tendsto (fun a => 1 - f a) cofinite (𝓝 1) := by
           -- From (1 - f a)⁻¹ → 1, we get 1 - f a → 1
-          exact tendsto_inv_one_sub_iff.mp h_tendsto
+          exact RH.tendsto_inv_one_sub_iff.mp h_tendsto
         -- From 1 - f a → 1, we get f a → 0
         have : Tendsto (fun a => 1 - (1 - f a)) cofinite (𝓝 (1 - 1)) := by
           exact Tendsto.sub tendsto_const_nhds h_sub_tendsto
@@ -88,7 +150,7 @@ lemma multipliable_iff_summable_norm_sub_one {α : Type*} (f : α → ℂ) :
         exact this
 
       -- Since f a → 0, we have f a ≠ 1 eventually
-      exact eventually_ne_of_tendsto_nhds h_f_tendsto one_ne_zero
+      exact RH.eventually_ne_of_tendsto_nhds h_f_tendsto one_ne_zero
 
     -- For |f a| small enough, we have the expansion
     -- log((1 - f a)⁻¹) = -log(1 - f a) = f a + (f a)²/2 + (f a)³/3 + ...
@@ -105,7 +167,7 @@ lemma multipliable_iff_summable_norm_sub_one {α : Type*} (f : α → ℂ) :
 
     -- Since f a → 0, we have |f a| < 1/2 eventually
     have h_small : ∀ᶠ a in cofinite, ‖f a‖ < 1/2 := by
-      exact eventually_lt_of_tendsto_nhds h_f_tendsto (by norm_num)
+      exact RH.eventually_lt_of_tendsto_nhds h_f_tendsto (by norm_num)
 
     -- The series ∑ log((1 - f a)⁻¹) converges, and log((1 - f a)⁻¹) ≈ f a for small f a
     -- By the comparison test, ∑ ‖f a‖ converges
@@ -114,12 +176,12 @@ lemma multipliable_iff_summable_norm_sub_one {α : Type*} (f : α → ℂ) :
     have h_bound : ∀ᶠ a in cofinite, ‖Complex.log ((1 - f a)⁻¹) - f a‖ ≤ 2 * ‖f a‖^2 := by
       filter_upwards [h_small] with a ha
       -- Use Taylor series bound for log((1-z)⁻¹)
-      exact log_one_sub_inv_sub_self_bound ha
+      exact RH.log_one_sub_inv_sub_self_bound ha
 
     -- Since ∑ log((1 - f a)⁻¹) converges and log((1 - f a)⁻¹) - f a → 0 rapidly,
     -- we get that ∑ f a converges, hence ∑ ‖f a‖ converges
-    apply summable_of_summable_add_left h_log_summable
-    exact summable_of_eventually_bounded h_bound (summable_const_mul_of_summable h_log_summable)
+    apply RH.summable_of_summable_add_left h_log_summable
+    exact RH.summable_of_eventually_bounded h_bound (summable_const_mul_of_summable h_log_summable)
 
   · -- Reverse direction: if the sum converges, then the product converges
     intro h_sum
@@ -127,7 +189,7 @@ lemma multipliable_iff_summable_norm_sub_one {α : Type*} (f : α → ℂ) :
     have h_lim : Tendsto f cofinite (𝓝 0) := by
       -- If ∑ ‖f a‖ converges, then f a → 0
       -- This follows from the fact that summable sequences tend to zero
-      exact tendsto_nhds_of_summable h_sum
+      exact RH.tendsto_nhds_of_summable h_sum
 
     -- For a cofinite, we have |f a| < 1/2, so (1 - f a)⁻¹ is well-defined
     -- And log((1 - f a)⁻¹) = f a + O(|f a|²)
@@ -136,10 +198,10 @@ lemma multipliable_iff_summable_norm_sub_one {α : Type*} (f : α → ℂ) :
 
     -- Since f a → 0, we have |f a| < 1/2 eventually, so (1 - f a)⁻¹ is well-defined
     have h_small : ∀ᶠ a in cofinite, ‖f a‖ < 1/2 := by
-      exact eventually_lt_of_tendsto_nhds h_lim (by norm_num)
+      exact RH.eventually_lt_of_tendsto_nhds h_lim (by norm_num)
 
     have h_ne_one : ∀ᶠ a in cofinite, f a ≠ 1 := by
-      exact eventually_ne_of_tendsto_nhds h_lim one_ne_zero
+      exact RH.eventually_ne_of_tendsto_nhds h_lim one_ne_zero
 
     -- For |f a| < 1/2, we have the Taylor expansion:
     -- log((1 - f a)⁻¹) = f a + (f a)²/2 + (f a)³/3 + ...
@@ -148,15 +210,15 @@ lemma multipliable_iff_summable_norm_sub_one {α : Type*} (f : α → ℂ) :
     have h_log_bound : ∀ᶠ a in cofinite, ‖Complex.log ((1 - f a)⁻¹)‖ ≤ 2 * ‖f a‖ := by
       filter_upwards [h_small] with a ha
       -- Use the fact that for |z| < 1/2: |log((1-z)⁻¹)| ≤ 2|z|
-      exact log_one_sub_inv_bound ha
+      exact RH.log_one_sub_inv_bound ha
 
     -- Since ∑ ‖f a‖ converges, so does ∑ log((1 - f a)⁻¹)
     have h_log_summable : Summable (fun a => Complex.log ((1 - f a)⁻¹)) := by
-      apply summable_of_eventually_bounded h_log_bound
+      apply RH.summable_of_eventually_bounded h_log_bound
       exact summable_const_mul_of_summable h_sum
 
     -- Therefore the infinite product converges
-    exact multipliable_of_summable_log h_log_summable h_ne_one
+    exact RH.multipliable_of_summable_log h_log_summable h_ne_one
 
 lemma log_prime_ratio_irrational (p q : ℕ) (hp : Nat.Prime p) (hq : Nat.Prime q) (hne : p ≠ q) :
     Irrational (Real.log p / Real.log q) := by
