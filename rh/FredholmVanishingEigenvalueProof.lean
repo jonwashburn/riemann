@@ -1,10 +1,10 @@
-import Common
+import rh.Common
 import Mathlib.Analysis.SpecialFunctions.Complex.Log
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
 import Mathlib.Topology.Basic
 import Mathlib.Order.Filter.Basic
 import Mathlib.Topology.Constructions
-import FredholmDeterminant
+import rh.FredholmDeterminant
 
 /-!
 # Proof of Vanishing Product Theorem

@@ -1,6 +1,6 @@
-import Common
+import rh.Common
 import Mathlib.Analysis.InnerProductSpace.l2Space
-import FredholmDeterminant
+import rh.FredholmDeterminant
 
 /-!
 # Diagonal Operator Components

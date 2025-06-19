@@ -1,5 +1,5 @@
-import Common
-import FredholmDeterminant
+import rh.Common
+import rh.FredholmDeterminant
 import DeterminantIdentityCompletionProof
 import Mathlib.NumberTheory.LSeries.RiemannZeta
 import Mathlib.Analysis.InnerProductSpace.l2Space

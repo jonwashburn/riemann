@@ -1,5 +1,5 @@
-import Common
-import FredholmDeterminant
+import rh.Common
+import rh.FredholmDeterminant
 import DiagonalArithmeticHamiltonianProof1
 import Mathlib.Analysis.InnerProductSpace.l2Space
 import Mathlib.Analysis.InnerProductSpace.Basic

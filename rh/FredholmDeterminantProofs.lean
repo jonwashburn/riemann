@@ -2,9 +2,9 @@ import Mathlib.Analysis.InnerProductSpace.l2Space
 import Mathlib.Analysis.Normed.Operator.ContinuousLinearMap
 import Mathlib.Analysis.SpecialFunctions.Pow.Complex
 import Mathlib.Data.Nat.Prime.Basic
-import Common
+import rh.Common
 import Placeholders
-import FredholmDeterminant
+import rh.FredholmDeterminant
 
 /-!
 # Proofs for FredholmDeterminant sorry statements

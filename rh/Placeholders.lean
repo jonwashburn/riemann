@@ -1,5 +1,5 @@
-import Common
-import FredholmDeterminant
+import rh.Common
+import rh.FredholmDeterminant
 import Mathlib.Analysis.SpecialFunctions.Pow.Complex
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
 import Mathlib.Data.Real.Irrational

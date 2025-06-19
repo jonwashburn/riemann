@@ -1,14 +1,14 @@
 -- When importing within the same library with srcDir, use bare names
 import rh.Common
-import DiagonalArithmeticHamiltonian
-import FredholmDeterminant
-import DeterminantProofsFinal
-import FredholmVanishingEigenvalue
-import DiagonalOperatorComponents
-import PrimeRatioNotUnity
-import EigenvalueStabilityComplete
-import DeterminantIdentityCompletion
-import ZetaFunctionalEquation
+import rh.DiagonalArithmeticHamiltonian
+import rh.FredholmDeterminant
+import rh.DeterminantProofsFinal
+import rh.FredholmVanishingEigenvalue
+import rh.DiagonalOperatorComponents
+import rh.PrimeRatioNotUnity
+import rh.EigenvalueStabilityComplete
+import rh.DeterminantIdentityCompletion
+import rh.ZetaFunctionalEquation
 
 /-!
 # Infrastructure Hub

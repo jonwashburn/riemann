@@ -1,5 +1,5 @@
-import Common
-import FredholmDeterminant
+import rh.Common
+import rh.FredholmDeterminant
 import EigenvalueStabilityCompleteProof
 import Mathlib.Analysis.InnerProductSpace.l2Space
 import Mathlib.Topology.Algebra.InfiniteSum.Basic

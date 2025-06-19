@@ -1,8 +1,8 @@
-import Common
+import rh.Common
 import FredholmVanishingEigenvalueProof
 import Mathlib.Analysis.SpecialFunctions.Complex.Log
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
-import FredholmDeterminant
+import rh.FredholmDeterminant
 
 /-!
 # Fredholm Vanishing Eigenvalue
