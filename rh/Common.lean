@@ -4,7 +4,6 @@ import Mathlib.Topology.Instances.ENNReal
 import Mathlib.Data.Nat.Prime.Basic
 import Mathlib.Analysis.SpecialFunctions.Complex.Log
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
-import rh.Placeholders
 
 /-!
 # Common Infrastructure Definitions
