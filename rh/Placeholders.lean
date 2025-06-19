@@ -2,6 +2,7 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Complex
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
 import Mathlib.Data.Real.Irrational
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
+import rh.AnalysisHelpers
 
 /-!
   # Placeholder lemmas
@@ -11,7 +12,7 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 
 noncomputable section
 
-open Complex Real Topology BigOperators Filter
+open Complex Real Topology BigOperators Filter RH.AnalysisHelpers
 
 namespace RH.Placeholders
 

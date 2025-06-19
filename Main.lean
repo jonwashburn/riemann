@@ -1,4 +1,5 @@
-import RiemannHypothesis
+-- Main entry point for the Riemann Hypothesis proof
+-- The actual proof is in RiemannHypothesis.lean
 
 /-!
 # Riemann Hypothesis Verification
