@@ -35,41 +35,20 @@ lemma eventually_ne_of_tendsto_nhds {α β : Type*} [TopologicalSpace β] [T2Spa
 
 lemma log_one_sub_inv_sub_self_bound {z : ℂ} (hz : ‖z‖ < 1/2) :
     ‖log (1 - z)⁻¹ - z‖ ≤ 2 * ‖z‖^2 := by
-  -- Use Taylor expansion: log(1/(1-z)) = z + z²/2 + z³/3 + ...
-  -- So log(1/(1-z)) - z = z²/2 + z³/3 + ... ≤ |z|²/(1-|z|) ≤ 2|z|² when |z| < 1/2
+  -- Use the bound from mathlib
+  have h_bound := Complex.norm_log_one_sub_inv_sub_self_le (by linarith : ‖z‖ < 1)
 
-  -- First, rewrite log((1-z)⁻¹) = -log(1-z)
-  have h_log_inv : log (1 - z)⁻¹ = -log (1 - z) := by
-    rw [log_inv]
-    by_contra h
-    simp at h
-    have : ‖1 - z‖ = 0 := by
-      exact norm_eq_zero.mpr h
-    have : ‖1‖ ≤ ‖z‖ := by
-      calc ‖1‖ = ‖1 - z + z‖ := by ring_nf
-      _ ≤ ‖1 - z‖ + ‖z‖ := norm_add_le _ _
-      _ = ‖z‖ := by simp [this]
-    norm_num at this
-    linarith
+  -- When ‖z‖ < 1/2, we have 1/(1-‖z‖) ≤ 2
+  have h_denom : (1 - ‖z‖)⁻¹ ≤ 2 := by
+    rw [inv_le_iff_one_le_mul]
+    · linarith
+    · linarith
 
-  -- The Taylor series of -log(1-z) = z + z²/2 + z³/3 + ...
-  -- So -log(1-z) - z = z²/2 + z³/3 + ...
-
-  -- For |z| < 1/2, we have the bound:
-  -- |∑_{n≥2} z^n/n| ≤ ∑_{n≥2} |z|^n = |z|²/(1-|z|) ≤ 2|z|²
-
-  -- The key is that for |z| < 1/2:
-  -- |z|²/(1-|z|) ≤ |z|²/(1-1/2) = 2|z|²
-
-  have h_bound : ‖z‖ < 1 := by linarith
-  have h_ne_one : z ≠ 1 := by
-    by_contra h_eq
-    rw [h_eq] at hz
-    norm_num at hz
-
-  -- Use the fact that the remainder of the Taylor series is bounded
-  -- This requires the series expansion of log(1-z) and bounds on the tail
-  sorry -- This requires the Taylor series bound which is technical but standard
+  calc ‖log (1 - z)⁻¹ - z‖
+    _ ≤ ‖z‖^2 * (1 - ‖z‖)⁻¹ / 2 := h_bound
+    _ ≤ ‖z‖^2 * 2 / 2 := by gcongr
+    _ = ‖z‖^2 := by ring
+    _ ≤ 2 * ‖z‖^2 := by linarith
 
 lemma log_one_sub_inv_bound {z : ℂ} (hz : ‖z‖ < 1/2) :
     ‖log (1 - z)⁻¹‖ ≤ 2 * ‖z‖ := by
