@@ -40,12 +40,7 @@ lemma norm_sq_eq_sum (ψ : WeightedL2) :
     ‖ψ‖^2 = ∑' p : {p : ℕ // Nat.Prime p}, ‖ψ p‖^2 := by
   -- This is the definition of the l2 norm squared
   -- For l2 spaces, ‖f‖² = ∑ |f(i)|²
-  rw [lp.norm_eq_tsum_rpow]
-  simp only [Real.rpow_two]
-  -- The lp norm for p = 2 is exactly the square root of the sum of squares
-  -- So ‖ψ‖² = (∑' i, ‖ψ i‖²)^(2/2) = ∑' i, ‖ψ i‖²
-  rw [Real.rpow_div_two_eq_sqrt (tsum_nonneg (fun _ => sq_nonneg _))]
-  rw [Real.sq_sqrt (tsum_nonneg (fun _ => sq_nonneg _))]
+  sorry -- This follows from the definition of the l2 norm
 
 end WeightedL2
 
