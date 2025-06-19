@@ -128,7 +128,36 @@ lemma multipliable_of_summable_log {α : Type*} {f : α → ℂ}
   -- for all finite F ⊇ F₀, |∑_{i∈F} log(f i) - S| < ε
   -- Therefore |∏_{i∈F} f i - exp(S)| = |exp(∑_{i∈F} log(f i)) - exp(S)| < δ(ε)
 
-  sorry -- This is a standard result about infinite products
+  -- We'll show that HasProd f (exp S)
+  use exp S
+
+  -- Need to show: Tendsto (fun s : Finset α ↦ ∏ b ∈ s, f b) atTop (𝓝 (exp S))
+  -- Using h_finite, this is: Tendsto (fun s : Finset α ↦ exp (∑ b ∈ s, log (f b))) atTop (𝓝 (exp S))
+
+  rw [tendsto_nhds_metric]
+  intro ε hε
+
+  -- Since exp is continuous at S, for ε > 0, there exists δ > 0 such that
+  -- |z - S| < δ implies |exp(z) - exp(S)| < ε
+  have h_exp_cont : ContinuousAt exp S := continuous_exp.continuousAt
+  rw [Metric.continuousAt_iff] at h_exp_cont
+  obtain ⟨δ, hδ_pos, hδ⟩ := h_exp_cont ε hε
+
+  -- Since ∑ log(f a) converges to S, there exists F₀ such that
+  -- for all finite F ⊇ F₀, |∑_{i∈F} log(f i) - S| < δ
+  have h_sum_conv : Tendsto (fun s : Finset α ↦ ∑ b ∈ s, log (f b)) atTop (𝓝 S) := by
+    exact h_sum.hasSum
+
+  rw [tendsto_nhds_metric] at h_sum_conv
+  obtain ⟨F₀, hF₀⟩ := h_sum_conv δ hδ_pos
+
+  -- Therefore, for F ⊇ F₀, we have |∏_{i∈F} f i - exp(S)| < ε
+  use F₀
+  intro F hF
+
+  -- |∏_{i∈F} f i - exp(S)| = |exp(∑_{i∈F} log(f i)) - exp(S)| < ε
+  rw [h_finite F]
+  exact hδ (hF₀ F hF)
 
 lemma tendsto_inv_one_sub_iff {α : Type*} {f : α → ℂ} :
     Tendsto (fun a => (1 - f a)⁻¹) cofinite (𝓝 1) ↔ Tendsto f cofinite (𝓝 0) := by
