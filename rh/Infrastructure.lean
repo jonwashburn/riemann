@@ -26,6 +26,6 @@ export DiagonalComponents (diagonal_component_formula)
 export PrimeRatio (log_prime_ratio_irrational complex_eigenvalue_relation)
 export EigenvalueStabilityComplete (domain_preservation_implies_constraint)
 export DeterminantIdentityCompletion (determinant_identity_proof)
-export ZetaFunctionalEquation (zeta_functional_equation_zeros)
+export ZetaFunctionalEquation (zeta_zero_symmetry)
 
 end RH
