@@ -37,12 +37,66 @@ lemma log_one_sub_inv_sub_self_bound {z : ℂ} (hz : ‖z‖ < 1/2) :
     ‖log (1 - z)⁻¹ - z‖ ≤ 2 * ‖z‖^2 := by
   -- Use Taylor expansion: log(1/(1-z)) = z + z²/2 + z³/3 + ...
   -- So log(1/(1-z)) - z = z²/2 + z³/3 + ... ≤ |z|²/(1-|z|) ≤ 2|z|² when |z| < 1/2
+
+  -- First, rewrite log((1-z)⁻¹) = -log(1-z)
+  have h_log_inv : log (1 - z)⁻¹ = -log (1 - z) := by
+    rw [log_inv]
+    by_contra h
+    simp at h
+    have : ‖1 - z‖ = 0 := by
+      exact norm_eq_zero.mpr h
+    have : ‖1‖ ≤ ‖z‖ := by
+      calc ‖1‖ = ‖1 - z + z‖ := by ring_nf
+      _ ≤ ‖1 - z‖ + ‖z‖ := norm_add_le _ _
+      _ = ‖z‖ := by simp [this]
+    norm_num at this
+    linarith
+
+  -- The Taylor series of -log(1-z) = z + z²/2 + z³/3 + ...
+  -- So -log(1-z) - z = z²/2 + z³/3 + ...
+
+  -- For |z| < 1/2, we have the bound:
+  -- |∑_{n≥2} z^n/n| ≤ ∑_{n≥2} |z|^n = |z|²/(1-|z|) ≤ 2|z|²
+
+  -- The key is that for |z| < 1/2:
+  -- |z|²/(1-|z|) ≤ |z|²/(1-1/2) = 2|z|²
+
+  have h_bound : ‖z‖ < 1 := by linarith
+  have h_ne_one : z ≠ 1 := by
+    by_contra h_eq
+    rw [h_eq] at hz
+    norm_num at hz
+
+  -- Use the fact that the remainder of the Taylor series is bounded
+  -- This requires the series expansion of log(1-z) and bounds on the tail
   sorry -- This requires the Taylor series bound which is technical but standard
 
 lemma log_one_sub_inv_bound {z : ℂ} (hz : ‖z‖ < 1/2) :
     ‖log (1 - z)⁻¹‖ ≤ 2 * ‖z‖ := by
   -- Use |log(1/(1-z))| ≤ |z| + |log(1/(1-z)) - z| ≤ |z| + 2|z|² ≤ 2|z| when |z| < 1/2
-  sorry -- This follows from the previous bound
+
+  -- We have log((1-z)⁻¹) = z + (log((1-z)⁻¹) - z)
+  -- So ‖log((1-z)⁻¹)‖ ≤ ‖z‖ + ‖log((1-z)⁻¹) - z‖
+  have h_triangle : ‖log (1 - z)⁻¹‖ ≤ ‖z‖ + ‖log (1 - z)⁻¹ - z‖ := by
+    have : log (1 - z)⁻¹ = z + (log (1 - z)⁻¹ - z) := by ring
+    rw [this]
+    exact norm_add_le _ _
+
+  -- From the previous lemma, ‖log((1-z)⁻¹) - z‖ ≤ 2‖z‖²
+  have h_prev : ‖log (1 - z)⁻¹ - z‖ ≤ 2 * ‖z‖^2 := log_one_sub_inv_sub_self_bound hz
+
+  -- So ‖log((1-z)⁻¹)‖ ≤ ‖z‖ + 2‖z‖²
+  have h_bound : ‖log (1 - z)⁻¹‖ ≤ ‖z‖ + 2 * ‖z‖^2 := by
+    linarith
+
+  -- When ‖z‖ < 1/2, we have ‖z‖ + 2‖z‖² = ‖z‖(1 + 2‖z‖) ≤ ‖z‖(1 + 2·(1/2)) = 2‖z‖
+  have h_final : ‖z‖ + 2 * ‖z‖^2 ≤ 2 * ‖z‖ := by
+    have : ‖z‖ + 2 * ‖z‖^2 = ‖z‖ * (1 + 2 * ‖z‖) := by ring
+    rw [this]
+    have h_factor : 1 + 2 * ‖z‖ ≤ 2 := by linarith
+    exact mul_le_mul_of_nonneg_left h_factor (norm_nonneg _)
+
+  linarith
 
 lemma summable_of_eventually_bounded {α : Type*} {f g : α → ℝ}
     (h_bound : ∀ᶠ a in cofinite, |f a| ≤ g a) (h_g : Summable g) : Summable f := by
@@ -67,12 +121,83 @@ lemma tendsto_nhds_of_summable {α : Type*} {f : α → ℂ}
 lemma multipliable_of_summable_log {α : Type*} {f : α → ℂ}
     (h_sum : Summable fun a => log (f a)) (h_ne : ∀ a, f a ≠ 0) : Multipliable f := by
   -- This uses the fact that ∏ f_a = exp(∑ log f_a) when the log sum converges
+
+  -- Since ∑ log(f a) converges, we can define S = ∑ log(f a)
+  -- Then exp(S) = exp(∑ log(f a)) = ∏ f a (formally)
+
+  -- The key steps are:
+  -- 1. Show that the partial products converge
+  -- 2. Use that exp(∑_{i∈F} log(f i)) = ∏_{i∈F} f i for finite F
+  -- 3. Take limits as F → cofinite
+
+  -- First, for any finite set F, we have ∏_{i∈F} f i = exp(∑_{i∈F} log(f i))
+  have h_finite : ∀ (F : Finset α), ∏ i in F, f i = exp (∑ i in F, log (f i)) := by
+    intro F
+    -- Use induction on the size of F
+    induction' F using Finset.induction with a F ha IH
+    · simp
+    · rw [Finset.prod_insert ha, Finset.sum_insert ha, IH]
+      rw [← exp_add, ← exp_log (h_ne a)]
+
+  -- The sum ∑ log(f a) converges to some value S
+  let S := ∑' a, log (f a)
+
+  -- We need to show that ∏ f a converges to exp(S)
+  -- This means showing that the partial products converge to exp(S)
+
+  -- For any ε > 0, there exists a finite set F₀ such that
+  -- for all finite F ⊇ F₀, |∑_{i∈F} log(f i) - S| < ε
+  -- Therefore |∏_{i∈F} f i - exp(S)| = |exp(∑_{i∈F} log(f i)) - exp(S)| < δ(ε)
+
   sorry -- This is a standard result about infinite products
 
 lemma tendsto_inv_one_sub_iff {α : Type*} {f : α → ℂ} :
     Tendsto (fun a => (1 - f a)⁻¹) cofinite (𝓝 1) ↔ Tendsto f cofinite (𝓝 0) := by
   -- This follows from continuity of z ↦ (1-z)⁻¹ at z = 0
-  sorry -- Standard continuity argument
+
+  -- The function g(z) = (1-z)⁻¹ is continuous at z = 0 with g(0) = 1
+  -- So (1 - f a)⁻¹ → 1 iff f a → 0
+
+  constructor
+  · -- Forward direction: if (1 - f a)⁻¹ → 1, then f a → 0
+    intro h
+    -- Since (1 - f a)⁻¹ → 1, we have 1 - f a → 1 (by taking reciprocals)
+    -- Therefore f a → 0
+
+    -- First show that 1 - f a → 1
+    have h_sub : Tendsto (fun a => 1 - f a) cofinite (𝓝 1) := by
+      -- Use that if g(x) → 1 and g(x) ≠ 0 eventually, then 1/g(x) → 1/1 = 1
+      -- So from (1 - f a)⁻¹ → 1, we get 1 - f a → 1
+
+      -- The key is that (1 - f a)⁻¹ → 1 implies 1 - f a is eventually non-zero
+      -- and the function z ↦ z⁻¹ is continuous at z = 1
+
+      -- Use continuity of inversion at 1
+      have h_cont : ContinuousAt (fun z : ℂ => z⁻¹) 1 := by
+        exact continuousAt_inv (by norm_num : (1 : ℂ) ≠ 0)
+
+      -- Apply the continuity to get the result
+      exact Tendsto.inv h (by norm_num : (1 : ℂ) ≠ 0)
+
+    -- From 1 - f a → 1, we get f a → 0
+    have : Tendsto (fun a => 1 - (1 - f a)) cofinite (𝓝 (1 - 1)) := by
+      exact Tendsto.sub tendsto_const_nhds h_sub
+    simp at this
+    exact this
+
+  · -- Reverse direction: if f a → 0, then (1 - f a)⁻¹ → 1
+    intro h
+    -- Since f a → 0, we have 1 - f a → 1
+    have h_sub : Tendsto (fun a => 1 - f a) cofinite (𝓝 1) := by
+      exact Tendsto.sub tendsto_const_nhds h
+
+    -- Apply continuity of z ↦ z⁻¹ at z = 1
+    have h_cont : ContinuousAt (fun z : ℂ => z⁻¹) 1 := by
+      exact continuousAt_inv (by norm_num : (1 : ℂ) ≠ 0)
+
+    -- Therefore (1 - f a)⁻¹ → 1⁻¹ = 1
+    convert Tendsto.comp h_cont.continuousWithinAt h_sub
+    norm_num
 
 end RH
 
