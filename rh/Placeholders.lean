@@ -144,6 +144,30 @@ lemma log_prime_ratio_irrational (p q : ℕ) (hp : Nat.Prime p) (hq : Nat.Prime 
 
   -- But this is impossible by unique prime factorization unless a = b = 0
   -- Since b ≠ 0 by assumption, we have a contradiction
-  sorry
+
+  -- The equation p^(Int.natAbs b) = q^(Int.natAbs a) contradicts unique factorization
+  -- Since p and q are distinct primes, their powers cannot be equal unless both exponents are 0
+  -- But we know Int.natAbs b > 0 since b ≠ 0 and we're in the case b > 0
+  have hb_pos : 0 < Int.natAbs b := Int.natAbs_pos.mpr hb_ne_zero
+  have ha_pos : 0 < Int.natAbs a := Int.natAbs_pos.mpr ha_ne_zero
+
+  -- Use the fact that distinct primes have coprime powers
+  have h_coprime : Nat.Coprime (p^(Int.natAbs b)) (q^(Int.natAbs a)) := by
+    -- Since p and q are distinct primes, p^m and q^n are coprime for any m, n > 0
+    apply Nat.coprime_pow_primes hp hq hne hb_pos ha_pos
+
+  -- But h_nat_exp says they are equal, so they must both be 1
+  have h_both_one : p^(Int.natAbs b) = 1 ∧ q^(Int.natAbs a) = 1 := by
+    rw [← h_nat_exp] at h_coprime
+    exact Nat.coprime_self_iff.mp h_coprime
+
+  -- This implies p = 1 (since Int.natAbs b > 0), contradicting that p is prime
+  have hp_one : p = 1 := by
+    have : p^(Int.natAbs b) = 1 := h_both_one.1
+    exact Nat.eq_one_of_pow_eq_one_of_pos this hb_pos
+
+  -- But primes are > 1
+  have hp_gt_one : 1 < p := Nat.Prime.one_lt hp
+  exact lt_irrefl 1 (hp_one ▸ hp_gt_one)
 
 end RH.Placeholders
