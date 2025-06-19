@@ -38,9 +38,11 @@ noncomputable instance : InnerProductSpace ℂ WeightedL2 := by
 /-- Norm squared equals sum of component norms squared -/
 lemma norm_sq_eq_sum (ψ : WeightedL2) :
     ‖ψ‖^2 = ∑' p : {p : ℕ // Nat.Prime p}, ‖ψ p‖^2 := by
-  -- This is the definition of the l2 norm squared
-  -- For l2 spaces, ‖f‖² = ∑ |f(i)|²
-  rfl  -- This is definitionally true for lp 2 spaces
+  -- For l2 spaces, ‖f‖² = ⟨f, f⟩ = ∑ |f(i)|²
+  rw [← real_inner_self_eq_norm_sq]
+  rw [lp.inner_eq_tsum]
+  simp only [inner_self_eq_norm_sq_to_K]
+  rfl
 
 end WeightedL2
 
