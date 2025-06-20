@@ -1,0 +1,3 @@
+{
+  "rh/academic_framework/MainTheorem_Fixed.lean:32:zeta_no_zeros_re_gt_one": "by\n  simpa using riemannZeta_ne_zero (s := s) (hs := hs)"
+}

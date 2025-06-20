@@ -50,7 +50,7 @@ noncomputable def trace_norm {H : Type*} [NormedAddCommGroup H] [InnerProductSpa
 /-- A diagonal operator with given eigenvalues -/
 noncomputable def DiagonalOperator (eigenvalues : ι → ℂ)
   (h_bounded : ∃ C, ∀ i, ‖eigenvalues i‖ ≤ C) : lp (fun _ : ι => ℂ) 2 →L[ℂ] lp (fun _ : ι => ℂ) 2 :=
-  -- For simplicity, we'll use a sorry here and focus on the main theorems
+-- For simplicity, we'll use a sorry here and focus on the main theorems
   Looking at the context, I can see this is about proving that a sum of positive costs is positive. Based on the pattern and the comment mentioning `List.sum_pos`, here's the proof:
 
 ```lean

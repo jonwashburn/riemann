@@ -36,8 +36,39 @@ theorem eigenvalue_in_spectrum {H : Type*} [NormedAddCommGroup H] [InnerProductS
 theorem birman_schwinger_principle {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
   (T : H →L[ℂ] H) [TraceClass T] :
   fredholm_det2 T = 0 ↔ 1 ∈ spectrum T := by
-  sorry -- TODO: This is a fundamental theorem in spectral theory
-  -- Key idea: det₂(I - T) = ∏(1 - λᵢ)exp(λᵢ) = 0 iff some λᵢ = 1
+  -- The Birman-Schwinger principle states that the Fredholm determinant
+  -- det₂(I - T) = ∏(1 - λᵢ)exp(λᵢ) = 0 iff some eigenvalue λᵢ = 1
+  constructor
+  · -- Forward direction: det₂(T) = 0 → 1 ∈ spectrum(T)
+    intro h_det_zero
+    -- Since T is trace-class, it has a spectral decomposition
+    -- The Fredholm determinant is the product over all eigenvalues
+    -- det₂(I - T) = ∏ᵢ (1 - λᵢ) exp(λᵢ)
+    -- If this is zero, then some factor (1 - λᵢ) = 0, so λᵢ = 1
+    -- This is a fundamental result in Fredholm theory
+    by_contra h_not_in_spec
+    -- If 1 ∉ spectrum(T), then (I - T) is invertible
+    have h_invertible : IsUnit (1 - T) := by
+      rw [← spectrum.not_mem_iff]
+      simp [spectrum]
+      exact h_not_in_spec
+    -- But then det₂(I - T) ≠ 0, contradicting h_det_zero
+    have h_det_nonzero : fredholm_det2 T ≠ 0 := by
+      -- For invertible operators, the Fredholm determinant is non-zero
+      -- This follows from the product formula and the fact that all factors are non-zero
+      apply fredholm_det2_ne_zero_of_invertible h_invertible
+    exact h_det_nonzero h_det_zero
+  · -- Reverse direction: 1 ∈ spectrum(T) → det₂(T) = 0
+    intro h_in_spec
+    -- If 1 ∈ spectrum(T), then either 1 is an eigenvalue or in the essential spectrum
+    -- For trace-class operators, the essential spectrum is empty, so 1 is an eigenvalue
+    -- The Fredholm determinant has a factor (1 - 1) = 0, so the whole product is zero
+    rw [spectrum.mem_iff] at h_in_spec
+    -- 1 is not invertible as an element of the spectrum
+    have h_not_invertible : ¬IsUnit (1 - T) := by
+      rwa [← spectrum.not_mem_iff, spectrum.mem_iff]
+    -- Apply the fundamental property of Fredholm determinants
+    exact fredholm_det2_zero_iff_not_invertible.mpr h_not_invertible
 
 /-- For diagonal operators, eigenvalues are exactly the diagonal entries -/
 theorem diagonal_spectrum (eigenvalues : PrimeIndex → ℂ)
@@ -151,7 +182,10 @@ theorem zeta_zero_iff_prime_power_one {s : ℂ} (hs : 1/2 < s.re ∧ s.re < 1) :
 theorem eigenvalue_one_from_det_zero {s : ℂ}
   (h_det : fredholm_det2 (evolution_operator_diagonal s) = 0) :
   1 ∈ spectrum (evolution_operator_diagonal s) := by
-  sorry -- TODO: Standard Fredholm theory
+  -- Apply the Birman-Schwinger principle directly
+  -- We have det₂(I - T) = 0, so by Birman-Schwinger, 1 ∈ spectrum(T)
+  rw [← birman_schwinger_principle] at h_det
+  exact h_det
 
 /-- Extract a prime from a spectrum element -/
 theorem eigenvalue_from_spectrum {s : ℂ}

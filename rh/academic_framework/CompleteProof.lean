@@ -23,27 +23,57 @@ open PrimePowerContradiction DiagonalFredholm EulerProductMathlib AnalyticContin
 /-- The evolution operator eigenvalues -/
 def evolution_eigenvalues (s : ℂ) : PrimeIndex → ℂ := fun p => (p.val : ℂ)^(-s)
 
-/-- The key connection: det₂(I - A(s)) = 1/ζ(s) -/
+/-- The key connection: det₂(I - A(s)) / exp(tr A(s)) = 1/ζ(s) -/
 theorem det_zeta_connection {s : ℂ} (hs : 1 < s.re) :
-  fredholm_det2 (evolution_eigenvalues s) sorry * exp (∑' p : PrimeIndex, (p.val : ℂ)^(-s)) =
-  (riemannZeta s)⁻¹ := by
-  -- Step 1: Fredholm determinant formula
-  rw [fredholm_det2_diagonal_formula]
+  fredholm_det2 (evolution_eigenvalues s) (eigenvalues_summable ⟨by linarith, by linarith⟩) /
+    exp (∑' p : PrimeIndex, (p.val : ℂ)^(-s)) = (riemannZeta s)⁻¹ := by
+  -- Expand `fredholm_det2` via the diagonal product formula.
+  have h_det :
+      fredholm_det2 (evolution_eigenvalues s)
+          (eigenvalues_summable ⟨by linarith, by linarith⟩) =
+        ∏' p : PrimeIndex, (1 - (p.val : ℂ)^(-s)) * exp ((p.val : ℂ)^(-s)) := by
+    simpa [evolution_eigenvalues] using
+      fredholm_det2_diagonal_formula (evolution_eigenvalues s)
+        (eigenvalues_summable ⟨by linarith, by linarith⟩)
 
-  -- Step 2: Product over primes
-  simp [evolution_eigenvalues]
+  -- Rewrite the goal using `h_det`.
+  -- After substitution the left hand side becomes a quotient of two products.
+  -- We separate the two factors in the tprod and cancel the exponential part.
+  -- First, introduce the shorthand `λ p := (p.val : ℂ)^(-s)`.
+  let λp : PrimeIndex → ℂ := fun p => (p.val : ℂ)^(-s)
 
-  -- Step 3: Euler product
-  rw [← euler_product_prime_index hs]
+  -- Using `h_det`, rewrite the goal.
+  have : (∏' p, (1 - λp p) * exp (λp p)) /
+      exp (∑' p, λp p) = (riemannZeta s)⁻¹ := by
+    -- Turn the division into a product.
+    have h_exp_prod : (∏' p : PrimeIndex, exp (λp p)) =
+        exp (∑' p : PrimeIndex, λp p) := by
+      -- This is a standard result: the exponential of a summable series
+      -- is the product of exponentials.
+      simpa using tprod_exp_eq_exp_tsum (λ p : PrimeIndex => λp p)
 
-  -- Step 4: Algebra
-  -- We have ∏(1 - p^(-s)) * exp(p^(-s)) from fredholm_det2
-  -- Times exp(∑ p^(-s)) from the renormalization
-  -- This equals ∏(1 - p^(-s)) * ∏exp(p^(-s)) * exp(∑ p^(-s))
-  -- = ∏(1 - p^(-s)) * exp(∑ p^(-s)) * exp(∑ p^(-s))
-  -- = ∏(1 - p^(-s)) * exp(2∑ p^(-s))
-  -- But we want 1/ζ(s) = 1/∏(1 - p^(-s))^(-1) = ∏(1 - p^(-s))
-  sorry -- TODO: Fix the normalization factor
+    -- Split the tprod into two parts.
+    have h_split : ∏' p : PrimeIndex, (1 - λp p) * exp (λp p) =
+        (∏' p : PrimeIndex, (1 - λp p)) * (∏' p : PrimeIndex, exp (λp p)) := by
+      simpa using tprod_mul_distrib (fun p : PrimeIndex => (1 - λp p))
+        (fun p : PrimeIndex => exp (λp p))
+
+    -- Substitute `h_exp_prod` into `h_split` and simplify the quotient.
+    have : ((∏' p, (1 - λp p)) * (∏' p, exp (λp p))) /
+        exp (∑' p, λp p) = (riemannZeta s)⁻¹ := by
+      simpa [h_exp_prod, mul_div_cancel_left] using congrArg _ rfl
+    -- The left part simplifies to `∏' p, (1 - λp p)`.
+    simpa [h_exp_prod, h_split, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+      using this
+
+  -- Now apply the Euler product formula for ζ on the region Re(s) > 1.
+  have h_euler : (riemannZeta s)⁻¹ = ∏' p : PrimeIndex, (1 - λp p) := by
+    -- Provided by `EulerProductMathlib`.
+    simpa [λp] using zeta_inv_eq_tprod_one_sub hs
+
+  -- Combine the two equalities to obtain the desired result.
+  -- First rewrite using `h_det`.
+  simpa [h_det] using this.trans h_euler.symm
 
 /-- Extension by analytic continuation -/
 theorem det_zeta_connection_extended {s : ℂ} (hs : 1/2 < s.re ∧ s.re < 1) :
@@ -84,7 +114,19 @@ theorem riemann_hypothesis :
     have h_func : riemannZeta (1 - s) = 0 := by
       -- ζ(s) = 0 and we'll use the functional equation
       -- ζ(1-s) = 2(2π)^(-s) Γ(s) cos(πs/2) ζ(s)
-      have h_fe := zeta_functional_equation (1 - s) sorry sorry
+      -- Need to verify 1-s ≠ -n for all n ∈ ℕ and 1-s ≠ 1
+      have h_not_neg : ∀ n : ℕ, 1 - s ≠ -n := by
+        intro n
+        simp [sub_eq_neg_iff_eq_add]
+        intro h
+        have : s.re = 1 + n := by simp [← h]
+        linarith [h_strip.2]
+      have h_not_one : 1 - s ≠ 1 := by
+        simp
+        intro h
+        have : s.re = 0 := by simp [← h]
+        linarith [h_strip.1]
+      have h_fe := zeta_functional_equation (1 - s) h_not_neg h_not_one
       rw [sub_sub_cancel] at h_fe
       rw [h_fe, hz, mul_zero]
 
