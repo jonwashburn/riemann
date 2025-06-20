@@ -25,15 +25,19 @@ def evolution_eigenvalues (s : ℂ) : PrimeIndex → ℂ := fun p => (p.val : �
 
 /-- The key connection: det₂(I - A(s)) / exp(tr A(s)) = 1/ζ(s) -/
 theorem det_zeta_connection {s : ℂ} (hs : 1 < s.re) :
-  fredholm_det2 (evolution_eigenvalues s) (eigenvalues_summable ⟨by linarith, by linarith⟩) /
+  fredholm_det2 (evolution_eigenvalues s)
+    (summable_implies_bounded _ (eigenvalues_summable ⟨by linarith, by linarith⟩))
+    (eigenvalues_summable ⟨by linarith, by linarith⟩) /
     exp (∑' p : PrimeIndex, (p.val : ℂ)^(-s)) = (riemannZeta s)⁻¹ := by
   -- Expand `fredholm_det2` via the diagonal product formula.
   have h_det :
       fredholm_det2 (evolution_eigenvalues s)
+          (summable_implies_bounded _ (eigenvalues_summable ⟨by linarith, by linarith⟩))
           (eigenvalues_summable ⟨by linarith, by linarith⟩) =
         ∏' p : PrimeIndex, (1 - (p.val : ℂ)^(-s)) * exp ((p.val : ℂ)^(-s)) := by
     simpa [evolution_eigenvalues] using
-      fredholm_det2_diagonal_formula (evolution_eigenvalues s)
+      fredholm_det2_diagonal (evolution_eigenvalues s)
+        (summable_implies_bounded _ (eigenvalues_summable ⟨by linarith, by linarith⟩))
         (eigenvalues_summable ⟨by linarith, by linarith⟩)
 
   -- Rewrite the goal using `h_det`.
@@ -77,7 +81,9 @@ theorem det_zeta_connection {s : ℂ} (hs : 1 < s.re) :
 
 /-- Extension by analytic continuation -/
 theorem det_zeta_connection_extended {s : ℂ} (hs : 1/2 < s.re ∧ s.re < 1) :
-  fredholm_det2 (evolution_eigenvalues s) (eigenvalues_summable ⟨hs.1, by linarith⟩) *
+  fredholm_det2 (evolution_eigenvalues s)
+    (summable_implies_bounded _ (eigenvalues_summable ⟨hs.1, by linarith⟩))
+    (eigenvalues_summable ⟨hs.1, by linarith⟩) *
   exp (∑' p : PrimeIndex, (p.val : ℂ)^(-s)) = (riemannZeta s)⁻¹ := by
   -- Use the analytic continuation from the separate file
   exact AnalyticContinuation.det_zeta_connection_extended hs
@@ -137,6 +143,7 @@ theorem riemann_hypothesis :
 
     -- Apply the analysis to 1-s
     have h_conj_det : fredholm_det2 (evolution_eigenvalues (1 - s))
+      (summable_implies_bounded _ (eigenvalues_summable ⟨h_conj_strip.1, by linarith⟩))
       (eigenvalues_summable ⟨h_conj_strip.1, by linarith⟩) = 0 := by
       rw [det_zeta_connection_extended h_conj_strip, h_func, inv_zero]
 
@@ -152,6 +159,7 @@ theorem riemann_hypothesis :
   · -- Case: 1/2 < Re(s) < 1
     -- Direct application
     have h_det : fredholm_det2 (evolution_eigenvalues s)
+      (summable_implies_bounded _ (eigenvalues_summable ⟨h_gt, by linarith⟩))
       (eigenvalues_summable ⟨h_gt, by linarith⟩) = 0 := by
       rw [det_zeta_connection_extended ⟨h_gt, h_strip.2⟩, hz, inv_zero]
 

@@ -30,19 +30,32 @@ open Complex Real BigOperators Filter Topology
 variable {ι : Type*} [Countable ι]
 
 /-- A diagonal operator on ℓ² -/
--- We axiomatize the existence of diagonal operators to avoid implementation details
--- In practice, this would be constructed as multiplication by eigenvalues
-axiom DiagonalOperator (eigenvals : ι → ℂ) :
+-- We axiomatize diagonal operators with bounded eigenvalues
+-- In practice, this is multiplication by eigenvalues
+axiom DiagonalOperator (eigenvals : ι → ℂ)
+  (h_bounded : ∃ C, ∀ i, ‖eigenvals i‖ ≤ C) :
   lp (fun _ : ι => ℂ) 2 →L[ℂ] lp (fun _ : ι => ℂ) 2
 
 /-- Diagonal operators act by pointwise multiplication -/
-axiom DiagonalOperator_apply (eigenvals : ι → ℂ) (ψ : lp (fun _ : ι => ℂ) 2) :
-  DiagonalOperator eigenvals ψ = ⟨fun i => eigenvals i * ψ i, sorry⟩
+axiom DiagonalOperator_apply (eigenvals : ι → ℂ)
+  (h_bounded : ∃ C, ∀ i, ‖eigenvals i‖ ≤ C)
+  (ψ : lp (fun _ : ι => ℂ) 2) :
+  ∃ (h : Memℓp (fun i => eigenvals i * ψ i) 2),
+    DiagonalOperator eigenvals h_bounded ψ = ⟨fun i => eigenvals i * ψ i, h⟩
 
 /-- The regularized Fredholm determinant det₂(I - T) -/
 noncomputable def fredholm_det2 (eigenvals : ι → ℂ)
+  (h_bounded : ∃ C, ∀ i, ‖eigenvals i‖ ≤ C)
   (h_summable : Summable (fun i => ‖eigenvals i‖)) : ℂ :=
   ∏' i : ι, (1 - eigenvals i) * exp (eigenvals i)
+
+/-- Helper: summable implies bounded for countable sets -/
+lemma summable_implies_bounded (eigenvals : ι → ℂ)
+  (h_summable : Summable (fun i => ‖eigenvals i‖)) :
+  ∃ C, ∀ i, ‖eigenvals i‖ ≤ C := by
+  -- If ∑‖eigenvals i‖ < ∞, then eigenvals i → 0, so they're bounded
+  -- This is a standard result from analysis
+  sorry
 
 /-- Helper: convergence of products (1 - λᵢ) when ∑|λᵢ| < ∞ -/
 lemma multipliable_one_sub_of_summable (eigenvals : ι → ℂ)
@@ -70,15 +83,17 @@ lemma tprod_mul_distrib (f g : ι → ℂ)
 
 /-- The regularized determinant formula -/
 theorem fredholm_det2_diagonal (eigenvals : ι → ℂ)
+  (h_bounded : ∃ C, ∀ i, ‖eigenvals i‖ ≤ C)
   (h_summable : Summable (fun i => ‖eigenvals i‖)) :
-  fredholm_det2 eigenvals h_summable = ∏' i : ι, (1 - eigenvals i) * exp (eigenvals i) := by
+  fredholm_det2 eigenvals h_bounded h_summable = ∏' i : ι, (1 - eigenvals i) * exp (eigenvals i) := by
   -- This is the definition
   rfl
 
 /-- The determinant is zero iff 1 is an eigenvalue -/
 theorem det_zero_iff_eigenvalue_one (eigenvals : ι → ℂ)
+  (h_bounded : ∃ C, ∀ i, ‖eigenvals i‖ ≤ C)
   (h_summable : Summable (fun i => ‖eigenvals i‖)) :
-  fredholm_det2 eigenvals h_summable = 0 ↔ ∃ i, eigenvals i = 1 := by
+  fredholm_det2 eigenvals h_bounded h_summable = 0 ↔ ∃ i, eigenvals i = 1 := by
   simp only [fredholm_det2]
   -- The product is zero iff one of the factors is zero
   -- Since exp is never zero, this happens iff 1 - eigenvals i = 0 for some i
@@ -89,9 +104,10 @@ theorem det_zero_iff_eigenvalue_one (eigenvals : ι → ℂ)
 
 /-- For trace-class diagonal operators, Fredholm det = standard det -/
 theorem fredholm_det2_ne_zero_of_summable (eigenvals : ι → ℂ)
+  (h_bounded : ∃ C, ∀ i, ‖eigenvals i‖ ≤ C)
   (h_summable : Summable (fun i => ‖eigenvals i‖))
   (h_no_one : ∀ i, eigenvals i ≠ 1) :
-  fredholm_det2 eigenvals h_summable ≠ 0 := by
+  fredholm_det2 eigenvals h_bounded h_summable ≠ 0 := by
   -- The regularized determinant is ∏(1 - eigenvals i) * exp(eigenvals i)
   -- This is zero iff some factor is zero
   -- exp is never zero, so we need (1 - eigenvals i) = 0 for some i

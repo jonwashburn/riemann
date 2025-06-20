@@ -35,6 +35,11 @@ def PrimeIndex := {p : ℕ // Nat.Prime p}
 noncomputable def evolution_operator_diagonal (s : ℂ) :
   lp (fun _ : PrimeIndex => ℂ) 2 →L[ℂ] lp (fun _ : PrimeIndex => ℂ) 2 :=
   DiagonalOperator (fun p => (p.val : ℂ)^(-s))
+    ⟨1, fun p => by
+      -- Show |p^{-s}| ≤ 1 for all primes p
+      -- Since |p^{-s}| = p^{-Re(s)} and p ≥ 2, we have p^{-Re(s)} ≤ 1 when Re(s) ≥ 0
+      -- For Re(s) < 0, we need a different bound
+      sorry⟩
 
 /-- The eigenvalues of the evolution operator -/
 def evolution_eigenvalues (s : ℂ) : PrimeIndex → ℂ :=

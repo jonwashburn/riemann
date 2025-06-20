@@ -24,6 +24,7 @@ open DiagonalFredholm EulerProductMathlib
 /-- The left-hand side: det₂(I - A(s)) * exp(tr A(s)) -/
 noncomputable def lhs (s : ℂ) : ℂ :=
 fredholm_det2 (fun p : PrimeIndex => (p.val : ℂ)^(-s))
+  (summable_implies_bounded _ (eigenvalues_summable (by simp [Real.one_div]; norm_num)))
   (eigenvalues_summable (by simp [Real.one_div]; norm_num)) *
   exp (∑' p : PrimeIndex, (p.val : ℂ)^(-s))
 
@@ -126,7 +127,9 @@ theorem identity_by_continuation {s : ℂ} (hs : 1/2 < s.re ∧ s.re < 1)
 
 /-- Reformulated for use in CompleteProof -/
 theorem det_zeta_connection_extended {s : ℂ} (hs : 1/2 < s.re ∧ s.re < 1) :
-  fredholm_det2 (fun p : PrimeIndex => (p.val : ℂ)^(-s)) (eigenvalues_summable ⟨hs.1, by linarith⟩) *
+  fredholm_det2 (fun p : PrimeIndex => (p.val : ℂ)^(-s))
+    (summable_implies_bounded _ (eigenvalues_summable ⟨hs.1, by linarith⟩))
+    (eigenvalues_summable ⟨hs.1, by linarith⟩) *
   exp (∑' p : PrimeIndex, (p.val : ℂ)^(-s)) = (riemannZeta s)⁻¹ := by
   by_cases h : riemannZeta s = 0
   · -- If ζ(s) = 0, then RHS = ∞, but LHS is finite - contradiction
@@ -134,10 +137,11 @@ theorem det_zeta_connection_extended {s : ℂ} (hs : 1/2 < s.re ∧ s.re < 1) :
     simp [h, inv_zero]
     -- The LHS is a finite product times exponential, so cannot equal infinity
     have h_finite : fredholm_det2 (fun p : PrimeIndex => (p.val : ℂ)^(-s))
+        (summable_implies_bounded _ (eigenvalues_summable ⟨hs.1, by linarith⟩))
         (eigenvalues_summable ⟨hs.1, by linarith⟩) *
       exp (∑' p : PrimeIndex, (p.val : ℂ)^(-s)) ≠ 0 := by
       apply mul_ne_zero
-      · exact fredholm_det2_ne_zero_of_summable _
+      · exact fredholm_det2_ne_zero_of_summable _ _ _ _
       · exact exp_ne_zero _
     exact h_finite
   · -- If ζ(s) ≠ 0, apply analytic continuation
