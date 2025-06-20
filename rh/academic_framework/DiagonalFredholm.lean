@@ -30,18 +30,53 @@ open Complex Real BigOperators Filter Topology
 variable {ι : Type*} [Countable ι]
 
 /-- A diagonal operator on ℓ² -/
--- We axiomatize diagonal operators with bounded eigenvalues
--- In practice, this is multiplication by eigenvalues
-axiom DiagonalOperator (eigenvals : ι → ℂ)
+noncomputable def DiagonalOperator (eigenvals : ι → ℂ)
   (h_bounded : ∃ C, ∀ i, ‖eigenvals i‖ ≤ C) :
-  lp (fun _ : ι => ℂ) 2 →L[ℂ] lp (fun _ : ι => ℂ) 2
+  lp (fun _ : ι => ℂ) 2 →L[ℂ] lp (fun _ : ι => ℂ) 2 := by
+  -- First define the linear map
+  let L : lp (fun _ : ι => ℂ) 2 →ₗ[ℂ] lp (fun _ : ι => ℂ) 2 := {
+    toFun := fun ψ =>
+      ⟨fun i => eigenvals i * ψ i, by
+        -- Show Memℓp for the result
+        obtain ⟨C, hC⟩ := h_bounded
+        -- We need to show the function i ↦ eigenvals i * ψ i is in lp 2
+        -- Use that |eigenvals i * ψ i|² ≤ C² |ψ i|²
+        sorry⟩
+    map_add' := by
+      intro ψ φ
+      ext i
+      simp only [lp.coeFn_add, Pi.add_apply]
+      ring
+    map_smul' := by
+      intro c ψ
+      ext i
+      simp only [lp.coeFn_smul, Pi.smul_apply, RingHom.id_apply]
+      simp only [smul_eq_mul]
+      ring
+  }
+  -- Prove continuity
+  have h_cont : ∃ C, ∀ ψ, ‖L ψ‖ ≤ C * ‖ψ‖ := by
+    obtain ⟨C, hC⟩ := h_bounded
+    use C
+    intro ψ
+    -- Need to show ‖L ψ‖ ≤ C * ‖ψ‖
+    sorry
+  -- Use mkContinuousOfExistsBound
+  exact L.mkContinuousOfExistsBound h_cont
 
 /-- Diagonal operators act by pointwise multiplication -/
-axiom DiagonalOperator_apply (eigenvals : ι → ℂ)
+lemma DiagonalOperator_apply (eigenvals : ι → ℂ)
   (h_bounded : ∃ C, ∀ i, ‖eigenvals i‖ ≤ C)
   (ψ : lp (fun _ : ι => ℂ) 2) :
-  ∃ (h : Memℓp (fun i => eigenvals i * ψ i) 2),
-    DiagonalOperator eigenvals h_bounded ψ = ⟨fun i => eigenvals i * ψ i, h⟩
+  DiagonalOperator eigenvals h_bounded ψ =
+    ⟨fun i => eigenvals i * ψ i, by
+      -- Same proof as in the definition
+      obtain ⟨C, hC⟩ := h_bounded
+      sorry⟩ := by
+  -- This follows from the definition
+  simp only [DiagonalOperator, ContinuousLinearMap.coe_mk', LinearMap.coe_mk, AddHom.coe_mk]
+  -- Need to show the Memℓp proofs are equal, but they're props so this is automatic
+  sorry
 
 /-- The regularized Fredholm determinant det₂(I - T) -/
 noncomputable def fredholm_det2 (eigenvals : ι → ℂ)
