@@ -56,21 +56,32 @@ theorem prime_power_lipschitz (p : PrimeIndex) :
       simp [neg_re, add_re, smul_re, sub_re]
       -- On any bounded region, |p^{-s}| is bounded by max{p^{-σ_min}, p^{-σ_max}}
       -- Since p ≥ 2, we have p^{-σ} ≤ 1 for σ ≥ 0
-             have h_nonneg : 0 ≤ s₁.re + t * (s₂.re - s₁.re) := by
-         -- This follows from the fact that we're in the right half-plane
-         -- For our application, Re(s) > 1/2, so this is automatic
-         -- Since t ∈ [0,1], we have s₁.re + t*(s₂.re - s₁.re) ∈ [min(s₁.re, s₂.re), max(s₁.re, s₂.re)]
-         -- In our context, both s₁ and s₂ have positive real parts
-         have h_s1_pos : 0 < s₁.re := by linarith [Real.one_div_two_pos]  -- From context: Re(s) > 1/2 > 0
-         have h_s2_pos : 0 < s₂.re := by linarith [Real.one_div_two_pos]  -- From context: Re(s) > 1/2 > 0
-         -- The convex combination stays positive
-         apply add_nonneg
-         · exact le_of_lt h_s1_pos
-         · apply mul_nonneg
-           · exact ht.1  -- t ≥ 0
-           · -- s₂.re - s₁.re can be positive or negative, but the combination stays ≥ min(s₁.re, s₂.re) > 0
-             -- We actually need a different approach - let's bound |p^{-s}| directly
-             sorry  -- This is getting too detailed for the current scope
+      -- For the Lipschitz bound, we don't actually need the positivity of the real part
+      -- We can bound |p^{-s}| ≤ max{|p^{-s₁}|, |p^{-s₂}|} on the segment
+      -- Since we're working in a bounded region, this is sufficient
+      have h_bound : (p.val : ℝ)^(-(s₁.re + t * (s₂.re - s₁.re))) ≤
+          max ((p.val : ℝ)^(-s₁.re)) ((p.val : ℝ)^(-s₂.re)) := by
+        -- The function x ↦ p^{-x} is monotone, so the max occurs at endpoints
+        cases' le_or_lt s₁.re s₂.re with h_le h_lt
+        · -- If s₁.re ≤ s₂.re, then the convex combination is in [s₁.re, s₂.re]
+          have h_interval : s₁.re ≤ s₁.re + t * (s₂.re - s₁.re) ∧
+                           s₁.re + t * (s₂.re - s₁.re) ≤ s₂.re := by
+            constructor
+            · simp; exact mul_nonneg ht.1 (sub_nonneg.mpr h_le)
+            · simp; exact le_add_of_le_add_right (mul_le_of_le_one_left (sub_nonneg.mpr h_le) ht.2)
+          rw [max_comm]
+          apply Real.rpow_neg_le_rpow_neg_of_le (Nat.cast_pos.mpr (Nat.Prime.pos p.property))
+          exact h_interval.1
+        · -- If s₂.re < s₁.re, similar argument
+          have h_interval : s₂.re ≤ s₁.re + t * (s₂.re - s₁.re) ∧
+                           s₁.re + t * (s₂.re - s₁.re) ≤ s₁.re := by
+            constructor
+            · simp; linarith
+            · simp; exact mul_nonpos_of_nonneg_of_nonpos ht.1 (sub_neg.mpr h_lt)
+          apply Real.rpow_neg_le_rpow_neg_of_le (Nat.cast_pos.mpr (Nat.Prime.pos p.property))
+          exact h_interval.2
+      -- Now use this bound
+      exact le_trans h_bound (le_max_left _ _)
       rw [Real.rpow_neg (Nat.cast_pos.mpr (Nat.Prime.pos p.property))]
       rw [div_le_iff (Real.rpow_pos_of_pos (Nat.cast_pos.mpr (Nat.Prime.pos p.property)) _)]
       simp [mul_one]

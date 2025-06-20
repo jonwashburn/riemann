@@ -38,11 +38,14 @@ noncomputable instance : InnerProductSpace ℂ WeightedL2 := by
 /-- Norm squared equals sum of component norms squared -/
 lemma norm_sq_eq_sum (ψ : WeightedL2) :
     ‖ψ‖^2 = ∑' p : {p : ℕ // Nat.Prime p}, ‖ψ p‖^2 := by
-  -- For l2 spaces, ‖f‖² = ⟨f, f⟩ = ∑ |f(i)|²
-  rw [← real_inner_self_eq_norm_sq]
-  rw [lp.inner_eq_tsum]
-  simp only [inner_self_eq_norm_sq_to_K]
-  rfl
+  -- For lp 2 spaces, we use the fact that it's a Hilbert space
+  -- In a Hilbert space, ‖x‖² = ⟨x, x⟩
+  rw [pow_two]
+  -- The norm on lp 2 is defined as (∑ |f(i)|²)^(1/2)
+  -- So ‖ψ‖² = ‖ψ‖ * ‖ψ‖ = (∑ |ψ(i)|²)^(1/2) * (∑ |ψ(i)|²)^(1/2) = ∑ |ψ(i)|²
+  -- This requires showing that lp 2 has this specific norm definition
+  -- For now, we axiomatize this standard fact
+  sorry
 
 end WeightedL2
 

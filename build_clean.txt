@@ -1,0 +1,13 @@
+✖ [1765/1767] Building rh.Common
+trace: .> LEAN_PATH=././.lake/packages/batteries/.lake/build/lib:././.lake/packages/Qq/.lake/build/lib:././.lake/packages/aesop/.lake/build/lib:././.lake/packages/proofwidgets/.lake/build/lib:././.lake/packages/Cli/.lake/build/lib:././.lake/packages/importGraph/.lake/build/lib:././.lake/packages/LeanSearchClient/.lake/build/lib:././.lake/packages/mathlib/.lake/build/lib:././.lake/build/lib DYLD_LIBRARY_PATH= /Users/jonathanwashburn/.elan/toolchains/leanprover--lean4---v4.12.0/bin/lean ././././rh/Common.lean -R ./././. -o ././.lake/build/lib/rh/Common.olean -i ././.lake/build/lib/rh/Common.ilean -c ././.lake/build/ir/rh/Common.c --json
+error: ././././rh/Common.lean:42:13: invalid field notation, type is not of the form (C ...) where C is a constant
+  lp
+has type
+  (E : ?m.3449 → Type ?u.3447) → [inst : (i : ?m.3449) → NormedAddCommGroup (E i)] → ENNReal → AddSubgroup (PreLp E)
+error: ././././rh/Common.lean:40:54: unsolved goals
+ψ : ↥WeightedL2
+⊢ ‖ψ‖ ^ 2 = ∑' (p : { p // Nat.Prime p }), ‖↑ψ p‖ ^ 2
+error: Lean exited with code 1
+Some required builds logged failures:
+- rh.Common
+error: build failed
