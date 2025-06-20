@@ -39,9 +39,9 @@ noncomputable def DiagonalOperator (eigenvals : ι → ℂ)
       ⟨fun i => eigenvals i * ψ i, by
         -- Show Memℓp for the result
         obtain ⟨C, hC⟩ := h_bounded
-        -- We need to show the function i ↦ eigenvals i * ψ i is in lp 2
-        -- Use that |eigenvals i * ψ i|² ≤ C² |ψ i|²
-        sorry⟩
+        -- Need to show this is in lp 2
+        -- Use the fact that bounded multiplication preserves lp 2
+        sorry⟩,
     map_add' := by
       intro ψ φ
       ext i
@@ -60,6 +60,10 @@ noncomputable def DiagonalOperator (eigenvals : ι → ℂ)
     use C
     intro ψ
     -- Need to show ‖L ψ‖ ≤ C * ‖ψ‖
+    -- For lp 2 norm: ‖L ψ‖² = ∑ |eigenvals i * ψ i|²
+    -- We have |eigenvals i * ψ i|² ≤ C² |ψ i|²
+    -- So ‖L ψ‖² ≤ C² ∑ |ψ i|² = C² ‖ψ‖²
+    -- Taking square roots: ‖L ψ‖ ≤ C ‖ψ‖
     sorry
   -- Use mkContinuousOfExistsBound
   exact L.mkContinuousOfExistsBound h_cont
@@ -89,8 +93,16 @@ lemma summable_implies_bounded (eigenvals : ι → ℂ)
   (h_summable : Summable (fun i => ‖eigenvals i‖)) :
   ∃ C, ∀ i, ‖eigenvals i‖ ≤ C := by
   -- If ∑‖eigenvals i‖ < ∞, then eigenvals i → 0, so they're bounded
-  -- This is a standard result from analysis
-  sorry
+  -- Standard argument: either finitely many terms are ≥ 1, or all are < 1
+  -- In first case, max of those finite terms plus 1 works as bound
+  -- In second case, 1 works as bound
+  by_cases h : ∃ C, ∀ i, ‖eigenvals i‖ ≤ C
+  · exact h
+  · -- If unbounded, we get a contradiction with summability
+    push_neg at h
+    -- h says: for all C, there exists i with ‖eigenvals i‖ > C
+    -- This contradicts summability
+    sorry
 
 /-- Helper: convergence of products (1 - λᵢ) when ∑|λᵢ| < ∞ -/
 lemma multipliable_one_sub_of_summable (eigenvals : ι → ℂ)
