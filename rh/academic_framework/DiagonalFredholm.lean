@@ -2,6 +2,7 @@ import rh.academic_framework.Core
 import Mathlib.Analysis.InnerProductSpace.l2Space
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
+import Mathlib.Analysis.Normed.Field.InfiniteSum
 
 /-!
 # Fredholm Determinants for Diagonal Operators
@@ -40,7 +41,18 @@ def DiagonalOperator (λ : ι → ℂ) : lp (fun _ : ι => ℂ) 2 →L[ℂ] lp (
     ext i
     simp [mul_comm c, mul_assoc]
   cont := by
-    sorry -- TODO: Prove continuity using boundedness of λ
+    -- For diagonal operators, continuity follows from boundedness
+    sorry -- TODO: Need boundedness assumption on λ
+
+/-- Helper: convergence of products (1 - λᵢ) when ∑|λᵢ| < ∞ -/
+lemma multipliable_one_sub_of_summable (λ : ι → ℂ)
+  (h_summable : Summable (fun i => ‖λ i‖)) :
+  Multipliable (fun i => 1 - λ i) := by
+  -- Use that ∏(1 - λᵢ) converges if ∑|λᵢ| converges
+  apply multipliable_of_summable_log
+  -- Need to show ∑ log(1 - λᵢ) converges
+  -- This follows from |log(1 - z)| ≤ C|z| for |z| small
+  sorry -- TODO: Use log expansion
 
 /-- The spectrum of a diagonal operator consists of its eigenvalues -/
 theorem spectrum_diagonal (λ : ι → ℂ) (h_bounded : ∃ C, ∀ i, ‖λ i‖ ≤ C) :
@@ -81,7 +93,7 @@ theorem det_zero_iff_eigenvalue_one (λ : ι → ℂ)
   rw [tprod_eq_zero_iff]
   · simp [sub_eq_zero]
   · -- Need to show the product converges
-    sorry -- TODO: Use h_summable to prove convergence
+    exact multipliable_one_sub_of_summable λ h_summable
 
 /-- The regularized determinant is zero iff the standard determinant is zero -/
 theorem det2_zero_iff_det_zero (λ : ι → ℂ)
@@ -100,8 +112,12 @@ theorem det2_zero_iff_det_zero (λ : ι → ℂ)
     · intro ⟨i, hi⟩
       use i
       simp [hi]
-  · sorry -- Convergence of the regularized product
-  · sorry -- Convergence of the standard product
+  · -- Convergence of (1 - λᵢ) * exp(λᵢ)
+    apply Multipliable.mul
+    · exact multipliable_one_sub_of_summable λ h_summable
+    · -- exp(λᵢ) is multipliable if ∑|λᵢ| < ∞
+      sorry -- TODO: Need multipliable_exp_of_summable
+  · exact multipliable_one_sub_of_summable λ h_summable
 
 /-- Connection to spectrum: 1 ∈ spectrum(T) iff det(I - T) = 0 -/
 theorem one_in_spectrum_iff_det_zero (λ : ι → ℂ)
