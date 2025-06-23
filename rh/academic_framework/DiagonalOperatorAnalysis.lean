@@ -158,7 +158,16 @@ theorem eigenvalues_continuous (p : PrimeIndex) :
   -- Continuity of z ↦ p^{-z}
   unfold evolution_eigenvalues
   -- The function s ↦ (p.val : ℂ)^(-s) is continuous
-  sorry
+  -- This is the composition of continuous functions:
+  -- s ↦ -s (continuous by neg_continuous)
+  -- z ↦ (p.val : ℂ)^z (continuous on ℂ for p.val ≠ 0)
+  apply Continuous.cpow
+  · exact continuous_const
+  · exact continuous_neg
+  · intro s
+    -- We need to show (p.val : ℂ) ≠ 0 ∨ -s ≠ 0
+    left
+    simp
 
 /-- Holomorphy of eigenvalues in s -/
 theorem eigenvalues_holomorphic (p : PrimeIndex) :
@@ -166,7 +175,15 @@ theorem eigenvalues_holomorphic (p : PrimeIndex) :
   -- Holomorphy of z ↦ p^{-z}
   unfold evolution_eigenvalues
   -- The function s ↦ (p.val : ℂ)^(-s) is entire (analytic everywhere)
-  sorry
+  -- Since (p.val : ℂ) ≠ 0, the function z ↦ (p.val : ℂ)^z is entire
+  -- So s ↦ (p.val : ℂ)^(-s) is also entire
+  apply AnalyticOn.cpow
+  · exact analyticOn_const
+  · exact analyticOn_neg analyticOn_id
+  · intro s _
+    -- We need to show (p.val : ℂ) ≠ 0 ∨ -s ≠ 0
+    left
+    simp
 
 /-- The evolution operator varies continuously in s (in operator norm) -/
 theorem evolution_operator_continuous :
