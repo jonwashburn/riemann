@@ -35,7 +35,7 @@ lemma multipliable_one_sub_of_summable (eigenvals : ι → ℂ)
 /-- Helper: ∏ exp(λᵢ) = exp(∑ λᵢ) for summable λ -/
 lemma tprod_exp_eq_exp_tsum (eigenvals : ι → ℂ)
   (h_summable : Summable (fun i => ‖eigenvals i‖)) :
-  ∏' i : ι, exp (eigenvals i) = exp (∑' i : ι, eigenvals i) := by
+  ∏' i : ι, Complex.exp (eigenvals i) = Complex.exp (∑' i : ι, eigenvals i) := by
   -- This is a standard result in complex analysis:
   -- For absolutely convergent series ∑ aᵢ, we have ∏ exp(aᵢ) = exp(∑ aᵢ)
   -- The proof uses the continuity of exp and the fact that exp is a homomorphism

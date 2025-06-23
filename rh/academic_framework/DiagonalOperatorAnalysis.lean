@@ -150,7 +150,84 @@ theorem evolution_hilbert_schmidt {s : ℂ} (hs : 1/2 < s.re) :
 /-- The operator norm bound -/
 theorem evolution_operator_norm_bound {s : ℂ} (hs : 0 < s.re) :
   ‖evolution_operator_diagonal s‖ ≤ 2^(-s.re) := by
-  sorry -- This would require showing the operator norm of diagonal operators
+  -- For diagonal operators, the operator norm is the supremum of |eigenvalues|
+  -- Here the eigenvalues are p^{-s} for primes p
+  -- We have |p^{-s}| = p^{-Re(s)}
+  -- Since p ≥ 2 for all primes, p^{-Re(s)} ≤ 2^{-Re(s)} when Re(s) > 0
+
+  -- The operator norm of a diagonal operator is sup_i |eigenvals i|
+  -- We need to show sup_p |p^{-s}| ≤ 2^{-Re(s)}
+
+  -- Use the fact that diagonal operators have norm equal to sup of eigenvalue norms
+  rw [ContinuousLinearMap.norm_le_iff_norm_le_one]
+  intro ψ
+
+  -- Apply the diagonal operator
+  rw [DiagonalOperator_apply]
+
+  -- The norm of the result is bounded by the sup of eigenvalue norms times input norm
+  have h_bound : ‖⟨fun i => evolution_eigenvalues s i * ψ i, _⟩‖ ≤ 2^(-s.re) * ‖ψ‖ := by
+    -- Use the l² norm formula
+    have h_norm_sq : ‖⟨fun i => evolution_eigenvalues s i * ψ i, _⟩‖^2 =
+                     ∑' i, ‖evolution_eigenvalues s i * ψ i‖^2 := by
+      rw [pow_two, ← lp.norm_sq_eq_inner_self]
+      rw [lp.inner_def]
+      simp [RCLike.inner_apply, conj_mul']
+      congr 1
+      ext i
+      rw [norm_sq_eq_self]
+
+    -- Bound each term
+    have h_term_bound : ∀ i, ‖evolution_eigenvalues s i * ψ i‖^2 ≤ (2^(-s.re))^2 * ‖ψ i‖^2 := by
+      intro i
+      rw [norm_mul, mul_pow]
+      apply mul_le_mul_of_nonneg_right
+      · -- Show ‖evolution_eigenvalues s i‖^2 ≤ (2^(-s.re))^2
+        rw [evolution_eigenvalues, norm_cpow_of_ne_zero (by simp : (i.val : ℂ) ≠ 0), neg_re]
+        rw [sq, Real.rpow_neg (Nat.cast_pos.mpr (Nat.Prime.pos i.property)), Real.rpow_two]
+        rw [inv_pow, ← Real.rpow_two]
+        apply inv_le_inv_of_le
+        · exact Real.rpow_pos_of_pos (by norm_num : 0 < 2) _
+        · have : 2 ≤ i.val := Nat.Prime.two_le i.property
+          exact Real.rpow_le_rpow_left (by norm_num) (Nat.cast_le.mpr this) s.re
+      · exact sq_nonneg _
+
+    -- Sum the bounds
+    rw [h_norm_sq]
+    have h_sum_bound : ∑' i, ‖evolution_eigenvalues s i * ψ i‖^2 ≤ ∑' i, (2^(-s.re))^2 * ‖ψ i‖^2 := by
+      apply tsum_le_tsum h_term_bound
+      · exact Summable.mul_left _ ψ.property
+      · apply Summable.of_nonneg_of_le
+        · intro i; exact sq_nonneg _
+        · exact h_term_bound
+        · exact Summable.mul_left _ ψ.property
+
+    -- Factor out the constant
+    have h_factor : ∑' i, (2^(-s.re))^2 * ‖ψ i‖^2 = (2^(-s.re))^2 * ∑' i, ‖ψ i‖^2 := by
+      rw [← tsum_mul_left]
+    rw [h_factor] at h_sum_bound
+
+    -- Use that ∑' i, ‖ψ i‖^2 = ‖ψ‖^2
+    have h_ψ_norm : ∑' i, ‖ψ i‖^2 = ‖ψ‖^2 := by
+      rw [pow_two, ← lp.norm_sq_eq_inner_self]
+      rw [lp.inner_def]
+      simp [RCLike.inner_apply, conj_mul']
+      congr 1
+      ext i
+      rw [norm_sq_eq_self]
+    rw [h_ψ_norm] at h_sum_bound
+
+    -- Take square roots
+    have h_sqrt : Real.sqrt (‖⟨fun i => evolution_eigenvalues s i * ψ i, _⟩‖^2) ≤
+                  Real.sqrt ((2^(-s.re))^2 * ‖ψ‖^2) := by
+      exact Real.sqrt_le_sqrt h_sum_bound
+    rw [Real.sqrt_sq (norm_nonneg _), Real.sqrt_mul (sq_nonneg _), Real.sqrt_sq, Real.sqrt_sq] at h_sqrt
+    · exact h_sqrt
+    · exact Real.rpow_nonneg (by norm_num) _
+    · exact norm_nonneg _
+
+  convert h_bound using 1
+  simp [evolution_operator_diagonal]
 
 /-- Continuity of eigenvalues in s -/
 theorem eigenvalues_continuous (p : PrimeIndex) :
@@ -188,7 +265,48 @@ theorem eigenvalues_holomorphic (p : PrimeIndex) :
 /-- The evolution operator varies continuously in s (in operator norm) -/
 theorem evolution_operator_continuous :
   ContinuousOn (fun s => evolution_operator_diagonal s) {s | 1/2 < s.re} := by
-  sorry -- This would require showing continuity of the operator-valued function
+  -- To show continuity of s ↦ A(s) in operator norm
+  -- We'll use that for diagonal operators, ‖A(s₁) - A(s₂)‖ is bounded by
+  -- the supremum of |p^{-s₁} - p^{-s₂}| over all primes p
+
+  -- For s in the region Re(s) > 1/2, we have uniform bounds
+  intros s₀ hs₀
+
+  -- We'll show continuity at s₀
+  rw [Metric.continuousAt_iff]
+  intro ε hε
+
+  -- For diagonal operators, the difference is also diagonal
+  -- with eigenvalues p^{-s} - p^{-s₀}
+
+  -- Use the fact that p^{-s} is Lipschitz continuous in s on bounded regions
+  -- The derivative is -log(p) * p^{-s}, which is bounded for Re(s) > 1/2
+
+  -- Choose δ such that |s - s₀| < δ implies the operator norm difference < ε
+  use ε / 2  -- Simplified choice of δ
+  constructor
+  · linarith
+
+  intro s hs_mem hs_close
+  simp at hs_mem
+
+  -- The operator norm of A(s) - A(s₀) is bounded by sup_p |p^{-s} - p^{-s₀}|
+  -- For diagonal operators, this is the supremum of eigenvalue differences
+
+  -- Using continuity of each eigenvalue function
+  have h_eigen_cont : ∀ p : PrimeIndex,
+    ‖evolution_eigenvalues s p - evolution_eigenvalues s₀ p‖ < ε := by
+    intro p
+    -- Each p^{-s} is continuous in s
+    have : Continuous (fun s => evolution_eigenvalues s p) := eigenvalues_continuous p
+    -- Apply continuity at s₀
+    rw [Metric.continuous_iff] at this
+    specialize this s₀ ε hε
+    exact this s hs_close
+
+  -- The operator norm difference is bounded by the supremum of eigenvalue differences
+  -- Since all eigenvalue differences are < ε, the operator norm difference is ≤ ε
+  sorry -- This requires showing that sup norm equals operator norm for diagonal operators
 
 /-- Key estimate: operator difference bound -/
 theorem evolution_operator_difference_bound {s₁ s₂ : ℂ}
@@ -199,12 +317,46 @@ theorem evolution_operator_difference_bound {s₁ s₂ : ℂ}
   -- Use mean value theorem: |p^{-s₁} - p^{-s₂}| ≤ sup |f'(s)| * |s₁ - s₂|
   -- where f(s) = p^{-s} and f'(s) = -log(p) * p^{-s}
 
-  -- Take C to be a bound on ∑ log(p) * p^{-min(Re(s₁), Re(s₂))/2}
-  use 100  -- Placeholder constant
+  -- The derivative of p^{-s} is -log(p) * p^{-s}
+  -- We need |p^{-s₁} - p^{-s₂}| ≤ C * |s₁ - s₂| for some C independent of p
+
+  -- For Re(s) > 1/2, we have ∑ log(p) * p^{-Re(s)} converges
+  -- This gives us a uniform bound
+
+  -- Take C = sup_p (log(p.val) * (p.val : ℝ)^(-min(s₁.re, s₂.re)/2))
+  -- This supremum exists because the sum converges
+
+  let σ := min s₁.re s₂.re
+  have hσ : 1/2 < σ := by
+    simp only [σ, min_def]
+    split_ifs <;> assumption
+
+  -- For the mean value theorem, we need a bound on |d/ds p^{-s}| = |log(p) * p^{-s}|
+  -- on the line segment between s₁ and s₂
+
+  -- Since log(p) * p^{-σ/2} is summable (because σ/2 > 1/4 and ∑ log(p)/p^α converges for α > 0)
+  -- we can take C to be a fixed multiple of this
+
+  use 1000  -- Placeholder - should be computed from the sum
+
   intro p
-  -- Apply complex mean value theorem to f(s) = p^{-s}
-  -- The derivative bound gives |f'(s)| ≤ log(p) on any bounded region
-  sorry  -- This requires a careful analysis of the derivative bounds
-  -- The key is that log(p) * p^{-Re(s)} is summable when Re(s) > 1/2
+
+  -- Apply the fundamental theorem of calculus to f(t) = p^{-(s₂ + t(s₁ - s₂))}
+  -- We have f(0) = p^{-s₂} and f(1) = p^{-s₁}
+  -- So p^{-s₁} - p^{-s₂} = ∫₀¹ f'(t) dt
+
+  -- The derivative is f'(t) = -(s₁ - s₂) * log(p) * p^{-(s₂ + t(s₁ - s₂))}
+  -- So |p^{-s₁} - p^{-s₂}| ≤ |s₁ - s₂| * log(p) * max_{t∈[0,1]} |p^{-(s₂ + t(s₁ - s₂))}|
+
+  -- The maximum occurs at the point with smallest real part
+  -- which is when Re(s₂ + t(s₁ - s₂)) = min(Re(s₁), Re(s₂)) = σ
+
+  -- Therefore |p^{-s₁} - p^{-s₂}| ≤ |s₁ - s₂| * log(p) * p^{-σ}
+
+  -- Since σ > 1/2, we have log(p) * p^{-σ} → 0 as p → ∞
+  -- and the sum ∑ log(p) * p^{-σ} converges
+
+  -- This gives us the required bound with C = sup_p (log(p) * p^{-σ/2})
+  sorry  -- The detailed computation requires careful analysis of the integral
 
 end AcademicRH.DiagonalOperator
