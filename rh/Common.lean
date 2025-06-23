@@ -39,7 +39,7 @@ noncomputable instance : InnerProductSpace ℂ WeightedL2 := by
 lemma norm_sq_eq_sum (ψ : WeightedL2) :
     ‖ψ‖^2 = ∑' p : {p : ℕ // Nat.Prime p}, ‖ψ p‖^2 := by
   -- For lp 2 spaces, the norm squared equals the sum of component norms squared
-  -- This follows from the definition of the lp 2 norm
+  -- This is the standard l² norm formula
   sorry
 
 end WeightedL2

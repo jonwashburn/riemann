@@ -109,8 +109,32 @@ theorem eigenvalue_stability_from_rs (s : ℂ) (β : ℝ) :
   intro h_pos h_preserve
   -- The domain preservation property, combined with positive cost,
   -- forces the constraint β ≤ Re(s)
-  -- This is the key to proving no zeros exist off the critical line
-  sorry -- This requires detailed functional analysis
+
+  -- Proof by contradiction: assume β > Re(s)
+  by_contra h_not
+  push_neg at h_not
+  -- h_not : s.re < β
+
+  -- Consider the basis vector δ_p for a large prime p
+  -- We'll show that δ_p ∈ domainJ β but A(s)δ_p ∉ domainJ β
+
+  -- First, δ_p is always in domainJ β since it has finite support
+  have h_delta_in : ∀ p, RH.WeightedL2.deltaBasis p ∈ domainJ β := by
+    intro p
+    simp [domainJ, actionFunctional]
+    -- For δ_p, only the p-th component is nonzero (= 1)
+    -- So the sum reduces to just (log p)^(2β) which is finite
+    sorry -- Need to formalize the delta basis computation
+
+  -- Next, A(s)δ_p = p^{-s}δ_p has action functional:
+  -- J_β(A(s)δ_p) = |p^{-s}|² (log p)^(2β) = p^{-2Re(s)} (log p)^(2β)
+
+  -- For large p, if β > Re(s), then p^{-2Re(s)} (log p)^(2β) grows without bound
+  -- This contradicts domain preservation
+
+  -- The key is that positive cost from Recognition Science ensures
+  -- the action functional must remain bounded under evolution
+  sorry -- This requires detailed estimates on prime growth
 
 /-! ## Eight-Beat Structure and Periodicity -/
 
@@ -128,7 +152,7 @@ theorem periodicity_constraint (p q : {p : ℕ // Nat.Prime p}) (s : ℂ) :
   -- If p^(-s) = 1, then -s * log(p) = 2πin for some integer n
   -- Similarly, if q^(-s) = 1, then -s * log(q) = 2πim for some integer m
   -- This would imply s = 2πin/log(p) = 2πim/log(q)
-  -- So n/log(p) = m/log(q), which means log(p)/log(q) = n/m is rational
+  -- So n/log(p) = m/log(q) = k for some integer k
   -- But log(p)/log(q) is irrational for distinct primes (Schanuel's conjecture)
 
   -- From p^(-s) = 1, we get exp(-s * log p) = 1
@@ -155,14 +179,46 @@ theorem periodicity_constraint (p q : {p : ℕ // Nat.Prime p}) (s : ℂ) :
   by_cases hs : s = 0
   · -- If s = 0, then p^0 = 1 and q^0 = 1, which is true but doesn't use p ≠ q
     -- The constraint from eight-beat and positive cost excludes s = 0
-    -- For now, we assume s ≠ 0 based on the context
-    sorry
+    -- From the eight-beat structure, s = 0 would mean no evolution
+    -- But Recognition Science requires continuous evolution at the fundamental tick
+    -- This contradicts the eight-beat periodicity which requires non-trivial dynamics
+
+    -- More precisely: if s = 0, then the evolution operator is the identity
+    -- But eight-beat requires periodic non-trivial transformations
+    -- This is incompatible with s = 0
+
+    -- We can use that the evolution must respect the fundamental time scale
+    -- and cannot be trivial (identity operator)
+    exfalso
+    -- The eight-beat structure requires non-trivial evolution
+    -- But s = 0 gives trivial evolution A(0) = I
+    sorry -- This requires connecting eight-beat to non-trivial dynamics
   · -- From the two equations, we get:
     -- s = -2πin/log(p) = -2πim/log(q)
     -- This implies n*log(q) = m*log(p)
     -- Or log(p)/log(q) = n/m, which is rational
     -- But for distinct primes, log(p)/log(q) is irrational
-    sorry -- This requires number theory facts about logarithms of primes
+
+    -- From h_eq_p and h_eq_q, if we divide:
+    -- (-s * log p) / (-s * log q) = (2πin) / (2πim) = n/m
+    -- So log p / log q = n/m is rational
+
+    -- We need to extract the real parts to use irrationality
+    have h_logs_real : (Complex.log (p.val : ℂ)).re / (Complex.log (q.val : ℂ)).re = ↑n / ↑m := by
+      -- Complex.log of positive real numbers is real
+      have hp_pos : 0 < (p.val : ℝ) := Nat.cast_pos.mpr (Nat.Prime.pos p.prop)
+      have hq_pos : 0 < (q.val : ℝ) := Nat.cast_pos.mpr (Nat.Prime.pos q.prop)
+      -- So Complex.log (p.val : ℂ) = (Real.log p.val : ℂ)
+      sorry -- Need to connect complex and real logarithms
+
+    -- But Real.log p / Real.log q is irrational for distinct primes
+    have h_irrational : Irrational (Real.log p.val / Real.log q.val) := by
+      -- This is proven in Placeholders
+      exact RH.Placeholders.log_prime_ratio_irrational p.val q.val p.prop q.prop
+        (Subtype.coe_ne_coe.mpr h_ne)
+
+    -- This contradicts h_logs_real which says it equals n/m
+    sorry -- Need to derive the contradiction
 
 /-! ## Main Bridge Theorem -/
 
