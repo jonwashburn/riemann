@@ -40,8 +40,26 @@ noncomputable def DiagonalOperator (eigenvals : ι → ℂ)
         -- Show Memℓp for the result
         obtain ⟨C, hC⟩ := h_bounded
         -- Need to show this is in lp 2
-        -- Use the fact that bounded multiplication preserves lp 2
-        sorry⟩,
+        -- i.e., we need Summable fun i => ‖eigenvals i * ψ i‖^2
+        have h_sq_summable : Summable fun i => ‖eigenvals i * ψ i‖^2 := by
+          -- ‖eigenvals i * ψ i‖^2 = ‖eigenvals i‖^2 * ‖ψ i‖^2
+          have h_eq : (fun i => ‖eigenvals i * ψ i‖^2) = fun i => ‖eigenvals i‖^2 * ‖ψ i‖^2 := by
+            ext i
+            rw [norm_mul, mul_pow]
+          rw [h_eq]
+          -- Since ‖eigenvals i‖ ≤ C, we have ‖eigenvals i‖^2 ≤ C^2
+          have h_bound : ∀ i, ‖eigenvals i‖^2 * ‖ψ i‖^2 ≤ C^2 * ‖ψ i‖^2 := by
+            intro i
+            exact mul_le_mul_of_nonneg_right (pow_le_pow_left (norm_nonneg _) (hC i) 2) (sq_nonneg _)
+          -- Apply comparison test
+          apply Summable.of_nonneg_of_le
+          · intro i; exact mul_nonneg (sq_nonneg _) (sq_nonneg _)
+          · exact h_bound
+          · exact Summable.mul_left _ ψ.property
+        -- Convert to the required form
+        simp only [← sq, Memℓp, lp.mem_ℓp_iff_summable_norm_rpow]
+        norm_num
+        exact h_sq_summable⟩,
     map_add' := by
       intro ψ φ
       ext i
@@ -64,7 +82,54 @@ noncomputable def DiagonalOperator (eigenvals : ι → ℂ)
     -- We have |eigenvals i * ψ i|² ≤ C² |ψ i|²
     -- So ‖L ψ‖² ≤ C² ∑ |ψ i|² = C² ‖ψ‖²
     -- Taking square roots: ‖L ψ‖ ≤ C ‖ψ‖
-    sorry
+
+    -- First, compute ‖L ψ‖²
+    have h_norm_sq : ‖L ψ‖^2 = ∑' i, ‖eigenvals i * ψ i‖^2 := by
+      -- Use the fact that for lp 2, the norm squared is the sum of component norms squared
+      rw [pow_two, ← lp.norm_sq_eq_inner_self]
+      rw [lp.inner_def]
+      simp [RCLike.inner_apply, conj_mul']
+      congr 1
+      ext i
+      rw [norm_sq_eq_self]
+
+    -- Bound each term
+    have h_bound : ∑' i, ‖eigenvals i * ψ i‖^2 ≤ ∑' i, C^2 * ‖ψ i‖^2 := by
+      apply tsum_le_tsum
+      · intro i
+        rw [norm_mul, mul_pow]
+        exact mul_le_mul_of_nonneg_right (pow_le_pow_left (norm_nonneg _) (hC i) 2) (sq_nonneg _)
+      · exact Summable.mul_left _ ψ.property
+      · have : Summable fun i => ‖eigenvals i * ψ i‖^2 := by
+          apply Summable.of_nonneg_of_le
+          · intro i; exact sq_nonneg _
+          · intro i
+            rw [norm_mul, mul_pow]
+            exact mul_le_mul_of_nonneg_right (pow_le_pow_left (norm_nonneg _) (hC i) 2) (sq_nonneg _)
+          · exact Summable.mul_left _ ψ.property
+        exact this
+
+    -- Combine
+    rw [h_norm_sq]
+    have h_factor : ∑' i, C^2 * ‖ψ i‖^2 = C^2 * ∑' i, ‖ψ i‖^2 := by
+      rw [← tsum_mul_left]
+    rw [← h_factor] at h_bound
+    -- We have ‖L ψ‖² ≤ C² * ∑' i, ‖ψ i‖²
+    -- And ∑' i, ‖ψ i‖² = ‖ψ‖² (by definition of lp 2 norm)
+    have h_ψ_norm : ∑' i, ‖ψ i‖^2 = ‖ψ‖^2 := by
+      rw [pow_two, ← lp.norm_sq_eq_inner_self]
+      rw [lp.inner_def]
+      simp [RCLike.inner_apply, conj_mul']
+      congr 1
+      ext i
+      rw [norm_sq_eq_self]
+    rw [h_ψ_norm] at h_bound
+    -- Take square roots
+    have h_sqrt : Real.sqrt (‖L ψ‖^2) ≤ Real.sqrt (C^2 * ‖ψ‖^2) := by
+      exact Real.sqrt_le_sqrt h_bound
+    rw [Real.sqrt_sq (norm_nonneg _), Real.sqrt_mul (sq_nonneg _) _, Real.sqrt_sq (norm_nonneg _),
+        Real.sqrt_sq (norm_nonneg _)] at h_sqrt
+    exact h_sqrt
   -- Use mkContinuousOfExistsBound
   exact L.mkContinuousOfExistsBound h_cont
 

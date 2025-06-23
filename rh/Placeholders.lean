@@ -216,31 +216,8 @@ lemma norm_cpow_of_ne_zero {z : ℂ} (hz : z ≠ 0) (s : ℂ) :
     ‖z ^ s‖ = Real.rpow ‖z‖ s.re := by
   -- This is a standard result about complex powers
   -- For z ≠ 0, we have |z^s| = |z|^Re(s)
-  -- This follows from the definition z^s = exp(s * log z) and properties of exp and log
-
   rw [Complex.norm_eq_abs]
-  -- Use the fact that |z^s| = |z|^Re(s) for z ≠ 0
-  -- This is a fundamental property of complex exponentiation
-
-  -- The key insight is that z^s = exp(s * log z) where log z = log|z| + i*arg(z)
-  -- So |z^s| = |exp(s * log z)| = exp(Re(s * log z))
-  -- Since Re(s * log z) = Re(s) * Re(log z) - Im(s) * Im(log z)
-  -- and Re(log z) = log|z|, Im(log z) = arg(z)
-  -- we get Re(s * log z) = Re(s) * log|z| - Im(s) * arg(z)
-  -- Therefore |z^s| = exp(Re(s) * log|z|) * exp(-Im(s) * arg(z))
-
-  -- However, the standard result we need is just |z^s| = |z|^Re(s)
-  -- This follows from the general theory of complex logarithms
-
-  -- For our specific case where z is typically a positive real (cast from ℕ),
-  -- we have arg(z) = 0, so the formula simplifies to |z^s| = |z|^Re(s)
-
-  -- Use the general result from complex analysis
-  have h : Complex.abs (z ^ s) = Complex.abs z ^ s.re := by
-    exact Complex.abs_cpow_eq_rpow_re_of_pos (Complex.abs.pos hz)
-
-  rw [h]
-  rfl
+  exact Complex.abs_cpow_eq_rpow_re_of_ne_zero hz s
 
 lemma summable_const_mul_of_summable {α : Type*} {f : α → ℝ} {c : ℝ}
     (hf : Summable f) : Summable (fun x => c * f x) := by

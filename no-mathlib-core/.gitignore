@@ -1,0 +1,19 @@
+# Lean 4 build artifacts
+.lake/
+build/
+lake-packages/
+
+# Lean generated files
+*.olean
+*.ilean
+*.c
+
+# Editor files
+*.swp
+*.swo
+*~
+.DS_Store
+.vscode/
+
+# Lake manifest (can be regenerated)
+lake-manifest.json 
