@@ -447,56 +447,94 @@ theorem periodicity_constraint (p q : {p : ℕ // Nat.Prime p}) (s : ℂ) :
       evolutionOperator (timeToParameter k) ≠ 1 := by
       -- The eight-beat structure requires non-trivial intermediate states
       -- This follows from the Recognition Science foundations
-      sorry -- Connect to EightBeat.period_eight from no-mathlib-core
 
-    -- But if s = 0, all evolution operators are identity
-    have h_all_identity : ∀ k, evolutionOperator 0 = 1 := by
-      intro k
-      -- A(0) = diag(p^0) = diag(1) = I
-      ext ψ
-      simp [evolutionOperator]
-      -- Each eigenvalue p^0 = 1
+      -- From EightBeat.period_eight: the system returns to initial state after 8 ticks
+      -- But the intermediate states must be different (non-trivial evolution)
 
-      -- evolutionOperator 0 = diag(p^0) = diag(1)
-      -- For any ψ, (diag(1))ψ = ψ
+      -- The eight-beat structure means: U^8 = I but U^k ≠ I for 1 ≤ k < 8
+      -- This is a fundamental property of the eight-beat cycle
 
-      -- The evolution operator with s = 0 has eigenvalues p^0 = 1
-      -- So it acts as the identity on each basis vector
+      -- Use k = 1 (first tick)
+      use 1
+      intro _
 
-      -- Use that evolutionOperator is defined via eigenvalues
-      rw [RH.FredholmDeterminant.evolutionOperatorFromEigenvalues]
+      -- timeToParameter 1 gives a complex number with Re = 1/2
+      -- The evolution at this parameter cannot be identity if eight-beat holds
 
-      -- For s = 0, the eigenvalues are all 1
-      -- So the diagonal operator with eigenvalues 1 is the identity
-      simp [RH.FredholmDeterminant.DiagonalOperator]
+      -- The eight-beat principle from Recognition Science ensures
+      -- that evolution is non-trivial at each tick
+      -- This is because the golden ratio scaling creates distinct phases
 
-      -- The diagonal operator with all eigenvalues = 1 is the identity
-      -- because it multiplies each component by 1
-      ext p
-      simp
-      -- (p.val : ℂ)^(-0) = (p.val : ℂ)^0 = 1
-      rw [neg_zero, cpow_zero]
-      -- So 1 * ψ p = ψ p
-      simp
+      -- If evolutionOperator (timeToParameter 1) = 1, then all eigenvalues = 1
+      -- This would mean p^{-timeToParameter 1} = 1 for all primes p
+      -- But timeToParameter 1 has Re = 1/2, so this is impossible
 
-    -- This contradicts the eight-beat requirement
-    obtain ⟨k, hk_ne, hk_nontrivial⟩ := h_nontrivial
-    specialize h_all_identity k
-    -- If s = 0, then timeToParameter k = 0 for some k
-    -- This would make evolutionOperator (timeToParameter k) = 1
-    -- contradicting hk_nontrivial
+      intro h_eq_one
 
-    -- The contradiction: eight-beat requires non-trivial evolution
-    -- but s = 0 makes all evolution operators identity
+      -- Get a specific prime, say p = 2
+      let p : {p : ℕ // Nat.Prime p} := ⟨2, Nat.prime_two⟩
 
-    -- For s = 0, timeToParameter returns complex numbers with Re = 1/2
-    -- but the evolution operator at those parameters would still be identity
-    -- if the underlying s parameter is 0
+      -- From h_eq_one, we have evolutionOperator (timeToParameter 1) = 1
+      -- So (evolutionOperator (timeToParameter 1)) (deltaBasis p) = deltaBasis p
+      have h_fixed : evolutionOperator (timeToParameter 1) (RH.WeightedL2.deltaBasis p) =
+                     RH.WeightedL2.deltaBasis p := by
+        rw [h_eq_one]
+        simp
 
-    -- This violates the eight-beat periodicity which requires
-    -- genuine cyclic evolution, not constant identity
+      -- But evolutionOperator acts diagonally with eigenvalue p^{-timeToParameter 1}
+      rw [evolution_diagonal] at h_fixed
 
-    exact absurd h_all_identity hk_nontrivial
+      -- So p^{-timeToParameter 1} • deltaBasis p = deltaBasis p
+      -- This means p^{-timeToParameter 1} = 1
+
+      -- But timeToParameter 1 has Re = 1/2 (on critical line)
+      have h_re : (timeToParameter 1).re = 1/2 := by
+        simp [timeToParameter]
+
+      -- So |p^{-timeToParameter 1}| = p^{-1/2} = 1/√2 < 1
+      -- This contradicts p^{-timeToParameter 1} = 1
+
+      -- From h_fixed: p^{-timeToParameter 1} • deltaBasis p = deltaBasis p
+      -- Since deltaBasis p ≠ 0, we can extract the scalar
+      have h_nonzero : RH.WeightedL2.deltaBasis p ≠ 0 := by
+        simp [RH.WeightedL2.deltaBasis]
+        exact lp.single_ne_zero (by norm_num : (2 : ENNReal) ≠ ⊤) one_ne_zero
+
+      -- For c • v = v with v ≠ 0, we must have c = 1
+      have h_scalar : (p.val : ℂ)^(-(timeToParameter 1)) = 1 := by
+        -- h_fixed says: p^{-timeToParameter 1} • deltaBasis p = deltaBasis p
+        -- This means (p^{-timeToParameter 1} - 1) • deltaBasis p = 0
+        have : ((p.val : ℂ)^(-(timeToParameter 1)) - 1) • RH.WeightedL2.deltaBasis p = 0 := by
+          rw [sub_smul, h_fixed, one_smul, sub_self]
+        -- Since deltaBasis p ≠ 0, we must have p^{-timeToParameter 1} - 1 = 0
+        have : (p.val : ℂ)^(-(timeToParameter 1)) - 1 = 0 := by
+          by_contra h_ne
+          have : RH.WeightedL2.deltaBasis p = 0 := by
+            rw [← smul_zero ((p.val : ℂ)^(-(timeToParameter 1)) - 1)]
+            rw [← this]
+            simp
+          exact h_nonzero this
+        linarith
+
+      -- But |p^{-timeToParameter 1}| = p^{-1/2} < 1
+      have h_norm : ‖(p.val : ℂ)^(-(timeToParameter 1))‖ < 1 := by
+        rw [norm_cpow_of_ne_zero (Nat.cast_ne_zero.mpr (Nat.Prime.ne_zero p.prop))]
+        rw [neg_re, h_re]
+        simp
+        -- p^{-1/2} = 1/√p < 1 for p ≥ 2
+        have : 1 < Real.sqrt (p.val : ℝ) := by
+          rw [Real.one_lt_sqrt_iff_sq_lt_self]
+          · norm_cast
+            exact Nat.Prime.one_lt p.prop
+          · norm_cast
+            exact Nat.zero_le p.val
+        rw [Real.rpow_neg (Nat.cast_pos.mpr (Nat.Prime.pos p.prop))]
+        rw [Real.rpow_half_eq_sqrt (Nat.cast_nonneg p.val)]
+        exact div_lt_one this
+
+      -- This contradicts h_scalar which says the norm is 1
+      rw [h_scalar, norm_one] at h_norm
+      linarith
   · -- From the two equations, we get:
     -- s = -2πin/log(p) = -2πim/log(q)
     -- This implies n*log(q) = m*log(p)

@@ -385,7 +385,85 @@ theorem evolution_operator_continuous :
     -- The operator norm of a diagonal operator is sup_i |eigenvalue_i|
     -- We know each |eigenvalue_i| < ε from h_eigen_cont
     -- This gives us the bound
-    sorry -- TECHNICAL: Diagonal operator norm = sup of eigenvalue norms
+
+    -- For a diagonal operator D with eigenvalues λ_i, we have ‖D‖ = sup_i |λ_i|
+    -- Since each |λ_i| < ε and there's a uniform bound, we get ‖D‖ ≤ ε
+
+    -- Apply the operator norm characterization
+    rw [ContinuousLinearMap.norm_le_iff_norm_le_one]
+    intro ψ
+
+    -- Apply the diagonal operator
+    rw [DiagonalOperator_apply]
+
+    -- The norm squared of the result
+    have h_norm_sq : ‖⟨fun i => (evolution_eigenvalues s i - evolution_eigenvalues s₀ i) * ψ i, _⟩‖^2 =
+                     ∑' i, ‖(evolution_eigenvalues s i - evolution_eigenvalues s₀ i) * ψ i‖^2 := by
+      rw [pow_two, ← lp.norm_sq_eq_inner_self]
+      rw [lp.inner_def]
+      simp [RCLike.inner_apply, conj_mul']
+      congr 1
+      ext i
+      rw [norm_sq_eq_self]
+
+    -- Bound each term using h_eigen_cont
+    have h_term_bound : ∀ i, ‖(evolution_eigenvalues s i - evolution_eigenvalues s₀ i) * ψ i‖^2 < ε^2 * ‖ψ i‖^2 := by
+      intro i
+      rw [norm_mul, mul_pow]
+      apply mul_lt_mul_of_nonneg_right
+      · rw [sq_lt_sq' (by linarith : -ε < 0) (norm_nonneg _)]
+        exact h_eigen_cont i
+      · exact sq_nonneg _
+
+    -- Since we have strict inequality for each term, and convergence,
+    -- the sum is at most ε^2 * ‖ψ‖^2
+    rw [h_norm_sq]
+
+    -- We need to be careful here - we have strict inequality for each term
+    -- but need to conclude something about the sum
+    -- Since the sum converges, we can bound it
+
+    have h_sum_le : ∑' i, ‖(evolution_eigenvalues s i - evolution_eigenvalues s₀ i) * ψ i‖^2 ≤ ε^2 * ‖ψ‖^2 := by
+      -- Each term is < ε^2 * ‖ψ i‖^2
+      -- So the sum is ≤ ε^2 * ∑' i, ‖ψ i‖^2 = ε^2 * ‖ψ‖^2
+      have h_le : ∀ i, ‖(evolution_eigenvalues s i - evolution_eigenvalues s₀ i) * ψ i‖^2 ≤ ε^2 * ‖ψ i‖^2 := by
+        intro i
+        exact le_of_lt (h_term_bound i)
+
+      have h_sum : ∑' i, ‖(evolution_eigenvalues s i - evolution_eigenvalues s₀ i) * ψ i‖^2 ≤
+                   ∑' i, ε^2 * ‖ψ i‖^2 := by
+        apply tsum_le_tsum h_le
+        · -- Summability of LHS
+          apply Summable.of_nonneg_of_le
+          · intro i; exact sq_nonneg _
+          · exact h_le
+          · exact Summable.mul_left _ ψ.property
+        · -- Summability of RHS
+          exact Summable.mul_left _ ψ.property
+
+      rw [← tsum_mul_left] at h_sum
+      rw [← pow_two, ← lp.norm_sq_eq_inner_self] at h_sum
+      rw [lp.inner_def] at h_sum
+      simp [RCLike.inner_apply, conj_mul', norm_sq_eq_self] at h_sum
+      exact h_sum
+
+    -- Take square roots
+    have h_sqrt : ‖⟨fun i => (evolution_eigenvalues s i - evolution_eigenvalues s₀ i) * ψ i, _⟩‖ ≤ ε * ‖ψ‖ := by
+      rw [← Real.sqrt_le_sqrt_iff (sq_nonneg _) (mul_nonneg (sq_nonneg _) (sq_nonneg _))]
+      rw [Real.sqrt_sq (norm_nonneg _), Real.sqrt_mul (sq_nonneg _), Real.sqrt_sq (by linarith : 0 ≤ ε),
+          Real.sqrt_sq (norm_nonneg _)]
+      exact h_sqrt
+
+    -- So the operator norm is at most ε
+    -- But we need strict inequality
+    -- This follows from h_eigen_cont being strict and continuity
+
+    -- Actually, let's be more careful. We have ‖D‖ ≤ ε
+    -- To get strict inequality, use that the supremum of values all < ε is ≤ ε
+    -- and if it equals ε, there would be a sequence approaching ε
+    -- But all values are bounded away from ε
+
+    sorry -- Need to handle the strict inequality more carefully
 
   exact h_norm_bound
 
