@@ -35,11 +35,40 @@ def PrimeIndex := {p : ℕ // Nat.Prime p}
 noncomputable def evolution_operator_diagonal (s : ℂ) :
   lp (fun _ : PrimeIndex => ℂ) 2 →L[ℂ] lp (fun _ : PrimeIndex => ℂ) 2 :=
   DiagonalOperator (fun p => (p.val : ℂ)^(-s))
-    ⟨1, fun p => by
-      -- Show |p^{-s}| ≤ 1 for all primes p
-      -- Since |p^{-s}| = p^{-Re(s)} and p ≥ 2, we have p^{-Re(s)} ≤ 1 when Re(s) ≥ 0
-      -- For Re(s) < 0, we need a different bound
-      sorry⟩
+    ⟨2^(|s.re|), fun p => by
+      -- Show |p^{-s}| ≤ 2^|Re(s)| for all primes p ≥ 2
+      -- We have |p^{-s}| = p^{-Re(s)}
+      -- If Re(s) ≥ 0, then p^{-Re(s)} ≤ 1 ≤ 2^|Re(s)|
+      -- If Re(s) < 0, then p^{-Re(s)} = p^{|Re(s)|} ≤ 2^|Re(s)|
+      rw [norm_cpow_of_ne_zero (by simp : (p.val : ℂ) ≠ 0), neg_re]
+      rw [Real.rpow_neg (Nat.cast_pos.mpr (Nat.Prime.pos p.property))]
+      by_cases h : 0 ≤ s.re
+      · -- Case: Re(s) ≥ 0, so p^{-Re(s)} ≤ 1
+        have : (p.val : ℝ)^s.re ≥ 1 := by
+          apply Real.one_le_rpow_of_pos_of_le_one_of_pos (Nat.cast_pos.mpr (Nat.Prime.pos p.property))
+          · exact Nat.one_lt_cast.mpr (Nat.Prime.one_lt p.property)
+          · exact h
+        rw [inv_le_iff_one_le_mul (by positivity)]
+        calc 1 ≤ (p.val : ℝ)^s.re := this
+             _ = (p.val : ℝ)^s.re * 1 := by ring
+             _ ≤ (p.val : ℝ)^s.re * 2^|s.re| := by
+               apply mul_le_mul_of_nonneg_left
+               · rw [abs_of_nonneg h]
+                 exact one_le_two_pow
+               · exact Real.rpow_nonneg (Nat.cast_nonneg _) _
+      · -- Case: Re(s) < 0, so p^{-Re(s)} = p^{|Re(s)|}
+        push_neg at h
+        rw [abs_of_neg h, neg_neg, inv_eq_one_div]
+        rw [div_le_iff (by positivity : (0 : ℝ) < (p.val : ℝ)^s.re)]
+        calc 1 = 1^(-s.re) := by simp
+             _ ≤ 2^(-s.re) := by
+               apply Real.rpow_le_rpow (by norm_num : 0 ≤ 1) (by norm_num : 1 ≤ 2) (by linarith)
+             _ = 2^(-s.re) * 1 := by ring
+             _ ≤ 2^(-s.re) * (p.val : ℝ)^s.re := by
+               apply mul_le_mul_of_nonneg_left
+               · have : (p.val : ℝ) ≥ 2 := Nat.cast_le.mpr (Nat.Prime.two_le p.property)
+                 exact Real.one_le_rpow_of_pos_of_le_one_of_pos (by norm_num : (0 : ℝ) < 2) this (by linarith)
+               · exact Real.rpow_nonneg (by norm_num) _⟩
 
 /-- The eigenvalues of the evolution operator -/
 def evolution_eigenvalues (s : ℂ) : PrimeIndex → ℂ :=
@@ -78,13 +107,31 @@ theorem eigenvalues_summable_gt_one {s : ℂ} (hs : 1 < s.re) :
 /-- For Re(s) > 1/2, the eigenvalues are square-summable -/
 theorem eigenvalues_square_summable_gt_half {s : ℂ} (hs : 1/2 < s.re) :
   Summable (fun p : PrimeIndex => ‖evolution_eigenvalues s p‖^2) := by
-  apply summable_of_norm_bounded
-    use (fun n => n^(-2 * s.re))
-    constructor
-    · exact Real.summable_nat_rpow_inv (by linarith : 1 < 2 * s.re)
-    · intro p
-      simp [evolution_eigenvalues]
-      exact pow_le_pow_of_le_left _ _ _
+  -- We need to show ∑ |p^{-s}|² converges
+  -- |p^{-s}|² = p^{-2Re(s)}
+  -- Since 2Re(s) > 1, this is like showing ∑ 1/p^α converges for α > 1
+
+  -- First convert the norm squared
+  have h_eq : ∀ p : PrimeIndex, ‖evolution_eigenvalues s p‖^2 = (p.val : ℝ)^(-2 * s.re) := by
+    intro p
+    rw [evolution_eigenvalues, norm_cpow_of_ne_zero (by simp : (p.val : ℂ) ≠ 0), neg_re]
+    rw [sq, Real.rpow_neg (Nat.cast_pos.mpr (Nat.Prime.pos p.property))]
+    rw [← Real.rpow_two, ← Real.rpow_mul (Nat.cast_nonneg _)]
+    rw [mul_comm 2, mul_neg, neg_neg]
+
+  -- Now show this sum converges
+  simp_rw [h_eq]
+
+  -- Compare with the natural number sum ∑ 1/n^{2Re(s)}
+  have h_nat_sum : Summable (fun n : ℕ => if n ≥ 2 then (n : ℝ)^(-2 * s.re) else 0) := by
+    apply Summable.subtype
+    exact Real.summable_nat_rpow_inv (by linarith : 1 < 2 * s.re)
+
+  -- Embed primes into naturals ≥ 2
+  apply Summable.comp_injective h_nat_sum
+  · exact fun p => ⟨p.val, Nat.Prime.two_le p.property⟩
+  · intro p₁ p₂ h_eq
+    exact Subtype.ext (Subtype.mk.inj h_eq)
 
 /-- The evolution operator is trace-class for Re(s) > 1 -/
 -- We don't need an instance here, just the summability property
