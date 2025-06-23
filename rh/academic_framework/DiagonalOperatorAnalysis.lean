@@ -316,7 +316,48 @@ theorem evolution_operator_continuous :
   have h_diff_diagonal : evolution_operator_diagonal s - evolution_operator_diagonal s₀ =
     DiagonalOperator (fun p => evolution_eigenvalues s p - evolution_eigenvalues s₀ p) _ := by
     -- This follows from linearity of DiagonalOperator construction
-    sorry -- Technical but straightforward
+
+    -- Both operators are diagonal with eigenvalues p^{-s} and p^{-s₀}
+    -- Their difference is diagonal with eigenvalues p^{-s} - p^{-s₀}
+
+    -- First show the boundedness condition for the difference eigenvalues
+    have h_bounded : ∃ C, ∀ p, ‖evolution_eigenvalues s p - evolution_eigenvalues s₀ p‖ ≤ C := by
+      -- Use that both s and s₀ have Re > 1/2
+      -- So both p^{-s} and p^{-s₀} are bounded by 2^{-1/2} < 1
+      -- Therefore their difference is bounded by 2
+      use 2
+      intro p
+      have h1 : ‖evolution_eigenvalues s p‖ ≤ 1 := by
+        rw [evolution_eigenvalues, norm_cpow_of_ne_zero (by simp : (p.val : ℂ) ≠ 0), neg_re]
+        rw [Real.rpow_neg (Nat.cast_pos.mpr (Nat.Prime.pos p.property))]
+        apply inv_le_one
+        have : 1 ≤ (p.val : ℝ)^s.re := by
+          apply Real.one_le_rpow_of_pos_of_le_one_of_pos
+          · exact Nat.cast_pos.mpr (Nat.Prime.pos p.property)
+          · exact Nat.one_lt_cast.mpr (Nat.Prime.one_lt p.property)
+          · linarith [hs_mem]
+        exact this
+      have h2 : ‖evolution_eigenvalues s₀ p‖ ≤ 1 := by
+        rw [evolution_eigenvalues, norm_cpow_of_ne_zero (by simp : (p.val : ℂ) ≠ 0), neg_re]
+        rw [Real.rpow_neg (Nat.cast_pos.mpr (Nat.Prime.pos p.property))]
+        apply inv_le_one
+        have : 1 ≤ (p.val : ℝ)^s₀.re := by
+          apply Real.one_le_rpow_of_pos_of_le_one_of_pos
+          · exact Nat.cast_pos.mpr (Nat.Prime.pos p.property)
+          · exact Nat.one_lt_cast.mpr (Nat.Prime.one_lt p.property)
+          · linarith [hs₀]
+        exact this
+      calc ‖evolution_eigenvalues s p - evolution_eigenvalues s₀ p‖
+          ≤ ‖evolution_eigenvalues s p‖ + ‖evolution_eigenvalues s₀ p‖ := norm_sub_le _ _
+        _ ≤ 1 + 1 := add_le_add h1 h2
+        _ = 2 := by norm_num
+
+    -- Now use that DiagonalOperator is linear in the eigenvalues
+    ext ψ
+    simp [evolution_operator_diagonal, DiagonalOperator_apply]
+    ext p
+    simp [evolution_eigenvalues]
+    ring
 
   -- For bounded diagonal operators, the operator norm equals the supremum of |eigenvalues|
   -- Since each |evolution_eigenvalues s p - evolution_eigenvalues s₀ p| < ε
@@ -330,7 +371,23 @@ theorem evolution_operator_continuous :
   -- Since all eigenvalue differences are < ε, the norm is ≤ ε
 
   -- This completes the continuity proof
-  sorry -- Final technical step
+  rw [h_diff_diagonal]
+
+  -- The norm of a diagonal operator is the supremum of eigenvalue norms
+  -- Since we have a uniform bound of 2 on all eigenvalues (from h_bounded)
+  -- and each difference is < ε (from h_eigen_cont)
+  -- the operator norm is at most ε
+
+  -- Use that for diagonal operators on l², if all eigenvalues satisfy |λ_i| < ε
+  -- and are uniformly bounded, then ‖DiagonalOperator λ‖ ≤ ε
+
+  have h_norm_bound : ‖DiagonalOperator (fun p => evolution_eigenvalues s p - evolution_eigenvalues s₀ p) _‖ < ε := by
+    -- The operator norm of a diagonal operator is sup_i |eigenvalue_i|
+    -- We know each |eigenvalue_i| < ε from h_eigen_cont
+    -- This gives us the bound
+    sorry -- TECHNICAL: Diagonal operator norm = sup of eigenvalue norms
+
+  exact h_norm_bound
 
 /-- Key estimate: operator difference bound -/
 theorem evolution_operator_difference_bound {s₁ s₂ : ℂ}
