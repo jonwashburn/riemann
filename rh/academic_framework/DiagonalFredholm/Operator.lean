@@ -29,138 +29,88 @@ variable {ι : Type*} [Countable ι]
 noncomputable def DiagonalOperator (eigenvals : ι → ℂ)
   (h_bounded : ∃ C, ∀ i, ‖eigenvals i‖ ≤ C) :
   lp (fun _ : ι => ℂ) 2 →L[ℂ] lp (fun _ : ι => ℂ) 2 := by
-  -- First define the linear map
+  -- Define the linear map first
+  obtain ⟨C, hC⟩ := h_bounded
   let L : lp (fun _ : ι => ℂ) 2 →ₗ[ℂ] lp (fun _ : ι => ℂ) 2 := {
-    toFun := fun ψ =>
-      ⟨fun i => eigenvals i * ψ i, by
-        -- Show Memℓp for the result
-        obtain ⟨C, hC⟩ := h_bounded
-        -- Need to show this is in lp 2
-        -- i.e., we need Summable fun i => ‖eigenvals i * ψ i‖^2
-        have h_sq_summable : Summable fun i => ‖eigenvals i * ψ i‖^2 := by
-          -- ‖eigenvals i * ψ i‖^2 = ‖eigenvals i‖^2 * ‖ψ i‖^2
-          have h_eq : (fun i => ‖eigenvals i * ψ i‖^2) = fun i => ‖eigenvals i‖^2 * ‖ψ i‖^2 := by
-            ext i
-            rw [norm_mul, mul_pow]
-          rw [h_eq]
-          -- Since ‖eigenvals i‖ ≤ C, we have ‖eigenvals i‖^2 ≤ C^2
-          have h_bound : ∀ i, ‖eigenvals i‖^2 * ‖ψ i‖^2 ≤ C^2 * ‖ψ i‖^2 := by
-            intro i
-            exact mul_le_mul_of_nonneg_right (pow_le_pow_left (norm_nonneg _) (hC i) 2) (sq_nonneg _)
-          -- Apply comparison test
-          apply Summable.of_nonneg_of_le
-          · intro i; exact mul_nonneg (sq_nonneg _) (sq_nonneg _)
-          · exact h_bound
-          · exact Summable.mul_left _ ψ.property
-        -- Convert to the required form
-        simp only [← sq, Memℓp, lp.mem_ℓp_iff_summable_norm_rpow]
-        norm_num
-        exact h_sq_summable⟩,
+    toFun := fun ψ => ⟨fun i => eigenvals i * ψ i, by
+      -- Show result is in lp 2
+      have : Memℓp (fun i => eigenvals i * ψ i) 2 (by simp : (2 : ℝ≥0∞).toReal = 2) := by
+        rw [mem_ℓp_iff_norm_rpow_summable (by norm_num : 0 < 2) (by norm_num : 2 ≠ ⊤)]
+        -- Need to show Summable fun i => ‖eigenvals i * ψ i‖ ^ 2
+        have h_bound : ∀ i, ‖eigenvals i * ψ i‖ ^ 2 ≤ C^2 * ‖ψ i‖ ^ 2 := by
+          intro i
+          rw [norm_mul, mul_pow]
+          exact mul_le_mul_of_nonneg_right (pow_le_pow_left (norm_nonneg _) (hC i) 2) (sq_nonneg _)
+        apply Summable.of_norm_bounded
+        · convert Summable.mul_left (C^2) _ with i
+          simp [Real.rpow_two]
+        · intro i
+          simp only [norm_mul, Real.norm_eq_abs, abs_norm, Real.rpow_two]
+          exact h_bound i
+        · have h_ψ : Memℓp (ψ : ι → ℂ) 2 (by simp : (2 : ℝ≥0∞).toReal = 2) := ψ.property
+          rw [mem_ℓp_iff_norm_rpow_summable (by norm_num : 0 < 2) (by norm_num : 2 ≠ ⊤)] at h_ψ
+          convert h_ψ with i
+          simp [Real.rpow_two]
+      exact this⟩
     map_add' := by
       intro ψ φ
       ext i
-      simp only [lp.coeFn_add, Pi.add_apply]
-      ring
+      simp [mul_add]
     map_smul' := by
       intro c ψ
       ext i
-      simp only [lp.coeFn_smul, Pi.smul_apply, RingHom.id_apply]
-      simp only [smul_eq_mul]
-      ring
+      simp [mul_comm c, mul_assoc]
   }
-  -- Prove continuity
-  have h_cont : ∃ C, ∀ ψ, ‖L ψ‖ ≤ C * ‖ψ‖ := by
-    obtain ⟨C, hC⟩ := h_bounded
-    use C
-    intro ψ
-    -- Need to show ‖L ψ‖ ≤ C * ‖ψ‖
-    -- For lp 2 norm: ‖L ψ‖² = ∑ |eigenvals i * ψ i|²
-    -- We have |eigenvals i * ψ i|² ≤ C² |ψ i|²
-    -- So ‖L ψ‖² ≤ C² ∑ |ψ i|² = C² ‖ψ‖²
-    -- Taking square roots: ‖L ψ‖ ≤ C ‖ψ‖
-
-    -- First, compute ‖L ψ‖²
-    have h_norm_sq : ‖L ψ‖^2 = ∑' i, ‖eigenvals i * ψ i‖^2 := by
-      -- Use the fact that for lp 2, the norm squared is the sum of component norms squared
-      rw [pow_two, ← lp.norm_sq_eq_inner_self]
-      rw [lp.inner_def]
-      simp [RCLike.inner_apply, conj_mul']
-      congr 1
+  -- Now prove it's continuous with bound C
+  refine L.mkContinuousOfExistsBound ⟨C, fun ψ => ?_⟩
+  -- Show ‖L ψ‖ ≤ C * ‖ψ‖
+  have h1 : ‖L ψ‖ ^ 2 = ∑' i, ‖eigenvals i * ψ i‖ ^ 2 := by
+    have := @lp.norm_sq_eq_tsum _ _ _ _ _ (fun _ : ι => ℂ) _ 2 (by norm_num : (1 : ℝ≥0∞) < 2) (L ψ)
+    convert this
+    ext i
+    simp
+  have h2 : ‖ψ‖ ^ 2 = ∑' i, ‖ψ i‖ ^ 2 := by
+    have := @lp.norm_sq_eq_tsum _ _ _ _ _ (fun _ : ι => ℂ) _ 2 (by norm_num : (1 : ℝ≥0∞) < 2) ψ
+    convert this
+  rw [h1, h2]
+  -- Bound the sum
+  have h3 : ∑' i, ‖eigenvals i * ψ i‖ ^ 2 ≤ C^2 * ∑' i, ‖ψ i‖ ^ 2 := by
+    have h_eq : (fun i => ‖eigenvals i * ψ i‖ ^ 2) = fun i => ‖eigenvals i‖ ^ 2 * ‖ψ i‖ ^ 2 := by
       ext i
-      rw [norm_sq_eq_self]
-
-    -- Bound each term
-    have h_bound : ∑' i, ‖eigenvals i * ψ i‖^2 ≤ ∑' i, C^2 * ‖ψ i‖^2 := by
+      rw [norm_mul, mul_pow]
+    rw [h_eq]
+    have : ∑' i, ‖eigenvals i‖ ^ 2 * ‖ψ i‖ ^ 2 ≤ ∑' i, C^2 * ‖ψ i‖ ^ 2 := by
       apply tsum_le_tsum
       · intro i
-        rw [norm_mul, mul_pow]
         exact mul_le_mul_of_nonneg_right (pow_le_pow_left (norm_nonneg _) (hC i) 2) (sq_nonneg _)
-      · exact Summable.mul_left _ ψ.property
-      · have : Summable fun i => ‖eigenvals i * ψ i‖^2 := by
-          apply Summable.of_nonneg_of_le
-          · intro i; exact sq_nonneg _
-          · intro i
-            rw [norm_mul, mul_pow]
-            exact mul_le_mul_of_nonneg_right (pow_le_pow_left (norm_nonneg _) (hC i) 2) (sq_nonneg _)
-          · exact Summable.mul_left _ ψ.property
-        exact this
-
-    -- Combine
-    rw [h_norm_sq]
-    have h_factor : ∑' i, C^2 * ‖ψ i‖^2 = C^2 * ∑' i, ‖ψ i‖^2 := by
-      rw [← tsum_mul_left]
-    rw [← h_factor] at h_bound
-    -- We have ‖L ψ‖² ≤ C² * ∑' i, ‖ψ i‖²
-    -- And ∑' i, ‖ψ i‖² = ‖ψ‖² (by definition of lp 2 norm)
-    have h_ψ_norm : ∑' i, ‖ψ i‖^2 = ‖ψ‖^2 := by
-      rw [pow_two, ← lp.norm_sq_eq_inner_self]
-      rw [lp.inner_def]
-      simp [RCLike.inner_apply, conj_mul']
-      congr 1
-      ext i
-      rw [norm_sq_eq_self]
-    rw [h_ψ_norm] at h_bound
-    -- Take square roots
-    have h_sqrt : Real.sqrt (‖L ψ‖^2) ≤ Real.sqrt (C^2 * ‖ψ‖^2) := by
-      exact Real.sqrt_le_sqrt h_bound
-    rw [Real.sqrt_sq (norm_nonneg _), Real.sqrt_mul (sq_nonneg _) _, Real.sqrt_sq (norm_nonneg _),
-        Real.sqrt_sq (norm_nonneg _)] at h_sqrt
-    exact h_sqrt
-  -- Use mkContinuousOfExistsBound
-  exact L.mkContinuousOfExistsBound h_cont
+      · have h_ψ : Memℓp (ψ : ι → ℂ) 2 (by simp : (2 : ℝ≥0∞).toReal = 2) := ψ.property
+        rw [mem_ℓp_iff_norm_rpow_summable (by norm_num : 0 < 2) (by norm_num : 2 ≠ ⊤)] at h_ψ
+        convert Summable.mul_left (C^2) h_ψ with i
+        simp [Real.rpow_two]
+      · apply Summable.of_norm_bounded
+        · convert Summable.mul_left (C^2) _ with i
+          simp [mul_pow]
+        · intro i
+          rw [norm_mul, mul_pow]
+          exact mul_le_mul_of_nonneg_right (pow_le_pow_left (norm_nonneg _) (hC i) 2) (sq_nonneg _)
+        · have h_ψ : Memℓp (ψ : ι → ℂ) 2 (by simp : (2 : ℝ≥0∞).toReal = 2) := ψ.property
+          rw [mem_ℓp_iff_norm_rpow_summable (by norm_num : 0 < 2) (by norm_num : 2 ≠ ⊤)] at h_ψ
+          convert h_ψ with i
+          simp [Real.rpow_two]
+    rw [← tsum_mul_left]
+    exact this
+  -- Take square roots
+  have h_sqrt : Real.sqrt (‖L ψ‖^2) ≤ Real.sqrt (C^2 * ‖ψ‖^2) := by
+    exact Real.sqrt_le_sqrt h3
+  rw [Real.sqrt_sq (norm_nonneg _), Real.sqrt_mul (sq_nonneg _) _,
+      Real.sqrt_sq (by linarith : 0 ≤ C), Real.sqrt_sq (norm_nonneg _)] at h_sqrt
+  exact h_sqrt
 
 /-- Diagonal operators act by pointwise multiplication -/
 lemma DiagonalOperator_apply (eigenvals : ι → ℂ)
   (h_bounded : ∃ C, ∀ i, ‖eigenvals i‖ ≤ C)
-  (ψ : lp (fun _ : ι => ℂ) 2) :
-  DiagonalOperator eigenvals h_bounded ψ =
-    ⟨fun i => eigenvals i * ψ i, by
-      -- Same proof as in the definition
-      obtain ⟨C, hC⟩ := h_bounded
-      -- Need to show this is in lp 2
-      -- i.e., we need Summable fun i => ‖eigenvals i * ψ i‖^2
-      have h_sq_summable : Summable fun i => ‖eigenvals i * ψ i‖^2 := by
-        -- ‖eigenvals i * ψ i‖^2 = ‖eigenvals i‖^2 * ‖ψ i‖^2
-        have h_eq : (fun i => ‖eigenvals i * ψ i‖^2) = fun i => ‖eigenvals i‖^2 * ‖ψ i‖^2 := by
-          ext i
-          rw [norm_mul, mul_pow]
-        rw [h_eq]
-        -- Since ‖eigenvals i‖ ≤ C, we have ‖eigenvals i‖^2 ≤ C^2
-        have h_bound : ∀ i, ‖eigenvals i‖^2 * ‖ψ i‖^2 ≤ C^2 * ‖ψ i‖^2 := by
-          intro i
-          exact mul_le_mul_of_nonneg_right (pow_le_pow_left (norm_nonneg _) (hC i) 2) (sq_nonneg _)
-        -- Apply comparison test
-        apply Summable.of_nonneg_of_le
-        · intro i; exact mul_nonneg (sq_nonneg _) (sq_nonneg _)
-        · exact h_bound
-        · exact Summable.mul_left _ ψ.property
-        -- Convert to the required form
-        simp only [← sq, Memℓp, lp.mem_ℓp_iff_summable_norm_rpow]
-        norm_num
-        exact h_sq_summable⟩ := by
-  -- This follows from the definition
-  simp only [DiagonalOperator, ContinuousLinearMap.coe_mk', LinearMap.coe_mk, AddHom.coe_mk]
-  -- The Memℓp proofs are equal because they're propositions
+  (ψ : lp (fun _ : ι => ℂ) 2) (i : ι) :
+  (DiagonalOperator eigenvals h_bounded ψ) i = eigenvals i * ψ i := by
   rfl
 
 /-- Helper: summable implies bounded for countable sets -/
@@ -168,37 +118,51 @@ lemma summable_implies_bounded (eigenvals : ι → ℂ)
   (h_summable : Summable (fun i => ‖eigenvals i‖)) :
   ∃ C, ∀ i, ‖eigenvals i‖ ≤ C := by
   -- If ∑‖eigenvals i‖ < ∞, then eigenvals i → 0, so they're bounded
-  -- Standard argument: either finitely many terms are ≥ 1, or all are < 1
-  -- In first case, max of those finite terms plus 1 works as bound
-  -- In second case, 1 works as bound
-  by_cases h : ∃ C, ∀ i, ‖eigenvals i‖ ≤ C
-  · exact h
-  · -- If unbounded, we get a contradiction with summability
-    push_neg at h
-    -- h says: for all C, there exists i with ‖eigenvals i‖ > C
-    -- This contradicts summability since summable sequences are bounded
-    exfalso
-    -- For any summable sequence, the terms must tend to 0
-    have h_tendsto : Tendsto (fun i => ‖eigenvals i‖) cofinite (𝓝 0) := by
-      exact h_summable.tendsto_cofinite_zero
-    -- Therefore the sequence is eventually bounded by 1
-    have h_eventually_bounded : ∀ᶠ i in cofinite, ‖eigenvals i‖ < 1 := by
-      exact tendsto_nhds_metric.mp h_tendsto 1 (by norm_num)
-    -- This means there's a finite set S such that for all i ∉ S, ‖eigenvals i‖ < 1
-    obtain ⟨S, hS⟩ := eventually_cofinite.mp h_eventually_bounded
-    -- The maximum of the finite set S plus 1 gives a bound
-    let C := (S.image (fun i => ‖eigenvals i‖)).max' (by simp) + 1
-    -- But h says no such bound exists, contradiction
-    specialize h C
-    obtain ⟨i, hi⟩ := h
-    by_cases hi_in : i ∈ S
-    · -- If i ∈ S, then ‖eigenvals i‖ ≤ max(S) < C
-      have : ‖eigenvals i‖ ≤ (S.image (fun j => ‖eigenvals j‖)).max' (by simp) := by
-        apply Finset.le_max'
-        exact Finset.mem_image.mpr ⟨i, hi_in, rfl⟩
+  -- For any summable sequence, the terms must tend to 0
+  have h_tendsto : Tendsto (fun i => ‖eigenvals i‖) cofinite (𝓝 0) := by
+    exact h_summable.tendsto_cofinite_zero
+  -- Therefore the sequence is eventually bounded by 1
+  have h_eventually_bounded : ∀ᶠ i in cofinite, ‖eigenvals i‖ < 1 := by
+    rw [tendsto_nhds] at h_tendsto
+    specialize h_tendsto (Metric.ball 0 1) Metric.isOpen_ball (by simp)
+    simp only [preimage_setOf_eq] at h_tendsto
+    convert h_tendsto using 1
+    ext i
+    simp [Metric.mem_ball, dist_zero_right]
+  -- This means there's a finite set S such that for all i ∉ S, ‖eigenvals i‖ < 1
+  rw [eventually_cofinite] at h_eventually_bounded
+  -- The set where norm ≥ 1 is finite
+  let S := {i | ¬(‖eigenvals i‖ < 1)}
+  have hS_finite : S.Finite := h_eventually_bounded
+  -- If S is empty, use 1 as bound
+  by_cases hS_empty : S = ∅
+  · use 1
+    intro i
+    have : i ∉ S := by simp [hS_empty]
+    simp [S] at this
+    linarith
+  · -- S is finite and nonempty, take max + 1
+    have hS_nonempty : S.Nonempty := by
+      rwa [← ne_eq, ← Set.nonempty_iff_ne_empty]
+    -- Convert to finset
+    let Sfin := hS_finite.toFinset
+    have : Sfin.Nonempty := by
+      rw [Set.Finite.toFinset_nonempty]
+      exact hS_nonempty
+    use (Sfin.image (fun i => ‖eigenvals i‖)).max' (Finset.Nonempty.image this _) + 1
+    intro i
+    by_cases hi : i ∈ S
+    · have : ‖eigenvals i‖ ∈ Sfin.image (fun j => ‖eigenvals j‖) := by
+        rw [Finset.mem_image]
+        use i
+        constructor
+        · rw [Set.Finite.mem_toFinset]
+          exact hi
+        · rfl
+      have : ‖eigenvals i‖ ≤ (Sfin.image (fun j => ‖eigenvals j‖)).max' _ := by
+        exact Finset.le_max' _ _ this
       linarith
-    · -- If i ∉ S, then ‖eigenvals i‖ < 1 < C
-      have : ‖eigenvals i‖ < 1 := hS i hi_in
+    · simp [S] at hi
       linarith
 
 end AcademicRH.DiagonalFredholm

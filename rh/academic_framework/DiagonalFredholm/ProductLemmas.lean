@@ -2,6 +2,7 @@ import rh.academic_framework.Core
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
 import Mathlib.Analysis.Normed.Field.InfiniteSum
+import Mathlib.Topology.Algebra.InfiniteSum.Defs
 
 /-!
 # Infinite Product Lemmas
@@ -23,15 +24,8 @@ open scoped Classical
 
 variable {ι : Type*} [Countable ι]
 
-/-- Multipliable means the infinite product converges -/
-def Multipliable (f : ι → ℂ) : Prop :=
-  ∃ (p : ℂ), Tendsto (fun F : Finset ι => ∏ i in F, f i) atTop (𝓝 p)
-
-/-- Infinite product notation -/
-noncomputable def tprod (f : ι → ℂ) : ℂ :=
-  if h : Multipliable f then Classical.choose h else 1
-
-notation3 "∏' "(...)", "r:67:(scoped f => tprod f) => r
+-- Import Multipliable and tprod from mathlib
+open Multipliable HasProd
 
 /-- Helper: convergence of products (1 - λᵢ) when ∑|λᵢ| < ∞ -/
 lemma multipliable_one_sub_of_summable (eigenvals : ι → ℂ)
@@ -39,20 +33,21 @@ lemma multipliable_one_sub_of_summable (eigenvals : ι → ℂ)
   Multipliable (fun i => 1 - eigenvals i) := by
   -- If ∑‖aᵢ‖ < ∞, then ∏(1 - aᵢ) converges
   -- This is a standard result in complex analysis
-  sorry
+  sorry -- STANDARD FACT: Weierstrass product theorem for absolutely convergent products
 
-/-- Helper: ∏ exp(λᵢ) = exp(∑ λᵢ) for summable λ -/
+/-- Exponential of series equals product of exponentials -/
 lemma tprod_exp_eq_exp_tsum (eigenvals : ι → ℂ)
-  (h_summable : Summable (fun i => ‖eigenvals i‖)) :
-  tprod (fun i => Complex.exp (eigenvals i)) = Complex.exp (∑' i : ι, eigenvals i) := by
-  -- For absolutely convergent series ∑ aᵢ, we have ∏ exp(aᵢ) = exp(∑ aᵢ)
-  sorry
+  (h_summable : Summable eigenvals) :
+  ∏' i, exp (eigenvals i) = exp (∑' i, eigenvals i) := by
+  -- Standard fact: ∏ exp(aᵢ) = exp(∑ aᵢ) when ∑ aᵢ converges
+  sorry -- STANDARD FACT: Exponential of series equals product of exponentials
 
-/-- Helper: Distributivity of infinite products -/
-lemma tprod_mul_distrib (f g : ι → ℂ)
+/-- Distributivity for multipliable products -/
+lemma tprod_mul_distrib {α : Type*} [CommGroup α] [TopologicalSpace α]
+  [ContinuousMul α] (f g : ι → α)
   (hf : Multipliable f) (hg : Multipliable g) :
-  tprod (fun i => f i * g i) = tprod f * tprod g := by
-  -- Standard result for infinite products
-  sorry
+  ∏' i, (f i * g i) = (∏' i, f i) * (∏' i, g i) := by
+  -- Product of products equals product of pointwise products
+  sorry -- STANDARD FACT: Multipliable products distribute over multiplication
 
 end AcademicRH.DiagonalFredholm

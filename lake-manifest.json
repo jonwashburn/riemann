@@ -80,6 +80,13 @@
    "manifestFile": "lake-manifest.json",
    "inputRev": "v4.12.0",
    "inherited": false,
+   "configFile": "lakefile.lean"},
+  {"type": "path",
+   "scope": "",
+   "name": "«recognition-science»",
+   "manifestFile": "lake-manifest.json",
+   "inherited": false,
+   "dir": "./no-mathlib-core",
    "configFile": "lakefile.lean"}],
  "name": "riemann",
  "lakeDir": ".lake"}

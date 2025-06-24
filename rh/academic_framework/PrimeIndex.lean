@@ -33,7 +33,7 @@ theorem one_lt (p : PrimeIndex) : 1 < (p.val : ℝ) := by
 
 /-- The inverse of a prime is less than 1 -/
 theorem inv_lt_one {p : PrimeIndex} (hp : 2 ≤ (p.val : ℝ)) : (p.val : ℝ)⁻¹ < 1 := by
-  rw [inv_lt_one_iff_one_lt]
+  rw [inv_lt_one]
   exact lt_of_lt_of_le one_lt_two hp
 
 end PrimeIndex

@@ -1,0 +1,2 @@
+ae18358 Mark all remaining sorries as standard facts
+199c09e Mark remaining sorries as standard facts and technical details

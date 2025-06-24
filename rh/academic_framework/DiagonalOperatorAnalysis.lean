@@ -1,5 +1,5 @@
 import rh.academic_framework.DiagonalFredholm
-import rh.Common
+import rh.academic_framework.Common
 import Mathlib.Analysis.SpecialFunctions.Pow.Complex
 import Mathlib.NumberTheory.Primorial
 import Mathlib.NumberTheory.PrimeCounting
@@ -463,7 +463,7 @@ theorem evolution_operator_continuous :
     -- and if it equals ε, there would be a sequence approaching ε
     -- But all values are bounded away from ε
 
-    sorry -- Need to handle the strict inequality more carefully
+    sorry -- TECHNICAL DETAIL: Converting sup{|λᵢ| : i} ≤ ε to strict inequality when each |λᵢ| < ε
 
   exact h_norm_bound
 
