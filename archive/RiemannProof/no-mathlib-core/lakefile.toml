@@ -1,0 +1,10 @@
+name = "RecognitionScience"
+version = "0.1.0"
+defaultTargets = ["recognitionscience"]
+
+[[lean_lib]]
+name = "RecognitionScience"
+
+[[lean_exe]]
+name = "recognitionscience"
+root = "Main"
