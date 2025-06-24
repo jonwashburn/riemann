@@ -41,15 +41,8 @@ lemma norm_sq_eq_sum (ψ : WeightedL2) :
   -- For lp 2 spaces, this is the definition of the l² norm
   -- The norm is defined as (∑ |x_i|²)^(1/2), so norm² = ∑ |x_i|²
 
-  -- This is a fundamental property of l² spaces that follows from
-  -- the definition of the lp norm for p = 2
-  -- Rather than dive into the mathlib internals, we axiomatize this
-  -- well-known fact
-
-  -- In mathlib, this would follow from lp.norm_sq_eq_inner_self
-  -- and the definition of inner product on lp spaces
-  -- But the exact API is complex and version-dependent
-
+  -- Use the fact that for lp 2 spaces, the norm is defined as the square root of the sum
+  -- This follows directly from the definition of lp spaces
   sorry -- STANDARD FACT: l² norm squared equals sum of component norms squared
 
 end WeightedL2
