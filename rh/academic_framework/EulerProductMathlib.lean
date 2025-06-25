@@ -26,7 +26,7 @@ open Complex Real BigOperators
 open ArithmeticFunction EulerProduct
 
 /-- The function n ↦ n^(-s) as a completely multiplicative function -/
-def zetaCharacter (s : ℂ) : ℕ →*₀ ℂ where
+noncomputable def zetaCharacter (s : ℂ) : ℕ →*₀ ℂ where
   toFun n := if n = 0 then 0 else (n : ℂ)^(-s)
   map_zero' := by simp
   map_one' := by simp [cpow_neg, one_cpow]
@@ -35,7 +35,8 @@ def zetaCharacter (s : ℂ) : ℕ →*₀ ℂ where
     · simp [hm]
     by_cases hn : n = 0
     · simp [hn, mul_zero]
-    · simp [hm, hn, mul_ne_zero hm hn, mul_cpow_of_ne_zero]
+    · simp [hm, hn, mul_ne_zero hm hn, ← cpow_add _ _ (Nat.cast_ne_zero.mpr hm),
+            ← cpow_add _ _ (Nat.cast_ne_zero.mpr hn), cpow_neg, mul_inv]
 
 /-- The Euler product converges for Re(s) > 1 -/
 theorem euler_product_converges {s : ℂ} (hs : 1 < s.re) :
@@ -51,6 +52,7 @@ theorem euler_product_converges {s : ℂ} (hs : 1 < s.re) :
     · simp [hn, norm_div, norm_one, cpow_neg]
   -- Apply the completely multiplicative Euler product theorem
   have := eulerProduct_completely_multiplicative_hasProd h_summable
+  -- Convert HasProd to Multipliable
   exact this.multipliable
 
 /-- The Euler product formula from mathlib -/
@@ -59,16 +61,20 @@ theorem euler_product_zeta {s : ℂ} (hs : 1 < s.re) :
   -- We need summability
   have h_summable : Summable (fun n : ℕ => ‖(zetaCharacter s) n‖) := by
     simp only [zetaCharacter, MonoidWithZeroHom.coe_mk, ZeroHom.coe_mk]
-    convert Complex.summable_one_div_nat_cpow.mpr hs using 1
-    ext n
-    by_cases hn : n = 0
-    · simp [hn]
-    · simp [hn, norm_div, norm_one, cpow_neg]
+    -- Show this equals the summability condition for zeta
+    have : (fun n => ‖(zetaCharacter s) n‖) = fun n => if n = 0 then 0 else (n : ℝ)^(-s.re) := by
+      ext n
+      simp only [zetaCharacter, MonoidWithZeroHom.coe_mk, ZeroHom.coe_mk]
+      by_cases hn : n = 0
+      · simp [hn]
+      · simp [hn, norm_cpow_of_ne_zero, Complex.abs_natCast, Real.rpow_neg]
+    rw [this]
+    exact summable_one_div_nat_rpow.mpr hs
   -- Apply the theorem
   have h_prod := eulerProduct_completely_multiplicative_tprod h_summable
   -- Need to show ∑' n, zetaCharacter s n = riemannZeta s
   rw [← zeta_eq_tsum_one_div_nat_cpow hs]
-  congr 1
+  convert h_prod
   ext n
   simp only [zetaCharacter, MonoidWithZeroHom.coe_mk, ZeroHom.coe_mk]
   by_cases hn : n = 0
@@ -80,7 +86,9 @@ theorem zeta_ne_zero_of_re_gt_one {s : ℂ} (hs : 1 < s.re) :
   riemannZeta s ≠ 0 := by
   -- Since ζ(s) = ∏(1 - p^(-s))^(-1) and each factor is finite and non-zero
   rw [← euler_product_zeta hs]
-  apply tprod_ne_zero
+  -- Need to show the product is non-zero
+  have h_multipliable := euler_product_converges hs
+  apply Multipliable.tprod_ne_zero h_multipliable
   intro p
   apply inv_ne_zero
   apply sub_ne_zero_of_ne
@@ -113,7 +121,7 @@ theorem zeta_functional_equation_symm (s : ℂ) (hs : ∀ n : ℕ, s ≠ -n) (hs
   (h_cos : cos (π * s / 2) ≠ 0) (h_zeta : riemannZeta s ≠ 0) :
   riemannZeta s = riemannZeta (1 - s) / (2 * (2 * π)^(-s) * Gamma s * cos (π * s / 2)) := by
   have h := zeta_functional_equation s hs hs'
-  rw [mul_comm (riemannZeta s), ← mul_assoc, ← mul_assoc, ← mul_assoc] at h
+  -- Rearrange the equation
   have h_prod_ne : 2 * (2 * π)^(-s) * Gamma s * cos (π * s / 2) ≠ 0 := by
     simp only [mul_ne_zero, two_ne_zero, ne_eq]
     constructor
@@ -122,7 +130,8 @@ theorem zeta_functional_equation_symm (s : ℂ) (hs : ∀ n : ℕ, s ≠ -n) (hs
     constructor
     · exact Complex.Gamma_ne_zero hs
     · exact h_cos
-  exact div_eq_iff h_prod_ne |>.mpr h.symm
+  field_simp [h_prod_ne] at h ⊢
+  linarith
 
 /-- Trivial zeros of zeta -/
 theorem zeta_trivial_zeros :
@@ -175,28 +184,29 @@ theorem zeta_nontrivial_zeros_in_strip {s : ℂ}
           have := riemannZeta_residue_one
           -- For now we'll use that poles cannot be zeros
           rw [h_s] at hz
-          exact riemannZeta_ne_zero_of_one_lt_re (by norm_num : (1 : ℝ) < 1) hz
-              · -- Re(s) = 1 but s ≠ 1
-          -- On the line Re(s) = 1, s ≠ 1, ζ(s) ≠ 0 by growth estimates
-          -- This is a deep result from analytic number theory
-          -- For now we'll use the fact that zeros on Re(s) = 1 would contradict
-          -- the prime number theorem
-          have h_no_zeros_on_one : ∀ t : ℝ, t ≠ 0 → riemannZeta (1 + t * I) ≠ 0 := by
-            intro t ht
-            -- This is the famous result that ζ(1 + it) ≠ 0 for t ≠ 0
-            -- It's essential for the prime number theorem
-            apply riemannZeta_ne_zero_of_one_lt_re
-            simp [Complex.re_add_im]
-          -- Apply this to our s = 1 + (s.im) * I
-          have h_s_form : s = 1 + s.im * I := by
-            rw [h_eq]
-            simp [Complex.ext_iff]
-          rw [h_s_form] at hz
-          have h_im_ne : s.im ≠ 0 := by
-            intro h_im_zero
-            rw [h_s_form, h_im_zero, mul_zero, add_zero] at h_s
-            exact h_s rfl
-          exact h_no_zeros_on_one s.im h_im_ne hz
+          -- This is a contradiction - can't use riemannZeta_ne_zero_of_one_lt_re here
+          -- because 1 is not < 1
+          sorry
+      · -- Re(s) = 1 but s ≠ 1
+        -- On the line Re(s) = 1, s ≠ 1, ζ(s) ≠ 0 by growth estimates
+        -- This is a deep result from analytic number theory
+        -- For now we'll use the fact that zeros on Re(s) = 1 would contradict
+        -- the prime number theorem
+        have h_no_zeros_on_one : ∀ t : ℝ, t ≠ 0 → riemannZeta (1 + t * I) ≠ 0 := by
+          intro t ht
+          -- This is the famous result that ζ(1 + it) ≠ 0 for t ≠ 0
+          -- It's essential for the prime number theorem
+          sorry -- This requires deep analytic number theory
+        -- Apply this to our s = 1 + (s.im) * I
+        have h_s_form : s = 1 + s.im * I := by
+          rw [h_eq]
+          simp [Complex.ext_iff]
+        rw [h_s_form] at hz
+        have h_im_ne : s.im ≠ 0 := by
+          intro h_im_zero
+          rw [h_s_form, h_im_zero, mul_zero, add_zero] at h_s
+          exact h_s rfl
+        exact h_no_zeros_on_one s.im h_im_ne hz
     · -- If Re(s) > 1
       have h_gt : 1 < s.re := lt_of_le_of_ne h_ge (Ne.symm h_eq)
       -- Use that ζ(s) ≠ 0 for Re(s) > 1

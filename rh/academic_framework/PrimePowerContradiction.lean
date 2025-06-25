@@ -2,7 +2,7 @@ import rh.academic_framework.Core
 import Mathlib.Analysis.SpecialFunctions.Pow.Complex
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Data.Complex.Exponential
-import rh.ComplexLogPeriodicity
+import rh.academic_framework.ComplexLogPeriodicity
 
 /-!
 # Prime Power Contradiction

@@ -2,7 +2,7 @@ import rh.academic_framework.DiagonalFredholm
 import Mathlib.Analysis.InnerProductSpace.l2Space
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Analysis.Analytic.Basic
-import Mathlib.LinearAlgebra.Matrix.Determinant
+import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
 
 /-!
 # Fredholm Determinant Theory

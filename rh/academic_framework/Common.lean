@@ -6,9 +6,7 @@ import Mathlib.Analysis.SpecialFunctions.Complex.Log
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
 
 /-!
-# Common Infrastructure Definitions
-
-This file contains common definitions used across all infrastructure modules.
+# Common Infrastructure Definitions (academic framework)
 -/
 
 namespace RH
@@ -32,25 +30,19 @@ def domainH : Set WeightedL2 :=
 
 /-- The inner product on WeightedL2 -/
 noncomputable instance : InnerProductSpace ℂ WeightedL2 := by
-  -- This follows from the general lp inner product structure
   infer_instance
 
 /-- Norm squared equals sum of component norms squared -/
 lemma norm_sq_eq_sum (ψ : WeightedL2) :
     ‖ψ‖^2 = ∑' p : {p : ℕ // Nat.Prime p}, ‖ψ p‖^2 := by
-  -- For lp 2 spaces, this is the definition of the l² norm
-  -- The norm is defined as (∑ |x_i|²)^(1/2), so norm² = ∑ |x_i|²
-
-  -- Use lp.norm_rpow_eq_tsum for p = 2
-  simpa [ENNReal.toReal_ofNat] using
-    lp.norm_rpow_eq_tsum (p := (2 : ℝ≥0∞)) (by norm_num) ψ
+  -- For lp 2, the norm squared is the sum of squared components
+  have h := @lp.norm_sq_eq_tsum _ _ _ _ _ (fun _ : {p : ℕ // Nat.Prime p} => ℂ) _ 2 (by norm_num : (1 : ℝ≥0∞) < 2) ψ
+  exact h
 
 end WeightedL2
 
--- Type alias for compatibility
 noncomputable abbrev WeightedHilbertSpace := WeightedL2
 
--- Re-export for convenience
 export WeightedL2 (deltaBasis domainH)
 
 /-- The regularized Fredholm determinant -/
