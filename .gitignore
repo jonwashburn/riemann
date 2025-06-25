@@ -1,2 +1,5 @@
 .lake/
 lake-packages/
+
+# Exclude all future files placed in archive
+archive/
