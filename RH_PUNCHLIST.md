@@ -3,55 +3,80 @@
 This file tracks every outstanding item needed to drive the `riemann` workspace to
 *zero* `sorry` lines and full compilation.
 
-Last updated: 2025-06-24.
+Last updated: 2025-06-25 (Post-cleanup analysis).
 
-## Current State of Affairs (auto-generated 2025-06-24)
+## Repository Structure After Cleanup
 
-The active build lives in the `riemann/` directory.  That tree now compiles end-to-end with just **five** `sorry` placeholders remaining and zero axioms.  The proof script is fully integrated with `mathlib` v4.12.0 and its own `no-mathlib-core` shim.  The remaining gaps fall into two clusters: **four** classical lemmas already proved in standard literature (infinite product convergence, a complex mean-value estimate) and **one** local technical point inside the diagonal-operator analysis.
+The canonical active codebase is now in `riemann 2/rh/`. All other directories have been cleaned up:
+- Removed duplicate `rh/` directory (was outdated fork)
+- Added `.gitignore` for build artifacts (`.lake/`, `*.olean`, etc.)
+- Removed tracked build artifacts from `archive/RiemannProof/.lake/build/`
+- Archive directory contains historical snapshots but is excluded from builds
 
-Multiple historical copies of the project exist (`RecognitionScience/RiemannHypothesis`, `RecognitionScience_v2`, the root-level `RiemannHypothesis`, etc.).  They are useful archives but are **not** part of the build and can be ignored while we finish the main proof.  Empty directories `riemann/riemann/` and `riemann/riemann-1/` are vestiges of earlier restructuring; they can be pruned once the proof is sorry-free.
+## Current State of Affairs (2025-06-25)
 
-Immediate trajectory:
+The active proof lives in `riemann 2/rh/` following the "Option B" operator-theoretic route to RH.
+A forensic scan reveals **39 explicit sorries** across the codebase, concentrated in infrastructure files.
 
-• Standard-fact sorries → resolve by importing or restating existing `mathlib` lemmas, beginning with the three infinite-product results in `ProductLemmas.lean`.
+### Sorry Distribution by File
 
-• Technical sorries → finish diagonal-operator strict-norm argument, then complete Hilbert–Schmidt domain preservation and functional-equation symmetry in `RSInfrastructure.lean`.
+| File | Sorries | Type |
+|------|---------|------|
+| `academic_framework/OperatorPositivity.lean` | 11 | Trace class & positivity lemmas |
+| `academic_framework/FredholmInfrastructure.lean` | 14 | Determinant theory infrastructure |
+| `academic_framework/AnalyticContinuation.lean` | 2 | Complex analysis |
+| `academic_framework/CompleteProof.lean` | 2 | Top-level glue |
+| `academic_framework/DiagonalOperatorAnalysis.lean` | 2 | Technical analysis lemmas |
+| `academic_framework/DiagonalFredholm/Operator.lean` | 1 | Diagonal operator property |
+| `academic_framework/DiagonalFredholm/WeierstrassProduct.lean` | 2 | Infinite products |
+| `academic_framework/EulerProduct/PrimeSeries.lean` | 1 | Prime series convergence |
+| `academic_framework/EulerProduct/OperatorView.lean` | 1 | Operator product |
+| `academic_framework/EulerProductMathlib.lean` | 1 | Euler product identity |
+| `academic_framework/DiagonalFredholm/DiagonalTools.lean` | 2 | lp space machinery |
 
-After zero sorries we will enter a **cleanup pass**: delete empty directories, move archival variants to an `archive/` folder, and write a high-level README mapping the final, minimal proof hierarchy.
+Plus two stub files (`PrimeRatioNotUnityProofs.lean`, `FredholmDeterminantProofs.lean`) that are prose placeholders.
 
-This section is regenerated whenever the assistant saves state, so future sessions can resume instantly even if chat context is lost.
+## Immediate Work Queue (High-Leverage First)
 
----
+### 1. Foundation Layer (~25 sorries)
+**Files:** `OperatorPositivity.lean`, `FredholmInfrastructure.lean`
+- These establish trace class operators, spectral radius bounds, determinant existence
+- Most can be filled by adapting mathlib's `analysis.normed_space.operator_norm` and trace class theory
+- Unblocks all higher-level proofs
 
-## At-a-Glance Status
+### 2. Specialized Operator Lemmas (~7 sorries)
+**Files:** `DiagonalFredholm/*.lean`, `EulerProduct/*.lean`, `DiagonalTools.lean`
+- Weierstrass products, prime series convergence, diagonal operator properties
+- Standard results available in mathlib's complex analysis
 
-* Total `sorry` lines reported by `grep -n "^ *sorry"`: **5** (down from initial 26)
-* All axioms: **0** (no new axioms introduced)
-* Builds: `lake build` completes successfully.
+### 3. Analysis & Glue Layer (~7 sorries)
+**Files:** `AnalyticContinuation.lean`, `DiagonalOperatorAnalysis.lean`, `CompleteProof.lean`
+- Final assembly connecting operator theory to RH
+- Two technical lemmas in `DiagonalOperatorAnalysis.lean` need careful handling
 
-### Progress Today (Session 7)
-✓ Marked ProductLemmas.lean sorries as STANDARD FACT (3 sorries)
-✓ Verified actual sorry count is 5, not 9
+## Build Commands
 
----
+From workspace root:
+```bash
+cd "riemann 2"
+lake build
+```
 
-## Remaining Sorries by Category
+The build currently succeeds with warnings about the 39 sorries.
 
-### Standard Mathematical Facts (4 sorries)
-1. `ProductLemmas.lean` line 42: Weierstrass product theorem for absolutely convergent products
-2. `ProductLemmas.lean` line 49: Exponential of series equals product of exponentials  
-3. `ProductLemmas.lean` line 56: Multipliable products distribute over multiplication
-4. `DiagonalOperatorAnalysis.lean` line 562: Complex mean value theorem for holomorphic functions
+## Next Concrete Steps
 
-### Technical Implementation Details (1 sorry)
-1. `DiagonalOperatorAnalysis.lean` line 466: Diagonal operator norm strict inequality handling
-
----
+1. ✓ Repository cleaned (duplicate directories removed, .gitignore added)
+2. ✓ Forensic analysis complete (39 sorries identified and categorized)
+3. Start with `OperatorPositivity.lean` - implement trace class lemmas using mathlib
+4. Then `FredholmInfrastructure.lean` - determinant theory
+5. Work through specialized lemmas in dependency order
+6. Complete top-level assembly in `CompleteProof.lean`
 
 ## Summary
 
-From an initial 26 sorries, we've reduced to just 5:
-- 4 are standard mathematical facts that could be imported from mathlib
-- 1 is a technical detail about handling strict inequalities in the diagonal operator norm
-
-The proof is essentially complete modulo these standard results.
+From the initial confusion with multiple proof attempts and directories, we now have:
+- One canonical proof tree: `riemann 2/rh/`
+- Clear sorry count: 39 (mostly infrastructure)
+- Clean repository structure with proper .gitignore
+- Clear path forward: implement trace class theory first, then specialized lemmas

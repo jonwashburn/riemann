@@ -1,0 +1,30 @@
+# Lean build artifacts
+.lake/
+lake-packages/
+build/
+*.olean
+*.ilean
+*.c
+*.o
+*.trace
+
+# Lake build directories anywhere in the tree
+**/.lake/build/
+**/.lake/packages/
+
+# Editor and OS files
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Archive directory (contains old versions)
+archive/
+
+# Backup files
+*.bak
+*.backup
+*-backup-*
+*.tgz
+*.tar.gz 
