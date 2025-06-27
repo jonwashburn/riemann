@@ -80,21 +80,24 @@ lemma eventually_small {s : ℂ} (hs : 1 < s.re) : ∀ᶠ p : PrimeIndex in cofi
   have h_tendsto : Tendsto (fun p : PrimeIndex => ‖(p.val : ℂ)^(-s)‖) cofinite (nhds 0) :=
     h_summable.tendsto_cofinite_zero
   -- Since the terms tend to 0, eventually they are < 1/2
-  rw [tendsto_nhds] at h_tendsto
-  specialize h_tendsto (Set.Iio (1/2 : ℝ)) (isOpen_Iio) (by norm_num : (0 : ℝ) ∈ Set.Iio (1/2))
-  exact h_tendsto
+  exact tendsto_nhds.mp h_tendsto (Set.Iio (1/2 : ℝ)) (isOpen_Iio) (by norm_num : (0 : ℝ) ∈ Set.Iio (1/2))
 
 /-- The log series converges absolutely -/
 lemma log_summable {s : ℂ} (hs : 1 < s.re) : Summable (fun p : PrimeIndex => ‖Complex.log (A s p)‖) := by
   -- Step A from the roadmap
-  -- Due to type issues with our axiomatized structures, we use sorry
-  sorry
+  -- We have A s p = 1 - p^(-s), so log(A s p) = log(1 - p^(-s))
+  -- For large p, |p^(-s)| < 1/2, so we can use |log(1-z)| ≤ 2|z|
+  -- This gives |log(A s p)| ≤ 2|p^(-s)|
+  -- Since ∑|p^(-s)| converges, so does ∑|log(A s p)|
+  sorry -- Complex proof involving norms and eventually
 
 /-- The product is multipliable -/
 lemma multipliable_inv_A {s : ℂ} (hs : 1 < s.re) : Multipliable (fun p : PrimeIndex => (A s p)⁻¹) := by
   -- Step B from the roadmap
-  -- Due to type issues with our axiomatized structures, we use sorry
-  sorry
+  -- We have (A s p)⁻¹ = (1 - p^(-s))⁻¹
+  -- First show that ∏(A s p) = ∏(1 - p^(-s)) converges
+  -- Then (A s p)⁻¹ will be multipliable
+  sorry -- Complex proof involving multipliability
 
 /-- Exponential of the log sum equals the product -/
 lemma exp_logP_eq_P {s : ℂ} (hs : 1 < s.re) : Complex.exp (logP s) = P s := by

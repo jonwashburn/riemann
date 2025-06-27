@@ -28,7 +28,10 @@ variable {I : Type*} [DecidableEq I] [Countable I]
 
 /-- A diagonal operator on ℓ² is multiplication by a bounded sequence -/
 noncomputable def mk (μ : I → ℂ) (h : BddAbove (Set.range fun i ↦ ‖μ i‖)) :
-  (lp (fun _ : I => ℂ) 2) →L[ℂ] (lp (fun _ : I => ℂ) 2) := sorry
+  (lp (fun _ : I => ℂ) 2) →L[ℂ] (lp (fun _ : I => ℂ) 2) := by
+  -- For now, we'll use sorry as this requires careful construction
+  -- The idea is to define (Dx)_i = μ_i * x_i and show it's bounded
+  sorry
 
 /-- The operator norm of a diagonal operator equals the supremum of eigenvalues -/
 theorem opNorm_eq_supr (μ : I → ℂ) (h : BddAbove (Set.range fun i ↦ ‖μ i‖)) :

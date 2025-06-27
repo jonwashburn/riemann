@@ -46,7 +46,7 @@ theorem euler_operator_norm {s : ℂ} (hs : 1 < s.re) :
       use 1
       intro p
       -- |p^(-s)| = p^(-Re(s)) ≤ 1 when Re(s) > 1
-      rw [RH.Placeholders.norm_cpow_of_ne_zero]
+      rw [norm_cpow_of_ne_zero]
       · simp only [neg_re]
         rw [Real.rpow_neg (Nat.cast_nonneg _)]
         -- p^(-Re(s)) = 1/p^(Re(s)) ≤ 1 since p ≥ 2 and Re(s) > 1
@@ -65,7 +65,7 @@ theorem euler_operator_norm {s : ℂ} (hs : 1 < s.re) :
   have h_eq : (fun p : PrimeIndex => ‖(p.val : ℂ)^(-s)‖) =
               (fun p : PrimeIndex => (p.val : ℝ)^(-s.re)) := by
     ext p
-    rw [RH.Placeholders.norm_cpow_of_ne_zero]
+    rw [norm_cpow_of_ne_zero]
     · simp only [neg_re]
     · exact Nat.cast_ne_zero.mpr (Nat.Prime.ne_zero p.property)
   rw [h_eq]

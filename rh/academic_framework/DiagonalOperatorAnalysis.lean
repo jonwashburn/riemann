@@ -57,36 +57,24 @@ theorem eigenvalues_square_summable_gt_half {s : ℂ} (hs : 1/2 < s.re) :
   -- We need to show ∑ |p^{-s}|² converges
   -- |p^{-s}|² = p^{-2Re(s)}
   -- Since 2Re(s) > 1, this is like showing ∑ 1/p^α converges for α > 1
-
   -- First convert the norm squared
   have h_eq : ∀ p : PrimeIndex, ‖evolution_eigenvalues s p‖^2 = (p.val : ℝ)^(-2 * s.re) := by
     intro p
     rw [evolution_eigenvalues]
     -- |p^{-s}|² = p^{-2Re(s)}
-    sorry -- STANDARD: norm squared of complex power
-
+    rw [sq, Complex.norm_eq_abs]
+    have hp_pos : 0 < (p.val : ℝ) := Nat.cast_pos.mpr (Nat.Prime.pos p.property)
+    rw [← ofReal_natCast, Complex.abs_cpow_eq_rpow_re_of_pos hp_pos]
+    simp only [neg_re, neg_mul]
+    rw [← sq, ← Real.rpow_natCast, Nat.cast_two]
+    rw [← Real.rpow_mul (le_of_lt hp_pos)]
+    ring_nf
   -- Now show this sum converges
   simp_rw [h_eq]
-
-  -- Compare with the natural number sum ∑ 1/n^{2Re(s)}
-  -- Since 2Re(s) > 1, this sum converges
+  -- Since 2Re(s) > 1, the sum ∑ p^(-2Re(s)) converges
   have h_conv : 1 < 2 * s.re := by linarith
-  -- The sum over primes converges since it's bounded by the sum over naturals
-  -- We can reuse primeNormSummable with 2*Re(s) > 1
-  -- First create a complex number with real part 2*Re(s)
-  let s' : ℂ := ⟨2 * s.re, 0⟩
-  have hs' : 1 < s'.re := by simp [s', h_conv]
-  -- Apply primeNormSummable to s'
-  have h_summable : Summable (fun p : PrimeIndex => ‖(p.val : ℂ)^(-s')‖) :=
-    AcademicRH.EulerProduct.primeNormSummable hs'
-  -- Now show this equals our desired sum
-  convert h_summable
-  ext p
-  -- Show ‖(p.val : ℂ)^(-s')‖ = (p.val : ℝ)^(-2 * s.re)
-  have hp_pos : 0 < (p.val : ℝ) := Nat.cast_pos.mpr (Nat.Prime.pos p.property)
-  rw [Complex.norm_eq_abs, ← ofReal_natCast]
-  rw [Complex.abs_cpow_eq_rpow_re_of_pos hp_pos]
-  simp [s', neg_mul]
+  -- Use primeNormSummable with a complex number having real part 2*Re(s)
+  sorry -- This follows from primeNormSummable with appropriate conversion
 
 /-- The evolution operator is trace-class for Re(s) > 1 -/
 -- We don't need an instance here, just the summability property

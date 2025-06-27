@@ -80,7 +80,7 @@ theorem riemann_hypothesis_main :
   by_contra h_ne
   have h_positive := fredholm_det_positive_off_critical_line h_strip h_ne
   -- Contradiction: h_det says it's 0, h_positive says it's > 0
-  sorry
+  linarith
 
 /-- Final Riemann Hypothesis including trivial zeros -/
 theorem riemann_hypothesis :
