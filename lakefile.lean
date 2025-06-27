@@ -12,6 +12,10 @@ package «riemann» where
 require mathlib from git
   "https://github.com/leanprover-community/mathlib4.git" @ "v4.12.0"
 
+require recognition-ledger from git
+  "https://github.com/jonwashburn/recognition-ledger.git" @ "main"
+  subDir := "foundation"
+
 -- Local dependency on no-mathlib-core removed since it was moved to archive
 
 @[default_target]
