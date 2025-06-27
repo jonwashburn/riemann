@@ -113,8 +113,17 @@ theorem riemann_hypothesis_direct :
     exact riemann_hypothesis_main s h_zero h_strip
   · -- Outside critical strip
     right
-    -- Use classification: zeros outside strip are trivial (negative even integers)
-    -- This uses functional equation and Euler product non-vanishing for Re(s) > 1
-    sorry
+    -- If s is not in the strip, then either Re(s) ≤ 0 or Re(s) ≥ 1
+    -- If Re(s) ≥ 1, then ζ(s) ≠ 0 by Euler product, contradiction
+    -- So Re(s) ≤ 0, and the only zeros there are trivial zeros
+    by_cases h_nontrivial : ¬∃ n : ℕ, 0 < n ∧ s = -2 * n
+    · -- If s is not a trivial zero, then by zeta_nontrivial_zeros_in_strip,
+      -- s must be in the critical strip, contradiction
+      have h_in_strip := zeta_nontrivial_zeros_in_strip h_zero h_nontrivial
+      -- But h_strip says s is not in the strip, contradiction
+      exact absurd h_in_strip h_strip
+    · -- s is a trivial zero
+      push_neg at h_nontrivial
+      exact h_nontrivial
 
 end AcademicRH.CompleteProof
