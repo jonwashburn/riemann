@@ -1,0 +1,19 @@
+# Lean 4
+/build
+/lake-packages
+/.lake
+
+# macOS
+.DS_Store
+
+# Editor
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.bak
+*.log 
