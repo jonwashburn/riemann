@@ -69,7 +69,7 @@ noncomputable def P (s : ℂ) : ℂ := ∏' p, (A s p)⁻¹
 noncomputable def logP (s : ℂ) : ℂ := ∑' p, -Complex.log (A s p)
 
 /-- Eventually p^(-s) is small -/
-lemma eventually_small : ∀ᶠ p : PrimeIndex in cofinite, ‖(p.val : ℂ)^(-s)‖ < 1/2 := by
+lemma eventually_small {s : ℂ} (hs : 1 < s.re) : ∀ᶠ p : PrimeIndex in cofinite, ‖(p.val : ℂ)^(-s)‖ < 1/2 := by
   -- Since ∑ p^(-Re s) converges, the terms go to 0
   -- We have ‖p^(-s)‖ = p^(-Re(s))
   -- Since the series ∑ p^(-Re(s)) converges, the terms p^(-Re(s)) → 0
@@ -85,32 +85,32 @@ lemma eventually_small : ∀ᶠ p : PrimeIndex in cofinite, ‖(p.val : ℂ)^(-s
   exact h_tendsto
 
 /-- The log series converges absolutely -/
-lemma log_summable : Summable (fun p : PrimeIndex => ‖Complex.log (A s p)‖) := by
+lemma log_summable {s : ℂ} (hs : 1 < s.re) : Summable (fun p : PrimeIndex => ‖Complex.log (A s p)‖) := by
   -- Step A from the roadmap
   -- Due to type issues with our axiomatized structures, we use sorry
   sorry
 
 /-- The product is multipliable -/
-lemma multipliable_inv_A : Multipliable (fun p : PrimeIndex => (A s p)⁻¹) := by
+lemma multipliable_inv_A {s : ℂ} (hs : 1 < s.re) : Multipliable (fun p : PrimeIndex => (A s p)⁻¹) := by
   -- Step B from the roadmap
   -- Due to type issues with our axiomatized structures, we use sorry
   sorry
 
 /-- Exponential of the log sum equals the product -/
-lemma exp_logP_eq_P : Complex.exp (logP s) = P s := by
+lemma exp_logP_eq_P {s : ℂ} (hs : 1 < s.re) : Complex.exp (logP s) = P s := by
   -- Step C from the roadmap
   -- Due to type issues with our axiomatized structures, we use sorry
   sorry
 
 /-- The Euler product equals the Riemann zeta function -/
-theorem euler_product_eq_zeta : P s = riemannZeta s := by
+theorem euler_product_eq_zeta {s : ℂ} (hs : 1 < s.re) : P s = riemannZeta s := by
   -- Step D from the roadmap
   -- Use mathlib's Euler product theorem
   -- Due to type issues with our axiomatized diagonal operators, we use sorry
   sorry
 
 /-- Combined result: exp(logP) = ζ(s) -/
-theorem exp_logP_eq_zeta : Complex.exp (logP s) = riemannZeta s := by
+theorem exp_logP_eq_zeta {s : ℂ} (hs : 1 < s.re) : Complex.exp (logP s) = riemannZeta s := by
   -- This would follow from exp_logP_eq_P and euler_product_eq_zeta
   sorry
 
