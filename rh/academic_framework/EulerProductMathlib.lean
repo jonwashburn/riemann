@@ -53,7 +53,7 @@ theorem zeta_functional_equation (s : ℂ) (hs : ∀ n : ℕ, s ≠ -n) (hs' : s
 
 /-- The functional equation solved for ζ(s) -/
 theorem zeta_functional_equation_symm (s : ℂ) (hs : ∀ n : ℕ, s ≠ -n) (hs' : s ≠ 1)
-  (h_cos : cos (π * s / 2) ≠ 0) (h_zeta : riemannZeta s ≠ 0) :
+  (h_cos : cos (π * s / 2) ≠ 0) :
   riemannZeta s = riemannZeta (1 - s) / (2 * (2 * π)^(-s) * Gamma s * cos (π * s / 2)) := by
   -- This follows from rearranging the functional equation
   -- ζ(1-s) = 2 * (2π)^(-s) * Γ(s) * cos(πs/2) * ζ(s)
@@ -110,7 +110,26 @@ theorem zeta_nontrivial_zeros_in_strip {s : ℂ}
   -- All zeros with Re(s) ≤ 0 are trivial zeros (given by hn)
   -- All zeros with Re(s) ≥ 1 would contradict the Euler product
   -- TODO: This will be refined to s.re = 1/2 using OperatorPositivity.zeros_on_critical_line
-  sorry
+  constructor
+  · -- Show 0 < s.re
+    by_contra h_le
+    push_neg at h_le
+    -- If s.re ≤ 0, we need to show this leads to a contradiction
+    -- The only zeros with Re(s) ≤ 0 are the trivial zeros at -2n
+    -- This requires deep results from analytic number theory
+    sorry -- This requires results about zeros of zeta in left half-plane
+  · -- Show s.re < 1
+    by_contra h_ge
+    push_neg at h_ge
+    -- If s.re ≥ 1, then ζ(s) ≠ 0 by the Euler product
+    cases' lt_or_eq_of_le h_ge with h_gt h_eq
+    · -- Case: 1 < s.re
+      have h_ne_zero := zeta_ne_zero_of_re_gt_one h_gt
+      exact h_ne_zero hz
+    · -- Case: s.re = 1
+      -- ζ has a simple pole at s = 1, and no zeros on Re(s) = 1
+      -- This is a deep result (part of the Prime Number Theorem)
+      sorry -- This requires the non-vanishing of zeta on Re(s) = 1
 
 /-- Connection to our PrimeIndex type -/
 def primeIndexOfPrimes (p : Nat.Primes) : PrimeIndex :=

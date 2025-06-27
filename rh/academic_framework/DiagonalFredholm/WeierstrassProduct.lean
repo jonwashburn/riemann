@@ -6,6 +6,9 @@ import Mathlib.Analysis.SpecialFunctions.Complex.Log
 import Mathlib.Analysis.Complex.LocallyUniformLimit
 import Mathlib.Data.Complex.Basic
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+import RH.academic_framework.DiagonalFredholm.DiagOp
+import Mathlib.Analysis.Complex.TaylorSeries
+import Mathlib.Analysis.Analytic.Polynomial
 
 
 /-!
@@ -62,5 +65,20 @@ lemma multipliable_one_sub_of_summable {ι : Type*} {a : ι → ℂ}
   -- The product ∏(1-aᵢ) converges iff ∑log(1-aᵢ) converges
   -- Since |log(1-aᵢ)| ≤ 2|aᵢ| and ∑|aᵢ| converges, we get convergence
   sorry -- This requires the full multipliability theory
+
+/-- Bound for the Taylor series of log(1-z) -/
+theorem taylorSeriesBound {z : ℂ} (hz : ‖z‖ < 1) :
+    ‖Complex.log (1 - z) + ∑' n : ℕ, z ^ (n + 1) / (n + 1)‖ ≤
+    ‖z‖ ^ 2 / (2 * (1 - ‖z‖)) := by
+  -- We use the fact that log(1-z) = -∑_{n=1}^∞ z^n/n for |z| < 1
+  -- The Taylor series is -∑_{n=1}^∞ z^n/n = -∑' n : ℕ, z^(n+1)/(n+1)
+  -- So log(1-z) + ∑' n : ℕ, z^(n+1)/(n+1) = 0
+  have h_series : Complex.log (1 - z) = -∑' n : ℕ, z ^ (n + 1) / (n + 1) := by
+    -- This is the standard Taylor series for log(1-z)
+    sorry -- This requires the Taylor series theorem from mathlib
+  rw [h_series]
+  simp [norm_neg]
+  -- The bound ‖z‖^2 / (2*(1-‖z‖)) comes from bounding the tail of the series
+  sorry
 
 end AcademicRH.DiagonalFredholm
