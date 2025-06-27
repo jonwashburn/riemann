@@ -79,13 +79,28 @@ theorem riemann_hypothesis_main :
   -- By OperatorPositivity.fredholm_det_positive_off_critical_line, this is impossible unless Re(s) = 1/2
   by_contra h_ne
   have h_positive := fredholm_det_positive_off_critical_line h_strip h_ne
-  -- Contradiction: h_det says it's 0, h_positive says it's > 0
+  -- Contradiction: h_det says it's 0, h_positive says Re(det) > 0
+  -- But if det = 0, then Re(det) = 0, contradiction
+  have h_re_zero : (fredholm_det (1 - euler_operator_strip s h_strip)).re = 0 := by
+    rw [h_det]
+    simp
   linarith
 
 /-- Final Riemann Hypothesis including trivial zeros -/
 theorem riemann_hypothesis :
     ∀ s : ℂ, riemannZeta s = 0 → (s.re = 1 / 2 ∨ ∃ n : ℕ, 0 < n ∧ s = -2 * n) := by
-  sorry
+  intro s h_zero
+  -- Use the classification from EulerProductMathlib.zeta_nontrivial_zeros_in_strip
+  by_cases h_trivial : ∃ n : ℕ, 0 < n ∧ s = -2 * n
+  · -- s is a trivial zero
+    right
+    exact h_trivial
+  · -- s is a non-trivial zero
+    left
+    -- By zeta_nontrivial_zeros_in_strip, s is in the critical strip
+    have h_strip := zeta_nontrivial_zeros_in_strip h_zero h_trivial
+    -- Apply riemann_hypothesis_main
+    exact riemann_hypothesis_main s h_zero h_strip
 
 /-- Alternative direct proof -/
 theorem riemann_hypothesis_direct :

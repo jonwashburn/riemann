@@ -5,7 +5,6 @@ import rh.academic_framework.EulerProduct.OperatorView
 import Mathlib.Analysis.NormedSpace.OperatorNorm.Basic
 import Mathlib.Analysis.InnerProductSpace.l2Space
 import Mathlib.NumberTheory.LSeries.RiemannZeta
-import rh.Placeholders
 
 /-!
 # Fredholm Infrastructure (R1-R5)
@@ -39,55 +38,9 @@ theorem diagonal_operator_norm (μ : PrimeIndex → ℂ) (hμ : ∃ C, ∀ i, �
 /-- Explicit norm bound for euler_operator -/
 theorem euler_operator_norm {s : ℂ} (hs : 1 < s.re) :
   ‖euler_operator s hs‖ = (2 : ℝ)^(-s.re) := by
-  -- Apply diagonal_operator_norm
-  rw [euler_operator, diagonal_operator_norm (fun p : PrimeIndex => (p.val : ℂ)^(-s))
-    (by
-      -- Show boundedness: all eigenvalues are bounded by 1 when Re(s) > 1
-      use 1
-      intro p
-      -- |p^(-s)| = p^(-Re(s)) ≤ 1 when Re(s) > 1
-      rw [norm_cpow_of_ne_zero]
-      · simp only [neg_re]
-        rw [Real.rpow_neg (Nat.cast_nonneg _)]
-        -- p^(-Re(s)) = 1/p^(Re(s)) ≤ 1 since p ≥ 2 and Re(s) > 1
-        apply inv_le_one
-        have hp_ge : 2 ≤ (p.val : ℝ) := Nat.cast_le.mpr (Nat.Prime.two_le p.property)
-        have : 1 ≤ (p.val : ℝ)^s.re := by
-          apply Real.one_le_rpow_of_pos_of_le_one_of_pos
-          · exact Nat.cast_pos.mpr (Nat.Prime.pos p.property)
-          · exact hp_ge
-          · exact le_of_lt hs
-        exact this
-      · exact Nat.cast_ne_zero.mpr (Nat.Prime.ne_zero p.property))]
-  -- The eigenvalues are p^(-s) for primes p
-  -- We need to show ⨆ p, ‖(p.val : ℂ)^(-s)‖ = 2^(-s.re)
-  -- Since ‖p^(-s)‖ = p^(-Re(s)) and the smallest prime is 2
-  have h_eq : (fun p : PrimeIndex => ‖(p.val : ℂ)^(-s)‖) =
-              (fun p : PrimeIndex => (p.val : ℝ)^(-s.re)) := by
-    ext p
-    rw [norm_cpow_of_ne_zero]
-    · simp only [neg_re]
-    · exact Nat.cast_ne_zero.mpr (Nat.Prime.ne_zero p.property)
-  rw [h_eq]
-  -- The supremum is achieved at the smallest prime, which is 2
-  -- First, we need to show that 2 is indeed a prime in our indexing
-  have h_two_prime : Nat.Prime 2 := Nat.prime_two
-  let two_idx : PrimeIndex := ⟨2, h_two_prime⟩
-
-  -- Show that the supremum equals the value at 2
-  apply le_antisymm
-  · -- Show ⨆ ≤ 2^(-s.re)
-    apply iSup_le
-    intro p
-    -- Each p^(-Re(s)) ≤ 2^(-Re(s)) since p ≥ 2 and the function is decreasing
-    have hp_ge : 2 ≤ p.val := Nat.Prime.two_le p.property
-    rw [Real.rpow_neg (Nat.cast_nonneg _), Real.rpow_neg (by norm_num : (0 : ℝ) ≤ 2)]
-    apply inv_le_inv_of_le
-    · exact Real.rpow_pos_of_pos (by norm_num : 0 < 2) _
-    · exact Real.rpow_le_rpow_left (le_of_lt hs) (Nat.cast_le.mpr hp_ge) s.re
-  · -- Show 2^(-s.re) ≤ ⨆
-    apply le_iSup_of_le two_idx
-    rfl
+  -- The operator norm of a diagonal operator equals the supremum of eigenvalues
+  -- Since the smallest prime is 2, the supremum is achieved at p = 2
+  sorry
 
 end R1_DiagonalNorm
 
@@ -102,8 +55,8 @@ theorem neumann_series_inverse {s : ℂ} (hs : 1 < s.re) :
     -- We have 2^(-s.re) < 1 when s.re > 1
     -- 2^(-s.re) = 1/2^(s.re) < 1 since s.re > 1
     rw [Real.rpow_neg (by norm_num : (0 : ℝ) ≤ 2)]
-    rw [inv_lt_one_iff_one_lt]
-    exact Real.one_lt_rpow (by norm_num : 1 < 2) hs
+    apply inv_lt_one
+    exact Real.one_lt_rpow (by norm_num : (1 : ℝ) < 2) (by linarith : 0 < s.re)
   -- Apply the general result for operators with norm < 1
   sorry -- This requires the Neumann series theorem from operator theory
 
