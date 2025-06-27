@@ -1,0 +1,48 @@
+Academic Framework Sorry Analysis
+=================================
+
+Total sorries found:       71
+
+Sorry count by file:
+-------------------
+./FredholmInfrastructure.lean                       22
+./EulerProduct/OperatorView.lean                    15
+./DiagonalOperatorAnalysis.lean                      9
+./OperatorPositivity.lean                            4
+./EulerProductConnection.lean                        4
+./CompleteProof.lean                                 4
+./SpectralStability.lean                             3
+./DiagonalFredholm/DiagOp.lean                       3
+./DiagonalFredholm/WeierstrassProduct.lean           2
+./BirmanSchwingerPrinciple.lean                      2
+./AnalyticContinuation.lean                          2
+./EulerProductMathlib.lean                           1
+
+Generating detailed sorry report...
+
+Detailed report saved to: rh/academic_framework/sorry_detailed_report.md
+
+Common sorry patterns:
+---------------------
+
+1. Summability proofs:
+       4
+2. Continuity proofs:
+       0
+3. Convergence proofs:
+       7
+4. Norm/bound proofs:
+      10
+5. Determinant proofs:
+      23
+
+Quick win opportunities (likely in mathlib):
+-------------------------------------------
+  Summable (fun p : PrimeIndex => ‖(p.val : ℂ)^(-s)‖) := by
+
+Analysis complete!
+
+Next steps:
+1. Review sorry_detailed_report.md
+2. Start with files that have fewer sorries
+3. Look for patterns that can be solved with the same technique
