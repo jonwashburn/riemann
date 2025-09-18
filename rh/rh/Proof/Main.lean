@@ -1066,13 +1066,12 @@ theorem RiemannHypothesis_from_certificate_rep_on
   classical
   -- Choose the outer and define the off-zeros set
   let O : ℂ → ℂ := RH.RS.OuterHalfPlane.choose_outer hOuterExist
-  -- Poisson representation on S := Ω \ {ξ_ext=0}
+  -- Poisson representation on S := Ω \ {ξ_ext=0} via the M=2 builder
   have hRepOn : RH.AcademicFramework.HalfPlaneOuter.HasHalfPlanePoissonRepresentationOn
       (RH.AcademicFramework.HalfPlaneOuter.F_pinch RH.RS.det2 O)
       (RH.RS.Ω \ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}) :=
-    RH.AcademicFramework.HalfPlaneOuter.pinch_representation_on_offXi
-      (hDet2 := hDet2) (O := O) (hO := (RH.RS.OuterHalfPlane.choose_outer_spec hOuterExist).1)
-      (M := M) (hBnd := hBound) (hXi := hXiAnalytic) (hReEq := by
+    RH.AcademicFramework.HalfPlaneOuter.pinch_representation_on_offXi_M2
+      (hDet2 := hDet2) (hOuterExist := hOuterExist) (hXi := hXiAnalytic) (hReEq := by
         intro z hz; simpa using (hReEq z hz))
   -- Produce (P+) for F := 2·J_pinch det2 O from the certificate Kξ + Carleson route
   let F : ℂ → ℂ := fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)
