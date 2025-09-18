@@ -1033,3 +1033,87 @@ theorem RiemannHypothesis_from_certificate_rep_route
   exact RiemannHypothesis_from_certificate_route
     (α := α) (c := c) (hOuterExist := hOuterExist) (hTrans := hTrans)
     (hKxi := hKxi) (hPinned := hPinned)
+
+/-- Certificate route using a subset Poisson representation on
+`S := Ω \\ {ξ_ext = 0}` to produce interior positivity off `Z(ξ_ext)` and
+finish via pinch ingredients. -/
+theorem RiemannHypothesis_from_certificate_rep_on
+  (α c : ℝ)
+  (hOuterExist : RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext)
+  (hDet2 : RH.RS.Det2OnOmega)
+  (hXiAnalytic : AnalyticOn ℂ RH.AcademicFramework.CompletedXi.riemannXi_ext RH.RS.Ω)
+  (M : ℝ)
+  (hBound : ∀ t : ℝ,
+      |(RH.AcademicFramework.HalfPlaneOuter.F_pinch RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist)
+        (RH.AcademicFramework.HalfPlaneOuter.boundary t)).re| ≤ M)
+  (hReEq : ∀ z ∈ (RH.RS.Ω \ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}),
+      (RH.AcademicFramework.HalfPlaneOuter.F_pinch RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist) z).re
+        = RH.AcademicFramework.HalfPlaneOuter.P
+            (fun t : ℝ =>
+              (RH.AcademicFramework.HalfPlaneOuter.F_pinch RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist)
+                (RH.AcademicFramework.HalfPlaneOuter.boundary t)).re) z)
+  (hKxi : RH.Cert.KxiWhitney.KxiBound α c)
+  (hPinned : ∀ ρ, ρ ∈ RH.RS.Ω → RH.AcademicFramework.CompletedXi.riemannXi_ext ρ = 0 →
+      ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ RH.RS.Ω ∧ ρ ∈ U ∧
+        (U ∩ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
+        ∃ (Θ_analytic_off_rho : AnalyticOn ℂ (RH.RS.Θ_pinch_of RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist)) (U \ {ρ}))
+          (u : ℂ → ℂ)
+          (hEq : Set.EqOn (RH.RS.Θ_pinch_of RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist)) (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}))
+          (hu0 : Filter.Tendsto u (nhdsWithin ρ (U \ {ρ})) (nhds (0 : ℂ)))
+          (z_nontrivial : ∃ z, z ∈ U ∧ z ≠ ρ ∧ (RH.RS.Θ_pinch_of RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist)) z ≠ 1),
+          True)
+  : RiemannHypothesis := by
+  classical
+  -- Choose the outer and define the off-zeros set
+  let O : ℂ → ℂ := RH.RS.OuterHalfPlane.choose_outer hOuterExist
+  -- Poisson representation on S := Ω \ {ξ_ext=0}
+  have hRepOn : RH.AcademicFramework.HalfPlaneOuter.HasHalfPlanePoissonRepresentationOn
+      (RH.AcademicFramework.HalfPlaneOuter.F_pinch RH.RS.det2 O)
+      (RH.RS.Ω \ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}) :=
+    RH.AcademicFramework.HalfPlaneOuter.pinch_representation_on_offXi
+      (hDet2 := hDet2) (O := O) (hO := (RH.RS.OuterHalfPlane.choose_outer_spec hOuterExist).1)
+      (M := M) (hBnd := hBound) (hXi := hXiAnalytic) (hReEq := by
+        intro z hz; simpa using (hReEq z hz))
+  -- Produce (P+) for F := 2·J_pinch det2 O from the certificate Kξ + Carleson route
+  let F : ℂ → ℂ := fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)
+  have hPPlus : RH.Cert.PPlus F := by
+    -- Use existence-level `(∃Kξ, Carleson) → (P+)` and Kξ from the certificate
+    have hP : RH.Cert.PPlusFromCarleson_exists F := RH.RS.PPlusFromCarleson_exists_proved (F := F)
+    exact RH.RS.PPlus_of_certificate α c F hKxi hP
+  -- Interior positivity on S via subset transport
+  have hRe_offXi : ∀ z ∈ (RH.RS.Ω \ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}),
+      0 ≤ (F z).re :=
+    RH.AcademicFramework.HalfPlaneOuter.HasHalfPlanePoissonTransport_on_Jpinch
+      (det2 := RH.RS.det2) (O := O) hRepOn hPPlus
+  -- Package outer existence and conclude via the pinch-ingredients route
+  have hOuter : ∃ O' : ℂ → ℂ, RH.RS.OuterHalfPlane O' ∧
+      RH.RS.BoundaryModulusEq O' (fun s => RH.RS.det2 s / RH.AcademicFramework.CompletedXi.riemannXi_ext s) := by
+    refine ⟨O, ?_, ?_⟩
+    · exact (RH.RS.OuterHalfPlane.choose_outer_spec hOuterExist).1
+    · exact (RH.RS.OuterHalfPlane.choose_outer_spec hOuterExist).2
+  -- Build removable assignment from pinned input (same packaging as earlier wrappers)
+  -- and finalize
+  exact RiemannHypothesis_from_pinch_ingredients
+    (hOuter := hOuter) (hRe_offXi := by
+      intro z hz; simpa [F] using (hRe_offXi z hz))
+    (hRemXi := by
+      intro ρ hΩ hXi0
+      rcases hPinned ρ hΩ hXi0 with
+        ⟨U, hUopen, hUconn, hUsub, hρU, hIso,
+         hΘU, u, hEq, hu0, z_nontrivial, _⟩
+      -- Package the removable witness in the expected shape
+      refine ⟨U, hUopen, hUconn, hUsub, hρU, hIso, ?_⟩
+      rcases z_nontrivial with ⟨z0, hz0U, hz0ne, hneq⟩
+      refine ⟨?g, ?hg, hΘU, ?hEqOn, ?hval, z0, hz0U, ?hne1⟩
+      · -- g := update Θ ρ 1
+        exact (Function.update (RH.RS.Θ_pinch_of RH.RS.det2 O) ρ (1 : ℂ))
+      · -- Analyticity of g on U from pinned update helper (already imported in RS)
+        exact RH.RS.analyticOn_update_from_pinned (U := U) (ρ := ρ)
+          (Θ := RH.RS.Θ_pinch_of RH.RS.det2 O) (u := u) hUopen hρU hΘU hEq hu0
+      · -- Equality off ρ
+        intro w hw; simp [Function.update, hw.2]
+      · -- g ρ = 1
+        simp [Function.update]
+      · -- Nontriviality passes to g at z0
+        intro hg1; have : (RH.RS.Θ_pinch_of RH.RS.det2 O) z0 = 1 := by simpa using hg1
+        exact hneq this)

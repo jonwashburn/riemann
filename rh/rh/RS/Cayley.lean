@@ -96,6 +96,50 @@ def J_pinch (det2 O : ℂ → ℂ) : ℂ → ℂ :=
 def Θ_pinch_of (det2 O : ℂ → ℂ) : ℂ → ℂ :=
   Theta_of_J (J_pinch det2 O)
 
+/-- Analyticity of `J_pinch det2 O` on the off-zeros set `Ω \\ {ξ_ext = 0}`.
+
+Requires: `det2` analytic on `Ω`, `O` analytic and zero-free on `Ω`, and
+`riemannXi_ext` analytic on `Ω` (available from the academic framework since
+`riemannXi_ext = completedRiemannZeta`). -/
+lemma J_pinch_analytic_on_offXi
+  (hDet2 : Det2OnOmega) {O : ℂ → ℂ} (hO : OuterHalfPlane O)
+  (hXi : AnalyticOn ℂ riemannXi_ext Ω)
+  : AnalyticOn ℂ (J_pinch det2 O) (Ω \\ {z | riemannXi_ext z = 0}) := by
+  -- Work on the off-zeros set S ⊆ Ω
+  let S : Set ℂ := (Ω \\ {z | riemannXi_ext z = 0})
+  have hSsub : S ⊆ Ω := by
+    intro z hz; exact hz.1
+  -- Analyticity of numerator and factors on S
+  have hDet2_S : AnalyticOn ℂ det2 S := (hDet2.analytic.mono hSsub)
+  have hO_S : AnalyticOn ℂ O S := (hO.analytic.mono hSsub)
+  have hXi_S : AnalyticOn ℂ riemannXi_ext S := (hXi.mono hSsub)
+  -- Denominator is nonzero on S: O(z) ≠ 0 on Ω and ξ_ext(z) ≠ 0 on S
+  have hDen_ne : ∀ z ∈ S, (O z * riemannXi_ext z) ≠ 0 := by
+    intro z hz
+    have hzΩ : z ∈ Ω := hz.1
+    have hO_ne : O z ≠ 0 := hO.nonzero (by exact hzΩ)
+    have hXi_ne : riemannXi_ext z ≠ 0 := by
+      -- z ∉ {ξ_ext = 0}
+      have : z ∉ {w | riemannXi_ext w = 0} := by
+        intro hzero; exact hz.2 (by simpa [Set.mem_setOf_eq] using hzero)
+      -- so value is nonzero
+      by_contra h0
+      exact this (by simpa [Set.mem_setOf_eq, h0])
+    exact mul_ne_zero hO_ne hXi_ne
+  -- Analytic inverse of the denominator on S
+  have hInv : AnalyticOn ℂ (fun z => (O z * riemannXi_ext z)⁻¹) S := by
+    -- product analytic, then invert using nonvanishing on S
+    have hProd : AnalyticOn ℂ (fun z => O z * riemannXi_ext z) S := by
+      simpa using hO_S.mul hXi_S
+    exact AnalyticOn.inv hProd hDen_ne
+  -- Assemble J_pinch = det2 * (O * ξ_ext)^{-1}
+  have : AnalyticOn ℂ (fun z => det2 z * (O z * riemannXi_ext z)⁻¹) S := by
+    simpa using hDet2_S.mul hInv
+  -- Conclude via definal equality on S
+  refine (this.congr ?_)
+  intro z hz
+  simp [J_pinch, div_eq_mul_inv]
+
 /-- Build a `PinchCertificateExt` from the paper `J_pinch` once the two
 key facts are supplied:
 1) interior positivity `0 ≤ Re(2·J_pinch)` on `Ω \ {ξ_ext=0}`;
