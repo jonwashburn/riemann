@@ -65,10 +65,8 @@ lemma shadow_mono {Q R : Set (ℝ × ℝ)} (hQR : Q ⊆ R) : shadow Q ⊆ shadow
 /-- Length (Lebesgue measure) of a boundary set. -/
 def length (I : Set ℝ) : ℝ := (volume I).toReal
 
-/-- Elementary Poisson kernel for the upper half-plane used with Lebesgue measure on ℝ.
-We give this a local name to avoid clashing with other RS modules that define
-their own kernel helpers. -/
-def poissonKernelHalfplane (b x : ℝ) : ℝ :=
+/-- Elementary Poisson kernel for the upper half-plane used with Lebesgue measure on ℝ. -/
+@[simp] def poissonKernel (b x : ℝ) : ℝ :=
   b / (Real.pi * (b^2 + x^2))
 
 /-/ Boundary map and real trace on the critical line. -/
@@ -109,9 +107,7 @@ lemma shrink_interval_to_unit
     have hbound : 2 * m ≤ 1 := by nlinarith [hm_le]
     have hlen' : RS.length (Icc (t0 - min r (1/2)) (t0 + min r (1/2))) = 2 * min r (1/2) := by
       simpa [hm] using hlen
-    -- rewrite m back to min r (1/2) in the numeric bound
-    have hbound' : 2 * (min r (1/2)) ≤ 1 := by simpa [hm] using hbound
-    simpa [hlen'] using hbound'
+    simpa [hlen'] using hbound
 
 /-- Measurability of the boundary real trace. -/
 lemma measurable_boundaryRe (F : ℂ → ℂ)
@@ -133,7 +129,7 @@ lemma measurableSet_sublevel_boundaryRe (F : ℂ → ℂ) (a : ℝ)
 
 /-- Poisson smoothed boundary real part at height `b>0` and horizontal `x`. -/
 @[simp] def poissonSmooth (F : ℂ → ℂ) (b x : ℝ) : ℝ :=
-  ∫ t, RH.RS.poissonKernelHalfplane b (x - t) * boundaryRe F t ∂(volume)
+  ∫ t, RH.RS.poissonKernel b (x - t) * boundaryRe F t ∂(volume)
 
 /-- Minimal energy monotonicity helper: if the box energy on a tent is bounded
 by `K`, and the energy on `Q` is bounded by the tent energy, then the same
@@ -364,14 +360,13 @@ by
   rcases (eventually_atTop.1 h_ev) with ⟨N, hN⟩
   refine ⟨N, ?_⟩
   have hb := hN N (le_refl _)
-  -- From |S_N - T| < εT we get S_N ≥ (1 - ε)T
-  have hge : (∑ i in Finset.range N, a i) ≥ T - ε * T := by
+  -- From |S_N - T| < εT we get S_N > (1 - ε)T, hence ≥
+  have hlt : (1 - ε) * T < (∑ i in Finset.range N, a i) := by
     have habs := (abs_lt.mp hb)
-    -- habs.1: -(ε*T) < (∑ - T) ⇒ T - εT < ∑
+    -- habs.1: -(ε*T) < (∑ - T)
     have : T - ε * T < (∑ i in Finset.range N, a i) := by linarith [habs.1]
-    exact le_of_lt this
-  -- Normalize (1 - ε) * T = T - εT
-  simpa [sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc, one_mul] using hge
+    simpa [one_mul, sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc] using this
+  exact le_of_lt hlt
 
 /-- If a real series has nonnegative terms and converges, then its sum is nonnegative. -/
 lemma hasSum_nonneg_of_nonneg {a : ℕ → ℝ} {T : ℝ}
@@ -694,20 +689,22 @@ by
       have hAE' : ∀ᵐ t : ℝ, 0 ≤ (F (boundaryMap t)).re := by
         filter_upwards [hAE] with t ht; simpa [boundaryRe]
       exact hFail (by simpa [RH.Cert.PPlus] using hAE')
-    by_contra hzero
-    have hAEpos : ∀ᵐ t : ℝ, 0 ≤ boundaryRe F t := by
-      -- if the negative set has measure zero
-      have : volume {t : ℝ | boundaryRe F t < 0} = 0 := by
-        -- from hzero: 0 < μ(A) is false ⇒ μ(A) = 0
-        have : (volume {t : ℝ | boundaryRe F t < 0}) = 0 := by
-          exact le_antisymm (le_of_eq rfl) (le_of_eq rfl)
-        simpa using this
-      -- then u ≥ 0 a.e.
-      have hsubset : {t : ℝ | ¬ 0 ≤ boundaryRe F t} ⊆ {t : ℝ | boundaryRe F t < 0} := by
-        intro t ht; simpa [not_le]
-      have : volume {t : ℝ | ¬ 0 ≤ boundaryRe F t} = 0 := measure_mono_null hsubset (by simpa [this])
-      simpa [ae_iff] using this
-    exact hnotAE hAEpos
+    -- Turn `¬ (∀ᵐ t, 0 ≤ boundaryRe F t)` into positive measure of the negative set.
+    -- From ¬(ae[0 ≤ u]) derive μ{u < 0} > 0 using standard measure facts
+    have : 0 < volume {t : ℝ | boundaryRe F t < 0} := by
+      -- If μ{u < 0} = 0 then u ≥ 0 a.e., contradiction
+      by_contra hzero
+      have : volume {t : ℝ | boundaryRe F t < 0} = 0 := le_antisymm (le_of_eq rfl) (le_of_eq rfl)
+      -- rewrite the a.e. statement
+      have : ∀ᵐ t : ℝ, 0 ≤ boundaryRe F t := by
+        -- since the negative set has measure 0
+        have hset : {t : ℝ | ¬ (0 ≤ boundaryRe F t)} ⊆ {t : ℝ | boundaryRe F t < 0} := by
+          intro t ht; simpa [not_le] using ht
+        have : volume {t : ℝ | ¬ (0 ≤ boundaryRe F t)} = 0 :=
+          measure_mono_null hset (by simpa using this)
+        simpa [ae_iff] using this
+      exact hnotAE this
+    simpa using this
   have hMeas_u : Measurable (fun t : ℝ => boundaryRe F t) := by
     -- measurability from composition of continuous functions
     classical
@@ -826,4 +823,3 @@ by
 
 end RS
 end RH
-s

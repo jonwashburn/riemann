@@ -1035,7 +1035,7 @@ theorem RiemannHypothesis_from_certificate_rep_route
     (hKxi := hKxi) (hPinned := hPinned)
 
 /-- Certificate route using a subset Poisson representation on
-`S := Ω \\ {ξ_ext = 0}` to produce interior positivity off `Z(ξ_ext)` and
+`S := Ω \ {ξ_ext = 0}` to produce interior positivity off `Z(ξ_ext)` and
 finish via pinch ingredients. -/
 theorem RiemannHypothesis_from_certificate_rep_on
   (α c : ℝ)
