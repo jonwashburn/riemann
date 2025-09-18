@@ -1,0 +1,107 @@
+﻿Blocking on missing lemmas. The theorem as stated
+theorem localWedge_from_WhitneyCarleson_proved
+  (F : ℂ → ℂ)
+  (hKxi : ∃ Kξ : ℝ, 0 ≤ Kξ ∧ RH.Cert.ConcreteHalfPlaneCarleson Kξ)
+  : localWedge_from_WhitneyCarleson F hKxi
+
+
+claims PPlus F for arbitrary F : ℂ → ℂ from a Whitney–Carleson budget alone. That is not derivable in mathlib without a hypothesis linking F to the Carleson certificate (e.g., via CR–Green/Poisson control). To finish the proof in rh/RS/BoundaryWedge.lean with mathlib‑only tools, I need the following RS‑level lemmas (or equivalent) wired to your ConcreteHalfPlaneCarleson:
+BLOCKERS (one‑liners with exact signatures)
+1. CR–Green pairing bound on Whitney boxes (from the Carleson budget)
+ Missing:
+
+lemma CRGreen_pairing_whitney
+  {F : ℂ → ℂ} {Kξ : ℝ}
+  (hCar : RH.Cert.ConcreteHalfPlaneCarleson Kξ)
+  {I : Set ℝ} (hI : RH.WhitneyInterval I)
+  (a : RH.H1Atom I)
+  : |∫ t in I, ((F (Complex.mk (1/2) t)).re) * a t| ≤ RH.Cert.CgreenConst * Kξ * (Measure.restrict Measure.lebesgue I).volume
+
+
+   2. Poisson kernel positivity for the half‑plane (used pointwise and under the integral)
+ Missing:
+
+lemma halfplane_poisson_kernel_nonneg {b x : ℝ} (hb : 0 < b) :
+  0 ≤ b / ((x)^2 + b^2)
+
+
+      3. Approximate identity / a.e. boundary recovery for the half‑plane Poisson kernel
+ Missing:
+
+lemma poisson_approximate_identity_ae
+  {f : ℝ → ℝ} (hf : Integrable f)
+  : (Filter.Tendsto (fun b : ℝ => fun x => ∫ t, (b / ((x - t)^2 + b^2)) * f t)
+       (Filter.nhdsWithin 0 (Set.Ioi 0)) (Filter.nhdsWithin f (Set.univ)))
+    -- equivalently: (P_b * f)(x) → f(x) for a.e. x as b ↓ 0
+
+
+         4. Fixed even window with Poisson plateau lower bound (to upgrade local control to sign)
+ Missing:
+
+lemma poisson_plateau_c0 :
+  ∃ ψ : ℝ → ℝ, Even ψ ∧ (∀ x, 0 ≤ ψ x) ∧ HasCompactSupport ψ ∧
+    (∫ x, ψ x = (1 : ℝ)) ∧
+    ∃ c0 : ℝ, 0 < c0 ∧
+      ∀ {b x}, 0 < b → b ≤ 1 → |x| ≤ 1 →
+        (∫ t, (b / ((x - t)^2 + b^2)) * ψ t) ≥ c0
+
+
+            5. From Whitney‑local a.e. nonnegativity to global a.e. nonnegativity on ℝ
+ Missing:
+
+lemma ae_limit_from_whitney_cover
+  {f : ℝ → ℝ} {I : ℕ → Set ℝ}
+  (hmeas : ∀ n, MeasurableSet (I n))
+  (hcover : (⋃ n, I n) = Set.univ)
+  (hpair : Set.Pairwise (SetLike.hasMem.mem ·) (fun m n => Disjoint (I m) (I n)))
+  (hloc : ∀ n, (∀ᵐ t ∂(Measure.restrict Measure.lebesgue (I n)), 0 ≤ f t)) :
+  (∀ᵐ t ∂Measure.lebesgue, 0 ≤ f t)
+
+
+               6. (Optional but helpful) From atom‑pairing nonnegativity to a.e. nonnegativity on each interval
+Missing:
+
+lemma pairing_nonneg_on_atoms_implies_ae_nonneg_on_interval
+  {f : ℝ → ℝ} {I : Set ℝ} (hI : MeasurableSet I)
+  (hAtoms : ∀ a : RH.H1Atom I, 0 ≤ ∫ t in I, f t * a t) :
+  (∀ᵐ t ∂(Measure.restrict Measure.lebesgue I), 0 ≤ f t)
+
+
+________________
+
+
+How these blockers close the proof (sketch you can wire against)
+Once (1)–(5) land, the mathlib‑only script in rh/RS/BoundaryWedge.lean is a straight composition:
+                  1. Unpack hKxi to get Kξ ≥ 0 and the Carleson certificate.
+
+                  2. Test the boundary phase t ↦ (F (1/2 + it)).re against H¹ atoms localized to each Whitney interval I; apply CRGreen_pairing_whitney to bound the (signed) pairing by C Kξ |I|.
+
+                  3. Convolve those atom controls with an even, nonnegative plateau ψ and apply poisson_plateau_c0 plus halfplane_poisson_kernel_nonneg to lift the local controls to an interval‑wise nonnegative Poisson smoothing.
+
+                  4. Send the Poisson scale b ↓ 0 and use poisson_approximate_identity_ae to conclude that the boundary trace is ≥ 0 a.e. on each Whitney interval.
+
+                  5. Use ae_limit_from_whitney_cover to pass from local (interval‑wise) a.e. nonnegativity to global a.e. on ℝ, i.e. PPlus F.
+
+At that point the implementation of
+theorem localWedge_from_WhitneyCarleson_proved
+  (F : ℂ → ℂ)
+  (hKxi : ∃ Kξ : ℝ, 0 ≤ Kξ ∧ RH.Cert.ConcreteHalfPlaneCarleson Kξ)
+  : localWedge_from_WhitneyCarleson F hKxi
+
+
+is ≈30 lines, using only the above lemmas plus basic MeasureTheory (Tonelli/Fubini, Cauchy–Schwarz where needed) and the existing PPlus alias.
+________________
+
+
+If you prefer to package (1) and (6) into a single BMO/Carleson dual statement, a suitable alternative blocker is:
+Alternative single blocker (replacing 1 & 6):
+lemma HardyBMO_halfplane_from_WhitneyCarleson
+  {F : ℂ → ℂ} {Kξ : ℝ}
+  (hCar : RH.Cert.ConcreteHalfPlaneCarleson Kξ) :
+  RH.BMOHalfPlaneBound (fun t => (F (Complex.mk (1/2) t)).re) (C * Kξ)
+-- which implies: for each Whitney interval I,
+--   avg_I (F(1/2+it).re) ≥ -C*Kξ
+-- and combined with the plateau Poisson lower bound yields a.e. nonnegativity.
+
+
+Once any of these bundles are available, I’ll drop in the final BoundaryWedge.lean script exactly under the target signature, no axioms and no sorry.

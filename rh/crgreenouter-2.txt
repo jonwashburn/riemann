@@ -1,0 +1,76 @@
+﻿Nice work—this is exactly the right split:
+* hRemBound_from_side_top gives the one‑sqrt Whitney remainder in the shape CRGreen_link needs.
+
+* boundary_CR_trace_ae is the clean (a.e.) swap for the bottom edge.
+
+* The testEnergy alias keeps constants readable and scale‑invariant.
+
+Given your note about abs_integral_mul_le_L2_norm not being in your mathlib, you’re fine to source hPairVol externally (from your test template’s L² budget or an L∞L^\infty×measure argument) and feed it straight into pairing_whitney_analytic_bound. Nothing else is required in this file to make CRGreen_link go through.
+________________
+
+
+What you have now (good enough for the link)
+   * Volume bound input (hPairVol): pick any uniform control you already have for the test,
+∣∬Q∇U⋅∇(χVψ)∣≤Cψ,pair ∬Q∣∇U∣2.\Bigl|\iint_Q \nabla U\cdot\nabla(\chi V_\psi)\Bigr| \le C_{\psi,\text{pair}}\,\sqrt{\iint_Q |\nabla U|^2}.
+In practice you can take
+Cψ,pair=∥∇(χVψ)∥L2(Q)=testEnergy ,C_{\psi,\text{pair}}=\|\nabla(\chi V_\psi)\|_{L^2(Q)}=\sqrt{\texttt{testEnergy}}\,,
+or, if you prefer L∞L^\infty-on-test,
+Cψ,pair=∥∇(χVψ)∥L∞(Q)⋅σ(Q) ,C_{\psi,\text{pair}}=\|\nabla(\chi V_\psi)\|_{L^\infty(Q)}\cdot \sqrt{\sigma(Q)}\,,
+which is scale‑invariant on Whitney boxes (since ∥∇(χVψ)∥∞∼L−1\|\nabla(\chi V_\psi)\|_{\infty}\sim L^{-1} and σ(Q)∼L\sqrt{\sigma(Q)}\sim L).
+
+   * Remainder input (hRemBound): you already folded side/top into
+∣(LHS)−(BD)∣≤Cψ,rem ∬Q∣∇U∣2,Cψ,rem=(Cside+Ctop)Etest.\bigl|(\text{LHS})-(\text{BD})\bigr| \le C_{\psi,\text{rem}}\,\sqrt{\iint_Q |\nabla U|^2}, \qquad C_{\psi,\text{rem}}=(C_{\text{side}}+C_{\text{top}})\sqrt{E_{\text{test}}}.
+   * Feed both into pairing_whitney_analytic_bound, then push through your Carleson budget with CRGreen_link. That’s the whole chain.
+
+________________
+
+
+If/when you want the minimal L² Cauchy–Schwarz on sets
+If you want hPairVol to be produced inside this file with no reliance on a separate test budget, the leanest way is to add a tiny L² Hölder wrapper on the restricted measure μ:=σ ⁣↾Q\mu:=\sigma\!\restriction_Q. Two robust choices that have been stable in mathlib for a long time are:
+      1. Lp/Hölder route (works for any normed ring target; needs only snorm_mul_le):
+
+         * Use pointwise |∇U⋅∇(χVψ)| ≤ ‖∇U‖‖∇(χVψ)‖.
+
+         * Apply Hölder with p=q=2p=q=2 to  f:=‖∇U‖, g:=‖∇(χVψ)‖\,f:=‖∇U‖,\ g:=‖∇(χVψ)‖ on μ\mu.
+
+         * Rewrite snorm at p=2p=2 to Real.sqrt of your boxEnergy/testEnergy.
+
+            2. L²–Hilbert route (real‑valued; minimal glue):
+
+               * Push both scalars into L2 ℝ μ via Memℒp.toLp.
+
+               * Use abs_real_inner_le_norm on L2.
+
+               * Expand inner in L2 as an integral of pointwise products and identify norms with the square roots of your energies.
+
+I’m happy to drop in the exact lemma either way when you want it; but since you already have a uniform test budget available, you don’t need the internal CS helper to finish your link.
+________________
+
+
+Sanity check for wiring (no edits needed downstream)
+With your additions, the typical call site to the link now looks like:
+-- Choose Cψ_pair from your test budget (L² or L∞×√|Q|) and Cψ_rem from your fold:
+let Cψ_pair : ℝ := Real.sqrt (testEnergy ∇χVψ σ Q)        -- or your L∞×√|Q| constant
+let Cψ_rem  : ℝ := (Cside + Ctop) * Real.sqrt Etest
+
+
+have hPairVol :
+  |∫ x in Q, (∇U x) ⋅ (∇χVψ x) ∂σ|
+    ≤ Cψ_pair * Real.sqrt (boxEnergy ∇U σ Q) := by
+  -- plug your chosen test budget here
+
+
+have hRemBound :
+  |(∫ x in Q, (∇U x) ⋅ (∇χVψ x) ∂σ) - (∫ t in I, ψ t * B t)|
+    ≤ Cψ_rem * Real.sqrt (boxEnergy ∇U σ Q) :=
+  hRemBound_from_side_top U ψ χ I σ Q ∇U ∇χVψ B Etest Cside Ctop hEq hRside hRtop
+
+
+-- Then the link:
+exact CRGreen_link U W ψ χ I α' σ Q ∇U ∇χVψ B
+  Cψ_pair Cψ_rem hPairVol hRemBound
+  Kξ lenI hCψ_nonneg hCarlSqrt
+
+
+Everything else you added (Carleson wrappers and boundary_CR_trace_ae) slots in exactly as intended.
+If you want me to add the self‑contained L² CS lemma next, say the word—I’ll drop in a version using snorm_mul_le (Lp/Hölder) so it doesn’t depend on any coordinate‑wise helper names.

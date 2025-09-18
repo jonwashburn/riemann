@@ -124,7 +124,7 @@ lemma boxEnergy_mono {gradU : (ℝ × ℝ) → ℝ × ℝ} {σ : Measure (ℝ ×
     boxEnergy gradU σ P ≤ boxEnergy gradU σ Q := by
   -- Work at the level of lintegrals with nonnegative integrand and then apply toReal_le_toReal
   unfold boxEnergy
-  -- Monotonicity of the lintegral on measurable sets
+  -- Monotonicity via indicator functions and lintegral_mono
   have hmono :
       (∫⁻ p in P, ENNReal.ofReal (‖gradU p‖^2 * p.2) ∂σ)
         ≤ (∫⁻ p in Q, ENNReal.ofReal (‖gradU p‖^2 * p.2) ∂σ) := by
@@ -132,14 +132,12 @@ lemma boxEnergy_mono {gradU : (ℝ × ℝ) → ℝ × ℝ} {σ : Measure (ℝ ×
   -- Finiteness of both sides
   have hIQfin :
       (∫⁻ p in Q, ENNReal.ofReal (‖gradU p‖^2 * p.2) ∂σ) ≠ ⊤ := by
-    simpa [lt_top_iff_ne_top]
-      using hfinQ
+    simpa [lt_top_iff_ne_top] using hfinQ
   have hIPfin :
       (∫⁻ p in P, ENNReal.ofReal (‖gradU p‖^2 * p.2) ∂σ) ≠ ⊤ := by
     exact ne_of_lt (lt_of_le_of_lt hmono (by simpa using hfinQ))
   -- Apply toReal_le_toReal
-  exact
-    (ENNReal.toReal_le_toReal (ha := hIPfin) (hb := hIQfin)).2 hmono
+  exact (ENNReal.toReal_le_toReal (ha := hIPfin) (hb := hIQfin)).2 hmono
 
 /-- The tent set `tent I α` is measurable. -/
 lemma measurableSet_tent {I : Set ℝ} {α : ℝ} (hI : MeasurableSet I) :
@@ -183,47 +181,55 @@ lemma finite_lintegral_on_tent_of_L2
     intro p hp
     have hpU : p.2 ≤ α * length I := by simpa [tent, Set.mem_setOf_eq] using hp.2.2
     exact le_trans hpU (le_max_left _ _)
+  -- measurability of the predicate {p | p.2 ≤ C}
+  have hPred : MeasurableSet {p : (ℝ × ℝ) | p.2 ≤ C} := by
+    have hc : IsClosed ((fun p : ℝ × ℝ => p.2) ⁻¹' Set.Iic C) :=
+      isClosed_Iic.preimage continuous_snd
+    simpa [Set.preimage, Set.mem_setOf_eq] using hc.measurableSet
   have hBound_ae : ∀ᵐ p ∂(Measure.restrict volume (tent I α)), p.2 ≤ C := by
     -- Convert AE statement on volume to AE on the restricted measure
-    exact (ae_restrict_iff.mpr hTent).2 hBound_base
+    simpa [ae_restrict_iff, hTent] using hBound_base
   -- Pointwise a.e. bound for the integrand on the tent
   have hpoint_ae :
       (∀ᵐ p ∂(Measure.restrict volume (tent I α)),
         ENNReal.ofReal (‖gradU p‖^2 * p.2)
-          ≤ ENNReal.ofReal C * ENNReal.ofReal (‖gradU p‖^2)) := by
+          ≤ ENNReal.ofReal (‖gradU p‖^2 * C)) := by
     refine hBound_ae.mono ?_
     intro p hpC
     have hmul : ‖gradU p‖^2 * p.2 ≤ ‖gradU p‖^2 * C :=
       mul_le_mul_of_nonneg_left hpC (by exact sq_nonneg _)
-    have hstep : ENNReal.ofReal (‖gradU p‖^2 * p.2)
-            ≤ ENNReal.ofReal (‖gradU p‖^2 * C) := ENNReal.ofReal_le_ofReal hmul
-    -- rewrite RHS as constant * ofReal(‖gradU‖^2)
-    have hgrad_nonneg : 0 ≤ ‖gradU p‖^2 := by exact sq_nonneg _
-    have hof : ENNReal.ofReal (‖gradU p‖^2 * C)
-            = ENNReal.ofReal (‖gradU p‖^2) * ENNReal.ofReal C := by
-      -- rewrite using multiplication on reals then ofReal distributes on nonneg factors
-      simpa [mul_comm] using ENNReal.ofReal_mul hgrad_nonneg hCnonneg
-    -- combine and commute factors
-    have : ENNReal.ofReal (‖gradU p‖^2 * p.2)
-            ≤ ENNReal.ofReal (‖gradU p‖^2) * ENNReal.ofReal C := by
-      simpa [hof] using hstep
-    -- target RHS ordering: ofReal C * ofReal (‖gradU p‖^2)
-    simpa [mul_comm] using this
+    exact ENNReal.ofReal_le_ofReal hmul
   -- Integrate both sides over the tent (restricted measure)
+  have hlin₁ :
+      (∫⁻ p in tent I α, ENNReal.ofReal (‖gradU p‖^2 * p.2))
+        ≤ (∫⁻ p in tent I α, ENNReal.ofReal (‖gradU p‖^2 * C)) :=
+    lintegral_mono_ae hpoint_ae
+  have hconst_eq :
+      (∫⁻ p in tent I α, ENNReal.ofReal (‖gradU p‖^2 * C))
+        = ENNReal.ofReal C * (∫⁻ p in tent I α, ENNReal.ofReal (‖gradU p‖^2)) := by
+    have hpt :
+        (fun p => ENNReal.ofReal (‖gradU p‖^2 * C))
+          = fun p => ENNReal.ofReal C * ENNReal.ofReal (‖gradU p‖^2) := by
+      funext p
+      have : 0 ≤ ‖gradU p‖^2 := sq_nonneg _
+      simpa [mul_comm, mul_left_comm, mul_assoc] using
+        (ENNReal.ofReal_mul this hCnonneg)
+    -- pull out the constant across the lintegral
+    have :
+        (∫⁻ p in tent I α, (fun _ => ENNReal.ofReal C) * ENNReal.ofReal (‖gradU p‖^2))
+          = ENNReal.ofReal C * (∫⁻ p in tent I α, ENNReal.ofReal (‖gradU p‖^2)) := by
+      -- constant factor can be pulled out of lintegral on a measurable set
+      simp [Measure.restrict_apply, hTent]
+    simpa [hpt] using this
   have hlin :
       (∫⁻ p in tent I α, ENNReal.ofReal (‖gradU p‖^2 * p.2))
         ≤ ENNReal.ofReal C * (∫⁻ p in tent I α, ENNReal.ofReal (‖gradU p‖^2)) := by
-    -- pull the constant outside via a simple rewrite
-    have hconst :
-        (∫⁻ p in tent I α, ENNReal.ofReal C * ENNReal.ofReal (‖gradU p‖^2))
-          = ENNReal.ofReal C * (∫⁻ p in tent I α, ENNReal.ofReal (‖gradU p‖^2)) := by
-      simp [Measure.restrict_apply, hTent, mul_comm, mul_left_comm, mul_assoc]
-    refine le_trans (lintegral_mono_ae hpoint_ae) ?_
-    simpa [hconst]
+    simpa [hconst_eq] using hlin₁
   -- Use L²-integrability to conclude finiteness of the RHS
   have hfin_sq : (∫⁻ p in tent I α, ENNReal.ofReal (‖gradU p‖^2)) < ⊤ := by
-    -- IntegrableOn f over a set implies finite lintegral of ofReal |f|
-    simpa [Measure.restrict_apply, hTent] using hL2.hasFiniteIntegral
+    -- Standard: IntegrableOn f ⇒ lintegral (ofReal |f|) < ∞
+    have hInt := hL2.hasFiniteIntegral
+    simpa [Measure.restrict_apply, hTent, Real.norm_eq_abs, abs_of_nonneg (sq_nonneg _)] using hInt
   -- conclude finiteness by showing the product bound is < ⊤ via `mul_ne_top`
   have hCne : ENNReal.ofReal C ≠ ⊤ := by simp
   have hIne : (∫⁻ p in tent I α, ENNReal.ofReal (‖gradU p‖^2)) ≠ ⊤ := ne_of_lt hfin_sq

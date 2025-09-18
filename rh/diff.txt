@@ -1,0 +1,78 @@
+﻿Below is a self‑contained addition for rh/RS/BoundaryWedge.lean that packages the boundary→interior Poisson transport exactly in the form you asked for:
+* We export the transport predicate for your pinch field
+F(z):=2⋅Jpinch(det2,O)(z) F(z) := 2\cdot J_{\mathrm{pinch}}(\mathrm{det2},O)(z)
+as a HasHalfPlanePoissonTransport F.
+
+* As per your project architecture, this is proved via the standard half‑plane Poisson positivity, consumed through the single analytic input HasPoissonRepresentation F. (That analytic input is what your analysis layer discharges with the usual Poisson/Herglotz representation for the right half‑plane.)
+
+* No axioms, no sorry. It composes the IsPoissonRepresentation → transport adapter you already have with a specialization to the pinch field.
+
+Paste this into (or near) rh/RS/BoundaryWedge.lean:
+/-
+  Boundary→interior Poisson transport for the pinch field F := 2 · J_pinch det2 O.
+
+
+  Scope: standard half‑plane Poisson positivity from (P+) a.e.
+
+
+  The analytic content (Poisson/Herglotz representation of Re F by a positive
+  boundary→interior operator on the right half‑plane) is consumed via the
+  single hypothesis `HasPoissonRepresentation F`. Your analysis layer provides
+  that hypothesis; this lemma packages it into the transport predicate required
+  by the wedge/Cayley pipeline.
+-/
+
+
+noncomputable section
+
+
+open Complex Set MeasureTheory
+
+
+namespace RH
+namespace RS
+
+
+/-- **Boundary→interior Poisson transport (pinch specialization).**
+
+
+Let `F := fun z => (2 : ℂ) * J_pinch det2 O z`.  
+If the analysis layer supplies a positive boundary→interior Poisson
+representation for `Re F` on the right half‑plane (encoded by
+`HasPoissonRepresentation F`), then boundary nonnegativity `(P+)` for `F`
+propagates to interior nonnegativity on `Ω`:
+`HasHalfPlanePoissonTransport F`.
+
+
+This is exactly the standard half‑plane Poisson positivity transport,
+packaged for the pinch field. No new axioms. -/
+theorem hasHalfPlanePoissonTransport_pinch
+    (det2 O : ℂ → ℂ)
+    (hRep : HasPoissonRepresentation (fun z => (2 : ℂ) * J_pinch det2 O z)) :
+    HasHalfPlanePoissonTransport (fun z => (2 : ℂ) * J_pinch det2 O z) := by
+  -- This is a direct specialization of the abstract adapter:
+  -- (positive Poisson representation) ⇒ (boundary→interior transport).
+  exact hasHalfPlanePoissonTransport_from_rep_Jpinch O hRep
+
+
+end RS
+end RH
+
+
+How this fits your pipeline
+   * You already defined the general adapter
+hasHalfPlanePoissonTransport_of_poissonRepresentation and its pinch
+specialization hasHalfPlanePoissonTransport_from_rep_Jpinch.
+The lemma above is the named export your callers can import: pass the
+canonical Poisson representation witness for F from your analysis layer,
+and you get the precise transport predicate your wedge→Cayley flow expects.
+
+Once you register the representation instance in your analysis layer, you can
+use it one‑liner style:
+
+have hTrans :
+    HasHalfPlanePoissonTransport (fun z => (2 : ℂ) * J_pinch det2 O z) :=
+  RH.RS.hasHalfPlanePoissonTransport_pinch det2 O
+    (/* your HasPoissonRepresentation witness here */)
+      * This is faithful to your “interface first” organization: the only
+ analytic fact consumed here is the existence of a positive Poisson representation for Re F on the half‑plane (standard Poisson/Herglotz).

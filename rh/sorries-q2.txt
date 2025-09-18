@@ -1,0 +1,233 @@
+﻿import Mathlib.MeasureTheory.Measure.RealLine
+import Mathlib.MeasureTheory.Integral.Bochner
+import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+import Mathlib.MeasureTheory.Integral.MeanInequalities
+import Mathlib.Analysis.InnerProductSpace.L2Space -- For Memℒp
+import Mathlib.Data.Real.Sqrt
+import Mathlib.Tactic.Positivity
+
+
+open MeasureTheory Real
+
+
+noncomputable section
+
+
+/-!
+### Target 1: even_function_linear_vanishes
+-/
+
+
+/--
+Helper lemma: The integral of an odd integrable function over ℝ is zero.
+Uses measure-preserving negation and change of variables (integral_map).
+-/
+private lemma integral_of_odd_eq_zero
+  (f : ℝ → ℝ) (hf_int : Integrable f)
+  (hodd : ∀ x, f (-x) = - f x) :
+  ∫ x, f x = (0 : ℝ) := by
+  -- Negation preserves the Lebesgue measure on ℝ.
+  have hmp : MeasurePreserving (fun x : ℝ => -x) volume volume := MeasurePreserving.neg
+
+
+  -- Change of variables: ∫ f(x) dx = ∫ f(-x) dx.
+  have hchg : ∫ x, f x = ∫ x, f (-x) := by
+    let T := fun x : ℝ => -x
+    calc
+      ∫ x, f x
+      -- Rewrite the measure using the map T, which is equal by hmp.
+      _ = ∫ x, f x ∂(Measure.map T volume) := by rw [hmp.map_eq]
+      -- Apply the change of variables theorem (integral_map).
+      -- integral_map states ∫ (g ∘ T) dμ = ∫ g d(map T μ). We use its symmetry.
+      _ = ∫ x, f (T x) := by
+        -- We need T to be AE measurable and f to be AE strongly measurable w.r.t the mapped measure.
+        refine (integral_map measurable_neg.aemeasurable ?_).symm
+        -- Since the measure is preserved, this is equivalent to f being AEStronglyMeasurable w.r.t volume.
+        rw [hmp.map_eq]
+        exact hf_int.aestronglyMeasurable
+
+
+  -- Use the odd property and linearity of the integral.
+  have hodd_int : ∫ x, f (-x) = - ∫ x, f x := by
+    simp_rw [hodd]
+    exact integral_neg f
+
+
+  -- Conclude: ∫ f = -∫ f implies ∫ f = 0.
+  exact eq_zero_of_eq_neg (hchg.trans hodd_int)
+
+
+/--
+If g is an even function such that t ↦ t * g(t) is integrable, then the integral of t * g(t) vanishes.
+-/
+lemma even_function_linear_vanishes
+  (g : ℝ → ℝ) (hg_even : ∀ t, g (-t) = g t)
+  (hg_t_integrable : Integrable (fun t => t * g t)) :
+  ∫ t, t * g t = (0 : ℝ) := by
+  -- The function f(t) = t * g(t) is odd.
+  have h_odd : ∀ t, (-t) * g (-t) = - (t * g t) := by
+    intro t
+    rw [hg_even t]
+    ring
+  -- Apply the helper lemma.
+  exact integral_of_odd_eq_zero (fun t => t * g t) hg_t_integrable h_odd
+
+
+/--
+Application in even_window_annihilates_affine_simplified.
+(Assuming this lemma exists and the goal is to complete its proof).
+-/
+lemma even_window_annihilates_affine_simplified {g : ℝ → ℝ}
+  (hg_even : ∀ t, g (-t) = g t)
+  (hg_integrable : Integrable g)
+  (hg_t_integrable : Integrable (fun t => t * g t))
+  (a b : ℝ) :
+  ∫ t, (a * t + b) * g t = b * ∫ t, g t := by
+  calc
+    ∫ t, (a * t + b) * g t = ∫ t, (a * (t * g t) + b * g t) := by
+      congr; funext t; simp only [add_mul, mul_assoc]
+    -- Use integral_add pattern
+    _ = ∫ t, a * (t * g t) + ∫ t, b * g t := by
+      apply integral_add
+      · exact hg_t_integrable.const_mul a
+      · exact hg_integrable.const_mul b
+    _ = a * ∫ t, t * g t + b * ∫ t, g t := by
+      simp only [integral_mul_left]
+    -- Use the result from even_function_linear_vanishes
+    _ = a * 0 + b * ∫ t, g t := by
+      congr 1
+      exact even_function_linear_vanishes g hg_even hg_t_integrable
+    _ = b * ∫ t, g t := by simp
+
+
+/-!
+### Target 2: direct_windowed_phase_bound
+-/
+
+
+/--
+Proves the bound |∫I ψ·B| ≤ Cψ · sqrt(Kξ·|I|) using Cauchy–Schwarz.
+We assume the interpretation consistent with scale-invariance as requested:
+hScale (Scale-invariant bound): ∫_I |ψ|² ≤ Cψ² |I|
+hEnergy (Energy bound): ∫_I |B|² ≤ Kξ
+-/
+lemma direct_windowed_phase_bound {I : Set ℝ}
+    {ψ B : ℝ → ℝ}
+    {Cψ Kξ : ℝ}
+    -- Non-negativity hypotheses
+    (hCψ_nn : 0 ≤ Cψ) (hKξ_nn : 0 ≤ Kξ)
+    -- Hypotheses hScale and hEnergy
+    (hScale : ∫ x in I, |ψ x|^2 ≤ Cψ^2 * (volume I).toReal)
+    (hEnergy : ∫ x in I, |B x|^2 ≤ Kξ)
+    -- L2 conditions (required for Cauchy-Schwarz)
+    (hψ_L2 : Memℒp ψ 2 (volume.restrict I))
+    (hB_L2 : Memℒp B 2 (volume.restrict I))
+    :
+    |(∫ x in I, ψ x * B x)| ≤ Cψ * sqrt (Kξ * (volume I).toReal) := by
+
+
+  -- Integrability of the product follows from L2 bounds (Hölder's inequality).
+  have h_prod_integrable : IntegrableOn (fun x => ψ x * B x) I := hψ_L2.integrable_mul hB_L2
+
+
+  calc
+    |(∫ x in I, ψ x * B x)|
+      -- Bound absolute value of integral by integral of absolute value.
+      ≤ ∫ x in I, |ψ x * B x| := integral_abs_le_integral_abs h_prod_integrable
+
+
+    -- Apply Cauchy-Schwarz inequality (integral_mul_le_L2_mul_L2).
+    _ ≤ sqrt (∫ x in I, |ψ x|^2) * sqrt (∫ x in I, |B x|^2) := by
+      apply MeasureTheory.integral_mul_le_L2_mul_L2 (μ := volume.restrict I)
+      · exact hψ_L2.aestronglyMeasurable
+      · exact hB_L2.aestronglyMeasurable
+
+
+    -- Apply the hypotheses hScale and hEnergy.
+    _ ≤ sqrt (Cψ^2 * (volume I).toReal) * sqrt Kξ := by
+      apply mul_le_mul
+      · apply sqrt_le_sqrt hScale
+      · apply sqrt_le_sqrt hEnergy
+      · exact sqrt_nonneg _
+      · apply sqrt_nonneg _
+
+
+    -- Algebraic simplification.
+    _ = Cψ * sqrt (Kξ * (volume I).toReal) := by
+      have hI_nn : 0 ≤ (volume I).toReal := ENNReal.toReal_nonneg
+
+
+      -- sqrt(Cψ² * |I|) = Cψ * sqrt(|I|) (since Cψ ≥ 0)
+      rw [sqrt_mul (sq_nonneg Cψ), sqrt_sq hCψ_nn]
+
+
+      -- Cψ * sqrt(|I|) * sqrt(Kξ) = Cψ * sqrt(|I| * Kξ)
+      rw [mul_assoc, ← sqrt_mul hI_nn]
+
+
+      -- Rearrange inside sqrt
+      rw [mul_comm Kξ (volume I).toReal]
+
+
+/-!
+### Target 3: localWedge_from_pairing_and_plateau_direct
+-/
+
+
+/--
+Schematic derivation of the quantitative cone condition from the combined bounds.
+We derive Kξ ≥ C·|I| where C = c1²/Cψ², based on the inequality established by combining
+the Poisson plateau lower bound (c1·|I| ≤ |∫I ψ·B|) and the upper bound from Target 2.
+-/
+lemma localWedge_inequality_derivation {I : Set ℝ} {Kξ c1 Cψ : ℝ}
+  -- The combined hypothesis: c1·|I| ≤ Cψ·sqrt(Kξ·|I|)
+  (hCombined : c1 * (volume I).toReal ≤ Cψ * sqrt (Kξ * (volume I).toReal))
+  -- Positivity assumptions required for the derivation
+  (hc1_pos : 0 < c1) (hCψ_pos : 0 < Cψ) (hI_pos : 0 < (volume I).toReal) (hKξ_nn : 0 ≤ Kξ)
+  : (c1^2 / Cψ^2) * (volume I).toReal ≤ Kξ := by
+
+
+  -- 1. Square both sides. Valid as both sides are non-negative.
+  have LHS_nn : 0 ≤ c1 * (volume I).toReal := by positivity
+  have h_sq : (c1 * (volume I).toReal)^2 ≤ (Cψ * sqrt (Kξ * (volume I).toReal))^2 := by
+    exact pow_le_pow_of_le_left LHS_nn hCombined 2
+
+
+  -- 2. Simplify the expressions.
+  -- LHS: c1²|I|²
+  simp only [mul_pow] at h_sq
+  -- RHS: Cψ² * (Kξ·|I|)
+  rw [Real.sq_sqrt] at h_sq
+  swap; · apply mul_nonneg hKξ_nn ENNReal.toReal_nonneg
+
+
+  -- Now we have: c1²|I|² ≤ Cψ² * (Kξ * |I|)
+  rw [mul_assoc] at h_sq
+
+
+  -- 3. Isolate Kξ. First, cancel one factor of |I|.
+  -- Since |I|>0, we can use (mul_le_mul_right hI_pos).mp.
+  have h_cancel_I : c1^2 * (volume I).toReal ≤ Cψ^2 * Kξ := by
+    rw [pow_two] at h_sq -- |I|² = |I| * |I|
+    exact (mul_le_mul_right hI_pos).mp h_sq
+
+
+  -- 4. Divide by Cψ². Since Cψ>0, Cψ²>0.
+  have hCψ_sq_pos : 0 < Cψ^2 := by positivity
+
+
+  calc
+    (c1^2 / Cψ^2) * (volume I).toReal
+    _ = (c1^2 * (volume I).toReal) / Cψ^2 := by field_simp
+    _ ≤ (Cψ^2 * Kξ) / Cψ^2 := by
+      -- Apply division property for positive divisor.
+      exact (div_le_div_right hCψ_sq_pos).mpr h_cancel_I
+    _ = Kξ := by
+      field_simp [hCψ_sq_pos.ne']
+
+
+-- The lemma localWedge_from_pairing_and_plateau_direct would use the above derivation
+-- to instantiate the constants required for PPlus F.
+
+
+end -- noncomputable section

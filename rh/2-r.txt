@@ -1,0 +1,58 @@
+﻿Here’s the compact “lemma pack” you can drop into your argument. I’ll use the standard half-plane Poisson kernel
+Pσ(t)=1π σσ2+t2,V(σ,t)=(Pσ∗ψ)(t)=∫RPσ(t−s) ψ(s) ds,ψ∈L2(R).P_\sigma(t)=\frac{1}{\pi}\,\frac{\sigma}{\sigma^{2}+t^{2}},\qquad V(\sigma,t)=(P_\sigma * \psi)(t)=\int_{\mathbb{R}}P_\sigma(t-s)\,\psi(s)\,ds, \quad \psi\in L^2(\mathbb{R}).
+1) Basic regularity and derivative formulas
+* For every σ>0\sigma>0, V(σ,⋅)∈C∞(R)V(\sigma,\cdot)\in C^\infty(\mathbb{R}) and V∈C∞((0,∞)×R)V\in C^\infty((0,\infty)\times\mathbb{R}).
+
+* Weak/strong derivatives exist and are given by convolution:
+
+∂σV(σ,⋅)=(∂σPσ)∗ψ,∂tV(σ,⋅)=(∂tPσ)∗ψ,\partial_\sigma V(\sigma,\cdot)=(\partial_\sigma P_\sigma)*\psi,\qquad \partial_t V(\sigma,\cdot)=(\partial_t P_\sigma)*\psi,
+with
+∂σPσ(t)=1π t2−σ2(σ2+t2)2,∂tPσ(t)=−2π σt(σ2+t2)2.\partial_\sigma P_\sigma(t)=\frac{1}{\pi}\,\frac{t^2-\sigma^2}{(\sigma^2+t^2)^2},\qquad \partial_t P_\sigma(t)=-\frac{2}{\pi}\,\frac{\sigma t}{(\sigma^2+t^2)^2}.
+Both (σ,t)↦∂σV(σ,t)(\sigma,t)\mapsto \partial_\sigma V(\sigma,t) and (σ,t)↦∂tV(σ,t)(\sigma,t)\mapsto \partial_t V(\sigma,t) are Borel measurable.
+Useful kernel norms (exact):
+∥∂σPσ∥L1(R)=∥∂tPσ∥L1(R)=2πσ.\|\partial_\sigma P_\sigma\|_{L^1(\mathbb{R})}=\|\partial_t P_\sigma\|_{L^1(\mathbb{R})}=\frac{2}{\pi\sigma}.
+So for each fixed σ>0\sigma>0,
+∥∂σV(σ,⋅)∥Lt2≤2πσ ∥ψ∥L2,∥∂tV(σ,⋅)∥Lt2≤2πσ ∥ψ∥L2.\|\partial_\sigma V(\sigma,\cdot)\|_{L^2_t}\le \frac{2}{\pi\sigma}\,\|\psi\|_{L^2},\qquad \|\partial_t V(\sigma,\cdot)\|_{L^2_t}\le \frac{2}{\pi\sigma}\,\|\psi\|_{L^2}.
+(These pointwise-in-σ\sigma bounds are sharp in homogeneity; for integrated L2L^2 control you should use §2 below.)
+2) Weighted L2L^2 (area) identities — exact constants
+Write ⋅^\widehat{\cdot} for the unitary Fourier transform in tt. Since Pσ^(ξ)=e−2πσ∣ξ∣\widehat{P_\sigma}(\xi)=e^{-2\pi\sigma|\xi|},
+∂σV^(σ,ξ)=(−2π∣ξ∣)e−2πσ∣ξ∣ψ^(ξ),∂tV^(σ,ξ)=(2πiξ)e−2πσ∣ξ∣ψ^(ξ).\widehat{\partial_\sigma V}(\sigma,\xi)=(-2\pi|\xi|)e^{-2\pi\sigma|\xi|}\widehat{\psi}(\xi),\qquad \widehat{\partial_t V}(\sigma,\xi)=(2\pi i\xi)e^{-2\pi\sigma|\xi|}\widehat{\psi}(\xi).
+Plancherel plus ∫0∞σe−4πσ∣ξ∣dσ=116π2ξ2\int_0^\infty \sigma e^{-4\pi\sigma|\xi|}d\sigma=\frac{1}{16\pi^2\xi^2} yields the exact area identities
+∫R ⁣ ⁣∫0∞ ⁣∣∂σV∣2 σ dσ dt=14 ∥ψ∥L22,∫R ⁣ ⁣∫0∞ ⁣∣∂tV∣2 σ dσ dt=14 ∥ψ∥L22,\int_{\mathbb{R}}\!\!\int_{0}^{\infty}\! |\partial_\sigma V|^2\,\sigma\,d\sigma\,dt=\frac{1}{4}\,\|\psi\|_{L^2}^2,\qquad \int_{\mathbb{R}}\!\!\int_{0}^{\infty}\! |\partial_t V|^2\,\sigma\,d\sigma\,dt=\frac{1}{4}\,\|\psi\|_{L^2}^2,
+hence
+∫R ⁣ ⁣∫0∞ ⁣∣∇V∣2 σ dσ dt=12 ∥ψ∥L22.\int_{\mathbb{R}}\!\!\int_{0}^{\infty}\! |\nabla V|^2\,\sigma\,d\sigma\,dt =\frac{1}{2}\,\|\psi\|_{L^2}^2.
+So ∇V∈L2(σ dσ dt)\nabla V\in L^2(\sigma\,d\sigma\,dt) iff ψ∈L2\psi\in L^2, and the map ψ↦∇V\psi\mapsto \nabla V is an isometry up to the factor 1/21/\sqrt{2}.
+3) Whitney geometry and scale invariance
+For an interval I=I(t0,L):=[t0−L,t0+L]I=I(t_0,L):=[t_0-L,t_0+L] and α≥1\alpha\ge 1, set the Whitney box
+Qα(I)={(σ,t): t∈I, 0<σ<αL}.Q_\alpha(I)=\{(\sigma,t):\,t\in I,\ 0<\sigma<\alpha L\}.
+Two scale-invariant controls are routinely useful.
+3a) Local box control for arbitrary ψ∈L2\psi\in L^2 (localized mass)
+There exist absolute constants c=c(α)>1c=c(\alpha)>1, C=C(α)C=C(\alpha) such that
+∬Qα(I)∣∇V∣2 σ dσ dt  ≤  C(α) ∫cI∣ψ(t)∣2 dt.\iint_{Q_\alpha(I)} |\nabla V|^2\,\sigma\,d\sigma\,dt \;\le\; C(\alpha)\,\int_{cI} |\psi(t)|^2\,dt .
+(Proof sketch: split ψ=ψ 1cI+ψ 1(cI)c\psi=\psi\,\mathbf{1}_{cI}+\psi\,\mathbf{1}_{(cI)^c}; the near part is handled by the L2L^2 area identity restricted to the box, the far part by off-support decay of PσP_\sigma and its derivatives plus Schur/Young; constants depend only on α\alpha.)
+3b) Uniform box control for scaled windows (exact linear scaling in ∣I∣|I|)
+Fix a base window ψ0∈L2(R)\psi_0\in L^2(\mathbb{R}) (e.g. compact support, even). For each I=I(t0,L)I=I(t_0,L) define the scale-translate
+ψI(t):=ψ0 ⁣(t−t0L),VI(σ,t)=Pσ∗ψI(t).\psi_I(t):=\psi_0\!\left(\frac{t-t_0}{L}\right),\qquad V_I(\sigma,t)=P_\sigma * \psi_I(t).
+Then for every α≥1\alpha\ge 1,
+∬Qα(I)∣∇VI∣2 σ dσ dt  ≤  14 ∥ψ0∥L22 ∣I∣.\iint_{Q_\alpha(I)} |\nabla V_I|^2\,\sigma\,d\sigma\,dt \;\le\; \frac{1}{4}\,\|\psi_0\|_{L^2}^2\,|I|.
+This is scale-invariant and Whitney-uniform: the constant depends only on ψ0\psi_0, not on t0,L,αt_0,L,\alpha (the box sits inside the half-plane, so the left side is ≤\le the global area 12∥ψI∥22=12L∥ψ0∥22\frac12\|\psi_I\|_2^2=\frac12 L\|\psi_0\|_2^2; since ∣I∣=2L|I|=2L the displayed bound follows with 14∥ψ0∥22\frac14\|\psi_0\|_2^2).
+Equivalently, in “Carleson” form:
+sup⁡I 1∣I∣∬Qα(I)∣∇VI∣2 σ dσ dt  ≤  14 ∥ψ0∥L22.\sup_{I}\ \frac{1}{|I|}\iint_{Q_\alpha(I)} |\nabla V_I|^2\,\sigma\,d\sigma\,dt \;\le\; \frac{1}{4}\,\|\psi_0\|_{L^2}^2.
+4) Dilation rule (helpful for change-of-variables)
+Let Sλ(σ,t)=(λσ,λt)S_\lambda(\sigma,t)=(\lambda\sigma,\lambda t). Then
+(S_\lambda)^\!(\,\sigma\,d\sigma\,dt)=\lambda\;\sigma\,d\sigma\,dt,
+and if ψλ(t):=ψ(t/λ)\psi_\lambda(t):=\psi(t/\lambda) then
+Vλ(σ,t):=(Pσ∗ψλ)(t)=V ⁣(σλ,tλ).V_\lambda(\sigma,t):=(P_\sigma * \psi_\lambda)(t)=V\!\left(\frac{\sigma}{\lambda},\frac{t}{\lambda}\right).
+Consequently, for any measurable E⊂(0,∞)×RE\subset (0,\infty)\times\mathbb{R},
+∬E∣∇Vλ∣2 σ dσ dt=λ∬S1/λ(E)∣∇V∣2 σ dσ dt,\iint_{E} |\nabla V_\lambda|^2\,\sigma\,d\sigma\,dt =\lambda\iint_{S_{1/\lambda}(E)} |\nabla V|^2\,\sigma\,d\sigma\,dt,
+which is exactly the linear-in-scale behavior you need for Whitney boxes (λ=L\lambda=L).
+________________
+
+
+What you can take away:
+   * The Poisson extension is as regular as you need inside {σ>0}\{\sigma>0\}; the derivatives are measurable and given by explicit convolution kernels.
+
+   * The weighted area norms of ∂σV\partial_\sigma V and ∂tV\partial_t V are exactly 14∥ψ∥22\tfrac14\|\psi\|_2^2 each; together they give 12∥ψ∥22\tfrac12\|\psi\|_2^2.
+
+   * In Whitney geometry, the energy in Qα(I)Q_\alpha(I) is controlled either by the local L2L^2 mass of ψ\psi near II (3a), or—crucially for fixed windows scaled to II—by a universal linear bound ≲∣I∣\lesssim |I| with a constant depending only on the window shape (3b).
+These are the “scale-invariant” L2L^2 controls you need for pairing/plateau arguments and for turning box-energy budgets into clean inequalities.

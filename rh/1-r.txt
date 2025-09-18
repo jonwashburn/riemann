@@ -1,0 +1,76 @@
+﻿Here’s a clean, drop‑in LaTeX snippet that states and proves the scaling change‑of‑variables for the map Sλ(σ,t)=(λσ,λt)S_\lambda(\sigma,t)=(\lambda\sigma,\lambda t) on R×RR\times R, specialized to the weighted Dirichlet energy ∫ ⁣ ⁣∫Q∣∇V∣2 σ dσ dt\int\!\!\int_Q |\nabla V|^2\,\sigma\,d\sigma\,dt. No external references or packages are required.
+% Scaling change-of-variables for the σ-weighted Dirichlet energy in R×R
+
+
+\paragraph*{Theorem (Scaling CoV for the σ-weighted energy).}
+Let \(Q\subset R\times R\) be measurable, let \(\lambda>0\), and let \(S_\lambda(\sigma,t)=(\lambda\sigma,\lambda t)\).
+For any \(V\in W^{1,2}_{\mathrm{loc}}(R\times R)\) with
+\(\int\!\!\int_{S_\lambda(Q)} |\nabla V|^2\,\sigma\,d\sigma\,dt < \infty\),
+set \(V_\lambda := V\circ S_\lambda\).
+Then
+\[
+\int\!\!\int_{S_\lambda(Q)} |\nabla V|^2\,\sigma\,d\sigma\,dt
+\;=\;
+\lambda \int\!\!\int_{Q} |\nabla V_\lambda|^2\,\sigma\,d\sigma\,dt.
+\]
+
+
+\paragraph*{Proof.}
+Write \(y=(\sigma',t')=S_\lambda(\sigma,t)\).
+Then \(d\sigma'\,dt'=\lambda^2\,d\sigma\,dt\) and \(\sigma'=\lambda\sigma\).
+Hence, by the substitution formula,
+\[
+\int\!\!\int_{S_\lambda(Q)} |\nabla V(y)|^2\,\sigma'\,dy
+=
+\int\!\!\int_{Q} |\nabla V(S_\lambda(\sigma,t))|^2\,(\lambda\sigma)\,\lambda^2\,d\sigma\,dt
+=
+\lambda^3 \int\!\!\int_{Q} \big(|\nabla V|\circ S_\lambda\big)^2 \sigma\,d\sigma\,dt.
+\]
+By the chain rule, \(\nabla(V\circ S_\lambda)=\lambda\,(\nabla V)\circ S_\lambda\), hence
+\((|\nabla V|\circ S_\lambda)^2=\lambda^{-2}|\nabla(V\circ S_\lambda)|^2\).
+Substituting gives
+\[
+\int\!\!\int_{S_\lambda(Q)} |\nabla V|^2\,\sigma
+=
+\lambda \int\!\!\int_{Q} |\nabla(V\circ S_\lambda)|^2\,\sigma,
+\]
+which is the claim. \(\square\)
+
+
+\paragraph*{Equivalent forms.}
+(1) Fix \(Q\) and define the “blow-up” \(U_\lambda(\sigma,t):=V(\lambda\sigma,\lambda t)\).
+Then
+\[
+\int\!\!\int_{Q} |\nabla U_\lambda|^2\,\sigma\,d\sigma\,dt
+=
+\frac{1}{\lambda}\int\!\!\int_{S_\lambda(Q)} |\nabla V|^2\,\sigma\,d\sigma\,dt.
+\]
+
+
+(2) If the domain is scaled together with an amplitude renormalization
+\(W_\lambda := \lambda^{1/2}\,V\circ S_\lambda\), then the energy is exactly invariant:
+\[
+\int\!\!\int_{Q} |\nabla W_\lambda|^2\,\sigma\,d\sigma\,dt
+=
+\int\!\!\int_{S_\lambda(Q)} |\nabla V|^2\,\sigma\,d\sigma\,dt.
+\]
+
+
+\paragraph*{Measure push-forward viewpoint.}
+The weighted area measure \(\sigma\,d\sigma\,dt\) transforms under \(S_\lambda\) by
+\[
+(S_\lambda)_*\big(\sigma\,d\sigma\,dt\big) \;=\; \lambda^{-3}\,\sigma\,d\sigma\,dt,
+\]
+and the gradient transforms by \(|\nabla(V\circ S_\lambda)|^2 = \lambda^2 (|\nabla V|^2\circ S_\lambda)\).
+Combining these two facts yields the theorem immediately.
+
+
+\paragraph*{Remark (General weight).}
+If the weight is \(\sigma^\alpha\) with \(\alpha>-1\), then the same proof gives
+\[
+\int\!\!\int_{S_\lambda(Q)} |\nabla V|^2\,\sigma^\alpha\,d\sigma\,dt
+=
+\lambda^{\alpha}\int\!\!\int_{Q} |\nabla(V\circ S_\lambda)|^2\,\sigma^\alpha\,d\sigma\,dt.
+\]
+In particular, the “critical” renormalization for scale-invariance is
+\(W_\lambda=\lambda^{\alpha/2}\,V\circ S_\lambda\).

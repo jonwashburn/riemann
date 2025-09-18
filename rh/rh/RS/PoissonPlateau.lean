@@ -56,9 +56,8 @@ lemma psi_even_pointwise : ∀ t, psi (-t) = psi t := by
       exact ht ⟨by simpa using (neg_le_neg hR), by simpa using (neg_le_neg hL)⟩
     simp [psi, Set.indicator_of_not_mem ht, Set.indicator_of_not_mem hneg]
 
-lemma psi_even : Even psi := by
-  refine fun t => ?_
-  exact psi_even_pointwise t
+lemma psi_even : Function.Even psi := by
+  intro t; exact psi_even_pointwise t
 
 lemma psi_hasCompactSupport : HasCompactSupport psi := by
   -- Topological support equals the closed interval [-2,2]
@@ -110,7 +109,7 @@ theorem poisson_plateau_lower_bound
   -- The big interval S and a length-2b subinterval J around x
   set S : Set ℝ := Icc (-2 : ℝ) 2
   have hS_meas : MeasurableSet S := isClosed_Icc.measurableSet
-    have hb0 : 0 ≤ b := le_of_lt hb
+  have hb0 : 0 ≤ b := le_of_lt hb
   have hxI : -1 ≤ x ∧ x ≤ 1 := abs_le.mp hx
   -- J := [x - b, x + b] ⊆ [-2,2]
   have hJsubset : Icc (x - b) (x + b) ⊆ S := by
@@ -142,8 +141,9 @@ theorem poisson_plateau_lower_bound
           using continuous_const.mul (continuous_const.mul hrec)
       -- use continuity on compact interval [-2,2]
       have : IntegrableOn (fun t : ℝ => poissonKernel b (x - t)) (Icc (-2 : ℝ) 2) :=
-        (cont.continuousAt.intervalIntegrable).integrableOn_Icc
-      simpa [integrable_indicator_iff, hS_meas] using this
+        (cont.comp (continuous_const.sub continuous_id)).integrableOn_Icc
+      simpa [integrable_indicator_iff, hS_meas]
+        using (this.mono_set (by intro t ht; exact Icc_subset_Icc (by linarith) (by linarith) ht))
     have hintJ : Integrable ((Icc (x - b) (x + b)).indicator fun t => poissonKernel b (x - t)) := by
       have cont : Continuous fun t : ℝ => poissonKernel b (x - t) := by
         have hden : Continuous fun t : ℝ => (x - t) ^ 2 + b ^ 2 :=
@@ -155,7 +155,7 @@ theorem poisson_plateau_lower_bound
         simpa [poissonKernel, one_div, div_eq_mul_inv, pow_two, mul_comm, mul_left_comm, mul_assoc]
           using continuous_const.mul (continuous_const.mul hrec)
       have : IntegrableOn (fun t : ℝ => poissonKernel b (x - t)) (Icc (x - b) (x + b)) :=
-        (cont.continuousAt.intervalIntegrable).integrableOn_Icc
+        (cont.comp (continuous_const.sub continuous_id)).integrableOn_Icc
       have hmeasJ : MeasurableSet (Icc (x - b) (x + b)) := isClosed_Icc.measurableSet
       simpa [integrable_indicator_iff, hmeasJ] using this
     have := integral_mono_ae (μ := volume) hintJ hintS (ae_of_all _ hpt)

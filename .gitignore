@@ -1,0 +1,18 @@
+# Lake build artifacts
+.lake/
+**/.lake/
+# Lean build logs
+lake-packages/
+/build/
+# macOS metadata
+.DS_Store
+**/.DS_Store
+# AppleDouble resource forks
+._*
+**/._*
+# ProofWidgets package (ignore completely)
+**/ProofWidgets4/
+**/proofwidgets/
+# VSCode/Cursor
+.vscode/
+.idea/

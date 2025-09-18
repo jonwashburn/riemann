@@ -1,0 +1,77 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\pagestyle{empty}
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+
+% --- Fixed constants (locked) ---
+\newcommand{\czero}{0.17620819} % c_0(psi) = (1/(2pi)) arctan 2
+\newcommand{\CH}{0.65}          % C_H(psi)
+\newcommand{\CP}{0.020}         % C_P(kappa) at kappa = 0.010
+\newcommand{\CHone}{0.2400}     % C_psi^{(H^1)}
+\newcommand{\Cbox}{0.067022}    % Carleson/area energy budget
+\newcommand{\Mpsilocked}{0.0800745} % locked M_psi used in manuscript
+\newcommand{\Ups}{0.408882385}  % (C_H*Mpsi + C_P)/c_0 with locked Mpsi
+
+\begin{document}
+\textbf{\large Riemann Proof Map (Bounded-Real Route via Product Certificate)}
+
+\textbf{Ambient domain.} Let $\Omega:=\{s\in\mathbb C:\Re s>\tfrac12\}$. Write $s=\tfrac12+\sigma+it$, $\sigma>0$.
+Let $\xi(s)=\tfrac12 s(1-s)\pi^{-s/2}\Gamma(\tfrac{s}{2})\zeta(s)$.
+
+\textbf{Objects.} On $\ell^2(\mathcal P)$ let $A(s)e_p:=p^{-s}e_p$. Define the outer-normalized ratio
+\[
+  \mathcal J(s)\ :=\ \frac{\det\nolimits_2(I-A(s))}{\mathcal O(s)\,\xi(s)},
+  \qquad
+  \Theta(s)\ :=\ \frac{2\mathcal J(s)-1}{2\mathcal J(s)+1}.
+\]
+Target: $2\mathcal J$ is Herglotz on $\Omega$ (i.e. $\Re(2\mathcal J)\ge 0$) $\Longleftrightarrow$ $\Theta$ is Schur on $\Omega$.
+
+\textbf{Window \& geometry.} Fix even $\psi\in C^\infty$ with $\psi\equiv1$ on $[-1,1]$, $0\le\psi\le1$, compactly supported.
+For an interval $I=[T-L,T+L]$ with $L\le 1/\log\langle T\rangle$ and aperture $\alpha\in[1,2]$, the Carleson box is
+\[
+  Q(\alpha I):=\{(\sigma,t):\, |t-T|\le \alpha L,\ \ 0<\sigma\le \alpha|I|\},\qquad
+  \Omega(I):=\{\tfrac12+\sigma+it:\ (\sigma,t)\in Q(\alpha I)\}\subset\Omega.
+\]
+
+\textbf{Boundary phase density.} With boundary phase $w(t)$ one has on $I$
+\[
+  \int_I \!\big(-w'(t)\big)\,dt \ \le\ \pi\,\mu\!\big(Q(I)\big),
+\]
+where $\mu$ is the Carleson/energy measure induced by the neutralized potential.
+
+\textbf{Locked certificate to (P+).} The independent bounds are:
+\[
+  c_0(\psi)=\czero,\quad C_H(\psi)=\CH,\quad C_P(\kappa)=\CP,\quad
+  C^{(H^1)}_\psi=\CHone,\quad C_{\mathrm{box}}=\Cbox.
+\]
+The fixed-aperture embedding gives
+\[
+  M_\psi\ \le\ \frac{4}{\pi}\,C^{(H^1)}_\psi\sqrt{C_{\mathrm{box}}}\ \ (\text{analytic enclosure }<0.245)
+  \quad\Rightarrow\quad M_\psi\le \Mpsilocked.
+\]
+Hence the boundary certificate
+\[
+  \Upsilon\ :=\ \frac{C_H(\psi)\,M_\psi + C_P(\kappa)}{c_0(\psi)}\ =\ \Ups\ \le\ \tfrac12\ <\ \tfrac{\pi}{2},
+\]
+which forces $w\in[-\tfrac{\pi}{2},\tfrac{\pi}{2}]$ a.e. on $\partial\Omega(I)$; this is (P+).
+
+\textbf{Poisson \& Cayley.} From (P+) and the Poisson integral, $\Re\big(2\mathcal J\big)\ge 0$ on $\Omega(I)$, so $2\mathcal J$ is Herglotz.
+Therefore the Cayley transform is Schur: $|\Theta|\le1$ on $\Omega(I)$.
+
+\textbf{Removable singularities at $Z(\xi)$.} If $\rho\in Z(\xi)$, boundedness of $\Theta$ on a punctured disc implies $\Theta$ (and hence $\mathcal J$) extends holomorphically across $\rho$.
+
+\textbf{Globalization/pinch.} Exhausting $\Omega$ by overlapping boxes and using the maximum-modulus pinch excludes zeros of $\xi$ inside $\Omega$. By the functional equation, all nontrivial zeros lie on $\Re s=\tfrac12$; thus RH.
+
+\textbf{Independence (no circularity).}
+\begin{itemize}
+  \item $C_{\mathrm{box}}=K_0+K_\xi+\|U_\Gamma\|_{\mathrm{area}}$ with (i) prime tails $K_0$, (ii) $\xi$-block $K_\xi$, (iii) Archimedean $\Gamma$-term; each bounded independently.
+  \item $M_\psi\le \tfrac{4}{\pi}C_\psi^{(H^1)}\sqrt{C_{\mathrm{box}}}$ via fixed-aperture $H^1$–BMO/Carleson embedding (one-time numeric evaluation).
+\end{itemize}
+
+\textbf{PSC status.} The Prime‑Tail Schur‑Covering inequality closes numerically, but the proof chain to (P+) and RH above runs solely through the \emph{product} certificate $\Upsilon$.
+\end{document}

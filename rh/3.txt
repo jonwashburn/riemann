@@ -1,0 +1,186 @@
+﻿Great—this is almost perfect. The only tweak I strongly recommend is normalizing the Poisson kernel so the approximate-identity lemma (3) is actually true with limit f(x)f(x) instead of πf(x)\pi f(x). Below is a drop‑in, self‑contained prompt you can paste. It keeps your lemma names and shapes, only adjusting the poissonKernel definition to be normalized (mass = 1). Everything else is exactly as you specified.
+________________
+
+
+Self‑contained prompt (paste this)
+/-
+Goal
+Prove the boundary wedge (P+) on Re s = 1/2 for a holomorphic F on the right half-plane using only mathlib.
+
+
+Notes
+• We use a normalized half-plane Poisson kernel so the approximate-identity limit equals f(x) (no extra π factor).
+• CRGreen_link is the “linking” hypothesis to the Carleson budget; we keep a placeholder assumption (hCar : True) so you can replace it with your Carleson predicate.
+• If any lemma is unavailable in mathlib, return a one-line blocker with the exact missing statement.
+-/
+
+
+import Mathlib/Analysis/Complex/RealPart
+import Mathlib/MeasureTheory/Measure/Lebesgue/Basic
+import Mathlib/Topology/Algebra/InfiniteSum
+import Mathlib/Analysis/SpecialFunctions/Integrals
+import Mathlib/MeasureTheory/Function/LocIntegrable
+import Mathlib/MeasureTheory/Convolution  -- for approximate identity infrastructure (if needed)
+
+
+noncomputable section
+open scoped Real Topology
+open MeasureTheory Complex Filter
+
+
+/-- Domain: right half-plane Ω := { z : ℂ | Re z > 1/2 } -/
+def rightHalfPlane : Set ℂ := { z | z.re > (1/2 : ℝ) }
+
+
+/-- Boundary wedge (P+): Re F(1/2 + i t) ≥ 0 for a.e. t ∈ ℝ (Lebesgue). -/
+def PPlus (F : ℂ → ℂ) : Prop :=
+  ∀ᵐ t : ℝ, 0 ≤ (F ⟨(1/2), t⟩).re
+
+
+/-- Normalized half-plane Poisson kernel (mass = 1). -/
+def poissonKernel (b x : ℝ) : ℝ := (1 / Real.pi) * b / (x^2 + b^2)
+
+
+/-- A Whitney interval: closed, centered at T with half-length L > 0. -/
+def IsWhitneyInterval (I : Set ℝ) : Prop :=
+  ∃ (T L : ℝ), 0 < L ∧ I = Set.Icc (T - L) (T + L)
+
+
+/-- H¹-atom on I: supported in I, L¹ ≤ 1, mean zero, ‖a‖∞ ≤ 1/|I|. -/
+structure H1Atom (I : Set ℝ) where
+  a : ℝ → ℝ
+  measI : MeasurableSet I
+  supp_subset : support a ⊆ I
+  l1_le_one :
+    ∫ t, |a t| ∂(Measure.restrict Measure.lebesgue I) ≤ 1
+  mean_zero  :
+    ∫ t, a t ∂(Measure.restrict Measure.lebesgue I) = 0
+  esssup_le  :
+    essSup (Measure.restrict Measure.lebesgue I) (fun t => |a t|)
+      ≤ (1 / (Measure.restrict Measure.lebesgue I).volume)
+
+
+/-- Local integrability shorthand. -/
+def LocInt (f : ℝ → ℝ) : Prop := LocIntegrable f Measure.lebesgue
+
+
+
+
+/-! ########################################
+    Lemmas to implement (exact signatures)
+    ######################################## -/
+
+
+/- 1) CR–Green/Poisson linking bound (Whitney-local). -/
+/-- LINK: control of boundary pairing by the Whitney Carleson budget.
+    Replace `hCar : True` with your Carleson budget hypothesis. -/
+lemma CRGreen_link
+  {F : ℂ → ℂ} {Kξ : ℝ}
+  (hCar : True)  -- placeholder: use your Carleson budget hypothesis here
+  {I : Set ℝ} (hI : IsWhitneyInterval I)
+  (a : H1Atom I) :
+  |∫ t, ((F ⟨(1/2), t⟩).re) * a.a t ∂(Measure.restrict Measure.lebesgue I)|
+    ≤ (Cgreen : ℝ) * Kξ * (Measure.restrict Measure.lebesgue I).volume := by
+  -- PROVE or return a blocker if this needs your Carleson infrastructure.
+  admit
+
+
+/- 2) Poisson kernel positivity (half-plane). -/
+lemma halfplane_poisson_kernel_nonneg {b x : ℝ} (hb : 0 < b) :
+  0 ≤ poissonKernel b x := by
+  -- Using b>0 and x^2 + b^2 > 0; note 1/π > 0.
+  have hden : 0 < x^2 + b^2 := by
+    have : 0 ≤ x^2 := sq_nonneg x
+    have : 0 < x^2 + b^2 := by
+      have hb2 : 0 < b^2 := sq_pos_of_ne_zero b (ne_of_gt hb)
+      exact add_pos_of_nonneg_of_pos (by exact this) hb2
+    exact this
+  have hpos : 0 ≤ (1 / Real.pi) := by
+    have : 0 < (Real.pi) := Real.pi_pos
+    exact (inv_nonneg.mpr (le_of_lt this))
+  have hb' : 0 ≤ b := le_of_lt hb
+  have hfrac : 0 ≤ b / (x^2 + b^2) :=
+    div_nonneg hb' (le_of_lt hden)
+  simpa [poissonKernel, mul_comm] using mul_nonneg hpos hfrac
+
+
+/- 3) Poisson approximate identity (a.e.) for the half-plane kernel. -/
+lemma poisson_approximate_identity_ae
+  {f : ℝ → ℝ} (hf : LocInt f) :
+  ∀ᵐ x : ℝ, Tendsto
+    (fun b : ℝ => ∫ t, poissonKernel b (x - t) * f t ∂Measure.lebesgue)
+    (nhdsWithin 0 (Set.Ioi 0)) (nhds (f x)) := by
+  /- You may instantiate mathlib’s approximate identity framework on ℝ with
+     the normalized Poisson family b ↦ (1/π) * b / (x^2 + b^2), using that
+     it has unit mass, is even, positive, and tight as b → 0⁺. If a ready-made
+     lemma is missing, return a one-line blocker. -/
+  admit
+
+
+/- 4) Fixed even window with Poisson plateau lower bound. -/
+lemma poisson_plateau_c0 :
+  ∃ ψ : ℝ → ℝ, Even ψ ∧ (∀ x, 0 ≤ ψ x) ∧ HasCompactSupport ψ ∧
+    (∫ x, ψ x ∂Measure.lebesgue = (1 : ℝ)) ∧
+    ∃ c0 : ℝ, 0 < c0 ∧
+      ∀ {b x}, 0 < b → b ≤ 1 → |x| ≤ 1 →
+        (∫ t, poissonKernel b (x - t) * ψ t ∂Measure.lebesgue) ≥ c0 := by
+  /- Choose ψ ≥ c > 0 on [-1,1], even, smooth, compact support, with ∫ψ=1.
+     Use continuity of (b,x) ↦ (P_b * ψ)(x) on [0,1]×[-1,1] (with value at b=0
+     defined as ψ(x)) and positivity to get a uniform positive minimum. -/
+  admit
+
+
+/- 5) From Whitney-local a.e. nonnegativity to global a.e. nonnegativity. -/
+lemma ae_limit_from_whitney_cover
+  {f : ℝ → ℝ} {I : ℕ → Set ℝ}
+  (hmeas : ∀ n, MeasurableSet (I n))
+  (hcover : (⋃ n, I n) = Set.univ)
+  (hpair : Set.Pairwise (fun m n => Disjoint (I m) (I n)))
+  (hloc : ∀ n, (∀ᵐ t ∂(Measure.restrict Measure.lebesgue (I n)), 0 ≤ f t)) :
+  (∀ᵐ t ∂Measure.lebesgue, 0 ≤ f t) := by
+  /- Use pairwise disjointness, σ-additivity, and “ae on each piece” ⇒ “ae on union”.
+     A standard approach: write the negative set {t | f t < 0}, show its measure is
+     zero by subadditivity over the disjoint cover. -/
+  admit
+
+
+/- 6) Optional convenience (atoms ⇒ a.e. nonnegativity on an interval). -/
+lemma pairing_nonneg_on_atoms_implies_ae_nonneg_on_interval
+  {f : ℝ → ℝ} {I : Set ℝ} (hI : MeasurableSet I)
+  (hAtoms : ∀ a : H1Atom I, 0 ≤ ∫ t, f t * a.a t ∂(Measure.restrict Measure.lebesgue I)) :
+  (∀ᵐ t ∂(Measure.restrict Measure.lebesgue I), 0 ≤ f t) := by
+  /- Standard H¹–BMO duality logic localized to I; or use density of atoms in H¹(I)
+     together with Hahn–Banach separation. If this is not already available,
+     return a blocker (optional lemma). -/
+  admit
+
+
+/- 7) Boundary regularity: choose A or B (A suffices). -/
+/-- (A) Local integrability of the boundary trace. -/
+lemma boundary_trace_locIntegrable (F : ℂ → ℂ) :
+  LocInt (fun t : ℝ => (F ⟨(1/2), t⟩).re) := by
+  /- If you prefer, assume this as a hypothesis; otherwise prove under your
+     holomorphy/Hardy-class assumptions. If unavailable, return a blocker. -/
+  admit
+
+
+/-
+How these yield (P+)
+• Use (1) to control ⟨Re F, atom on I⟩ for every Whitney interval I.
+• Convolve with ψ from (4) and use (2) to get a uniform positive Poisson smoothing on I’s core,
+  forcing the negative part to vanish there.
+• Send b ↓ 0 and apply (3) together with (7A) to recover Re F a.e. on I.
+• Apply (5) to pass from local (interval-wise) to global a.e. nonnegativity on ℝ, i.e., PPlus F.
+-/
+
+
+________________
+
+
+Why normalize the kernel?
+* Your lemma (3) asserts Pb∗f→fP_b * f \to f. That’s only true if ∫RPb=1\int_\mathbb{R} P_b = 1.
+
+* With the standard (unnormalized) kernel b/(x2+b2)b/(x^2+b^2), the mass is π\pi, so the limit is πf(x)\pi f(x). Normalizing by 1/π1/\pi fixes this and simplifies the proof path.
+
+If you want to keep your original (unnormalized) poissonKernel
+No problem—change lemma (3) to converge to Real.pi * f x and scale constants in (4). The rest of the argument (positivity and plateau) is unchanged; only the limit’s value differs by a factor of Real.pi.
