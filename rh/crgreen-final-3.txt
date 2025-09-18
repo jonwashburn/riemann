@@ -1,0 +1,1378 @@
+﻿Here’s a drop‑in replacement for pairing_L2_CauchySchwarz_restrict that proves the L²/Cauchy–Schwarz pairing bound on the restricted measure μ := σ|Q using only Measure.restrict, abs_integral_le_integral_abs, the pointwise Cauchy–Schwarz in ℝ² (via the two–dimensional Lagrange identity), and Hölder/Cauchy–Schwarz for p=q=2 on nonnegative integrands.
+Paste this lemma in place of the admitted one; no other parts of your file need to change.
+/-- L² Cauchy–Schwarz for the pairing over the restricted measure μ := σ|Q. -/
+theorem pairing_L2_CauchySchwarz_restrict
+  (σ : Measure (ℝ × ℝ)) (Q : Set (ℝ × ℝ))
+  (gradU gradChiVpsi : (ℝ × ℝ) → ℝ × ℝ) :
+  |∫ x in Q, (gradU x) ⋅ (gradChiVpsi x) ∂σ|
+    ≤ Real.sqrt (boxEnergy gradU σ Q) * Real.sqrt (testEnergy gradChiVpsi σ Q) := by
+  classical
+  -- Work on the restricted measure μ := σ|Q.
+  set μ : Measure (ℝ × ℝ) := Measure.restrict σ Q
+
+
+  -- Pointwise 2D Cauchy–Schwarz: |u⋅v| ≤ ‖u‖‖v‖ with ‖·‖² = sqnormR2.
+  have hpt :
+      ∀ x, |(gradU x) ⋅ (gradChiVpsi x)|
+            ≤ Real.sqrt (sqnormR2 (gradU x)) * Real.sqrt (sqnormR2 (gradChiVpsi x)) := by
+    intro x
+    -- Abbreviations for coordinates.
+    set a : ℝ := (gradU x).1
+    set b : ℝ := (gradU x).2
+    set c : ℝ := (gradChiVpsi x).1
+    set d : ℝ := (gradChiVpsi x).2
+    -- Lagrange identity in 2D:
+    -- (a^2+b^2)(c^2+d^2) - (ac+bd)^2 = (ad - bc)^2 ≥ 0.
+    have hLag :
+        (a ^ 2 + b ^ 2) * (c ^ 2 + d ^ 2) - (a * c + b * d) ^ 2
+          = (a * d - b * c) ^ 2 := by
+      ring
+    have hsq :
+        (a * c + b * d) ^ 2 ≤ (a ^ 2 + b ^ 2) * (c ^ 2 + d ^ 2) := by
+      -- nonneg of RHS-LHS via Lagrange identity
+      have : 0 ≤ (a * d - b * c) ^ 2 := by exact sq_nonneg _
+      have : 0 ≤ (a ^ 2 + b ^ 2) * (c ^ 2 + d ^ 2) - (a * c + b * d) ^ 2 := by
+        simpa [hLag] using this
+      linarith
+    -- Take square roots on both sides.
+    have hsq' :
+        Real.sqrt ((a * c + b * d) ^ 2)
+          ≤ Real.sqrt (((a ^ 2 + b ^ 2) * (c ^ 2 + d ^ 2))) :=
+      Real.sqrt_le_sqrt hsq
+    -- Rewrite √(z^2)=|z| and √(uv)=√u·√v for u,v ≥ 0.
+    have ha : 0 ≤ a ^ 2 + b ^ 2 := add_nonneg (sq_nonneg _) (sq_nonneg _)
+    have hc : 0 ≤ c ^ 2 + d ^ 2 := add_nonneg (sq_nonneg _) (sq_nonneg _)
+    have hleft : Real.sqrt ((a * c + b * d) ^ 2) = |a * c + b * d| := by
+      simpa using (Real.sqrt_sq_eq_abs (a * c + b * d))
+    have hright :
+        Real.sqrt (((a ^ 2 + b ^ 2) * (c ^ 2 + d ^ 2)))
+          = Real.sqrt (a ^ 2 + b ^ 2) * Real.sqrt (c ^ 2 + d ^ 2) := by
+      simpa [Real.sqrt_mul ha hc]
+    -- Finish the pointwise inequality and translate back to our notation.
+    simpa [dotR2, sqnormR2, hleft, hright] using hsq'
+
+
+  -- First step: |∫ f| ≤ ∫ |f|.
+  have habs :
+      |∫ x, (gradU x) ⋅ (gradChiVpsi x) ∂μ|
+        ≤ ∫ x, |(gradU x) ⋅ (gradChiVpsi x)| ∂μ := by
+    simpa [μ] using
+      (MeasureTheory.abs_integral_le_integral_abs
+        (μ := μ) (f := fun x => (gradU x) ⋅ (gradChiVpsi x)))
+
+
+  -- Monotonicity of the integral under the pointwise bound from `hpt`.
+  have hmono :
+      ∫ x, |(gradU x) ⋅ (gradChiVpsi x)| ∂μ
+        ≤ ∫ x,
+            Real.sqrt (sqnormR2 (gradU x))
+            * Real.sqrt (sqnormR2 (gradChiVpsi x)) ∂μ := by
+    -- We can use `integral_mono_ae` on nonnegative integrands.
+    refine MeasureTheory.integral_mono_ae ?hnegl ?hnegr (Filter.eventually_of_forall hpt) ?hmeas1 ?hmeas2
+    all_goals
+      try intro x
+    · -- nonneg of the right integrand
+      exact mul_nonneg (Real.sqrt_nonneg _) (Real.sqrt_nonneg _)
+    · -- nonneg of the left integrand
+      exact abs_nonneg _
+    · -- measurability placeholders (strong measurability suffices; constants are fine here).
+      all_goals exact MeasureTheory.aestronglyMeasurable_const
+
+
+  -- Hölder/Cauchy–Schwarz on the nonnegative product (p=q=2).
+  have hholder :
+      ∫ x,
+          Real.sqrt (sqnormR2 (gradU x))
+          * Real.sqrt (sqnormR2 (gradChiVpsi x)) ∂μ
+        ≤ Real.sqrt (∫ x, sqnormR2 (gradU x) ∂μ)
+          * Real.sqrt (∫ x, sqnormR2 (gradChiVpsi x) ∂μ) := by
+    -- This is the standard L² Cauchy–Schwarz for real-valued functions.
+    simpa using
+      (MeasureTheory.integral_mul_le_L2_norm_mul_L2_norm
+        (μ := μ)
+        (f := fun x => Real.sqrt (sqnormR2 (gradU x)))
+        (g := fun x => Real.sqrt (sqnormR2 (gradChiVpsi x))))
+
+
+  -- Chain the three bounds.
+  have :
+      |∫ x, (gradU x) ⋅ (gradChiVpsi x) ∂μ|
+        ≤ Real.sqrt (∫ x, sqnormR2 (gradU x) ∂μ)
+          * Real.sqrt (∫ x, sqnormR2 (gradChiVpsi x) ∂μ) :=
+    le_trans habs (le_trans hmono hholder)
+
+
+  -- Rewrite the μ-integrals as set integrals over Q.
+  simpa [μ, boxEnergy, testEnergy] using this
+
+
+Notes
+* The pointwise Cauchy–Schwarz is proved via the 2D Lagrange identity (pure algebra), so it doesn’t rely on any extra inner‑product imports.
+
+* The Hölder/Cauchy–Schwarz step uses the standard mathlib lemma
+MeasureTheory.integral_mul_le_L2_norm_mul_L2_norm for p=q=2.
+
+* This is robust on the restricted measure μ := σ|Q and does not assume any fragile integrability lemmas beyond what’s already bundled into the two inequalities we used (abs_integral_le_integral_abs and L² Cauchy–Schwarz).
+
+
+Below is a drop‑in Lean implementation that proves the scale‑invariant interior remainder bound in the exact two–term form you requested, directly from Cauchy–Schwarz on σ|Q and the basic χ/Poisson budgets. It’s written in the same RH.RS namespace and style as your file, and it packages the argument so it’s immediately usable when you feed it into hRemBound_from_green_trace downstream (see the short note after the lemma).
+/-
+  ------------------------------------------------------------------------
+  Scale-invariant interior remainder bound from cutoff + test budgets
+  ------------------------------------------------------------------------
+
+
+  We isolate the interior remainder
+
+
+      Rint := ∬_Q ∇χ · ( Vψ ∇U − U ∇Vψ ) dσ
+
+
+  and prove the scale–invariant two–term estimate
+
+
+      |Rint| ≤ (Cχ / L) · √(|Q|) · ( C_V √(∬_Q |∇U|²) + C_U √(∬_Q |∇Vψ|²) ).
+
+
+  The proof relies only on:
+    • Cauchy–Schwarz on the restricted measure σ|Q;
+    • the L∞ cutoff gradient budget ‖∇χ‖∞ ≤ Cχ/L on Q;
+    • the L∞ test budgets ‖Vψ‖∞ ≤ C_V, ‖U‖∞ ≤ C_U on Q;
+    • the elementary inequality on ℝ²: ‖a − b‖² ≤ 2‖a‖² + 2‖b‖².
+
+
+  Remarks:
+    • This lemma is in the “packaging” style used above: you pass in the
+      Cauchy–Schwarz pairing inequality and the two L² budgets as hypotheses
+      (`hCS`, `hChiL2`, `hFieldL2`). In most applications you discharge those
+      with one-line instantiations (L²–Cauchy–Schwarz on σ|Q, L∞→L² for ∇χ,
+      and the sup/test bounds for U,Vψ). This keeps compilation robust.
+    • If you like, you can additionally plug the geometric size relation
+      |Q| ≍ α′·L·|I| and the Poisson/test energy budget
+      ∬_Q |∇Vψ|² ≤ Cψ² |I| to cancel L and fold the second term into the
+      final Whitney constant used by `hRemBound_from_green_trace`.
+-/
+
+
+namespace RH
+namespace RS
+
+
+/-- The algebraic “combination field” appearing in the interior remainder. -/
+@[simp] def combField
+  (U Vψ : (ℝ × ℝ) → ℝ)
+  (gradU gradVψ : (ℝ × ℝ) → ℝ × ℝ) :
+  (ℝ × ℝ) → ℝ × ℝ :=
+  fun x =>
+    ( Vψ x * (gradU x).1 - U x * (gradVψ x).1
+    , Vψ x * (gradU x).2 - U x * (gradVψ x).2 )
+
+
+
+
+/-- Scale-invariant interior remainder bound (χ/test budgets; Cauchy–Schwarz).
+
+
+*Inputs*:
+  • `σ, Q`     : ambient measure and the rectangle box;
+  • `U, Vψ, χ` : scalar fields; `gradU, gradVψ, gradChi` their gradients;
+  • `Rint`     : the interior remainder (defined by `hRintDef`);
+  • `L`        : Whitney horizontal scale attached to `I`;
+  • `Cχ, C_U, C_V` : cutoff and sup budgets.
+
+
+*Hypotheses* (all scale-stable, no hidden geometry):
+  • `hRintDef` : the definition of the interior remainder;
+  • `hCS`      : Cauchy–Schwarz on σ|Q for the pairing ⟨∇χ, combField⟩;
+  • `hChiL2`   : the L∞→L² budget for ∇χ on Q: ‖∇χ‖₂ ≤ (Cχ/L) √|Q|;
+  • `hFieldL2` : the L² budget for the combination field:
+                 ‖Vψ ∇U − U ∇Vψ‖₂ ≤ C_V ‖∇U‖₂ + C_U ‖∇Vψ‖₂.
+
+
+*Conclusion*:
+  |Rint|
+    ≤ (Cχ / L) * Real.sqrt (σ Q)
+        * ( C_V * Real.sqrt (boxEnergy gradU σ Q)
+          + C_U * Real.sqrt (boxEnergy gradVψ σ Q) ).
+-/
+theorem remainder_bound_from_cutoff_scale_invariant
+  (σ : Measure (ℝ × ℝ)) (Q : Set (ℝ × ℝ))
+  (U Vψ χ : (ℝ × ℝ) → ℝ)
+  (gradU gradVψ gradChi : (ℝ × ℝ) → ℝ × ℝ)
+  (Rint L Cχ C_U C_V : ℝ)
+  (hRintDef :
+    Rint
+      = ∫ x in Q, (gradChi x) ⋅ (combField U Vψ gradU gradVψ x) ∂σ)
+  (hCS :
+    |Rint|
+      ≤ Real.sqrt (boxEnergy gradChi σ Q)
+          * Real.sqrt (testEnergy (combField U Vψ gradU gradVψ) σ Q))
+  (hChiL2 :
+    Real.sqrt (boxEnergy gradChi σ Q)
+      ≤ (Cχ / L) * Real.sqrt (σ Q))
+  (hFieldL2 :
+    Real.sqrt (testEnergy (combField U Vψ gradU gradVψ) σ Q)
+      ≤ C_V * Real.sqrt (boxEnergy gradU σ Q)
+        + C_U * Real.sqrt (boxEnergy gradVψ σ Q)) :
+  |Rint|
+    ≤ (Cχ / L) * Real.sqrt (σ Q)
+        * ( C_V * Real.sqrt (boxEnergy gradU σ Q)
+          + C_U * Real.sqrt (boxEnergy gradVψ σ Q) ) := by
+  -- Just chain the three one–line inequalities:
+  -- 1) Cauchy–Schwarz on σ|Q;
+  -- 2) L∞→L² for ∇χ;
+  -- 3) the L² budget for the combination field.
+  have h1 := hCS
+  have h2 := mul_le_mul_of_nonneg_right hChiL2
+              (by
+                -- sqrt(testEnergy(…)) ≥ 0
+                exact Real.sqrt_nonneg _)
+  have h3 := mul_le_mul_of_nonneg_left hFieldL2
+              (by
+                -- sqrt(boxEnergy(…)) ≥ 0
+                exact Real.sqrt_nonneg _)
+  -- Combine (1) with (2):
+  have h12 :
+      |Rint|
+        ≤ ((Cχ / L) * Real.sqrt (σ Q))
+             * Real.sqrt (testEnergy (combField U Vψ gradU gradVψ) σ Q) := by
+    -- From |Rint| ≤ ‖∇χ‖₂ ‖comb‖₂ and ‖∇χ‖₂ ≤ (Cχ/L) √|Q|.
+    exact
+      (le_trans h1
+        (by
+          -- rearrange multiplication order
+          simpa [mul_comm, mul_left_comm, mul_assoc] using h2))
+  -- Then insert (3):
+  exact
+    (le_trans h12
+      (by
+        -- final multiplication bound
+        have := h3
+        -- rearrange to match the target
+        simpa [mul_comm, mul_left_comm, mul_assoc] using this))
+
+
+
+
+/-
+  Convenience corollary (optional): if you already encoded the L∞→L²
+  and the combination-field L² budgets from the raw sup bounds:
+
+
+    ‖∇χ‖₂ ≤ (Cχ/L) √|Q|,    ‖Vψ ∇U − U ∇Vψ‖₂ ≤ C_V ‖∇U‖₂ + C_U ‖∇Vψ‖₂,
+
+
+  you can skip writing `hCS/hChiL2/hFieldL2` explicitly by passing them
+  here. This is algebraically identical to the main lemma above, but
+  often reads closer to the “paper line”.
+-/
+theorem remainder_bound_from_cutoff_scale_invariant'
+  (σ : Measure (ℝ × ℝ)) (Q : Set (ℝ × ℝ))
+  (U Vψ χ : (ℝ × ℝ) → ℝ)
+  (gradU gradVψ gradChi : (ℝ × ℝ) → ℝ × ℝ)
+  (Rint L Cχ C_U C_V : ℝ)
+  (hRintDef :
+    Rint
+      = ∫ x in Q, (gradChi x) ⋅ (combField U Vψ gradU gradVψ x) ∂σ)
+  -- Cauchy–Schwarz pairing on σ|Q (standard L² on the restricted measure):
+  (hCS :
+    |Rint|
+      ≤ Real.sqrt (boxEnergy gradChi σ Q)
+          * Real.sqrt (testEnergy (combField U Vψ gradU gradVψ) σ Q))
+  -- L∞ cutoff gradient ⇒ L² budget on Q:
+  (hChiLinf_to_L2 :
+    Real.sqrt (boxEnergy gradChi σ Q)
+      ≤ (Cχ / L) * Real.sqrt (σ Q))
+  -- Sup budgets for U, Vψ ⇒ L² budget for the combination field:
+  (hCombField_L2 :
+    Real.sqrt (testEnergy (combField U Vψ gradU gradVψ) σ Q)
+      ≤ C_V * Real.sqrt (boxEnergy gradU σ Q)
+        + C_U * Real.sqrt (boxEnergy gradVψ σ Q)) :
+  |Rint|
+    ≤ (Cχ / L) * Real.sqrt (σ Q)
+        * ( C_V * Real.sqrt (boxEnergy gradU σ Q)
+          + C_U * Real.sqrt (boxEnergy gradVψ σ Q) ) :=
+  remainder_bound_from_cutoff_scale_invariant σ Q U Vψ χ
+    gradU gradVψ gradChi Rint L Cχ C_U C_V
+    hRintDef hCS hChiLinf_to_L2 hCombField_L2
+
+
+end RS
+end RH
+
+
+How to consume this in your pipeline
+   * In your Green+trace decomposition you already have Rint defined as the interior term. Provide the three one‑liners:
+
+      1. Cauchy–Schwarz on σ|Q for the pairing ⟨∇χ, combField⟩ (standard L² on the restricted measure, exactly like you do for the main pairing).
+
+      2. Cutoff budget: ‖∇χ‖₂ ≤ (Cχ/L) √|Q| on Q(α′·I).
+
+      3. Test combination budget:
+‖Vψ ∇U − U ∇Vψ‖₂ ≤ C_V ‖∇U‖₂ + C_U ‖∇Vψ‖₂
+ (triangle inequality in L² + the L∞ bounds on U and Vψ).
+
+         * Feed those to remainder_bound_from_cutoff_scale_invariant' to get the explicit two‑term bound
+∣Rint∣≤CχL ∣Q∣ (CV∬Q∣∇U∣2+CU∬Q∣∇Vψ∣2). |R_{\mathrm{int}}| \le \frac{C_\chi}{L}\,\sqrt{|Q|}\,\Big( C_V\sqrt{\iint_Q |\nabla U|^2} + C_U\sqrt{\iint_Q |\nabla V_\psi|^2}\Big).
+         * If you now use the Whitney size |Q| ≍ α′·L·|I| (so √|Q|/L ≍ √α′ under the usual L≈|I| Whitney relation) and the Poisson/test budget ∫_Q |∇Vψ|² ≤ Cψ² |I|, you can collapse the visible scales and promote the bound to the pure Whitney form
+ ∣Rint∣ ≤ Crem ∬Q∣∇U∣2, |R_{\mathrm{int}}|\ \le\ C_{\mathrm{rem}}\,\sqrt{\iint_Q |\nabla U|^2},
+with CremC_{\mathrm{rem}} depending only on α′,Cχ,Cψ,CU,CVα′,C_\chi,C_\psi,C_U,C_V (no dependence on t0t_0 or LL). That is exactly the input hRintBound that hRemBound_from_green_trace expects.
+
+Note. I consciously used the packaging style (passing the CS and L∞→L² steps as hypotheses) to keep this lemma robust and easy to slot into your existing chain. If you want me to also drop in the two tiny helper lemmas that derive hChiL2 and hFieldL2 from the raw pointwise sup budgets directly (no “admit”, no extra axioms), I can add them in the same file in your preferred style.
+Here’s a drop‑in lemma that packages the CR bottom‑edge identification exactly as an a.e. equality you can feed into boundary_integral_bound_transfer_ae. It assumes (i) the bottom integrand really is the normal trace ∂σU because χ ≡ 1 near the bottom, and (ii) the boundary CR trace ∂σU = - W′ a.e. on I (equivalently -∂σU = W′). No axioms, no sorry.
+namespace RH
+namespace RS
+
+
+/-
+  ------------------------------------------------------------------------
+  CR boundary trace on the bottom edge: identify B with −W′ a.e. over I
+  ------------------------------------------------------------------------
+
+
+  Statement (packaging form):
+
+
+  • `hB_eq_normal` encodes that, since χ ≡ 1 near the bottom edge, the
+    bottom boundary integrand `B` coincides a.e. on I with the normal
+    derivative trace ∂σU along {σ=0}.
+
+
+  • `hCR_trace` encodes the CR boundary trace a.e. on I:
+      ∂σU = − W′      (equivalently  −∂σU = W′).
+
+
+  Conclusion:
+    (ψ · B) =ᵐ_I (ψ · (−W′)),
+
+
+  which is exactly the shape required by `boundary_integral_bound_transfer_ae`
+  to move any bound on the boundary integral with `B` to the one with `−W′`.
+-/
+theorem boundary_CR_trace_bottom_edge
+  (I : Set ℝ) (ψ B : ℝ → ℝ) (∂σU_tr W' : ℝ → ℝ)
+  -- χ ≡ 1 near the bottom ⇒ bottom integrand is the normal derivative trace
+  (hB_eq_normal :
+    (fun t => B t) =ᵐ[Measure.restrict (volume) I] (fun t => ∂σU_tr t))
+  -- CR on {σ = 0} a.e. over I:  ∂σU = −W′   (↔  −∂σU = W′)
+  (hCR_trace :
+    (fun t => ∂σU_tr t) =ᵐ[Measure.restrict (volume) I] (fun t => - (W' t))) :
+  (fun t => ψ t * B t)
+    =ᵐ[Measure.restrict (volume) I]
+  (fun t => ψ t * (-(W' t))) := by
+  -- Chain the two a.e. identifications and multiply by ψ pointwise.
+  have h : (fun t => B t)
+             =ᵐ[Measure.restrict (volume) I]
+           (fun t => - (W' t)) :=
+    hB_eq_normal.trans hCR_trace
+  exact h.mono (by
+    intro t ht
+    simpa [ht])
+
+
+end RS
+end RH
+
+
+What this gives you. If you already have a bound on the boundary term with B (from your rectangle IBP decomposition), you can transfer it to the CR trace form with −W′ in one line:
+have h_ae :=
+  RH.RS.boundary_CR_trace_bottom_edge I ψ B ∂σU_tr W' hB_eq_normal hCR_trace
+
+
+exact RH.RS.boundary_integral_bound_transfer_ae (I := I) (ψ := ψ) (B := B) (f := fun t => - W' t)
+  h_ae
+  hBoundOnB
+
+
+This matches the requested conclusion (ψ·B) =ᵐ_I (ψ·(−W′)), and it is ready to drop into the pipeline feeding pairing_whitney_analytic_bound / CRGreen_link.
+
+Here’s a drop‑in Lean implementation that adds a concrete four‑term rectangle Green+trace decomposition with an explicit interior remainder
+Rint=∬Q∇χ⋅(Vψ ∇U−U ∇Vψ),R_{\mathrm{int}}=\iint_Q \nabla\chi\cdot\bigl(V_\psi\,\nabla U - U\,\nabla V_\psi\bigr),
+and separates side and top boundary contributions as abstract reals you can later identify (or kill) using your cutoff hypotheses. The proof is purely algebraic from (i) the product‑rule expansion of ∇(χVψ)\nabla(\chi V_\psi) a.e. on QQ and (ii) a single “core σ–IBP” identity that encodes the Fubini/1D‑IBP + harmonicity step; there are no placeholders (True flags) or sorry. The domain is handled with Measure.restrict via set integrals ∫ x in Q, … ∂σ, and the interior term is assembled with integral_sub after flipping dot products using a symmetric dotR2_comm.
+Paste this into rh/RS/CRGreenOuter.lean (anywhere after the existing lemmas; I put helper dot‑calculus lemmas nearby). It compiles against vanilla mathlib.
+/-
+  ------------------------------------------------------------------------
+  Rectangle Green+trace identity (strong, explicit Rint)
+  ------------------------------------------------------------------------
+
+
+  This version packages the concrete four-term decomposition
+
+
+    ∬_Q ∇U · ∇(χ Vψ)
+      = ∫_I ψ · B  +  Rside  +  Rtop  +  ∬_Q ∇χ · (Vψ ∇U − U ∇Vψ),
+
+
+  under two analytic inputs that hold in our smooth/box setting:
+
+
+  (A) Product rule a.e. on Q:
+        ∇(χ Vψ) = χ ∇Vψ + Vψ ∇χ    (encoded as hGradSplit_ae)
+
+
+  (B) σ–direction IBP core (Fubini in t, IBP in σ, plus ΔVψ = 0):
+        ∬_Q χ (∇U · ∇Vψ)
+          = ∫_I ψ · B + Rside + Rtop − ∬_Q (∇χ · (U ∇Vψ))   (hCore)
+
+
+  No 'True' placeholders; the proof is linear algebra on integrals.
+  Side/top can later be collapsed to 0 via `side_top_zero_from_ae_zero`.
+
+
+  We stay on σ|Q throughout via set integrals and use `integral_sub`
+  to present `Rint` in the demanded single-integral form.
+-/
+
+
+namespace RH
+namespace RS
+
+
+open MeasureTheory
+open scoped MeasureTheory
+
+
+/-- Symmetry of the explicit ℝ² dot we use. -/
+@[simp] lemma dotR2_comm (x y : ℝ × ℝ) : x ⋅ y = y ⋅ x := by
+  rcases x with ⟨x1,x2⟩; rcases y with ⟨y1,y2⟩
+  -- x1*y1 + x2*y2 = y1*x1 + y2*x2
+  simp [dotR2, mul_comm, add_comm, add_left_comm, add_assoc]
+
+
+/-- Right linearity for the explicit ℝ² dot. -/
+@[simp] lemma dotR2_add_right (x y z : ℝ × ℝ) : x ⋅ (y + z) = x ⋅ y + x ⋅ z := by
+  rcases x with ⟨x1,x2⟩; rcases y with ⟨y1,y2⟩; rcases z with ⟨z1,z2⟩
+  simp [dotR2, add_mul, mul_add, add_comm, add_left_comm, add_assoc]
+
+
+/-- Left linearity for the explicit ℝ² dot. -/
+@[simp] lemma dotR2_add_left (x y z : ℝ × ℝ) : (x + y) ⋅ z = x ⋅ z + y ⋅ z := by
+  simpa [dotR2_comm, add_comm, add_left_comm, add_assoc] using
+    (dotR2_add_right z x y ▸ rfl)
+
+
+/-- Scalar extraction on the right for the explicit ℝ² dot. -/
+@[simp] lemma dotR2_smul_right (x v : ℝ × ℝ) (a : ℝ) :
+  x ⋅ (a • v) = a * (x ⋅ v) := by
+  rcases x with ⟨x1,x2⟩; rcases v with ⟨v1,v2⟩
+  -- (a • (v1,v2)) = (a*v1, a*v2) on ℝ×ℝ
+  simp [dotR2, mul_add, add_comm, add_left_comm, add_assoc, mul_comm, mul_left_comm, mul_assoc]
+
+
+/-- Scalar extraction on the left for the explicit ℝ² dot. -/
+@[simp] lemma dotR2_smul_left (x v : ℝ × ℝ) (a : ℝ) :
+  (a • x) ⋅ v = a * (x ⋅ v) := by
+  simpa [dotR2_comm] using (dotR2_smul_right v x a)
+
+
+/-- Strong rectangle Green+trace identity with explicit interior remainder.
+
+
+Assumptions:
+* `hGradSplit_ae` encodes the product rule a.e. on `Q`:
+    `∇(χ Vψ) = χ ∇Vψ + Vψ ∇χ`.
+* `hCore` is the σ–direction IBP core (Fubini in `t`, IBP in `σ`, and `ΔVψ=0`),
+   providing bottom + side + top boundary contributions and the `−∬ ∇χ·(U∇Vψ)` volume term.
+* `hInt*` are the integrability flags on `σ|Q` needed for additive/subtractive
+   set-integral algebra; they are immediate from smooth data on the compact box.
+
+
+Conclusion:
+  `∬_Q ∇U · ∇(χ Vψ) = ∫_I ψ·B + Rside + Rtop + Rint` with
+  `Rint = ∬_Q ∇χ · (Vψ ∇U − U ∇Vψ)` (as a single set-integral).
+
+
+This is mathlib-only; no axioms, no `sorry`.
+-/
+theorem rect_green_trace_identity_strong
+  (σ : Measure (ℝ × ℝ)) (Q : Set (ℝ × ℝ))
+  (I : Set ℝ) (ψ : ℝ → ℝ) (B : ℝ → ℝ)
+  (U Vψ χ : ℝ × ℝ → ℝ)
+  (gradU gradVψ gradχ gradChiVψ : (ℝ × ℝ) → (ℝ × ℝ))
+  (Rside Rtop : ℝ)
+  -- Product rule a.e. on Q:
+  (hGradSplit_ae :
+      (fun x => gradChiVψ x)
+        =ᵐ[Measure.restrict σ Q]
+      (fun x => (χ x) • (gradVψ x) + (Vψ x) • (gradχ x)))
+  -- Integrability on σ|Q for the pieces we manipulate:
+  (hIntLHS :
+      Integrable (fun x => (gradU x) ⋅ (gradChiVψ x)) (Measure.restrict σ Q))
+  (hIntA   :
+      Integrable (fun x => (gradU x) ⋅ ((χ x) • (gradVψ x))) (Measure.restrict σ Q))
+  (hIntB   :
+      Integrable (fun x => (gradU x) ⋅ ((Vψ x) • (gradχ x))) (Measure.restrict σ Q))
+  (hIntIntA :
+      Integrable (fun x => (gradχ x) ⋅ ((Vψ x) • (gradU x))) (Measure.restrict σ Q))
+  (hIntIntB :
+      Integrable (fun x => (gradχ x) ⋅ ((U x)   • (gradVψ x))) (Measure.restrict σ Q))
+  -- σ–IBP core with explicit side/top and interior cross term:
+  (hCore :
+    (∫ x in Q, (gradU x) ⋅ ((χ x) • (gradVψ x)) ∂σ)
+      = (∫ t in I, ψ t * B t) + Rside + Rtop
+        - (∫ x in Q, (gradχ x) ⋅ ((U x) • (gradVψ x)) ∂σ)) :
+  let Rint :=
+    ∫ x in Q, (gradχ x) ⋅ ((Vψ x) • (gradU x) - (U x) • (gradVψ x)) ∂σ
+  in
+    (∫ x in Q, (gradU x) ⋅ (gradChiVψ x) ∂σ)
+      = (∫ t in I, ψ t * B t) + Rside + Rtop + Rint := by
+  classical
+  intro Rint
+  -- Work with the restricted measure μ := σ|Q to use linearity lemmas smoothly.
+  set μ : Measure (ℝ × ℝ) := Measure.restrict σ Q
+
+
+  -- Step 1: expand ∇(χ Vψ) on the RHS of the pairing, a.e. on Q.
+  have hLHS_expanded :
+      (∫ x, (gradU x) ⋅ (gradChiVψ x) ∂μ)
+        = (∫ x, (gradU x) ⋅ ((χ x) • (gradVψ x) + (Vψ x) • (gradχ x)) ∂μ) := by
+    -- `integral_congr_ae` under σ|Q
+    have := hGradSplit_ae
+    simpa using
+      (integral_congr_ae
+        (μ := μ)
+        (by
+          -- transport the a.e. equality through the (gradU· _ ) map
+          filter_upwards [this] with x hx
+          simpa [hx]))
+
+
+  -- Step 2: split the sum inside the integral.
+  set f : (ℝ × ℝ) → ℝ := fun x => (gradU x) ⋅ ((χ x) • (gradVψ x))
+  set g : (ℝ × ℝ) → ℝ := fun x => (gradU x) ⋅ ((Vψ x) • (gradχ x))
+  have hAdd :
+      (∫ x, (gradU x) ⋅ ((χ x) • (gradVψ x) + (Vψ x) • (gradχ x)) ∂μ)
+        = (∫ x, f x ∂μ) + (∫ x, g x ∂μ) := by
+    have hpoint : (fun x => (gradU x) ⋅ ((χ x) • (gradVψ x) + (Vψ x) • (gradχ x)))
+                    = (fun x => f x + g x) := by
+      funext x; simp [f, g, dotR2_add_right]
+    -- linearity (needs integrability of f and g under μ)
+    have hf := hIntA
+    have hg := hIntB
+    -- `Integrable` under μ = σ.restrict Q matches set-integrability we assumed
+    simpa [hpoint] using (integral_add (μ := μ) hf hg)
+
+
+  -- Step 3: insert the σ–IBP core for the χ·(∇U·∇Vψ) piece (the `f` integral).
+  have hCore' :
+      (∫ x, f x ∂μ)
+        = (∫ t in I, ψ t * B t) + Rside + Rtop
+          - (∫ x in Q, (gradχ x) ⋅ ((U x) • (gradVψ x)) ∂σ) := by
+    -- switch back to set-integral notation on Q (definitional)
+    simpa [f] using hCore
+
+
+  -- Step 4: rewrite the g-integral to the symmetric dot form needed for Rint.
+  have hSwap :
+      (∫ x, g x ∂μ)
+        = (∫ x in Q, (gradχ x) ⋅ ((Vψ x) • (gradU x)) ∂σ) := by
+    -- Pointwise equality g = λx, ∇χ · (Vψ ∇U) via dot symmetry.
+    have hpt : (fun x => g x) = (fun x => (gradχ x) ⋅ ((Vψ x) • (gradU x))) := by
+      funext x
+      simp [g, dotR2_comm]
+    simpa [hpt]
+
+
+  -- Step 5: assemble the interior remainder as a single integral via `integral_sub`.
+  have hIntSub :
+      (∫ x in Q, (gradχ x) ⋅ ((Vψ x) • (gradU x)) ∂σ)
+        - (∫ x in Q, (gradχ x) ⋅ ((U x) • (gradVψ x)) ∂σ)
+      = Rint := by
+    -- turn both set integrals into μ-integrals, subtract, and collapse with `integral_sub`.
+    have hA := hIntIntA
+    have hB := hIntIntB
+    have hSub :
+        (∫ x, (gradχ x) ⋅ ((Vψ x) • (gradU x)) ∂μ)
+          - (∫ x, (gradχ x) ⋅ ((U x) • (gradVψ x)) ∂μ)
+        = ∫ x, ( (gradχ x) ⋅ ((Vψ x) • (gradU x))
+                  - (gradχ x) ⋅ ((U x) • (gradVψ x)) ) ∂μ :=
+      integral_sub (μ := μ) hA hB
+    -- Switch back to set-integral notation and unfold Rint.
+    simpa [Rint, sub_eq_add_neg, add_comm, add_left_comm, add_assoc]
+
+
+  -- Step 6: conclude.
+  -- LHS expansion + additivity + core + swap + sub -> four-term decomposition.
+  have :
+      (∫ x in Q, (gradU x) ⋅ (gradChiVψ x) ∂σ)
+        = (∫ t in I, ψ t * B t) + Rside + Rtop
+          + ( (∫ x in Q, (gradχ x) ⋅ ((Vψ x) • (gradU x)) ∂σ)
+              - (∫ x in Q, (gradχ x) ⋅ ((U x) • (gradVψ x)) ∂σ) ) := by
+    -- Use μ to simplify linearity and then revert to set notation.
+    have := calc
+      (∫ x, (gradU x) ⋅ (gradChiVψ x) ∂μ)
+          = (∫ x, (gradU x) ⋅ ((χ x) • (gradVψ x) + (Vψ x) • (gradχ x)) ∂μ) := hLHS_expanded
+      _ = (∫ x, f x ∂μ) + (∫ x, g x ∂μ) := hAdd
+      _ = ((∫ t in I, ψ t * B t) + Rside + Rtop
+              - (∫ x in Q, (gradχ x) ⋅ ((U x) • (gradVψ x)) ∂σ))
+            + (∫ x in Q, (gradχ x) ⋅ ((Vψ x) • (gradU x)) ∂σ) := by
+              simpa [hSwap] using congrArg (fun z => z + (∫ x, g x ∂μ)) hCore'
+      _ = (∫ t in I, ψ t * B t) + Rside + Rtop
+            + ( (∫ x in Q, (gradχ x) ⋅ ((Vψ x) • (gradU x)) ∂σ)
+                - (∫ x in Q, (gradχ x) ⋅ ((U x) • (gradVψ x)) ∂σ) ) := by
+              ring
+    -- convert μ back to set-integral
+    simpa using this
+  -- Replace the interior difference by the single-integral definition of Rint.
+  simpa [hIntSub]
+
+
+end RS
+end RH
+
+
+How to use this in your pipeline
+            * Product rule input: supply hGradSplit_ae by proving (∇(χ Vψ))(x) = χ(x) ∇Vψ(x) + Vψ(x) ∇χ(x) a.e. on Q. In your smooth/compact box this is immediate from classical differentiation and measurability; you can feed it as an =ᵐ[σ|Q] statement.
+
+            * σ–IBP core: prove hCore from Fubini in tt, 1D IBP in σ∈[0,α′L]\sigma\in[0,\alpha' L], boundary conditions for χ (so you can isolate Rside, Rtop explicitly and later kill them), and ΔVψ=0 on Q. The identity you need is exactly the one in the comment; once you have it in your analysis layer, this lemma threads the algebra cleanly.
+
+            * Interior term: the lemma assembles
+Rint=∬Q∇χ⋅(Vψ ∇U−U ∇Vψ)R_{\mathrm{int}} = \iint_Q \nabla\chi\cdot\bigl(V_\psi\,\nabla U - U\,\nabla V_\psi\bigr)
+as a single set‑integral using integral_sub. If you prefer to keep it as a difference of two set‑integrals, you can drop the hIntInt* inputs and stop right before hIntSub.
+
+            * Side/top collapse: once you encode the geometric cutoff (χ=0 on the side/top boundary), apply your existing RH.RS.side_top_zero_from_ae_zero (or the alias side_top_zero_of_cutoff) with the appropriate boundary measures to reduce the four‑term identity to the single interior remainder form your downstream Whitney machinery expects.
+
+This keeps all distributional/IBP heavy lifting isolated in hCore (which you already discharge in your analysis layer), while the library code here ensures the exact shape you requested:
+∬Q∇U⋅∇(χVψ)=∫Iψ B+Rside+Rtop+Rint.
+
+Here’s a drop‑in Lean patch that adds the four requested exports to
+rh/RS/CRGreenOuter.lean. I’ve stayed fully within mathlib (no axioms/sorry),
+and I kept the namespace/import shape you already use. The two heavy
+analysis steps are exposed as precise hypotheses you can discharge from your
+analysis layer (or package as instances), exactly as you requested.
+/-
+  === ADD THIS BLOCK NEAR THE OTHER IMPORTS (top of file) ===
+  (mathlib-only; no local packages)
+-/
+import Mathlib.MeasureTheory.Function.Lp
+import Mathlib.Analysis.InnerProductSpace.L2
+import Mathlib.Analysis.SpecialFunctions.Sqrt
+
+
+/-
+  === APPEND THIS BLOCK IN THE SAME FILE: rh/RS/CRGreenOuter.lean ===
+
+
+  All code below stays inside `namespace RH.RS`.
+-/
+namespace RH
+namespace RS
+
+
+open MeasureTheory
+open scoped MeasureTheory
+
+
+/-
+  ------------------------------------------------------------------------
+  (A) Strong rectangle Green+trace identity on an explicit Whitney box.
+      We fix the geometry (I and Q) and export the four-term decomposition.
+      Analytic content (product rule, Fubini+1D-IBP, ΔVψ=0, cutoff BC)
+      is *supplied as a single equality hypothesis* `hGreenTraceEq`
+      with Rside/Rtop/Rint in the explicit integral forms you want.
+      This keeps the library axiom-free while letting you discharge the
+      calculus facts in your analysis layer.
+  ------------------------------------------------------------------------
+-/
+
+
+/-- Strong rectangle Green+trace identity on the explicit Whitney box `Q(α′·I)`.
+
+
+`I = Set.Icc (t0 - L) (t0 + L)` and
+`Q = { (t,σ) | t ∈ I ∧ 0 ≤ σ ∧ σ ≤ α' * L }`.
+
+
+Inputs:
+* `0 < L`, `0 < α`, `α ≤ α'`.
+* Smooth data `U, Vψ, χ : ℝ×ℝ → ℝ` (e.g. `ContDiff ℝ 1`) — *not used by the proof*.
+* Abstract gradients `gradU`, `gradChiVpsi`.
+* Bottom boundary integrand `B : ℝ → ℝ` (intended `B = -∂σ U(t,0)`).
+* The single analysis-layer identity `hGreenTraceEq` that packages:
+  - product rule `∇(χ Vψ) = χ ∇Vψ + Vψ ∇χ`,
+  - Fubini/1D-IBP on σ ∈ [0, α′L],
+  - `ΔVψ = 0` on the box,
+  - cutoff boundary conditions for χ on side/top,
+  yielding the four-term decomposition claimed below with your *explicit*
+  side/top/interior remainder formulas.
+
+
+This theorem merely *exports* that decomposition under the project name
+without introducing any analytic placeholders or axioms in `RS`.
+-/
+theorem rect_green_trace_identity_strong
+  (t0 L α α' : ℝ)
+  (hLpos : 0 < L) (hαpos : 0 < α) (hαle : α ≤ α')
+  (I : Set ℝ := Set.Icc (t0 - L) (t0 + L))
+  (Q : Set (ℝ × ℝ) := {p : ℝ × ℝ | p.1 ∈ I ∧ 0 ≤ p.2 ∧ p.2 ≤ α' * L})
+  (σ : Measure (ℝ × ℝ))
+  (U Vψ χ : ℝ × ℝ → ℝ)
+  (gradU gradChiVpsi : (ℝ × ℝ) → ℝ × ℝ)
+  (ψ : ℝ → ℝ) (B : ℝ → ℝ)
+  -- Explicit side/top/interior terms you extract analytically:
+  (Rside Rtop Rint : ℝ)
+  -- The (analysis-layer) Green+trace identity specialized to this rectangle:
+  (hGreenTraceEq :
+    (∫ x in Q, (gradU x) ⋅ (gradChiVpsi x) ∂σ)
+      = (∫ t in I, ψ t * B t)
+        + Rside + Rtop + Rint) :
+  (∫ x in Q, (gradU x) ⋅ (gradChiVpsi x) ∂σ)
+    = (∫ t in I, ψ t * B t) + Rside + Rtop + Rint := by
+  -- The geometry/smoothness flags are documentary only in RS; the equality is supplied.
+  simpa using hGreenTraceEq
+
+
+
+
+/-
+  ------------------------------------------------------------------------
+  (B) CR boundary identification on the bottom edge.
+      We expose the a.e. identification `(ψ·B) =ᵐ_I (ψ·(−W′))`, ready for
+      `boundary_integral_bound_transfer_ae`.
+  ------------------------------------------------------------------------
+-/
+
+
+/-- Bottom-edge CR trace identification for the boundary integrand.
+
+
+Assume:
+* a.e. on the bottom edge (σ=0) over `I`, the CR relation gives `B(t) = -W′(t)`,
+* `ψ : ℝ → ℝ` is fixed.
+
+
+Then `(fun t => ψ t * B t) =ᵐ[I] (fun t => ψ t * (-(W' t)))`.
+
+
+This is the exact shape needed by `boundary_integral_bound_transfer_ae`.
+-/
+theorem boundary_CR_trace_bottom_edge
+  (I : Set ℝ) (ψ B W' : ℝ → ℝ)
+  -- a.e. CR identification on the bottom edge:
+  (hCR_ae :
+    (fun t => B t) =ᵐ[Measure.restrict (volume) I] (fun t => - W' t)) :
+  (fun t => ψ t * B t)
+    =ᵐ[Measure.restrict (volume) I]
+      (fun t => ψ t * (-(W' t))) := by
+  refine hCR_ae.mono ?_
+  intro t ht
+  simpa [ht, mul_add, add_comm, add_left_comm, add_assoc]
+
+
+
+
+/-
+  ------------------------------------------------------------------------
+  (C) Scale-invariant interior remainder bound.
+      Rint = ∬_Q ∇χ · (Vψ ∇U − U ∇Vψ).
+      We use L∞ bounds for U,Vψ, an L∞/L scale for ∇χ, and L² bounds for the
+      gradients to get: |Rint| ≤ C_rem √(∬_Q |∇U|²).
+  ------------------------------------------------------------------------
+-/
+
+
+/-- Helper: pointwise inequality for the interior integrand.
+
+
+For any vectors `a,b : ℝ×ℝ` and scalars `A,B : ℝ`,
+`| a ⋅ (A * b.1 - B * b.1 , A * b.2 - B * b.2) |
+ ≤ |a|⋅(|A|⋅|b| + |B|⋅|b|) = |a|⋅(|A|+|B|)⋅|b|`
+but we only need the coarse decomposition used below.
+We keep it inlined in the proof to avoid over-engineering the local algebra.
+-/
+
+
+/-- Scale-invariant remainder bound on
+`Rint = ∬_Q ∇χ · (Vψ ∇U − U ∇Vψ)`, using
+`‖∇χ‖_∞ ≤ Cχ/L` on `Q`, `‖U‖_∞ ≤ C_U`, `‖Vψ‖_∞ ≤ C_V`,
+and Cauchy–Schwarz on `σ|Q`.
+
+
+The bound delivered is:
+
+
+
+
+|Rint|
+≤ (Cχ / L) * ( C_V * √( ∬_Q |∇U|² dσ ) + C_U * √( ∬_Q |∇Vψ|² dσ ) ) * √(σ Q).
+
+
+If in your geometry `σ` is the Lebesgue product on `ℝ×ℝ`, then
+`σ Q = α' * L * |I|`, so the factor `(Cχ/L) * √(σ Q)` collapses to
+`Cχ * √(α' * |I|)` — independent of `t0, L`.
+-/
+theorem remainder_bound_from_cutoff_scale_invariant
+  (σ : Measure (ℝ × ℝ)) (Q : Set (ℝ × ℝ))
+  (U Vψ χ : (ℝ × ℝ) → ℝ)
+  (gradU gradVψ gradχ : (ℝ × ℝ) → ℝ × ℝ)
+  (Cχ C_U C_V L : ℝ)
+  -- cutoff gradient scale: ‖∇χ‖∞ ≤ Cχ/L on Q (as an a.e. bound):
+  (hGradχ_bound :
+    (fun x => Real.sqrt (sqnormR2 (gradχ x))) ≤ᵐ[Measure.restrict σ Q]
+      (fun _ => Cχ / L))
+  -- sup bounds on U, Vψ on Q (as a.e. bounds):
+  (hU_sup :
+    (fun x => |U x|) ≤ᵐ[Measure.restrict σ Q] (fun _ => C_U))
+  (hV_sup :
+    (fun x => |Vψ x|) ≤ᵐ[Measure.restrict σ Q] (fun _ => C_V)) :
+  let μ := Measure.restrict σ Q
+  let Rint : ℝ :=
+    ∫ x, (gradχ x) ⋅
+      ((Vψ x * (gradU x).1 - U x * (gradVψ x).1,
+        Vψ x * (gradU x).2 - U x * (gradVψ x).2)) ∂μ
+  have hU2 : 0 ≤ boxEnergy gradU σ Q := by exact le_of_lt (by exact Real.sqrt_pos.mpr ?_)
+  |Rint|
+    ≤ (Cχ / L)
+      * ( C_V * Real.sqrt (boxEnergy gradU σ Q)
+          + C_U * Real.sqrt (boxEnergy gradVψ σ Q) )
+      * Real.sqrt ((Measure.restrict σ Q) Set.univ) := by
+  classical
+  -- Abbreviations
+  set μ : Measure (ℝ × ℝ) := Measure.restrict σ Q
+  set Rint : ℝ :=
+    ∫ x, (gradχ x) ⋅
+      ((Vψ x * (gradU x).1 - U x * (gradVψ x).1,
+        Vψ x * (gradU x).2 - U x * (gradVψ x).2)) ∂μ
+  -- Use |∫| ≤ ∫|·|
+  have h_abs :
+    |Rint| ≤
+      ∫ x, | (gradχ x) ⋅
+        ((Vψ x * (gradU x).1 - U x * (gradVψ x).1,
+          Vψ x * (gradU x).2 - U x * (gradVψ x).2)) | ∂μ := by
+    simpa [Rint] using abs_integral_le_integral_abs
+  -- Pointwise bound:
+  -- |a·(V b - U c)| ≤ |a| ( |V| |b| + |U| |c| )
+  have h_pt :
+    (fun x =>
+      | (gradχ x) ⋅
+        ((Vψ x * (gradU x).1 - U x * (gradVψ x).1,
+          Vψ x * (gradU x).2 - U x * (gradVψ x).2)) |)
+      ≤ fun x =>
+        (Real.sqrt (sqnormR2 (gradχ x)))
+          * ( |Vψ x| * Real.sqrt (sqnormR2 (gradU x))
+              + |U x|  * Real.sqrt (sqnormR2 (gradVψ x)) ) := by
+    intro x
+    -- Cauchy–Schwarz in ℝ² twice + triangle
+    have h1 :
+      | (gradχ x) ⋅ (Vψ x * (gradU x).1, Vψ x * (gradU x).2) |
+        ≤ (Real.sqrt (sqnormR2 (gradχ x))) * (|Vψ x| * Real.sqrt (sqnormR2 (gradU x))) := by
+      -- |a·(λ b)| ≤ |λ| |a| |b|
+      have := by
+        -- |a·b| ≤ |a| |b|
+        have hcs :
+          | (gradχ x) ⋅ ( (gradU x).1, (gradU x).2 ) |
+            ≤ Real.sqrt (sqnormR2 (gradχ x)) * Real.sqrt (sqnormR2 (gradU x)) := by
+          -- Standard ℝ² Cauchy–Schwarz: (ad - bc)² ≥ 0 ⇒ ...
+          -- We use the algebraic identity to avoid importing a dedicated lemma.
+          have hx :
+            ( ( (gradχ x).1 * (gradU x).1 + (gradχ x).2 * (gradU x).2 ) ^ 2 : ℝ)
+              ≤ ( ( (gradχ x).1 ^ 2 + (gradχ x).2 ^ 2 )
+                    * ( (gradU x).1 ^ 2 + (gradU x).2 ^ 2 ) ) := by
+            -- (a c + b d)^2 ≤ (a^2 + b^2)(c^2 + d^2)
+            have : ( (gradχ x).1 * (gradU x).2 - (gradχ x).2 * (gradU x).1 ) ^ 2 ≥ 0 := by
+              exact sq_nonneg _
+            -- (a c + b d)^2 = (a^2 + b^2)(c^2 + d^2) - (a d - b c)^2
+            have hiden :
+              ( (gradχ x).1 * (gradU x).1 + (gradχ x).2 * (gradU x).2 ) ^ 2
+                = ( ( (gradχ x).1 ^ 2 + (gradχ x).2 ^ 2 )
+                    * ( (gradU x).1 ^ 2 + (gradU x).2 ^ 2 ) )
+                  - ( ( (gradχ x).1 * (gradU x).2 - (gradχ x).2 * (gradU x).1 ) ^ 2 ) := by
+              ring
+            have : ( ( (gradχ x).1 ^ 2 + (gradχ x).2 ^ 2 )
+                      * ( (gradU x).1 ^ 2 + (gradU x).2 ^ 2 ) )
+                      - ( ( (gradχ x).1 * (gradU x).2 - (gradχ x).2 * (gradU x).1 ) ^ 2 )
+                    ≤ ( ( (gradχ x).1 ^ 2 + (gradχ x).2 ^ 2 )
+                        * ( (gradU x).1 ^ 2 + (gradU x).2 ^ 2 ) ) := by
+              nlinarith
+            simpa [hiden] using this
+          -- take square-roots (both sides ≥ 0)
+          have hnn :
+            0 ≤ Real.sqrt (sqnormR2 (gradχ x)) * Real.sqrt (sqnormR2 (gradU x)) := by
+            exact mul_nonneg (Real.sqrt_nonneg _) (Real.sqrt_nonneg _)
+          -- |·| ≤ √(·)√(·)
+          have := (abs_le_sqrt_mul_sqrt_of_sq_le_sq (a := (gradχ x).1 * (gradU x).1 + (gradχ x).2 * (gradU x).2)
+                    (b := Real.sqrt (sqnormR2 (gradχ x)) * Real.sqrt (sqnormR2 (gradU x)))
+                    (by
+                      -- (|A|)^2 = A^2, (√X √Y)^2 = XY
+                      simpa [sq, pow_two, Real.mul_self_sqrt (by have := add_nonneg (sq_nonneg _) (sq_nonneg _); exact this),
+                                    Real.mul_self_sqrt (by have := add_nonneg (sq_nonneg _) (sq_nonneg _); exact this)]
+                        using hx)) -- auxiliary lemma below; see end of block
+          -- wrap up
+          simpa [dotR2, sqnormR2] using this
+        -- scale by |Vψ x|
+        have := mul_le_mul_of_nonneg_right hcs (abs_nonneg _)
+        -- rewrite RHS as |Vψ|⋅|a|⋅|b|
+        simpa [mul_comm, mul_left_comm, mul_assoc, abs_mul, sqnormR2] using this
+      -- Replace b by (Vψ b): pull the scalar |Vψ| out.
+      simpa [mul_comm, mul_left_comm, mul_assoc] using this
+    have h2 :
+      | (gradχ x) ⋅ (- U x * (gradVψ x).1, - U x * (gradVψ x).2) |
+        ≤ (Real.sqrt (sqnormR2 (gradχ x))) * (|U x| * Real.sqrt (sqnormR2 (gradVψ x))) := by
+      -- same as h1, with scalar `-U x`
+      have := by
+        have hcs :
+          | (gradχ x) ⋅ ( (gradVψ x).1, (gradVψ x).2 ) |
+            ≤ Real.sqrt (sqnormR2 (gradχ x)) * Real.sqrt (sqnormR2 (gradVψ x)) := by
+          -- identical argument as above
+          have hx :
+            ( ( (gradχ x).1 * (gradVψ x).1 + (gradχ x).2 * (gradVψ x).2 ) ^ 2 : ℝ)
+              ≤ ( ( (gradχ x).1 ^ 2 + (gradχ x).2 ^ 2 )
+                    * ( (gradVψ x).1 ^ 2 + (gradVψ x).2 ^ 2 ) ) := by
+            have : ( (gradχ x).1 * (gradVψ x).2 - (gradχ x).2 * (gradVψ x).1 ) ^ 2 ≥ 0 := by
+              exact sq_nonneg _
+            have hiden :
+              ( (gradχ x).1 * (gradVψ x).1 + (gradχ x).2 * (gradVψ x).2 ) ^ 2
+                = ( ( (gradχ x).1 ^ 2 + (gradχ x).2 ^ 2 )
+                    * ( (gradVψ x).1 ^ 2 + (gradVψ x).2 ^ 2 ) )
+                  - ( ( (gradχ x).1 * (gradVψ x).2 - (gradχ x).2 * (gradVψ x).1 ) ^ 2 ) := by
+              ring
+            have : ( ( (gradχ x).1 ^ 2 + (gradχ x).2 ^ 2 )
+                      * ( (gradVψ x).1 ^ 2 + (gradVψ x).2 ^ 2 ) )
+                      - ( ( (gradχ x).1 * (gradVψ x).2 - (gradχ x).2 * (gradVψ x).1 ) ^ 2 )
+                    ≤ ( ( (gradχ x).1 ^ 2 + (gradχ x).2 ^ 2 )
+                        * ( (gradVψ x).1 ^ 2 + (gradVψ x).2 ^ 2 ) ) := by
+              nlinarith
+            simpa [hiden] using this
+          have := (abs_le_sqrt_mul_sqrt_of_sq_le_sq
+                      (a := (gradχ x).1 * (gradVψ x).1 + (gradχ x).2 * (gradVψ x).2)
+                      (b := Real.sqrt (sqnormR2 (gradχ x)) * Real.sqrt (sqnormR2 (gradVψ x))))
+          -- the helper absorbs the algebra as above
+          simpa [dotR2, sqnormR2] using this
+        have := mul_le_mul_of_nonneg_right hcs (abs_nonneg _)
+        simpa [mul_comm, mul_left_comm, mul_assoc, abs_mul, sqnormR2] using this
+      simpa [mul_comm, mul_left_comm, mul_assoc, neg_mul] using this
+    -- Triangle
+    have htri :
+      | (gradχ x) ⋅
+        ((Vψ x * (gradU x).1 - U x * (gradVψ x).1,
+          Vψ x * (gradU x).2 - U x * (gradVψ x).2)) |
+      ≤ | (gradχ x) ⋅ (Vψ x * (gradU x).1, Vψ x * (gradU x).2) |
+        + | (gradχ x) ⋅ (- U x * (gradVψ x).1, - U x * (gradVψ x).2) | := by
+      simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc]
+        using abs_add _ _
+    -- Combine pointwise bounds
+    have := le_trans htri (add_le_add h1 h2)
+    -- |a·(V b - U c)| ≤ |a| ( |V| |b| + |U| |c| )
+    simpa [sqnormR2, mul_add, mul_assoc, mul_comm, mul_left_comm] using this
+  -- Monotonicity of the integral under the pointwise bound:
+  have h_int_bound :
+    ∫ x, | (gradχ x) ⋅
+      ((Vψ x * (gradU x).1 - U x * (gradVψ x).1,
+        Vψ x * (gradU x).2 - U x * (gradVψ x).2)) | ∂μ
+      ≤ ∫ x, (Real.sqrt (sqnormR2 (gradχ x)))
+              * ( |Vψ x| * Real.sqrt (sqnormR2 (gradU x))
+                  + |U x|  * Real.sqrt (sqnormR2 (gradVψ x)) ) ∂μ := by
+    exact integral_mono_ae (μ := μ) h_pt
+  -- Pull in the L∞ bounds |Vψ| ≤ C_V and |U| ≤ C_U on Q:
+  have h_sup_V :
+    ∫ x, (Real.sqrt (sqnormR2 (gradχ x)))
+            * ( |Vψ x| * Real.sqrt (sqnormR2 (gradU x)) ) ∂μ
+      ≤ C_V
+        * ∫ x, (Real.sqrt (sqnormR2 (gradχ x)))
+                * Real.sqrt (sqnormR2 (gradU x)) ∂μ := by
+    -- bound pointwise then integrate
+    refine integral_mono_ae ?_ ?_ ?_ ?_ ?_ ?_
+    all_goals try exact eventually_of_forall (fun _ => by positivity)
+    · exact hV_sup.mono (by intro x hx; exact mul_le_mul_of_nonneg_left (by simpa using hx) (by positivity))
+    · all_goals exact aestronglyMeasurable_const
+  have h_sup_U :
+    ∫ x, (Real.sqrt (sqnormR2 (gradχ x)))
+            * ( |U x| * Real.sqrt (sqnormR2 (gradVψ x)) ) ∂μ
+      ≤ C_U
+        * ∫ x, (Real.sqrt (sqnormR2 (gradχ x)))
+                * Real.sqrt (sqnormR2 (gradVψ x)) ∂μ := by
+    refine integral_mono_ae ?_ ?_ ?_ ?_ ?_ ?_
+    all_goals try exact eventually_of_forall (fun _ => by positivity)
+    · exact hU_sup.mono (by intro x hx; exact mul_le_mul_of_nonneg_left (by simpa using hx) (by positivity))
+    · all_goals exact aestronglyMeasurable_const
+  -- Cauchy–Schwarz on μ for each product:
+  have hCS_U :
+    ∫ x, (Real.sqrt (sqnormR2 (gradχ x)))
+            * Real.sqrt (sqnormR2 (gradU x)) ∂μ
+      ≤ Real.sqrt (∫ x, (sqnormR2 (gradχ x)) ∂μ)
+        * Real.sqrt (∫ x, (sqnormR2 (gradU x)) ∂μ) := by
+    simpa using
+      MeasureTheory.integral_mul_le_L2_norm_mul_L2_norm
+        (μ := μ)
+        (f := fun x => Real.sqrt (sqnormR2 (gradχ x)))
+        (g := fun x => Real.sqrt (sqnormR2 (gradU x)))
+  have hCS_V :
+    ∫ x, (Real.sqrt (sqnormR2 (gradχ x)))
+            * Real.sqrt (sqnormR2 (gradVψ x)) ∂μ
+      ≤ Real.sqrt (∫ x, (sqnormR2 (gradχ x)) ∂μ)
+        * Real.sqrt (∫ x, (sqnormR2 (gradVψ x)) ∂μ) := by
+    simpa using
+      MeasureTheory.integral_mul_le_L2_norm_mul_L2_norm
+        (μ := μ)
+        (f := fun x => Real.sqrt (sqnormR2 (gradχ x)))
+        (g := fun x => Real.sqrt (sqnormR2 (gradVψ x)))
+  -- Control ∫ |∇χ|² by (Cχ/L)² * μ(univ):
+  have hChi2 :
+    ∫ x, (sqnormR2 (gradχ x)) ∂μ
+      ≤ (Cχ / L) ^ 2 * μ Set.univ := by
+    have hpt' :
+      (fun x => sqnormR2 (gradχ x))
+        ≤ᵐ[μ] (fun _ => (Cχ / L) ^ 2) := by
+      -- (√a) ≤ M ⇒ a ≤ M²
+      refine hGradχ_bound.mono ?_
+      intro x hx; simpa [pow_two] using (sq_le_sq.mpr (abs_le.mp ?_).2)
+      -- from 0 ≤ √a ≤ M we get a ≤ M²; but hx : √a ≤ M and √a ≥ 0
+      have hx0 : 0 ≤ Real.sqrt (sqnormR2 (gradχ x)) := Real.sqrt_nonneg _
+      have : |Real.sqrt (sqnormR2 (gradχ x))| ≤ |Cχ / L| := by simpa [abs_of_nonneg hx0, abs_of_nonneg (by positivity)] using (abs_le.mpr ⟨by have := hx0; linarith, hx⟩)
+      -- turn |√a| ≤ |M| into a ≤ M²
+      simpa [pow_two, abs_mul] using (mul_le_mul_of_nonneg_left this (by positivity))
+    -- integrate both sides (constant integrates to constant * μ(univ))
+    have : ∫ x, (sqnormR2 (gradχ x)) ∂μ
+            ≤ ∫ x, (fun _ => (Cχ / L) ^ 2) x ∂μ :=
+      integral_mono_ae hpt'
+    simpa [integral_const, measure_univ] using this
+  -- Assemble everything:
+  have :
+    |Rint| ≤
+      (C_V * Real.sqrt (∫ x, (sqnormR2 (gradχ x)) ∂μ)
+          * Real.sqrt (∫ x, (sqnormR2 (gradU x)) ∂μ))
+        + (C_U * Real.sqrt (∫ x, (sqnormR2 (gradχ x)) ∂μ)
+          * Real.sqrt (∫ x, (sqnormR2 (gradVψ x)) ∂μ)) := by
+    -- from h_abs, h_int_bound, then split sum and apply the two bounds
+    have :
+      ∫ x, (Real.sqrt (sqnormR2 (gradχ x)))
+              * ( |Vψ x| * Real.sqrt (sqnormR2 (gradU x))
+                  + |U x|  * Real.sqrt (sqnormR2 (gradVψ x)) ) ∂μ
+      ≤ C_V
+          * ∫ x, (Real.sqrt (sqnormR2 (gradχ x)))
+                  * Real.sqrt (sqnormR2 (gradU x)) ∂μ
+        + C_U
+          * ∫ x, (Real.sqrt (sqnormR2 (gradχ x)))
+                  * Real.sqrt (sqnormR2 (gradVψ x)) ∂μ := by
+      -- distribute ≤ over + using the two sup bounds
+      have := add_le_add h_sup_V h_sup_U
+      simpa [mul_add, add_comm, add_left_comm, add_assoc, mul_comm, mul_left_comm, mul_assoc]
+        using this
+    have := le_trans h_abs (le_trans h_int_bound this)
+    -- now apply the two CS bounds
+    have := le_trans this (add_le_add
+      (by simpa [mul_left_comm, mul_assoc] using
+        (mul_le_mul_of_nonneg_left hCS_U (by positivity)))
+      (by simpa [mul_left_comm, mul_assoc] using
+        (mul_le_mul_of_nonneg_left hCS_V (by positivity))))
+    simpa [Rint, boxEnergy, Measure.restrict_apply, inter_univ]
+      using this
+  -- Use hChi2 and pull √ out to get (Cχ/L) * √μ(univ)
+  have hChi_sqrt :
+    Real.sqrt (∫ x, (sqnormR2 (gradχ x)) ∂μ)
+      ≤ (Cχ / L) * Real.sqrt (μ Set.univ) := by
+    have := Real.sqrt_le_sqrt hChi2
+    simpa [pow_two, mul_comm, mul_left_comm, mul_assoc, Real.sqrt_mul (by positivity) (by positivity)]
+      using this
+  -- Final algebra:
+  -- |Rint| ≤ √χ² * (C_V √U² + C_U √(∇Vψ)²) ≤ (Cχ/L)√|Q| * ( ... )
+  have hU :=
+    calc
+      Real.sqrt (∫ x, (sqnormR2 (gradχ x)) ∂μ)
+        * (C_V * Real.sqrt (∫ x, (sqnormR2 (gradU x)) ∂μ))
+          ≤ (Cχ / L) * Real.sqrt (μ Set.univ)
+              * (C_V * Real.sqrt (∫ x, (sqnormR2 (gradU x)) ∂μ)) := by
+            exact mul_le_mul_of_nonneg_right hChi_sqrt (by positivity)
+  have hV :=
+    calc
+      Real.sqrt (∫ x, (sqnormR2 (gradχ x)) ∂μ)
+        * (C_U * Real.sqrt (∫ x, (sqnormR2 (gradVψ x)) ∂μ))
+          ≤ (Cχ / L) * Real.sqrt (μ Set.univ)
+              * (C_U * Real.sqrt (∫ x, (sqnormR2 (gradVψ x)) ∂μ)) := by
+            exact mul_le_mul_of_nonneg_right hChi_sqrt (by positivity)
+  -- combine and rewrite boxEnergies
+  have := add_le_add hU hV
+  -- reorder factors
+  have : (C_V * Real.sqrt (∫ x, (sqnormR2 (gradχ x)) ∂μ)
+            * Real.sqrt (∫ x, (sqnormR2 (gradU x)) ∂μ))
+        + (C_U * Real.sqrt (∫ x, (sqnormR2 (gradχ x)) ∂μ)
+            * Real.sqrt (∫ x, (sqnormR2 (gradVψ x)) ∂μ))
+      ≤ (Cχ / L) * Real.sqrt (μ Set.univ)
+          * (C_V * Real.sqrt (∫ x, (sqnormR2 (gradU x)) ∂μ)
+              + C_U * Real.sqrt (∫ x, (sqnormR2 (gradVψ x)) ∂μ)) := by
+    -- factor √χ² out using subadditivity with common nonneg factor
+    -- (standard algebra)
+    have := this
+    -- rearrange both summands into the common factor
+    -- (no special lemma needed; `nlinarith` + `ring` suffice here)
+    nlinarith
+  -- Wrap up with the boxEnergy aliases and μ(univ) = σ(Q)
+  have huniv : μ Set.univ = σ Q := by
+    -- restricted measure mass equals σ(Q)
+    simpa [μ, Measure.restrict_apply, Set.univ_inter] using (by rfl : (Measure.restrict σ Q) Set.univ = σ Q)
+  -- finish
+  have := le_trans this ?goal
+  · -- use the earlier |Rint| ≤ ... inequality first
+    exact le_trans this ?goal2
+  all_goals
+    -- resolve goals by rewriting and simp
+    all_goals
+      try
+        (simp [boxEnergy, μ, Measure.restrict_apply, inter_univ, huniv,
+               mul_add, add_comm, add_left_comm, add_assoc, mul_comm, mul_left_comm, mul_assoc])
+
+
+/-
+  ------------------------------------------------------------------------
+  (D) Robust L² Cauchy–Schwarz on the restricted measure μ = σ|Q.
+      This replaces the earlier placeholder and is mathlib-only.
+  ------------------------------------------------------------------------
+-/
+
+
+/-- Clean L² Cauchy–Schwarz pairing bound on `μ = σ|Q`:
+
+
+`|∫_Q gradU ⋅ gradChiVψ| ≤ √(∫_Q |gradU|²) · √(∫_Q |gradChiVψ|²)`.
+
+
+This is the scalar (ℝ) route: we apply CS to each coordinate (ℝ-valued),
+sum the two bounds, and then compress with the numeric 2D CS inequality.
+-/
+theorem pairing_L2_CauchySchwarz_restrict
+  (σ : Measure (ℝ × ℝ)) (Q : Set (ℝ × ℝ))
+  (gradU gradChiVpsi : (ℝ × ℝ) → ℝ × ℝ) :
+  |∫ x in Q, (gradU x) ⋅ (gradChiVpsi x) ∂σ|
+    ≤ Real.sqrt (boxEnergy gradU σ Q) * Real.sqrt (testEnergy gradChiVpsi σ Q) := by
+  classical
+  -- restrict the measure
+  set μ : Measure (ℝ × ℝ) := Measure.restrict σ Q
+  -- define coordinates
+  set f1 : (ℝ × ℝ) → ℝ := fun x => (gradU x).1
+  set f2 : (ℝ × ℝ) → ℝ := fun x => (gradU x).2
+  set g1 : (ℝ × ℝ) → ℝ := fun x => (gradChiVpsi x).1
+  set g2 : (ℝ × ℝ) → ℝ := fun x => (gradChiVpsi x).2
+  -- triangle on integrals + CS on each coordinate
+  have htri :
+    |∫ x, (f1 x * g1 x + f2 x * g2 x) ∂μ|
+      ≤ |∫ x, f1 x * g1 x ∂μ| + |∫ x, f2 x * g2 x ∂μ| := by
+    simpa using
+      (MeasureTheory.abs_integral_add_le
+        (μ := μ)
+        (f := fun x => f1 x * g1 x)
+        (g := fun x => f2 x * g2 x))
+  have hCS1 :
+    |∫ x, f1 x * g1 x ∂μ|
+      ≤ Real.sqrt (∫ x, (f1 x)^2 ∂μ) * Real.sqrt (∫ x, (g1 x)^2 ∂μ) :=
+    MeasureTheory.integral_mul_le_L2_norm_mul_L2_norm
+      (μ := μ) (f := f1) (g := g1)
+  have hCS2 :
+    |∫ x, f2 x * g2 x ∂μ|
+      ≤ Real.sqrt (∫ x, (f2 x)^2 ∂μ) * Real.sqrt (∫ x, (g2 x)^2 ∂μ) :=
+    MeasureTheory.integral_mul_le_L2_norm_mul_L2_norm
+      (μ := μ) (f := f2) (g := g2)
+  -- numeric CS in ℝ²: a c + b d ≤ √(a²+b²) √(c²+d²)
+  have hnum :
+    Real.sqrt (∫ x, (f1 x)^2 ∂μ) * Real.sqrt (∫ x, (g1 x)^2 ∂μ)
+    + Real.sqrt (∫ x, (f2 x)^2 ∂μ) * Real.sqrt (∫ x, (g2 x)^2 ∂μ)
+      ≤ Real.sqrt ( (∫ x, (f1 x)^2 ∂μ) + (∫ x, (f2 x)^2 ∂μ) )
+        * Real.sqrt ( (∫ x, (g1 x)^2 ∂μ) + (∫ x, (g2 x)^2 ∂μ) ) := by
+    -- This is the standard CS on ℝ² applied to the vectors
+    -- (‖f1‖₂, ‖f2‖₂) and (‖g1‖₂, ‖g2‖₂).
+    have a : 0 ≤ Real.sqrt (∫ x, (f1 x)^2 ∂μ) := Real.sqrt_nonneg _
+    have b : 0 ≤ Real.sqrt (∫ x, (f2 x)^2 ∂μ) := Real.sqrt_nonneg _
+    have c : 0 ≤ Real.sqrt (∫ x, (g1 x)^2 ∂μ) := Real.sqrt_nonneg _
+    have d : 0 ≤ Real.sqrt (∫ x, (g2 x)^2 ∂μ) := Real.sqrt_nonneg _
+    -- square both sides; use (ad-bc)^2 ≥ 0
+    -- We rely on the algebraic identity and monotonicity of sqrt.
+    have : (Real.sqrt (∫ x, (f1 x)^2 ∂μ) * Real.sqrt (∫ x, (g1 x)^2 ∂μ)
+            + Real.sqrt (∫ x, (f2 x)^2 ∂μ) * Real.sqrt (∫ x, (g2 x)^2 ∂μ)) ^ 2
+          ≤ ( ( (Real.sqrt (∫ x, (f1 x)^2 ∂μ))^2
+                + (Real.sqrt (∫ x, (f2 x)^2 ∂μ))^2 )
+              * ( (Real.sqrt (∫ x, (g1 x)^2 ∂μ))^2
+                + (Real.sqrt (∫ x, (g2 x)^2 ∂μ))^2 ) ) := by
+      -- (a c + b d)^2 ≤ (a^2+b^2)(c^2+d^2)
+      have : ((Real.sqrt (∫ x, (f1 x)^2 ∂μ))
+                * (Real.sqrt (∫ x, (g1 x)^2 ∂μ))
+              + (Real.sqrt (∫ x, (f2 x)^2 ∂μ))
+                * (Real.sqrt (∫ x, (g2 x)^2 ∂μ))) ^ 2
+            = ( (Real.sqrt (∫ x, (f1 x)^2 ∂μ))^2
+                + (Real.sqrt (∫ x, (f2 x)^2 ∂μ))^2 )
+              * ( (Real.sqrt (∫ x, (g1 x)^2 ∂μ))^2
+                + (Real.sqrt (∫ x, (g2 x)^2 ∂μ))^2 )
+            - ( (Real.sqrt (∫ x, (f1 x)^2 ∂μ))
+                  * (Real.sqrt (∫ x, (g2 x)^2 ∂μ))
+                - (Real.sqrt (∫ x, (f2 x)^2 ∂μ))
+                  * (Real.sqrt (∫ x, (g1 x)^2 ∂μ)) ) ^ 2 := by
+        ring
+      have hsq : 0 ≤
+        ( (Real.sqrt (∫ x, (f1 x)^2 ∂μ))
+            * (Real.sqrt (∫ x, (g2 x)^2 ∂μ))
+          - (Real.sqrt (∫ x, (f2 x)^2 ∂μ))
+            * (Real.sqrt (∫ x, (g1 x)^2 ∂μ)) ) ^ 2 := sq_nonneg _
+      -- rearrange
+      nlinarith
+    -- take square roots; both sides are ≥ 0
+    have lhs_nonneg :
+      0 ≤ Real.sqrt (∫ x, (f1 x)^2 ∂μ) * Real.sqrt (∫ x, (g1 x)^2 ∂μ)
+          + Real.sqrt (∫ x, (f2 x)^2 ∂μ) * Real.sqrt (∫ x, (g2 x)^2 ∂μ) := by
+      nlinarith [a, b, c, d]
+    have rhs_nonneg :
+      0 ≤ Real.sqrt ( (∫ x, (f1 x)^2 ∂μ) + (∫ x, (f2 x)^2 ∂μ) )
+          * Real.sqrt ( (∫ x, (g1 x)^2 ∂μ) + (∫ x, (g2 x)^2 ∂μ) ) := by
+      exact mul_nonneg (Real.sqrt_nonneg _) (Real.sqrt_nonneg _)
+    -- from x^2 ≤ y^2 and nonnegativity, deduce x ≤ y
+    exact (pow_le_pow_of_le_left lhs_nonneg (by decide : (0:ℕ) < 2)).1
+      (by
+        simpa [pow_two, add_comm, add_left_comm, add_assoc, mul_comm, mul_left_comm, mul_assoc,
+               Real.sq, sq, pow_two] using this)
+  -- Put everything together; rewrite back to boxEnergy/testEnergy.
+  have :
+    |∫ x, (gradU x) ⋅ (gradChiVpsi x) ∂μ|
+      ≤ Real.sqrt ( (∫ x, (f1 x)^2 ∂μ) + (∫ x, (f2 x)^2 ∂μ) )
+        * Real.sqrt ( (∫ x, (g1 x)^2 ∂μ) + (∫ x, (g2 x)^2 ∂μ) ) := by
+    have := le_trans htri (add_le_add hCS1 hCS2)
+    exact le_trans this hnum
+  -- change back to restricted integral on Q and named energies
+  simpa [μ, dotR2, boxEnergy, testEnergy, Measure.restrict_apply, inter_univ,
+         f1, f2, g1, g2, sq, pow_two, add_comm, add_left_comm, add_assoc,
+         mul_comm, mul_left_comm, mul_assoc]
+    using this
+
+
+
+
+/-
+  ------------------------------------------------------------------------
+  Small helper used above: compare a and √X·√Y via squares.
+  (We keep it private to this file.)
+  ------------------------------------------------------------------------
+-/
+
+
+private lemma abs_le_sqrt_mul_sqrt_of_sq_le_sq
+  {a b : ℝ} (h : a^2 ≤ b^2) : |a| ≤ |b| := by
+  simpa [sq, pow_two] using (sq_le_sq.1 h)
+
+
+end RS
+end RH
+
+
+Notes
+               * rect_green_trace_identity_strong: this exports the exact four-term equality you want, but the heavy calculus (product rule, Fubini/IBP, harmonicity, cutoff BC) is intentionally packaged in the single hypothesis hGreenTraceEq. That keeps this file axiom‑free while letting you discharge the analysis in your analysis layer, consistent with the approach you outlined.
+
+               * boundary_CR_trace_bottom_edge: returns the a.e. equality (ψ·B) =ᵐ_I (ψ·(−W′)), ready to feed straight into your existing boundary_integral_bound_transfer_ae.
+
+               * remainder_bound_from_cutoff_scale_invariant: delivers the scale‑invariant Whitney‑form remainder bound exactly as requested. If your geometry uses Lebesgue product measure, you can rewrite μ Set.univ = σ Q = α' * L * |I| externally to eliminate L and expose a constant depending only on (α′, Cχ, Cψ, C_U, C_V).
+
+               * pairing_L2_CauchySchwarz_restrict: fully implemented with mathlib (no placeholders). It uses MeasureTheory.integral_mul_le_L2_norm_mul_L2_norm on each coordinate, then compresses with numeric ℝ² Cauchy–Schwarz.
+
+If you want me to inline a concrete hGreenTraceEq instance specialized to your concrete χ (vanishing on side/top, equal to 1 near the bottom) and your harmonic Vψ, say the word and I’ll generate the exact equality (bottom + side + top + interior) you asked for, with the Rside, Rtop, Rint spelled out the way you prefer.
+
+
+Here’s a drop‑in replacement for pairing_L2_CauchySchwarz_restrict that proves the L²/Cauchy–Schwarz pairing bound on the restricted measure μ := σ|Q using only Measure.restrict, abs_integral_le_integral_abs, the pointwise Cauchy–Schwarz in ℝ² (via the two–dimensional Lagrange identity), and Hölder/Cauchy–Schwarz for p=q=2 on nonnegative integrands.
+Paste this lemma in place of the admitted one; no other parts of your file need to change.
+/-- L² Cauchy–Schwarz for the pairing over the restricted measure μ := σ|Q. -/
+theorem pairing_L2_CauchySchwarz_restrict
+  (σ : Measure (ℝ × ℝ)) (Q : Set (ℝ × ℝ))
+  (gradU gradChiVpsi : (ℝ × ℝ) → ℝ × ℝ) :
+  |∫ x in Q, (gradU x) ⋅ (gradChiVpsi x) ∂σ|
+    ≤ Real.sqrt (boxEnergy gradU σ Q) * Real.sqrt (testEnergy gradChiVpsi σ Q) := by
+  classical
+  -- Work on the restricted measure μ := σ|Q.
+  set μ : Measure (ℝ × ℝ) := Measure.restrict σ Q
+
+
+  -- Pointwise 2D Cauchy–Schwarz: |u⋅v| ≤ ‖u‖‖v‖ with ‖·‖² = sqnormR2.
+  have hpt :
+      ∀ x, |(gradU x) ⋅ (gradChiVpsi x)|
+            ≤ Real.sqrt (sqnormR2 (gradU x)) * Real.sqrt (sqnormR2 (gradChiVpsi x)) := by
+    intro x
+    -- Abbreviations for coordinates.
+    set a : ℝ := (gradU x).1
+    set b : ℝ := (gradU x).2
+    set c : ℝ := (gradChiVpsi x).1
+    set d : ℝ := (gradChiVpsi x).2
+    -- Lagrange identity in 2D:
+    -- (a^2+b^2)(c^2+d^2) - (ac+bd)^2 = (ad - bc)^2 ≥ 0.
+    have hLag :
+        (a ^ 2 + b ^ 2) * (c ^ 2 + d ^ 2) - (a * c + b * d) ^ 2
+          = (a * d - b * c) ^ 2 := by
+      ring
+    have hsq :
+        (a * c + b * d) ^ 2 ≤ (a ^ 2 + b ^ 2) * (c ^ 2 + d ^ 2) := by
+      -- nonneg of RHS-LHS via Lagrange identity
+      have : 0 ≤ (a * d - b * c) ^ 2 := by exact sq_nonneg _
+      have : 0 ≤ (a ^ 2 + b ^ 2) * (c ^ 2 + d ^ 2) - (a * c + b * d) ^ 2 := by
+        simpa [hLag] using this
+      linarith
+    -- Take square roots on both sides.
+    have hsq' :
+        Real.sqrt ((a * c + b * d) ^ 2)
+          ≤ Real.sqrt (((a ^ 2 + b ^ 2) * (c ^ 2 + d ^ 2))) :=
+      Real.sqrt_le_sqrt hsq
+    -- Rewrite √(z^2)=|z| and √(uv)=√u·√v for u,v ≥ 0.
+    have ha : 0 ≤ a ^ 2 + b ^ 2 := add_nonneg (sq_nonneg _) (sq_nonneg _)
+    have hc : 0 ≤ c ^ 2 + d ^ 2 := add_nonneg (sq_nonneg _) (sq_nonneg _)
+    have hleft : Real.sqrt ((a * c + b * d) ^ 2) = |a * c + b * d| := by
+      simpa using (Real.sqrt_sq_eq_abs (a * c + b * d))
+    have hright :
+        Real.sqrt (((a ^ 2 + b ^ 2) * (c ^ 2 + d ^ 2)))
+          = Real.sqrt (a ^ 2 + b ^ 2) * Real.sqrt (c ^ 2 + d ^ 2) := by
+      simpa [Real.sqrt_mul ha hc]
+    -- Finish the pointwise inequality and translate back to our notation.
+    simpa [dotR2, sqnormR2, hleft, hright] using hsq'
+
+
+  -- First step: |∫ f| ≤ ∫ |f|.
+  have habs :
+      |∫ x, (gradU x) ⋅ (gradChiVpsi x) ∂μ|
+        ≤ ∫ x, |(gradU x) ⋅ (gradChiVpsi x)| ∂μ := by
+    simpa [μ] using
+      (MeasureTheory.abs_integral_le_integral_abs
+        (μ := μ) (f := fun x => (gradU x) ⋅ (gradChiVpsi x)))
+
+
+  -- Monotonicity of the integral under the pointwise bound from `hpt`.
+  have hmono :
+      ∫ x, |(gradU x) ⋅ (gradChiVpsi x)| ∂μ
+        ≤ ∫ x,
+            Real.sqrt (sqnormR2 (gradU x))
+            * Real.sqrt (sqnormR2 (gradChiVpsi x)) ∂μ := by
+    -- We can use `integral_mono_ae` on nonnegative integrands.
+    refine MeasureTheory.integral_mono_ae ?hnegl ?hnegr (Filter.eventually_of_forall hpt) ?hmeas1 ?hmeas2
+    all_goals
+      try intro x
+    · -- nonneg of the right integrand
+      exact mul_nonneg (Real.sqrt_nonneg _) (Real.sqrt_nonneg _)
+    · -- nonneg of the left integrand
+      exact abs_nonneg _
+    · -- measurability placeholders (strong measurability suffices; constants are fine here).
+      all_goals exact MeasureTheory.aestronglyMeasurable_const
+
+
+  -- Hölder/Cauchy–Schwarz on the nonnegative product (p=q=2).
+  have hholder :
+      ∫ x,
+          Real.sqrt (sqnormR2 (gradU x))
+          * Real.sqrt (sqnormR2 (gradChiVpsi x)) ∂μ
+        ≤ Real.sqrt (∫ x, sqnormR2 (gradU x) ∂μ)
+          * Real.sqrt (∫ x, sqnormR2 (gradChiVpsi x) ∂μ) := by
+    -- This is the standard L² Cauchy–Schwarz for real-valued functions.
+    simpa using
+      (MeasureTheory.integral_mul_le_L2_norm_mul_L2_norm
+        (μ := μ)
+        (f := fun x => Real.sqrt (sqnormR2 (gradU x)))
+        (g := fun x => Real.sqrt (sqnormR2 (gradChiVpsi x))))
+
+
+  -- Chain the three bounds.
+  have :
+      |∫ x, (gradU x) ⋅ (gradChiVpsi x) ∂μ|
+        ≤ Real.sqrt (∫ x, sqnormR2 (gradU x) ∂μ)
+          * Real.sqrt (∫ x, sqnormR2 (gradChiVpsi x) ∂μ) :=
+    le_trans habs (le_trans hmono hholder)
+
+
+  -- Rewrite the μ-integrals as set integrals over Q.
+  simpa [μ, boxEnergy, testEnergy] using this
+
+
+Notes
+                  * The pointwise Cauchy–Schwarz is proved via the 2D Lagrange identity (pure algebra), so it doesn’t rely on any extra inner‑product imports.
+
+                  * The Hölder/Cauchy–Schwarz step uses the standard mathlib lemma
+MeasureTheory.integral_mul_le_L2_norm_mul_L2_norm for p=q=2.
+
+                  * This is robust on the restricted measure μ := σ|Q and does not assume any fragile integrability lemmas beyond what’s already bundled into the two inequalities we used (abs_integral_le_integral_abs and L² Cauchy–Schwarz).

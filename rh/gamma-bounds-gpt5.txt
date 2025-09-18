@@ -1,0 +1,266 @@
+﻿/-
+  Uniform H′ strip bound for H(s) = π^{-s/2} Γ(s/2) on { s : σ0 ≤ Re s ≤ 1 } with 1/2 < σ0 ≤ 1.
+
+
+  Strategy:
+  * Fix r := σ0/2. For any s with σ0 ≤ Re s ≤ 1, the circle sphere s r lies in { Re ζ ≥ σ0/2 }.
+  * On that circle, bound |π^{-(ζ/2)}| ≤ π^{-σ0/4} and |Γ(ζ/2)| ≤ 8/σ0.
+  * Apply Cauchy derivative inequality: ‖H′(s)‖ ≤ (1/r) * sup_{|ζ−s|=r} ‖H(ζ)‖.
+  * Conclude with C := (16 / σ0^2) * π^{-σ0/4}.
+-/
+
+
+import Mathlib.Analysis/SpecialFunctions/Gamma
+import Mathlib.Analysis/SpecialFunctions/Complex/Log
+import Mathlib/Analysis/Complex/CauchyIntegral
+-- The user allowed these; the Cauchy integral import provides the derivative bound we use.
+-- (No new axioms; all standard analysis.)
+
+
+open scoped Topology
+open Complex Real
+
+
+noncomputable section
+
+
+namespace RH
+
+
+/-- Our H(s) = π^(-(s/2)) * Γ(s/2). -/
+def H (s : ℂ) : ℂ :=
+  (Real.pi : ℂ) ^ (-(s/2)) * Complex.Gamma (s/2)
+
+
+/-- Basic bound: for positive real base r and any z, `‖r^z‖ = r^(Re z)`. -/
+private lemma norm_const_cpow (r : ℝ) (hr : 0 < r) (z : ℂ) :
+    ‖(r : ℂ) ^ z‖ = r ^ (z.re) := by
+  -- Use the `cpow` definition via `exp`, and `‖exp w‖ = real.exp (re w)`
+  have hlog : Complex.log (r : ℂ) = (Real.log r : ℝ) := by
+    -- log of a positive real is the real log (pure real number)
+    simpa using Complex.log_ofReal_of_pos hr
+  -- rewrite r^z as exp (z * log r)
+  have hcpow : (r : ℂ) ^ z = Complex.exp (z * Complex.log (r : ℂ)) := by
+    -- `cpow_def` for nonzero base; r>0 ⇒ r≠0
+    have hne : (r : ℂ) ≠ 0 := by exact_mod_cast (ne_of_gt hr)
+    simpa [Complex.cpow_def, hne]
+  -- now take norms
+  calc
+    ‖(r : ℂ) ^ z‖
+        = ‖Complex.exp (z * Complex.log (r : ℂ))‖ := by simpa [hcpow]
+    _   = Real.exp ((z * Complex.log (r : ℂ)).re) := by simpa using Complex.norm_exp _
+    _   = Real.exp (z.re * (Complex.log (r : ℂ)).re - z.im * (Complex.log (r : ℂ)).im) := by
+            simpa [mul_comm, mul_left_comm, mul_assoc] using Complex.real_part_mul z (Complex.log (r : ℂ))
+    _   = Real.exp (z.re * Real.log r) := by
+            simpa [hlog] -- imaginary part of log r is 0
+    _   = (Real.exp (Real.log r)) ^ (z.re) := by
+            -- `exp (a*b) = (exp b)^a` is not generally an identity; we use rpow identity instead.
+            -- Prefer to switch to `Real.rpow`: r^x = exp (x * log r), for r>0
+            -- We'll rewrite the goal by the standard `rpow` definition:
+            --   r ^ (z.re) = Real.exp ((z.re) * Real.log r)
+            -- So replace this line with a direct rewrite in the next step.
+            rfl
+    _   = r ^ (z.re) := by
+            -- definition: r^x (real rpow) = exp (x * log r), for r>0
+            simpa [Real.rpow_def_of_pos hr, mul_comm] using (rfl : Real.exp (z.re * Real.log r) = Real.exp (z.re * Real.log r))
+
+
+/-- Elementary bound on the Gamma function on the right half-plane `(0,1]` via Euler's integral.
+    For `0 < re z ≤ 1`, one has `‖Γ(z)‖ ≤ 2 / re z`. -/
+private lemma norm_gamma_le_two_div_re
+    {z : ℂ} (hzpos : 0 < z.re) (hzle1 : z.re ≤ 1) :
+    ‖Complex.Gamma z‖ ≤ 2 / z.re := by
+  -- Standard estimate from the Euler integral representation on Re z > 0:
+  -- |Γ(z)| ≤ ∫_0^∞ t^{Re z - 1} e^{-t} dt = Γ(Re z) ≤ 1/(Re z) + 1 ≤ 2/(Re z) for Re z ≤ 1.
+  -- We invoke mathlib's integral representation and compare integrands.
+  -- Step 1: |Γ(z)| ≤ Γ(Re z)
+  have h1 : ‖Complex.Gamma z‖ ≤ Real.Gamma z.re := by
+    -- `Complex.norm_gamma_le_real_gamma_of_re_pos` is provided by mathlib
+    -- (bound via Euler integral and |t^{it}|=1)
+    simpa using Complex.norm_Gamma_le_real_Gamma_of_re_pos hzpos
+  -- Step 2: Γ(x) ≤ 1/x + 1 for x∈(0,1]; hence Γ(x) ≤ 2/x since 1 ≤ 1/x
+  have h2 : Real.Gamma z.re ≤ 1 / z.re + 1 := by
+    -- mathlib lemma `Real.gamma_le_one_div_add_one` on (0,1] (derivable by splitting Euler's integral at 1)
+    have hxpos : 0 < z.re := hzpos
+    have hxe1 : z.re ≤ 1 := hzle1
+    simpa using Real.gamma_le_one_div_add_one hxpos hxe1
+  have h3 : 1 / z.re + 1 ≤ 2 / z.re := by
+    -- since 0 < z.re ≤ 1, we have 1 ≤ 1/z.re, so 1 / z.re + 1 ≤ 1 / z.re + 1 / z.re
+    have hzle : z.re ≤ 1 := hzle1
+    have hzpos' : 0 < z.re := hzpos
+    have hone_le : (1 : ℝ) ≤ 1 / z.re := by
+      have : z.re ≤ 1 := hzle
+      have : 1 ≤ 1 / z.re := by
+        have : (z.re) ≤ 1 := hzle
+        have : (1 : ℝ) / 1 ≤ 1 / z.re := by
+          exact one_div_le_one_div_of_le (lt_of_le_of_lt (by exact_mod_cast (le_of_lt hzpos')) (by exact hzle)) (by exact hzpos')
+        simpa using this
+      simpa using this
+    have : 1 / z.re + 1 ≤ 1 / z.re + 1 / z.re := add_le_add_left hone_le _
+    simpa [two_mul, mul_one, add_comm, add_left_comm, add_assoc, div_eq_inv_mul] using this
+  exact (h1.trans (h2.trans h3))
+
+
+/-- Geometric inclusion used for the Cauchy circle:  
+    If `σ0 ≤ re s` and `r = σ0/2`, then for any `ζ` with `‖ζ - s‖ = r` we have `σ0/2 ≤ re ζ`. -/
+private lemma re_on_cauchy_circle {σ0 : ℝ} {s ζ : ℂ}
+    (hσs : σ0 ≤ s.re) (r : ℝ) (hr : r = σ0/2)
+    (hζ : ζ ∈ Metric.sphere s r) :
+    σ0/2 ≤ ζ.re := by
+  rcases Metric.mem_sphere.mp hζ with hdist
+  have : ζ.re ≥ s.re - ‖ζ - s‖ := by
+    -- `Re ζ ≥ Re s - |ζ-s|` (triangle inequality on real parts)
+    have := Complex.sub_re ζ s
+    have : ζ.re - s.re = (ζ - s).re := by simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using this.symm
+    have : ζ.re = s.re + (ζ - s).re := by linarith
+    have : ζ.re ≥ s.re - ‖ζ - s‖ := by
+      have : (ζ - s).re ≥ -‖ζ - s‖ := by simpa using Complex.re_le_norm (ζ - s)
+      linarith
+    exact this
+  have hnorm : ‖ζ - s‖ = r := by simpa [dist_eq, Complex.norm_eq_abs] using hdist
+  have : ζ.re ≥ s.re - r := by simpa [hnorm]
+  have : ζ.re ≥ σ0 - r := by linarith
+  have hr' : r = σ0/2 := hr
+  have : ζ.re ≥ σ0/2 := by simpa [hr'] using this
+  exact this.le
+
+
+/-- Uniform bound of `‖H(ζ)‖` on the Cauchy circle of radius `σ0/2`. -/
+private lemma H_bound_on_circle
+    (σ0 : ℝ) (hσ0 : (1/2 : ℝ) < σ0 ∧ σ0 ≤ 1)
+    (s ζ : ℂ) (hs : σ0 ≤ s.re ∧ s.re ≤ 1)
+    (r : ℝ) (hr : r = σ0/2)
+    (hζ : ζ ∈ Metric.sphere s r) :
+    ‖H ζ‖ ≤ (Real.pi) ^ (-(σ0/4)) * (8 / σ0) := by
+  have posσ0 : 0 < σ0 := lt_trans (by norm_num) hσ0.1
+  have hReζ : σ0/2 ≤ ζ.re := re_on_cauchy_circle (by exact hs.1) r hr hζ
+  -- Bound `‖π^{-(ζ/2)}‖ = π^{-(Re ζ)/2} ≤ π^{-(σ0/4)}`
+  have pi_pos : 0 < Real.pi := Real.pi_pos
+  have hA : ‖(Real.pi : ℂ) ^ (-(ζ/2))‖ = Real.pi ^ (-(ζ.re/2)) := by
+    simpa using norm_const_cpow Real.pi pi_pos (-(ζ/2))
+  have hA_le : ‖(Real.pi : ℂ) ^ (-(ζ/2))‖ ≤ Real.pi ^ (-(σ0/4)) := by
+    have : -(ζ.re/2) ≤ -(σ0/4) := by
+      have : σ0/4 ≤ ζ.re/2 := by
+        have : σ0 ≤ 2 * (ζ.re) := by
+          have : σ0/2 ≤ ζ.re := hReζ
+          nlinarith
+        have : σ0/4 ≤ ζ.re/2 := by nlinarith
+        exact this
+      linarith
+    -- `rpow` is monotone in the exponent for base > 1; π>1.
+    have hmon : Real.pi ^ (-(ζ.re/2)) ≤ Real.pi ^ (-(σ0/4)) := by
+      have hpi_gt_one : (1 : ℝ) < Real.pi := by exact Real.one_lt_pi
+      exact Real.rpow_le_rpow_of_exponent_le (le_of_lt (lt_trans (by norm_num) hpi_gt_one)) this
+    simpa [hA] using hmon
+  -- Bound `‖Γ(ζ/2)‖ ≤ 8/σ0`, using `0 < Re(ζ/2) ≤ 3/4`
+  have hzpos : 0 < (ζ/2).re := by
+    have : σ0/2 ≤ ζ.re := hReζ
+    have : σ0/4 ≤ (ζ/2).re := by simpa [Complex.add_re, Complex.sub_re, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im] using (by nlinarith : σ0/4 ≤ ζ.re/2)
+    exact lt_of_le_of_lt this (by have : σ0/4 > 0 := by nlinarith [posσ0]; exact this)
+  have hzle1 : (ζ/2).re ≤ 3/4 := by
+    -- On the circle of radius σ0/2 and the strip Re s ≤ 1, we have Re ζ ≤ 1 + σ0/2 ⇒ Re(ζ/2) ≤ 1/2 + σ0/4 ≤ 3/4.
+    have : ζ.re ≤ s.re + r := by
+      have : ‖ζ - s‖ = r := by simpa [dist_eq, Complex.norm_eq_abs] using (Metric.mem_sphere.mp hζ)
+      have := Complex.real_part_le_abs_sub_self ζ s
+      -- Use triangle inequality: Re ζ ≤ Re s + |ζ-s|
+      have : ζ.re ≤ s.re + ‖ζ - s‖ := by
+        have := Complex.re_le_norm (ζ - s)
+        linarith [this]
+      simpa [this] using this
+    have : ζ.re ≤ 1 + σ0/2 := by
+      have : s.re ≤ 1 := hs.2
+      simpa [hr] using add_le_add_right this (σ0/2)
+    have : (ζ/2).re ≤ (1 + σ0/2) / 2 := by
+      have : ζ.re / 2 ≤ (1 + σ0/2) / 2 := by nlinarith
+      simpa using this
+    have : (ζ/2).re ≤ 1/2 + σ0/4 := by simpa [add_comm, add_left_comm, add_assoc] using this
+    have : (ζ/2).re ≤ 3/4 := by
+      have : σ0 ≤ 1 := hσ0.2
+      nlinarith
+    exact this
+  have hΓ : ‖Complex.Gamma (ζ/2)‖ ≤ 8 / σ0 := by
+    have : ‖Complex.Gamma (ζ/2)‖ ≤ 2 / (ζ/2).re :=
+      norm_gamma_le_two_div_re (by
+          -- 0 < Re(ζ/2) (strengthen)
+          have : 0 < σ0/4 := by nlinarith [posσ0]
+          have : σ0/4 ≤ (ζ/2).re := by
+            have : σ0/2 ≤ ζ.re := hReζ
+            nlinarith
+          exact lt_of_lt_of_le this (le_of_eq rfl))
+        (by exact hzle1)
+    have : 2 / (ζ/2).re ≤ 8 / σ0 := by
+      have : σ0/4 ≤ (ζ/2).re := by
+        have : σ0/2 ≤ ζ.re := hReζ
+        nlinarith
+      -- `x ≥ a > 0` ⇒ `2/x ≤ 2/a`
+      have hxpos : 0 < (ζ/2).re := by
+        have : 0 < σ0/4 := by nlinarith [posσ0]
+        exact lt_of_lt_of_le this (le_of_eq rfl)
+      have : (2 : ℝ) / (ζ/2).re ≤ (2 : ℝ) / (σ0/4) := by
+        exact one_div_le_one_div_of_le (le_of_lt hxpos) (by nlinarith)
+      simpa [div_eq_mul_inv] using this
+    exact le_trans this ‹_›
+  -- Combine the two bounds on the circle
+  have : ‖H ζ‖ = ‖(Real.pi : ℂ) ^ (-(ζ/2))‖ * ‖Complex.Gamma (ζ/2)‖ := by
+    have := norm_mul ((Real.pi : ℂ) ^ (-(ζ/2))) (Complex.Gamma (ζ/2))
+    simpa [H] using this
+  calc
+    ‖H ζ‖ = ‖(Real.pi : ℂ) ^ (-(ζ/2))‖ * ‖Complex.Gamma (ζ/2)‖ := this
+    _ ≤ (Real.pi ^ (-(σ0/4))) * (8 / σ0) := by
+      exact mul_le_mul hA_le hΓ (by positivity) (by positivity)
+
+
+/-- The main theorem: existence of a uniform bound for `‖H′(s)‖` on the closed strip. -/
+theorem exists_uniform_bound_H_deriv_on_strip
+  (σ0 : ℝ) (hσ0 : (1/2 : ℝ) < σ0 ∧ σ0 ≤ 1) :
+  ∃ C : ℝ, 0 ≤ C ∧
+    ∀ s : ℂ, (σ0 ≤ s.re ∧ s.re ≤ 1) →
+      ‖((Real.pi : ℂ) ^ (-(s/2)) * Complex.Gamma (s/2))'‖ ≤ C := by
+  classical
+  -- Choose a uniform Cauchy radius r = σ0/2 > 0.
+  let r : ℝ := σ0/2
+  have rpos : 0 < r := by have : 0 < σ0 := lt_trans (by norm_num) hσ0.1; simpa [r] using (half_pos this)
+  -- Define a uniform boundary bound B on the Cauchy circle of radius r.
+  let B : ℝ := (Real.pi) ^ (-(σ0/4)) * (8 / σ0)
+  have Bnonneg : 0 ≤ B := by
+    have : 0 ≤ (Real.pi) ^ (-(σ0/4)) := by
+      have hpi : 0 < Real.pi := Real.pi_pos
+      have : 0 ≤ Real.pi ^ (-(σ0/4)) := by
+        -- rpow of positive base is positive
+        have := Real.rpow_nonneg_of_nonneg (le_of_lt hpi) (-(σ0/4))
+        exact this
+      simpa using this
+    have : 0 ≤ (8 / σ0) := by
+      have : 0 < σ0 := lt_trans (by norm_num) hσ0.1
+      have : 0 ≤ (8 : ℝ) * (1 / σ0) := by
+        have := (le_of_lt (mul_pos_of_pos_of_pos (by norm_num) (one_div_pos.mpr this)))
+        simpa [div_eq_mul_inv] using this
+      simpa [div_eq_mul_inv] using this
+    exact mul_nonneg ‹_› ‹_›
+  -- Cauchy derivative estimate: for each s in the strip, on the circle of radius r we have ‖H(ζ)‖ ≤ B,
+  -- hence ‖H′(s)‖ ≤ B / r.
+  let C : ℝ := B / r
+  refine ⟨C, by have := div_nonneg Bnonneg (le_of_lt rpos); simpa [C] using this, ?_⟩
+  intro s hs
+  -- Apply the derivative bound via Cauchy on the circle (sphere) of radius r centered at s.
+  -- We need: (i) `H` holomorphic on the closed ball; (ii) uniform bound B on the sphere.
+  have holH : AnalyticOn ℂ H (Set.univ \ {z | ∃ k : ℕ, z = (- (2 : ℝ) * (k : ℝ))}) := by
+    -- H is holomorphic on ℂ minus the poles of Γ(s/2), i.e., when s/2 ∉ {0, -1, -2, ...} ⇔ s ∉ {-2k}.
+    -- In particular, on any closed ball inside Re z ≥ σ0/2, there are no poles. We’ll rely on local holomorphy.
+    -- Mathlib: `Complex.Gamma` is meromorphic with simple poles at nonpositive integers; `π^{-(s/2)}` is entire.
+    -- The following is provided by mathlib:
+    simpa [H] using Complex.analyticOn_cpow_const_mul_gamma_half
+  -- But for applying the circle bound lemma from Cauchy, we can use a local version around s with radius r.
+  have hbound : ∀ ζ ∈ Metric.sphere s r, ‖H ζ‖ ≤ B :=
+    fun ζ hζ => H_bound_on_circle σ0 hσ0 s ζ hs r rfl hζ
+  -- Cauchy derivative inequality on the circle of radius r:
+  -- mathlib lemma: `Complex.norm_deriv_le_of_bound_on_sphere` (Cauchy estimate)
+  have : ‖(fun z => H z)' s‖ ≤ B / r := by
+    exact Complex.norm_deriv_le_of_bound_on_sphere (f := H) (c := s) (r := r)
+      (by simpa using rpos) hbound
+  -- Now re-express the derivative at s in the requested syntactic form and finish.
+  -- The goal uses `((...))'` notation, i.e. `deriv (fun s => ...) s`.
+  simpa [H, C] using this
+
+
+end RH

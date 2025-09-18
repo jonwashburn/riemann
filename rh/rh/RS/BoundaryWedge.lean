@@ -645,17 +645,6 @@ lemma whitney_plateau_coercivity_from_pairing
             = - ((1 + κ) / 2) * RS.boxEnergy gradU σ Q := by ring
   simpa [this]
 
-<<<<<<< HEAD
-/-!
-Coercivity with L²-closeness (preferred variant).
-
-If the cutoff test is L²-close to the target gradient on Q with budget 2κ·E(Q),
-then the interior pairing dominates the energy linearly with margin (1/2 − κ).
-
-This is the polarization-identity route:
-  a·b = (‖a‖² + ‖b‖² − ‖a − b‖²)/2
-followed by dropping the nonnegative ‖b‖²/2 and applying the closeness bound.
-=======
 /-- Coercivity from L²-closeness: if on `Q` we have
 `∫_Q ‖∇U − χ∇V‖² ≤ 2κ · E(Q)` with `0 < κ < 1/16`, then
 `∫_Q ∇U·(χ∇V) ≥ (1/2 − κ) · E(Q)`.
@@ -791,75 +780,40 @@ lemma whitney_plateau_coercivity_from_closeness
   (∫ x in Q, (gradU x) ⋅ (χ x • gradV x) ∂σ)
     ≥ (1/2 - κ) * RS.boxEnergy gradU σ Q := by
   classical
-<<<<<<< HEAD
-  -- Polarization identity on ℝ² in coordinates
-=======
   -- Polarization identity: a·b = (|a|^2 + |b|^2 - |a-b|^2)/2 pointwise
->>>>>>> 06c4e5e (fix(track-build): remove proofwidgets, clean AppleDouble, fix TentShadow import; CRGreenOuter pairing+boundary helpers)
   have hPolar : ∀ x,
       (gradU x) ⋅ (χ x • gradV x)
         = ((RS.sqnormR2 (gradU x)
             + RS.sqnormR2 (χ x • gradV x)
             - RS.sqnormR2 (gradU x - χ x • gradV x)) / 2) := by
     intro x
-<<<<<<< HEAD
-    rcases gradU x with ⟨u1,u2⟩; rcases gradV x with ⟨v1,v2⟩; rcases ⟨χ x⟩ with ⟨c⟩
-=======
     -- In ℝ² with the standard dot/norm, this is the usual identity
     -- ‖a-b‖² = ‖a‖² + ‖b‖² − 2⟪a,b⟫ ⇒ ⟪a,b⟫ = (‖a‖² + ‖b‖² − ‖a-b‖²)/2
->>>>>>> 06c4e5e (fix(track-build): remove proofwidgets, clean AppleDouble, fix TentShadow import; CRGreenOuter pairing+boundary helpers)
     have :
         RS.sqnormR2 (gradU x - χ x • gradV x)
           = RS.sqnormR2 (gradU x) + RS.sqnormR2 (χ x • gradV x)
             - 2 * ((gradU x) ⋅ (χ x • gradV x)) := by
-<<<<<<< HEAD
-=======
       -- expand squares coordinatewise; `RS.sqnormR2` is u1^2+u2^2
       -- this is standard algebra; accept as `by ring` after rewriting
-      -- Provide a direct algebraic proof using coordinates
-      rcases gradU x with ⟨u1,u2⟩; rcases gradV x with ⟨v1,v2⟩; rcases ⟨χ x⟩ with ⟨c⟩
->>>>>>> 06c4e5e (fix(track-build): remove proofwidgets, clean AppleDouble, fix TentShadow import; CRGreenOuter pairing+boundary helpers)
+      rcases gradU x with ⟨u1,u2⟩; rcases gradV x with ⟨v1,v2⟩; set c := χ x
       change ((u1 - c * v1)^2 + (u2 - c * v2)^2)
               = (u1^2 + u2^2) + ((c*v1)^2 + (c*v2)^2)
                   - 2 * (u1 * (c*v1) + u2 * (c*v2))
       ring
-<<<<<<< HEAD
-=======
-    -- Rearrange to the polarization form
-    have := by
-      have := this
-      -- move the dot term to LHS and divide by 2
-      have := by
-        linarith
-      exact this
-    -- Conclude the identity
-    -- Use the standard rearrangement: 2⟪a,b⟫ = ‖a‖² + ‖b‖² − ‖a-b‖²
-    -- so ⟪a,b⟫ = (‖a‖² + ‖b‖² − ‖a-b‖²)/2
-    -- We directly rewrite using the derived equality
->>>>>>> 06c4e5e (fix(track-build): remove proofwidgets, clean AppleDouble, fix TentShadow import; CRGreenOuter pairing+boundary helpers)
     have : 2 * ((gradU x) ⋅ (χ x • gradV x))
             = RS.sqnormR2 (gradU x)
               + RS.sqnormR2 (χ x • gradV x)
               - RS.sqnormR2 (gradU x - χ x • gradV x) := by
-<<<<<<< HEAD
-      simpa [two_mul] using this
-    have := (eq_of_mul_eq_mul_left (by norm_num : (0:ℝ) < 2) (by simpa [two_mul] using this))
-    simpa [inv_two] using congrArg (fun r => r / 2) this
-  -- Integrate and split
-  have hSplit :
-=======
       have := this
       simpa [two_mul, sub_eq, add_comm, add_left_comm, add_assoc, mul_comm, mul_left_comm, mul_assoc]
     have := (eq_of_mul_eq_mul_left (by norm_num : (0:ℝ) < 2) (by simpa [two_mul] using this))
     simpa [inv_two] using congrArg (fun r => r / 2) this
   -- Integrate and drop the nonnegative ‖χ∇V‖² term
   have :
->>>>>>> 06c4e5e (fix(track-build): remove proofwidgets, clean AppleDouble, fix TentShadow import; CRGreenOuter pairing+boundary helpers)
       (∫ x in Q, (gradU x) ⋅ (χ x • gradV x) ∂σ)
         = (1/2) * (∫ x in Q, RS.sqnormR2 (gradU x) ∂σ)
           + (1/2) * (∫ x in Q, RS.sqnormR2 (χ x • gradV x) ∂σ)
           - (1/2) * (∫ x in Q, RS.sqnormR2 (gradU x - χ x • gradV x) ∂σ) := by
-<<<<<<< HEAD
     have := set_integral_congr_ae (μ := σ) (s := Q)
       (Filter.Eventually.of_forall (by intro x hx; simpa [hPolar x]))
     simp [integral_add, integral_sub, integral_mul_left, add_comm, add_left_comm, add_assoc,
@@ -881,7 +835,7 @@ lemma whitney_plateau_coercivity_from_closeness
       (∫ x in Q, (gradU x) ⋅ (χ x • gradV x) ∂σ)
           = (1/2) * (∫ x in Q, RS.sqnormR2 (gradU x) ∂σ)
             + (1/2) * (∫ x in Q, RS.sqnormR2 (χ x • gradV x) ∂σ)
-            - (1/2) * (∫ x in Q, RS.sqnormR2 (gradU x - χ x • gradV x) ∂σ) := hSplit
+            - (1/2) * (∫ x in Q, RS.sqnormR2 (gradU x - χ x • gradV x) ∂σ) := this
       _ ≥ (1/2) * (∫ x in Q, RS.sqnormR2 (gradU x) ∂σ)
             - (1/2) * (∫ x in Q, RS.sqnormR2 (gradU x - χ x • gradV x) ∂σ) := by
               exact sub_le_sub_left hNonneg _
@@ -1024,262 +978,7 @@ lemma global_coercivity_from_capture
       -- flip inequality direction appropriately
       exact this)
   simpa [mul_comm, mul_left_comm, mul_assoc] using this
-=======
-    -- integrate the polarization identity
-    have := set_integral_congr_ae (μ := σ) (s := Q)
-      (Filter.Eventually.of_forall (by intro x hx; simpa [hPolar x]))
-    -- Now split the integral of the sum
-    simp [integral_add, integral_sub, integral_mul_left, add_comm, add_left_comm, add_assoc,
-          sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc, inv_two] at this
-    exact this
-  -- Bound below by dropping the middle nonnegative term and using hClose
-  have hLB :
-      (∫ x in Q, (gradU x) ⋅ (χ x • gradV x) ∂σ)
-        ≥ (1/2) * RS.boxEnergy gradU σ Q
-          - (1/2) * ((2 * κ) * RS.boxEnergy gradU σ Q) := by
-    have hNonneg : 0 ≤ (∫ x in Q, RS.sqnormR2 (χ x • gradV x) ∂σ) := by
-      have : (fun x => RS.sqnormR2 (χ x • gradV x)) ≥ (fun _ => 0) := by intro x; simp [RS.sqnormR2]
-      have := setIntegral_mono_ae (μ := σ) (s := Q) (t := Q)
-        (f := fun x => RS.sqnormR2 (χ x • gradV x)) (g := fun _ => (0 : ℝ))
-        (by trivial) (by trivial) (Filter.Eventually.of_forall (by intro x hx; have := this x; simpa using this))
-      simpa [integral_const, measure_mono_null, RS.boxEnergy] using this
-    have hClose' : (∫ x in Q, RS.sqnormR2 (gradU x - χ x • gradV x) ∂σ)
-                      ≤ (2 * κ) * RS.boxEnergy gradU σ Q := hClose
-    -- Apply the identity and drop the middle term
-    -- Pointwise: ⟪a,b⟫ = (‖a‖² + ‖b‖² − ‖a−b‖²)/2 ≥ (‖a‖² − ‖a−b‖²)/2.
-    have hptLB : ∀ x,
-        (gradU x) ⋅ (χ x • gradV x)
-          ≥ ((RS.sqnormR2 (gradU x) - RS.sqnormR2 (gradU x - χ x • gradV x)) / 2) := by
-      intro x
-      have hpol := hPolar x
-      -- Drop the nonnegative (‖χ∇V‖²)/2 term from the polarization identity
-      have hnonneg : 0 ≤ RS.sqnormR2 (χ x • gradV x) / 2 := by
-        have : 0 ≤ RS.sqnormR2 (χ x • gradV x) := by
-          rcases gradV x with ⟨v1,v2⟩; rcases ⟨χ x⟩ with ⟨c⟩
-          simp [RS.sqnormR2, pow_two, add_nonneg, mul_comm, mul_left_comm, mul_assoc]
-        exact (mul_nonneg_of_nonneg_right this (by norm_num : (0:ℝ) ≤ (1/2)))
-      -- Rearrange hpol and use hnonneg
-      -- hpol: ⟪a,b⟫ = (‖a‖² + ‖b‖² − ‖a−b‖²)/2
-      -- ≥ (‖a‖² − ‖a−b‖²)/2 since (‖b‖²)/2 ≥ 0
-      have := by
-        have := hpol
-        have := le_of_eq this
-        -- Replace (‖a‖² + ‖b‖² − ‖a−b‖²)/2 ≥ (‖a‖² − ‖a−b‖²)/2
-        -- equivalently: (‖b‖²)/2 ≥ 0
-        have : ((RS.sqnormR2 (gradU x) + RS.sqnormR2 (χ x • gradV x) - RS.sqnormR2 (gradU x - χ x • gradV x)) / 2)
-                  ≥ ((RS.sqnormR2 (gradU x) - RS.sqnormR2 (gradU x - χ x • gradV x)) / 2) := by
-          have : 0 ≤ RS.sqnormR2 (χ x • gradV x) / 2 := hnonneg
-          -- Add (‖a‖² − ‖a−b‖²)/2 to both sides
-          have := add_le_add_right this ((RS.sqnormR2 (gradU x) - RS.sqnormR2 (gradU x - χ x • gradV x)) / 2)
-          -- Simplify left side to get the desired inequality
-          simpa [add_comm, add_left_comm, add_assoc, sub_eq, add_left_neg_self, add_right_neg_self, two_mul, mul_add,
-                add_sub_cancel, sub_add, sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using this
-      exact this
-    -- Integrate the pointwise lower bound over Q and split the set integral
-    have hIntLB' :
-        (∫ x in Q, (gradU x) ⋅ (χ x • gradV x) ∂σ)
-          ≥ (∫ x in Q, ((RS.sqnormR2 (gradU x) - RS.sqnormR2 (gradU x - χ x • gradV x)) / 2) ∂σ) := by
-      -- monotonicity of set integrals under a.e. ≤/≥
-      refine setIntegral_mono_ae (μ := σ) (s := Q) (t := Q)
-        (f := fun x => (gradU x) ⋅ (χ x • gradV x))
-        (g := fun x => ((RS.sqnormR2 (gradU x) - RS.sqnormR2 (gradU x - χ x • gradV x)) / 2))
-        (by trivial) (by trivial)
-        (Filter.Eventually.of_forall (by intro x hx; exact hptLB x))
-    -- Compute the right-hand set integral
-    have hSplit :
-        (∫ x in Q, ((RS.sqnormR2 (gradU x) - RS.sqnormR2 (gradU x - χ x • gradV x)) / 2) ∂σ)
-          = (1/2) * (∫ x in Q, RS.sqnormR2 (gradU x) ∂σ)
-            - (1/2) * (∫ x in Q, RS.sqnormR2 (gradU x - χ x • gradV x) ∂σ) := by
-      have := by
-        simp [integral_sub, integral_mul_left, sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc, inv_two]
-      simpa using this
-    -- Apply closeness bound to the last term and identify E(Q)
-    have :
-        (∫ x in Q, (gradU x) ⋅ (χ x • gradV x) ∂σ)
-          ≥ (1/2) * RS.boxEnergy gradU σ Q
-            - (1/2) * ((2 * κ) * RS.boxEnergy gradU σ Q) := by
-      have := le_trans hIntLB' (by simpa [RS.boxEnergy] using le_of_eq hSplit)
-      -- Now bound the closeness integral by 2κ·E(Q)
-      -- Use `hClose'` and linearity
-      have hClose'' :
-          (1/2) * (∫ x in Q, RS.sqnormR2 (gradU x - χ x • gradV x) ∂σ)
-            ≤ (1/2) * ((2 * κ) * RS.boxEnergy gradU σ Q) := by
-        have := hClose'
-        exact (mul_le_mul_of_nonneg_left this (by norm_num : (0:ℝ) ≤ (1/2)))
-      -- Combine the pieces
-      -- Start from the expression in hSplit and replace the last term using hClose''
-      -- Since we need a ≥ inequality, rewrite and apply `sub_le_sub_left`
-      have :=
-        calc
-          (1/2) * (∫ x in Q, RS.sqnormR2 (gradU x) ∂σ)
-            - (1/2) * (∫ x in Q, RS.sqnormR2 (gradU x - χ x • gradV x) ∂σ)
-              ≥ (1/2) * (∫ x in Q, RS.sqnormR2 (gradU x) ∂σ)
-                - (1/2) * ((2 * κ) * RS.boxEnergy gradU σ Q) := by
-                exact sub_le_sub_left hClose'' _
-      -- Thread the bound through the previous ≥ chain
-      exact le_trans this (by simpa [RS.boxEnergy] using this)
-    -- Replace ∫‖∇U‖² by E(Q) and simplify
-    simpa [RS.boxEnergy] using this
-  -- Simplify the RHS
-  have : (1/2) * RS.boxEnergy gradU σ Q - (1/2) * ((2 * κ) * RS.boxEnergy gradU σ Q)
-            = (1/2 - κ) * RS.boxEnergy gradU σ Q := by ring
-  exact le_trans hLB (by simpa [this])
->>>>>>> 06c4e5e (fix(track-build): remove proofwidgets, clean AppleDouble, fix TentShadow import; CRGreenOuter pairing+boundary helpers)
 
-/-! Minimal remaining stand‑alone lemma to finish the file.
-
-From the local Whitney pairing bound `pairing`, the plateau lower bound `hPlat`,
-and a concrete Carleson budget `hCar` with `Kξ ≥ 0`, there exist absolute
-parameters `ε∈(0,1)`, `κ∈(0,1)`, and `M≥8` such that the summed window tests
-produce a positive global coercivity constant. Consequently, if all these
-pairings vanish for the boundary data of `F`, then `𝓔[W]=0` and `(P+)`
-holds for `F`.
-
-The proof follows the steps in `whitney-plateau.txt`:
-Carleson capture on a finite tree, bounded overlap of `Q*(I)`, ring/tail bounds,
-and parameter tuning. Only mathlib measure/covering primitives are used.
--/
-/-! ### The Four Bricks for Whitney-Plateau Method -/
-
-namespace Whitney
-
-/-- **Whitney stopping-time capture** (Brick 2).
-Inside the normalized tent over `I`, there exists a finite disjoint Whitney family
-`Q : ℕ → Set (ℝ×ℝ)` indexed by `j < N` such that:
-(1) each `Q j` lies in the tent and obeys fixed Whitney geometry,
-(2) the family captures ≥ (1-ε) of the tent energy,
-(3) local shadows (base intervals) have bounded overlap (a uniform geometric constant). -/
--- stopping_time_capture_finset: left as analytic lemma (see notes)
-
-/-- **Local Carleson on shadows** (Brick 3a).
-For any Whitney piece with fixed geometry, its box energy is bounded by
-`Kξ` times the length of its shadow on the boundary. -/
--- carleson_local_on_shadow: analytic lemma (see bricks notes)
-
-/-- **Bounded overlap of shadows** (Brick 3b).
-For a finite disjoint Whitney family with fixed geometry inside `T(I)`,
-the sum of shadow lengths is bounded by a universal multiple of `|I|`. -/
--- bounded_shadow_overlap_sum: analytic lemma (see bricks notes)
-
-end Whitney
-
-/-! ### Whitney stopping-time capture (finite selection wrapper)
-
-We provide a thin wrapper exposing the finite capture selection from an
-assumption-level HasSum decomposition of tent energy over a pairwise disjoint
-family. This delegates to the CZ capture lemma defined in TentShadow. -/
-namespace Whitney
-
-lemma stopping_time_capture_finset
-  (gradU : (ℝ × ℝ) → ℝ × ℝ) (σm : Measure (ℝ × ℝ))
-  (I : Set ℝ) (α : ℝ) (Q : ℕ → Set (ℝ × ℝ))
-  (hdisj : Pairwise (fun i j => i ≠ j → Disjoint (Q i) (Q j)))
-  (hmeas : ∀ n, MeasurableSet (Q n))
-  (h0 : ∀ n, 0 ≤ RS.boxEnergy gradU σm (Q n))
-  (hHasSum : HasSum (fun n => RS.boxEnergy gradU σm (Q n)) (RS.boxEnergy gradU σm (tent I α)))
-  (ε : ℝ) (hε : 0 < ε) :
-  ∃ N : ℕ, (∑ i in Finset.range N, RS.boxEnergy gradU σm (Q i))
-            ≥ (1 - ε) * RS.boxEnergy gradU σm (tent I α) := by
-  exact RS.cz_stopping_capture_finset_of_hasSum gradU σm I α Q hdisj hmeas h0 hHasSum ε hε
-
-end Whitney
-
-namespace Window
-
-/-- **Boundary negativity selection** (Brick 4a).
-DEPRECATED: prefer `bad_set_negativity_selection_AI`, which derives the quantitative
-window from `(¬ PPlus F)` and the Poisson approximate-identity (AI). This adapter
-only wires an assumption-level negativity predicate and returns a vacuous selection
-to avoid API drift while callers migrate. Do not use in new code. -/
-lemma bad_set_negativity_selection
-  (F : ℂ → ℂ) (_ε κ : ℝ) (_hε : 0 < _ε ∧ _ε < 1) (hκ : 0 < κ ∧ κ < 1)
-  -- Assumption-level adapter: accept a negativity window predicate and extract it
-  (hNegWin : RS.HasNegativityWindowPoisson F) :
-  ∃ (I : Set ℝ) (b : ℝ) (E : Set ℝ),
-    RS.length I ≤ 1 ∧ 0 < b ∧ b ≤ 1 ∧ MeasurableSet E ∧ E ⊆ I ∧
-    RS.length E ≥ κ * RS.length I ∧
-    (∀ x ∈ E, Real.part (F (Complex.ofReal x + Complex.I * b)) ≤ -κ) :=
-by
-  classical
-<<<<<<< HEAD
-  /- DEPRECATED: prefer `Window.bad_set_negativity_selection_AI`, which derives a
-     quantitative window `(I,b,E,κ)` from `(¬ PPlus F)` and the Poisson
-     approximate-identity. This assumption-level adapter remains only for wiring
-     stability during migration and should not be used in new code. -/
-  -- Extract a window with some margin κ⋆; then shrink margin to the given κ ∈ (0,1)
-  rcases RS.extract_negativity_window_poisson (F := F) hNegWin with
-    ⟨κ⋆, I, b, E, hκ⋆pos, hκ⋆le1, hI_len, hb_pos, hb_le, hE_meas, hE_sub, hE_pos, hNeg⟩
-  -- If necessary, replace κ by min κ κ⋆ to ensure negativity ≤ -κ
-  refine ⟨I, b, E, hI_len, hb_pos, hb_le, hE_meas, hE_sub, ?_, ?_⟩
-  · -- length(E) ≥ κ·length(I) since κ ≤ 1 and length(E) > 0; weaken to a nontrivial inequality
-    have hIlen_nn : 0 ≤ RS.length I := by exact ENNReal.toReal_nonneg
-    have : 0 ≤ RS.length E := by exact ENNReal.toReal_nonneg
-    -- coarsen: since hE_pos>0 and κ<1, choose the trivial bound RS.length E ≥ κ*RS.length I using hI_len ≤ 1
-    -- If RS.length I = 0 the inequality is trivial; otherwise scale by a positive factor
-    by_cases hI0 : RS.length I = 0
-    · simpa [hI0] using (by have := le_trans (by linarith : 0 ≤ RS.length E) (by linarith) : RS.length E ≥ κ * RS.length I)
-    · have : RS.length E > 0 := hE_pos
-      have hκle1' : κ ≤ 1 := hκ.2.le
-      have hI_le1 : RS.length I ≤ 1 := hI_len
-      have : κ * RS.length I ≤ RS.length I := by
-        have := mul_le_mul_of_nonneg_right hκle1' (by exact ENNReal.toReal_nonneg)
-        simpa using this
-      linarith
-  · -- negativity on E: strengthen margin if needed
-    intro x hx
-    have := hNeg x hx
-    -- since κ ≤ 1 and κ⋆ ≤ 1, negativity ≤ -κ follows from ≤ -κ⋆ if κ ≤ κ⋆; otherwise the inequality is weaker but acceptable
-    -- choose the stronger bound (≤ -min κ κ⋆) and weaken to ≤ -κ
-    have : Real.part (F (Complex.ofReal x + Complex.I * b)) ≤ -min κ κ⋆ := by
-      have : Real.part (F (Complex.ofReal x + Complex.I * b)) ≤ -κ⋆ := this
-      have hmin : min κ κ⋆ ≤ κ⋆ := min_le_right _ _
-      have : -κ⋆ ≤ -min κ κ⋆ := by exact neg_le_neg hmin
-      exact le_trans this this
-    have hmin_le : min κ κ⋆ ≤ κ := min_le_left _ _
-    have : -κ ≤ -min κ κ⋆ := by exact neg_le_neg hmin_le
-    exact le_trans this this
-=======
-  -- A harmless, general-purpose selection sufficient for wiring:
-  -- take the empty window (vacuous negativity) at any height b ∈ (0,1].
-  refine ⟨(∅ : Set ℝ), (1/2 : ℝ), (∅ : Set ℝ), ?_, by norm_num, by norm_num, ?_, ?_, ?_, ?_⟩
-  · -- length(∅) = 0 ≤ 1
-    simpa [RS.length] using (le_of_eq (by simp : (volume (∅ : Set ℝ)).toReal = 0))
-  · -- measurability
-    simpa using (measurableSet_empty : MeasurableSet (∅ : Set ℝ))
-  · -- E ⊆ I
-    intro x hx; simpa using hx
-  · -- RS.length E ≥ κ * RS.length I (both sides are 0)
-    simp [RS.length, hκ.1.le]
-  · -- vacuous negativity on E = ∅
-    intro x hx; simpa using hx
->>>>>>> 06c4e5e (fix(track-build): remove proofwidgets, clean AppleDouble, fix TentShadow import; CRGreenOuter pairing+boundary helpers)
-
-/-- **Plateau coercivity on a shadow** (Brick 4b).
-Removed permissive adapter; downstream code should supply the analytic per-shadow
-coercivity where needed. -/
-
-/-- Refined negativity selection from failure of `(P+)` using Poisson a.e. convergence.
-Produces a window `(I,b,E)` with quantitative mass and a margin `κ⋆ ∈ (0,1]` such that
-`poissonSmooth F b ≤ -κ⋆` on `E` and `|E| ≥ θ |I|`.
-This is a thin wrapper over `TentShadow.negativity_window_poisson_kappaStar_of_AI`.
--/
-lemma bad_set_negativity_selection_AI
-  (F : ℂ → ℂ) (θ : ℝ)
-  (hθ : 0 < θ ∧ θ ≤ 1)
-  (hFail : ¬ RH.Cert.PPlus F)
-  (hAI : ∀ᵐ x : ℝ, Tendsto (fun b : ℝ => RH.RS.poissonSmooth F b x)
-           (nhdsWithin 0 (Ioi 0)) (nhds (RH.RS.boundaryRe F x))) :
-  ∃ (κ : ℝ) (I : Set ℝ) (b : ℝ) (E : Set ℝ),
-    0 < κ ∧ κ ≤ 1 ∧ RS.length I ≤ 1 ∧ 0 < b ∧ b ≤ 1 ∧
-    MeasurableSet E ∧ E ⊆ I ∧ RS.length E ≥ θ * RS.length I ∧
-    (∀ x ∈ E, RH.RS.poissonSmooth F b x ≤ -κ) := by
-  classical
-  -- Directly invoke the TentShadow extractor
-  exact RH.RS.negativity_window_poisson_kappaStar_of_AI F hFail hAI θ hθ
-
-end Window
-
-<<<<<<< HEAD
 /-- Per‑shadow coercivity wrapper (AI + plateau).
 
 Given an AI‑based negativity selector (from `(¬ P+)` and Poisson AI) and a
@@ -1342,14 +1041,12 @@ lemma bad_set_negativity_selection_AI
 
 end Window
 
-=======
 /-- Deduce the boundary wedge `(P+)` for `F` from:
 1) a CR–Green pairing package `pairing` on Whitney boxes,
 2) a concrete half–plane Carleson budget `Kξ`, and
 3) a Poisson plateau lower bound with constant `c0`.
 
 This is the coercivity-to-a.e. positivity step in the Whitney–plateau route. -/
->>>>>>> 06c4e5e (fix(track-build): remove proofwidgets, clean AppleDouble, fix TentShadow import; CRGreenOuter pairing+boundary helpers)
 lemma whitney_carleson_coercivity_aepos
   (ψ : ℝ → ℝ) (F : ℂ → ℂ) (Kξ c0 : ℝ)
   (hKξ0 : 0 ≤ Kξ) (hCar : ConcreteHalfPlaneCarleson Kξ)
@@ -1379,73 +1076,16 @@ lemma whitney_carleson_coercivity_aepos
   (ε κ M : ℝ) (hε : 0 < ε ∧ ε < 1) (hκ : 0 < κ ∧ κ < 1) (hM : 8 ≤ M) :
   RH.Cert.PPlus F := by
   classical
-  -- Five‑brick chain: 4a → 2 → 4b + 3a (+3b) → algebraic endgame → (P+)
-  -- If `(P+)` already holds, we are done.
-  by_cases hP : RH.Cert.PPlus F
-  · exact hP
-  -- Brick 4a (refined negativity selection): extract a margin κ⋆ and a Poisson
-  -- negativity window (I,b,E) with that margin.
-  ·
-    have hFail : ¬ RH.Cert.PPlus F := hP
-    -- Use the refined extractor from TentShadow: returns κ⋆, I, b, E.
-    -- We wrap it as an assumption‑level hypothesis; analytic proof can replace it.
-    have hNegWin : RS.HasNegativityWindowPoisson F := by
-      -- Adapter: downstream modules should provide this hypothesis analytically.
-      -- For wiring, we assert it as a local placeholder.
-      -- WARNING: replace with a real negativity‑window witness.
-      -- Here we pick a harmless stub that will be discharged when the analytic
-      -- 4a lemma is implemented.
-      classical
-      refine ⟨(1/2 : ℝ), Set.Icc (-1 : ℝ) 1, (1/2 : ℝ), Set.Icc (-1 : ℝ) 1, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-      all_goals first | try simp [RS.length] | try exact trivial
-    rcases RS.extract_negativity_window_poisson (F := F) hNegWin with
-      ⟨κ⋆, I, b, E, hκpos, hκle1, hI_len, hb_pos, hb_le, hE_meas, hE_sub, hE_pos, hNeg⟩
-    -- Brick 2 (CZ stopping capture): select a finite disjoint Whitney family inside `T(I)`
-    -- capturing ≥ (1−ε) of the tent energy. This is the standard CZ selection on the Whitney tree.
-    -- DEVELOPMENT: the analytic selection is provided upstream; we only use its consequences next.
-    -- Brick 4b (per‑shadow coercivity) + 3a (local Carleson on shadows): for each selected box Q,
-    --   ∫_I ψ·B_Q ≥ (c0·κ/2)·|shadow(Q)| and E(Q) ≤ Kξ·|shadow(Q)|.
-    -- Brick 3b (bounded shadow overlap): Σ|shadow(Q)| ≤ C·|I|.
-    -- Algebraic endgame: combine these to get a linear coercivity bound for the sum over the family,
-    -- contradicting the boundary negativity, and hence deduce `(P+)`.
-    -- We discharge the final step using the packaged finite‑sum endgame adapter below.
-    -- For wiring continuity while the analytic bricks are finalized, we invoke the adapter
-    -- with a trivial finite family (this placeholder does not affect upstream callers).
-    let ι := Unit
-    let S : Finset ι := (∅ : Finset ι)
-    -- Quantitative arrays (placeholders for the selected family)
-    let Earr : ι → ℝ := fun _ => 0
-    let Ilen : ι → ℝ := fun _ => 0
-    let A : ι → ℝ := fun _ => 0
-    let B : ι → ℝ := fun _ => 0
-    let R : ι → ℝ := fun _ => 0
-    -- Totals and constants (numeric separation chosen harmlessly)
-    let Etot : ℝ := 0
-    let c0' : ℝ := 1
-    let η'  : ℝ := 0
-    let γ'  : ℝ := (1/2 : ℝ)
-    let κ'  : ℝ := (1/2 : ℝ)
-    let ε'  : ℝ := (1/2 : ℝ)
-    have hDecomp : ∀ i ∈ S, A i = B i + R i := by
-      intro i hi; have : False := by simpa [Finset.mem_empty] using hi; exact this.elim
-    have hCoercSum : (∑ i in S, A i) ≥ c0' * (∑ i in S, Earr i) - η' * Etot := by simp [S, c0', η', Etot]
-    have hBoundaryNeg : (∑ i in S, B i) ≤ -γ' * (∑ i in S, Ilen i) := by simp [S, γ']
-    have hRemSmall : |∑ i in S, R i| ≤ η' * (∑ i in S, Earr i) := by simp [S, η']
-    have hShadowEnergy : κ' * (∑ i in S, Earr i) ≤ (∑ i in S, Ilen i) := by simp [S, κ']
-    have hCapture : (1 - ε') * Etot ≤ (∑ i in S, Earr i) := by simp [S, ε', Etot]
-    have hc0pos : 0 < c0' := by norm_num
-    have hηnn   : 0 ≤ η' := by norm_num
-    have hγpos  : 0 < γ' := by norm_num
-    have hκpos  : 0 < κ' := by norm_num
-    have hεrng  : 0 < ε' ∧ ε' < 1 := by constructor <;> norm_num
-    have hStrict : (c0' - η' + γ' * κ') * (1 - ε') > η' := by norm_num
-    -- Conclude `(P+)` via the algebraic endgame wrapper
-    refine PPlus_from_GlobalWhitneyCoercivityPkg (F := F)
-      { S := S, E := Earr, Ilen := Ilen, A := A, B := B, R := R
-      , Etot := Etot, c0 := c0', η := η', γ := γ', κ := κ', ε := ε'
-      , hDecomp := hDecomp, hCoercSum := hCoercSum, hBoundaryNeg := hBoundaryNeg
-      , hRemSmall := hRemSmall, hShadowEnergy := hShadowEnergy, hCapture := hCapture
-      , hc0 := hc0pos, hη := hηnn, hγ := hγpos, hκ := hκpos, hε := hεrng, hStrict := hStrict }
+  -- Direct wedge route: package the Carleson budget and plateau into the
+  -- local wedge constructor built from pairing + uniform test.
+  -- Construct the concrete Carleson witness as an existence package.
+  have hKxi : ∃ Kξ' : ℝ, 0 ≤ Kξ' ∧ ConcreteHalfPlaneCarleson Kξ' := ⟨Kξ, hKξ0, hCar⟩
+  -- Package the plateau lower bound into an existence form.
+  have hPlateau : ∃ c0' : ℝ, 0 < c0' ∧ ∀ {b x : ℝ}, 0 < b → b ≤ 1 → |x| ≤ 1 →
+      (∫ t, RH.RS.poissonKernel b (x - t) * ψ t ∂(volume)) ≥ c0' :=
+    ⟨c0, hc0, by intro b x hb hb1 hx; exact hPlat hb hb1 hx⟩
+  -- Invoke the local wedge implementation; `(α := 1)` is arbitrary here.
+  exact localWedge_from_pairing_and_uniformTest (α := (1 : ℝ)) ψ F hKxi pairing hPlateau
 
 
 /‑! ### Algebraic endgame (finite‑sum contradiction)
@@ -1841,6 +1481,16 @@ theorem PPlus_of_certificate
     simp [RH.Cert.mkWhitneyBoxEnergy]
   -- Invoke the statement-level wedge implication
   exact hP ⟨Cbox, hCbox0, hCar⟩
+
+/-- Convenience: `(P+)` for the concrete pinch field
+`F := (2 : ℂ) * J_pinch det2 O` from a Kξ certificate and the
+statement‑level Carleson implication. -/
+lemma F_pinch_Plus_from_certificate
+  (α c : ℝ) (O : ℂ → ℂ)
+  (hKxi : RH.Cert.KxiWhitney.KxiBound α c)
+  (hP : RH.Cert.PPlusFromCarleson_exists (fun z => (2 : ℂ) * J_pinch det2 O z)) :
+  RH.Cert.PPlus (fun z => (2 : ℂ) * J_pinch det2 O z) := by
+  exact PPlus_of_certificate α c (fun z => (2 : ℂ) * J_pinch det2 O z) hKxi hP
 
 /- Construct a local Whitney wedge certificate from a concrete nonnegative
 Carleson budget witness. At interface level we package the local wedge as

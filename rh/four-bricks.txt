@@ -1,0 +1,285 @@
+﻿Below is a drop‑in Lean module with crisp, ready‑to‑use lemma statements for the four bricks and a fully proved algebraic core (including a clean “energy minus tail” assembly helper). The geometry/measure bricks remain as admit with precise instructions; the algebraic lemmas are fully proved so you can hand the file to an external prover or fill in the geometric parts yourself.
+/-
+rh/RS/WhitneyPlateauBricks.lean
+
+
+Purpose:
+  Provide the missing analytic/geometry bricks for the Whitney–plateau closure.
+  These are the only real proofs still needed to make (P+) unconditional.
+
+
+Guidelines:
+  • Keep dependencies to mathlib + existing RS modules; avoid cycles.
+  • Brick 3a/3b/4a/4b are geometry/measure-theoretic and depend on your RS API.
+    They are stated crisply; fill their `admit` using your existing definitions.
+  • The algebraic lemmas in RS.Summation are fully proved and ready to use.
+-/
+import Mathlib.Data.Real.Basic
+import Mathlib.Algebra.BigOperators.Basic
+import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+import Mathlib.MeasureTheory.Integral.SetIntegral
+import Mathlib.Topology.Algebra.InfiniteSum
+import rh.Cert.KxiPPlus
+import rh.RS.CRGreenOuter
+import rh.RS.PoissonPlateau
+
+
+noncomputable section
+open Classical
+open MeasureTheory
+open scoped BigOperators MeasureTheory
+
+
+namespace RH
+namespace RS
+
+
+/-! ## Whitney geometry hooks
+
+
+These three are placeholders for your **concrete** Whitney geometry API. If you
+already have them, delete the placeholders and bind the lemmas below to your real
+definitions.
+-/
+
+
+variable (shadowLen : Set (ℝ × ℝ) → ℝ)
+variable (inTentOver : Set ℝ → Set (ℝ × ℝ) → Prop)
+variable (fixedGeom : Set (ℝ × ℝ) → Prop)
+
+
+/-! ## Brick 3a: Local Carleson on a Whitney piece (shadow-level)
+
+
+From the concrete half-plane Carleson budget, show the box energy over `Q` is
+bounded linearly by the length of its shadow. This lemma is the local bridge
+from geometry to numerics.
+-/
+lemma Whitney.carleson_local_on_shadow
+  (Kξ : ℝ) (hCar : RH.Cert.ConcreteHalfPlaneCarleson Kξ)
+  (gradU : (ℝ × ℝ) → ℝ × ℝ) (σ : Measure (ℝ × ℝ))
+  (Q : Set (ℝ × ℝ))
+  (hgeom : fixedGeom Q)
+  : RS.boxEnergy gradU σ Q ≤ Kξ * shadowLen Q := by
+  /- TODO:
+     Apply your concrete Carleson condition to the Carleson box above the shadow.
+     Use `fixedGeom Q` to identify that box and compare `RS.boxEnergy` with the
+     canonical energy in that box. Conclude the claimed linear bound. -/
+  admit
+
+
+/-! ## Brick 3b: Bounded shadow overlap
+
+
+For a finite disjoint Whitney family in the tent over `I`, the sum of shadow
+lengths is ≤ C⋅|I| for a universal geometric constant `RS.Whitney.shadowOverlapConst`.
+-/
+lemma Whitney.bounded_shadow_overlap_sum
+  (I : Set ℝ) (N : ℕ) (Q : ℕ → Set (ℝ × ℝ))
+  (hdisj :
+    ∀ {j k}, j < N → k < N → j ≠ k → Disjoint (Q j) (Q k))
+  (hgeom :
+    ∀ {j}, j < N → inTentOver I (Q j) ∧ fixedGeom (Q j))
+  : (∑ j in Finset.range N, shadowLen (Q j))
+    ≤ RS.Whitney.shadowOverlapConst * RS.length I := by
+  /- TODO:
+     Standard Whitney packing/overlap estimate in your tent geometry:
+     push each `Q j` vertically to the boundary, use fixed eccentricity and
+     disjointness to bound overlaps of shadows; finish by comparing with `|I|`. -/
+  admit
+
+
+/-! ## Brick 4a: Bad-set ⇒ boundary negativity selection (density window)
+
+
+From the failure of (P+), produce a window `I ⊂ [-1,1]`, a height `b∈(0,1]`,
+and a measurable set `E ⊂ I` with |E| ≥ κ|I| such that interior values satisfy
+a uniform negativity margin on `E`.
+-/
+lemma Window.bad_set_negativity_selection
+  (F : ℂ → ℂ) (κ : ℝ)
+  (hκ : 0 < κ ∧ κ < 1)
+  (hFail : ¬ RH.Cert.PPlus F) :
+  ∃ (I : Set ℝ) (b : ℝ) (E : Set ℝ),
+    RS.length I ≤ 1 ∧ 0 < b ∧ b ≤ 1 ∧
+    MeasurableSet E ∧ E ⊆ I ∧
+    RS.length E ≥ κ * RS.length I ∧
+    (∀ x ∈ E, (F (Complex.mk (1/2 + b) x)).re ≤ -κ) := by
+  /- TODO:
+     Run the Lebesgue differentiation/density argument on the boundary negative set
+     associated to failure of (P+). Normalize to |I|≤1 and 0<b≤1 by scaling
+     inside the half-plane. -/
+  admit
+
+
+/-! ## Brick 4b: Plateau coercivity per shadow (CR–Green + plateau)
+
+
+Given a Whitney piece `Q` whose shadow lies in `I`, and a plateau profile `ψ`
+with `c0>0`, the CR–Green boundary functional `∫_I ψ · B_Q` admits a uniform
+lower bound ≥ (c0 κ / 2) · |shadow(Q)| using interior plateau and boundary
+negativity on `E`.
+-/
+lemma Window.coercivity_from_plateau_on_shadow
+  (ψ : ℝ → ℝ) (F : ℂ → ℂ) (c0 κ : ℝ)
+  (hc0 : 0 < c0) (hκ : 0 < κ ∧ κ < 1)
+  (hPlat :
+    ∀ {b x}, 0 < b → b ≤ 1 → |x| ≤ 1 →
+      (∫ t, RH.RS.poissonKernel b (x - t) * ψ t ∂(volume)) ≥ c0)
+  {I : Set ℝ} {b : ℝ} {E : Set ℝ}
+  (hNeg : ∀ x ∈ E, (F (Complex.mk (1/2 + b) x)).re ≤ -κ)
+  (hEI : E ⊆ I)
+  -- Boundary functional from the CR–Green package for Q:
+  (B : Set (ℝ × ℝ) → ℝ → ℝ)
+  (shadow : Set (ℝ × ℝ) → Set ℝ)
+  (Q : Set (ℝ × ℝ)) (hgeom : fixedGeom Q) (hShadowI : shadow Q ⊆ I)
+  : (∫ t in I, ψ t * (B Q) t)
+      ≥ (c0 * κ / 2) * RS.length (shadow Q) := by
+  /- TODO:
+     Instantiate `CRGreenOuter` on `Q` with cutoff χ supported in `Q` and the ψ-vector
+     test. Use hPlat in the interior (0<b≤1, |x|≤1) and hNeg on E∩shadow(Q).
+     Control side/top terms by support (vanish), and absorb transition-annulus
+     losses into the factor 1/2 via the fixed Whitney geometry. -/
+  admit
+
+
+/-! ## Brick 2: Finite Whitney stopping capture (energy)
+
+
+Select a finite disjoint Whitney family `{Q j}_{j<N}` inside the tent over `I`
+whose captured energy sum is ≥ (1−ε) times the tent energy over `I`.
+-/
+lemma Whitney.stopping_time_capture_finset
+  (I : Set ℝ) (ε : ℝ) (hε : 0 < ε ∧ ε < 1)
+  (gradU : (ℝ × ℝ) → ℝ × ℝ) (σ : Measure (ℝ × ℝ))
+  : ∃ (N : ℕ) (Q : ℕ → Set (ℝ × ℝ)),
+      (∀ {j k}, j < N → k < N → j ≠ k → Disjoint (Q j) (Q k)) ∧
+      (∀ {j}, j < N → inTentOver I (Q j) ∧ fixedGeom (Q j)) ∧
+      (∑ j in Finset.range N, RS.boxEnergy gradU σ (Q j))
+        ≥ (1 - ε) * RS.tentEnergy gradU σ I := by
+  /- TODO:
+     Run a Calderón–Zygmund stopping-time on the Whitney tree in T(I) keyed to
+     energy density, truncate to a finite subtree capturing ≥(1−ε) of tent energy.
+     Disjointness and fixed geometry come from the construction. -/
+  admit
+
+
+/-! ## Algebraic core: global coercivity from per-piece facts
+
+
+These lemmas are **fully proved** and independent of geometry. They’re the
+“engine” that turns pointwise (per‑piece) lower bounds into global ones.
+-/
+namespace Summation
+
+
+/-- Global coercivity (multiplicative form).
+If for each `j∈J` we have `A j ≥ c₁·ℓ j` and `E j ≤ Kξ·ℓ j` with `c₁,Kξ≥0`,
+then `Kξ * (∑ A) ≥ c₁ * (∑ E)`. -/
+lemma global_coercivity_sum_linear_in_energy_mul
+  {ι : Type*} (J : Finset ι)
+  (A ℓ E : ι → ℝ) (c₁ Kξ : ℝ)
+  (hℓ_nonneg : ∀ j ∈ J, 0 ≤ ℓ j)
+  (hE_nonneg : ∀ j ∈ J, 0 ≤ E j)
+  (hCoerc_local : ∀ j ∈ J, A j ≥ c₁ * ℓ j)
+  (hCar_local   : ∀ j ∈ J, E j ≤ Kξ * ℓ j)
+  (hc₁_nonneg : 0 ≤ c₁) (hKξ_nonneg : 0 ≤ Kξ) :
+  Kξ * (∑ j in J, A j) ≥ c₁ * (∑ j in J, E j) := by
+  classical
+  -- Pointwise: Kξ·A j ≥ c₁·E j
+  have h_each : ∀ j ∈ J, Kξ * A j ≥ c₁ * E j := by
+    intro j hj
+    have h1 := hCoerc_local j hj        -- A j ≥ c₁·ℓ j
+    have h2 := hCar_local   j hj        -- E j ≤ Kξ·ℓ j
+    have h3 : Kξ * A j ≥ c₁ * (Kξ * ℓ j) :=
+      (mul_le_mul_of_nonneg_left h1 hKξ_nonneg)
+    have h4 : c₁ * E j ≤ c₁ * (Kξ * ℓ j) :=
+      (mul_le_mul_of_nonneg_left h2 hc₁_nonneg)
+    exact le_trans h4 h3
+  -- Sum and rewrite constants outside the sums
+  have hsum : (∑ j in J, Kξ * A j) ≥ (∑ j in J, c₁ * E j) :=
+    Finset.sum_le_sum h_each
+  have hL : Kξ * (∑ j in J, A j) = (∑ j in J, Kξ * A j) := by
+    simpa [Finset.mul_sum]   -- (Kξ) * Σ A = Σ (Kξ * A)
+  have hR : c₁ * (∑ j in J, E j) = (∑ j in J, c₁ * E j) := by
+    simpa [Finset.mul_sum]   -- (c₁) * Σ E = Σ (c₁ * E)
+  simpa [hL, hR] using hsum
+
+
+/-- Global coercivity (divided form).
+If `Kξ>0`, then `∑ A ≥ (c₁/Kξ) * ∑ E`. -/
+lemma global_coercivity_sum_linear_in_energy
+  {ι : Type*} (J : Finset ι)
+  (A ℓ E : ι → ℝ) (c₁ Kξ : ℝ)
+  (hℓ_nonneg : ∀ j ∈ J, 0 ≤ ℓ j)
+  (hE_nonneg : ∀ j ∈ J, 0 ≤ E j)
+  (hCoerc_local : ∀ j ∈ J, A j ≥ c₁ * ℓ j)
+  (hCar_local   : ∀ j ∈ J, E j ≤ Kξ * ℓ j)
+  (hc₁_nonneg : 0 ≤ c₁) (hKξ_pos : 0 < Kξ) :
+  (∑ j in J, A j) ≥ (c₁ / Kξ) * (∑ j in J, E j) := by
+  classical
+  have base :=
+    global_coercivity_sum_linear_in_energy_mul J A ℓ E c₁ Kξ
+      hℓ_nonneg hE_nonneg hCoerc_local hCar_local
+      hc₁_nonneg (le_of_lt hKξ_pos)
+  -- divide both sides by Kξ (>0)
+  have : (1 / Kξ) * (Kξ * (∑ j in J, A j))
+            ≥ (1 / Kξ) * (c₁ * (∑ j in J, E j)) :=
+    (mul_le_mul_of_nonneg_left base (by positivity))
+  -- simplify
+  have hK : (1 : ℝ) / Kξ * Kξ = 1 := by field_simp [hKξ_pos.ne']
+  simpa [one_div, hK, mul_comm, mul_left_comm, mul_assoc, div_mul_eq_mul_div,
+        mul_div_cancel' _ hKξ_pos.ne'] using this
+
+
+/-- Global coercivity with a tail slack.
+If per-piece lower bounds give `A j ≥ c₀·E j` (with `c₀≥0`), then for any tail
+parameter `η≥0` and any `E_tot≥0` we have
+`∑ A ≥ c₀ ∑ E - η E_tot`. This is handy to incorporate capture/transition
+losses compactly on the right-hand side. -/
+lemma global_coercivity_energy_minus_tail
+  {ι : Type*} (J : Finset ι)
+  (A E : ι → ℝ) (c₀ η E_tot : ℝ)
+  (hA_local : ∀ j ∈ J, A j ≥ c₀ * E j)
+  (hE_nonneg : ∀ j ∈ J, 0 ≤ E j)
+  (hc₀_nonneg : 0 ≤ c₀)
+  (hη_nonneg : 0 ≤ η)
+  (hEtot_nonneg : 0 ≤ E_tot) :
+  (∑ j in J, A j) ≥ c₀ * (∑ j in J, E j) - η * E_tot := by
+  classical
+  -- First: Σ A ≥ c₀ Σ E
+  have h_each : ∀ j ∈ J, A j ≥ c₀ * E j := hA_local
+  have hsum : (∑ j in J, A j) ≥ (∑ j in J, c₀ * E j) :=
+    Finset.sum_le_sum h_each
+  have hΣc₀E : (∑ j in J, c₀ * E j) = c₀ * (∑ j in J, E j) := by
+    simpa [Finset.mul_sum]
+  have base : (∑ j in J, A j) ≥ c₀ * (∑ j in J, E j) := by
+    simpa [hΣc₀E] using hsum
+  -- Then: subtract a nonnegative slack on RHS
+  have slack_nonpos : -η * E_tot ≤ 0 := by
+    have : 0 ≤ η * E_tot := mul_nonneg hη_nonneg hEtot_nonneg
+    simpa [neg_mul] using (neg_nonpos.mpr this)
+  have : c₀ * (∑ j in J, E j) - η * E_tot ≤ c₀ * (∑ j in J, E j) := by
+    exact sub_le_self _ (mul_nonneg hη_nonneg hEtot_nonneg)
+  exact le_trans this base
+
+
+end Summation
+
+
+end RS
+end RH
+
+
+Notes to whoever completes the geometric admits:
+* Brick 3a: Apply your ConcreteHalfPlaneCarleson directly to the Carleson box with base shadow(Q). fixedGeom Q should identify that box and relate RS.boxEnergy to the standard integral over it.
+
+* Brick 3b: Use standard Whitney packing in a tent: disjoint boxes with fixed eccentricity have shadows with bounded overlap, giving Σ shadowLen(Q) ≤ C |I|.
+
+* Brick 4a: Run the density-point argument from ¬(P+) to select I, b, E with |E| ≥ κ |I| and interior negativity at height b. Normalize so |I| ≤ 1, 0 < b ≤ 1.
+
+* Brick 4b: Specialize your CR–Green identity on Q. Side/top vanish by support of χ. Use plateau (PoissonPlateau) in the interior and the negativity on E∩shadow(Q) to produce a uniform shadow lower bound, absorbing transition-annulus losses into the 1/2.
+
+Once these are filled, you can assemble the final global inequality exactly in the form you stated:
+∑Q∈S∬Qδ ∇W⋅∇(χVψ) ≥ c0∑Q∈SE(Q)  −  η Etot.\sum_{Q\in S} \iint_Q \delta\,\nabla W\cdot\nabla(\chi V_\psi) \ \ge\ c_0\sum_{Q\in S} E(Q) \;-\; \eta\,E_{\rm tot}.
+Use RS.Summation.global_coercivity_energy_minus_tail to finish the algebra cleanly.

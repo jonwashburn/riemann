@@ -672,6 +672,23 @@ def assignXi_from_pinned
   rcases data.hWitness with ⟨z, hzU, hgne⟩
   exact ⟨z, hzU, hgne⟩
 
+/-- Convenience specialization: assignment builder at `ξ_ext` zeros from pinned data. -/
+def assignXi_ext_from_pinned {Θ : ℂ → ℂ}
+  (choose : ∀ ρ, ρ ∈ Ω → RH.AcademicFramework.CompletedXi.riemannXi_ext ρ = 0 →
+    ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
+      (U ∩ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
+      AnalyticOn ℂ Θ (U \ {ρ}) ∧
+      ∃ u : ℂ → ℂ,
+        EqOn Θ (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) ∧
+        Tendsto u (nhdsWithin ρ (U \ {ρ})) (nhds (0 : ℂ)) ∧
+        ∃ z, z ∈ U ∧ z ≠ ρ ∧ Θ z ≠ 1)
+  : ∀ ρ, ρ ∈ Ω → RH.AcademicFramework.CompletedXi.riemannXi_ext ρ = 0 →
+    ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
+      (U ∩ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
+      ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧ AnalyticOn ℂ Θ (U \ {ρ}) ∧
+        EqOn Θ g (U \ {ρ}) ∧ g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1 :=
+  assignXi_from_pinned (riemannXi := RH.AcademicFramework.CompletedXi.riemannXi_ext) (Θ := Θ) choose
+
 end OffZeros
 
 end RS

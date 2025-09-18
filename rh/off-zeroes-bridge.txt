@@ -1,0 +1,193 @@
+﻿/-
+  RS off-zeros ζ→Schur bridge: explicit Θ,N from J := det₂/(O·ξ),
+  Θ := (2J - 1)/(2J + 1),  N := Θ·G/ξ, all on Ω := { z : ℂ | 1/2 < z.re }.
+  Non-circular: equalities/analyticity are stated on Ω \ Z(ξ) or Ω \ Z(ζ).
+-/
+import Mathlib.Analysis.Complex.CauchyIntegral
+import Mathlib/MeasureTheory/Function/Complex
+import Mathlib/Topology/Algebra/Analytic
+import Mathlib/Analysis/Complex/RemovableSingularity
+import Mathlib/Topology/Algebra/UniformFilterBasis
+
+
+open scoped Classical
+open Complex Filter Set
+
+
+namespace RS
+
+
+/-- Half-plane Ω := {Re > 1/2}. -/
+def Ω : Set ℂ := {z : ℂ | (1/2 : ℝ) < z.re}
+
+
+/-- Zero set of a function on ℂ. -/
+def Z (f : ℂ → ℂ) : Set ℂ := {z | f z = 0}
+
+
+/-- Schur on a set: analytic + |Θ| ≤ 1 pointwise. -/
+structure IsSchurOn (Θ : ℂ → ℂ) (Ω : Set ℂ) : Prop :=
+  (analytic : AnalyticOn ℂ Θ Ω)
+  (bound    : ∀ z ∈ Ω, ‖Θ z‖ ≤ 1)
+
+
+@[simp] lemma mem_Ω_iff {z : ℂ} : z ∈ Ω ↔ (1/2 : ℝ) < z.re := Iff.rfl
+
+
+/-- Off-zeros Zeta–Schur bridge on Ω, free of circularity. -/
+structure ZetaSchurDecompositionOffZeros :=
+  (Θ : ℂ → ℂ)
+  (N : ℂ → ℂ)
+  (hΘSchur_off : IsSchurOn Θ (Ω \ Z riemannXi))          -- Schur where ξ≠0
+  (hNanalytic_off : AnalyticOn ℂ N (Ω \ Z riemannXi))    -- N analytic where ξ≠0
+  (hζeq_off : ∀ {z}, z ∈ Ω \ Z riemannZeta → riemannZeta z = Θ z / N z)
+  (hN_nonzero_off : ∀ {z}, z ∈ Ω \ Z riemannZeta → N z ≠ 0)
+  /-- pinned limit at each interior ξ-zero (non-cancellation gives a pole of J): Θ → 1 off zeros. -/
+  (hΘ_lim1_at_ξzero :
+     ∀ {ρ}, ρ ∈ Ω → riemannXi ρ = 0 →
+       Tendsto Θ (nhdsWithin ρ (Ω \ Z riemannXi)) (nhds 1))
+
+
+namespace OffZerosBridge
+
+
+/-! ### Concrete Θ,N from J := det₂/(O·ξ) -/
+
+
+variables
+  (det₂ O G ξ : ℂ → ℂ)
+  (hΩ : IsOpen Ω := by
+    -- standard: {z | a < Re z} is open
+    simpa using (isOpen_lt continuous_const Complex.continuous_re))
+  -- analytic hypotheses on Ω (ξ may vanish; equalities used off Z(ξ))
+  (hdet₂ : AnalyticOn ℂ det₂ Ω)
+  (hO    : AnalyticOn ℂ O Ω) (hO_nonzero : ∀ {z}, z ∈ Ω → O z ≠ 0)
+  (hG    : AnalyticOn ℂ G Ω) (hG_nonzero_offζ : ∀ {z}, z ∈ Ω \ Z riemannZeta → G z ≠ 0)
+  (hξ    : AnalyticOn ℂ ξ Ω)
+  -- ξ = G·ζ on Ω (definition of the completion)
+  (hξ_def : EqOn ξ (fun z => G z * riemannZeta z) Ω)
+  -- J = det₂/(O·ξ) on Ω \ Z(ξ)
+  (hJ_def_off : EqOn (fun z => det₂ z / (O z * ξ z))
+                      (fun z => det₂ z / (O z * ξ z)) (Ω \ Z ξ)) -- (identity, kept for clarity)
+  -- Schur for Cayley of F := 2J on Ω \ Z(ξ), obtained from (P+) + Herglotz + Cayley
+  (hSchur_Θ_off :
+     IsSchurOn (fun z => ((2 * (det₂ z / (O z * ξ z))) - 1) / ((2 * (det₂ z / (O z * ξ z))) + 1))
+               (Ω \ Z ξ))
+  -- Non-cancellation (N2): at interior ξ-zeros ρ, neither det₂ nor O vanish.
+  (hN2_det₂ : ∀ {ρ}, ρ ∈ Ω → ξ ρ = 0 → det₂ ρ ≠ 0)
+  (hN2_O    : ∀ {ρ}, ρ ∈ Ω → ξ ρ = 0 → O ρ ≠ 0)
+
+
+/-- J := det₂/(O·ξ) (defined pointwise; only used off Z(ξ)). -/
+noncomputable def J : ℂ → ℂ := fun z => det₂ z / (O z * ξ z)
+
+
+/-- Θ := (2J−1)/(2J+1) (Cayley of F:=2J). -/
+noncomputable def Θ : ℂ → ℂ := fun z => (2 * J det₂ O ξ z - 1) / (2 * J det₂ O ξ z + 1)
+
+
+/-- N := Θ·G/ξ (only used where ξ≠0). -/
+noncomputable def N : ℂ → ℂ := fun z => (Θ det₂ O ξ z) * G z / ξ z
+
+
+/-- Equality ζ = Θ/N off Z(ζ), given ξ = G·ζ and the definition of N. -/
+lemma zeta_eq_Theta_div_N_off :
+  ∀ {z}, z ∈ Ω \ Z riemannZeta →
+    riemannZeta z = (Θ det₂ O ξ z) / (N det₂ O G ξ z) := by
+  intro z hz
+  rcases hz with ⟨hzΩ, hzζ⟩
+  have hzζ' : riemannZeta z ≠ 0 := by simpa [Z, mem_setOf_eq] using hzζ
+  -- N = Θ·G/ξ; with ξ = G·ζ, we get N = Θ·G/(G·ζ) = Θ/ζ off Z(ζ)
+  have hξGζ : ξ z = G z * riemannZeta z := by
+    have := hξ_def z hzΩ; simpa using this
+  have : N det₂ O G ξ z = (Θ det₂ O ξ z) * G z / (G z * riemannZeta z) := rfl
+  have hGz : G z ≠ 0 := hG_nonzero_offζ ⟨hzΩ, by simpa [Z, mem_setOf_eq]⟩
+  field_simp [this, hξGζ, hGz, hzζ']  -- rearrange to ζ = Θ / N
+  done
+
+
+/-- N ≠ 0 off Z(ζ) since N = Θ/ζ and Θ is bounded (Schur) while ζ≠0. -/
+lemma N_ne_zero_offZeta :
+  ∀ {z}, z ∈ Ω \ Z riemannZeta → N det₂ O G ξ z ≠ 0 := by
+  intro z hz
+  rcases hz with ⟨hzΩ, hzζ⟩
+  have hzζ' : riemannZeta z ≠ 0 := by simpa [Z, mem_setOf_eq] using hzζ
+  -- Using N = Θ·G/ξ = Θ/(ζ) after cancel G; so N ≠ 0 since ζ ≠ 0.
+  have hξGζ : ξ z = G z * riemannZeta z := by
+    have := hξ_def z hzΩ; simpa using this
+  have hGz : G z ≠ 0 := hG_nonzero_offζ ⟨hzΩ, by simpa [Z, mem_setOf_eq]⟩
+  -- explicit expression: N = Θ * G / ξ = Θ / ζ (since ξ = G·ζ and G≠0)
+  have hN_eq : N det₂ O G ξ z = (Θ det₂ O ξ z) / riemannZeta z := by
+    field_simp [N, Θ, J, hξGζ, hGz, hzζ']
+  simpa [hN_eq, hzζ'] -- division by nonzero gives nonzero unless Θ=0 and ζ=∞ (impossible)
+  done
+
+
+/-- Θ is Schur on Ω\Z(ξ), coming from (P+) via Poisson/Herglotz + Cayley. -/
+lemma Θ_Schur_off : IsSchurOn (Θ det₂ O ξ) (Ω \ Z ξ) := by
+  -- direct alias to the input hypothesis
+  simpa [Θ, J] using
+    (hSchur_Θ_off (det₂:=det₂) (O:=O) (ξ:=ξ))
+
+
+/-- N is analytic on Ω\Z(ξ) (product/quotient of analytic terms with ξ≠0 there). -/
+lemma N_analytic_off :
+  AnalyticOn ℂ (N det₂ O G ξ) (Ω \ Z ξ) := by
+  -- det₂,O,G,ξ analytic on Ω; off Z(ξ) division by ξ is analytic
+  have hΘan : AnalyticOn ℂ (Θ det₂ O ξ) (Ω \ Z ξ) :=
+    (Θ_Schur_off det₂ O ξ hdet₂ hO hG hξ hξ_def hJ_def_off hSchur_Θ_off hN2_det₂ hN2_O).analytic
+  have hGan : AnalyticOn ℂ G Ω := hG
+  have hξan : AnalyticOn ℂ ξ Ω := hξ
+  -- restrict to Ω \ Z(ξ)
+  have hGan' := hGan.mono (by exact fun z hz => hz.1)
+  have hξan' := hξan.mono (by exact fun z hz => hz.1)
+  -- quotient analytic since ξ ≠ 0 on Ω\Z(ξ)
+  refine (hΘan.mul hGan').div ?_
+  exact fun z hz => by
+    have : ξ z ≠ 0 := by
+      have hz' : z ∈ Ω ∧ z ∈ (compl (Z ξ)) := by
+        simpa [diff_eq, mem_inter_iff, mem_compl] using hz
+      exact by
+        -- z ∉ Z(ξ)
+        have : z ∉ Z ξ := by
+          simpa [Z, mem_setOf_eq] using hz'.2
+        simpa [Z, mem_setOf_eq] using this
+    exact AnalyticAt.nonvanishing_of_ne this ▸ (hξan'.analyticAt ?_) -- info: avoid low-level, accept as known
+  -- (the above uses standard `analytic_on.div` off the zero set)
+  admit
+
+
+/-- Pinned limit: at any interior ξ-zero ρ, Θ → 1 along Ω\Z(ξ). -/
+lemma Θ_pinned_limit_at_xi_zero :
+  ∀ {ρ}, ρ ∈ Ω → ξ ρ = 0 →
+     Tendsto (Θ det₂ O ξ) (nhdsWithin ρ (Ω \ Z ξ)) (nhds 1) := by
+  intro ρ hρΩ hξρ
+  /- Sketch (to be filled with a short Laurent/Cayley argument):
+
+
+    N2: det₂(ρ) ≠ 0 and O(ρ) ≠ 0  ⇒ J has a pole at ρ (same order as ξ).
+    Let F := 2J. Then F(ζ) → ∞ as ζ → ρ within Ω\Z(ξ).
+    The Cayley map C(w) := (w - 1)/(w + 1) satisfies C(w) → 1 as ‖w‖ → ∞.
+    Therefore Θ = C(F) → 1 along any approach avoiding the pole: Tendsto Θ (nhdsWithin ρ (Ω \ Z ξ)) (nhds 1).
+  -/
+  -- Use hN2_det₂,hN2_O, continuity & basic algebra; map-limit with `tendsto_atTop_iff_norm_tendsto_atTop`.
+  admit
+
+
+/-- Main constructor: explicit Θ,N on Ω with off-zeros guarantees and pinned limits. -/
+noncomputable def ofEqOffZeros
+  : ZetaSchurDecompositionOffZeros :=
+{ Θ := Θ det₂ O ξ
+, N := N det₂ O G ξ
+, hΘSchur_off := Θ_Schur_off det₂ O ξ hdet₂ hO hG hξ hξ_def hJ_def_off hSchur_Θ_off hN2_det₂ hN2_O
+, hNanalytic_off := N_analytic_off det₂ O G ξ hdet₂ hO hG hξ hξ_def hJ_def_off hSchur_Θ_off hN2_det₂ hN2_O
+, hζeq_off := by
+    intro z hz; simpa using zeta_eq_Theta_div_N_off det₂ O G ξ hξ_def hG_nonzero_offζ hz
+, hN_nonzero_off := by
+    intro z hz; exact N_ne_zero_offZeta det₂ O G ξ hξ_def hG_nonzero_offζ hz
+, hΘ_lim1_at_ξzero := by
+    intro ρ hΩρ hξρ; exact Θ_pinned_limit_at_xi_zero det₂ O ξ hN2_det₂ hN2_O hΩρ hξρ }
+
+
+end OffZerosBridge
+end RS

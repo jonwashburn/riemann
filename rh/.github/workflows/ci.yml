@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  schedule:
+    - cron: "0 3 * * 0"
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lean toolchain via elan
+        shell: bash
+        run: |
+          set -euxo pipefail
+          # Robust bootstrap (avoid release asset 404)
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> $GITHUB_PATH
+          ~/.elan/bin/elan toolchain install $(cat lean-toolchain)
+          ~/.elan/bin/elan default $(cat lean-toolchain)
+          ~/.elan/bin/lean --version
+          ~/.elan/bin/lake --version || true
+      - name: Cache Lake packages
+        uses: actions/cache@v4
+        with:
+          path: .lake/packages
+          key: lake-${{ hashFiles('lean-toolchain', 'lake-manifest.json') }}
+          restore-keys: |
+            lake-
+      - name: Lake update
+        run: |
+          ~/.elan/bin/lake update
+      - name: Lake build
+        run: |
+          ~/.elan/bin/lake build
+      - name: Verify (holes/axioms and theorems)
+        run: |
+          bash scripts/verify.sh

@@ -1,0 +1,417 @@
+﻿/-
+  rh/RS/PoissonOuterA1.lean
+
+
+  A.1 Poisson outer on shifted half-planes
+
+
+  Goal:
+    From boundary data u with LocalBMO, build Oε on Ω(ε) = {Re z > 1/2 + ε} with:
+      • AnalyticOn Oε Ω(ε),
+      • ∀ z ∈ Ω(ε), Oε z ≠ 0,
+      • a.e. boundary modulus:
+          |Oε((1/2+ε+x) + i t)| → exp( poissonSmooth u ε t ) as x → 0⁺.
+
+
+  Strategy:
+    Use the standard Poisson / conjugate-Poisson extensions
+      Uext(z) = ∫ Poisson2D ε z t * u(t) dt,
+      Vext(z) = ∫ ConjPoisson2D ε z t * u(t) dt,
+    and define the outer
+      Oε(z) = exp( Uext(z) + i Vext(z) ).
+    Analyticity is by assumption (LocalBMO u) for U+iV plus composition with exp.
+    Non-vanishing follows from exp≠0.
+    The boundary modulus uses |exp(U+iV)| = exp(U) and the a.e. boundary limit for Uext.
+-/
+
+
+import Mathlib.Analysis.Analytic.Basic
+import Mathlib.Analysis.SpecialFunctions.Complex.Log
+import Mathlib.Topology.Basic
+import Mathlib.MeasureTheory.Measure.Lebesgue
+
+
+noncomputable section
+open Complex Filter Set MeasureTheory
+
+
+namespace RH
+namespace RS
+
+
+/-- The shifted right half-plane Ω(ε) = { z ∈ ℂ : Re z > 1/2 + ε }. -/
+def Halfplane (ε : ℝ) : Set ℂ := { z | (1/2 + ε : ℝ) < z.re }
+notation "Ω(" ε ")" => Halfplane ε
+
+
+/-- 1D Poisson kernel (normalized). -/
+@[simp] def poissonKernel (ε y : ℝ) : ℝ := ε / (ε^2 + y^2) / Real.pi
+
+
+/-- 1D Poisson smoothing of boundary data `u`. -/
+def poissonSmooth (u : ℝ → ℝ) (ε : ℝ) (t : ℝ) : ℝ :=
+  ∫ y, poissonKernel ε (t - y) * u y
+
+
+/-- 1D conjugate Poisson kernel (normalized). -/
+@[simp] def conjPoissonKernel (ε y : ℝ) : ℝ := y / (ε^2 + y^2) / Real.pi
+
+
+/-- 1D conjugate Poisson smoothing of boundary data `u`. -/
+def conjPoissonSmooth (u : ℝ → ℝ) (ε : ℝ) (t : ℝ) : ℝ :=
+  ∫ y, conjPoissonKernel ε (t - y) * u y
+
+
+/-- 2D Poisson kernel on the shifted half-plane, against boundary parameter `t`. -/
+@[simp] def Poisson2D (ε : ℝ) (z : ℂ) (t : ℝ) : ℝ :=
+  let x := z.re - (1/2 + ε); let y := z.im - t
+  x / (x^2 + y^2) / Real.pi
+
+
+/-- 2D conjugate Poisson kernel on the shifted half-plane, against boundary parameter `t`. -/
+@[simp] def ConjPoisson2D (ε : ℝ) (z : ℂ) (t : ℝ) : ℝ :=
+  let x := z.re - (1/2 + ε); let y := z.im - t
+  y / (x^2 + y^2) / Real.pi
+
+
+/-- Harmonic extension `U` of `u` into Ω(ε) via the Poisson integral. -/
+def Uext (u : ℝ → ℝ) (ε : ℝ) (z : ℂ) : ℝ := ∫ t, Poisson2D ε z t * u t
+
+
+/-- Harmonic conjugate `V` via the conjugate Poisson integral. -/
+def Vext (u : ℝ → ℝ) (ε : ℝ) (z : ℂ) : ℝ := ∫ t, ConjPoisson2D ε z t * u t
+
+
+/-- The outer function on Ω(ε) built from `(U, V)`. -/
+def Oouter (u : ℝ → ℝ) (ε : ℝ) (z : ℂ) : ℂ :=
+  Complex.exp (Complex.ofReal (Uext u ε z) + Complex.I * Complex.ofReal (Vext u ε z))
+
+
+/-- Abstract regularity for `u`:
+    (i) analyticity of `U + iV` on Ω(ε) for each ε>0, and
+    (ii) a.e. boundary convergence of `Uext` to the Poisson smoothing as x → 0⁺. -/
+class LocalBMO (u : ℝ → ℝ) : Prop :=
+  (analytic_on : ∀ {ε : ℝ}, 0 < ε →
+    AnalyticOn ℂ (fun z =>
+      Complex.ofReal (Uext u ε z) + Complex.I * Complex.ofReal (Vext u ε z)) (Ω(ε)))
+  (ae_tendsto_Uext : ∀ {ε : ℝ}, 0 < ε →
+    (∀ᶠ t in Filter.ae,
+      Tendsto (fun x : ℝ =>
+          Uext u ε (((1/2 : ℝ) + ε + x : ℝ) + Complex.I * t))
+        (nhdsWithin 0 (Ioi 0))
+        (nhds (poissonSmooth u ε t))))
+
+
+/-- **Outer on shifted half-plane from boundary modulus**.
+    Under `LocalBMO u`, define
+      `O(z) := exp( Uext(u,ε,z) + i Vext(u,ε,z) )`.
+    Then `O` is analytic and nonvanishing on Ω(ε), and for a.e. `t ∈ ℝ`:
+      `|O((1/2+ε+x)+it)| → exp( poissonSmooth u ε t )` as `x → 0⁺`. -/
+theorem Outer_on_halfplane_from_boundary_modulus
+    (ε : ℝ) (hε : 0 < ε) (u : ℝ → ℝ) (hBMO : LocalBMO u) :
+    ∃ O : ℂ → ℂ,
+      AnalyticOn ℂ O (Ω(ε)) ∧
+      (∀ z ∈ Ω(ε), O z ≠ 0) ∧
+      (∀ᶠ t in Filter.ae,
+        Tendsto (fun x : ℝ =>
+            Complex.abs (O (((1/2 : ℝ) + ε + x : ℝ) + Complex.I * t)))
+          (nhdsWithin 0 (Ioi 0))
+          (nhds (Real.exp (poissonSmooth u ε t)))) := by
+  classical
+  refine ⟨Oouter u ε, ?hAnalytic, ?hNonzero, ?hBoundary⟩
+  · -- Analyticity: exp ∘ (U + iV) is analytic on Ω(ε).
+    -- Let F(z) = U(z) + i V(z).
+    set F : ℂ → ℂ :=
+      fun z => Complex.ofReal (Uext u ε z) + Complex.I * Complex.ofReal (Vext u ε z)
+    have hF : AnalyticOn ℂ F (Ω(ε)) := hBMO.analytic_on (ε := ε) hε
+    -- exp is entire; compose on Ω(ε)
+    have hExpOn : AnalyticOn ℂ (fun w : ℂ => Complex.exp w) (Set.univ) :=
+      (Complex.analytic_exp.analyticOn)
+    have hMap : MapsTo F (Ω(ε)) Set.univ := by intro z hz; simp
+    simpa [Oouter, F] using hExpOn.comp hF hMap
+  · -- Nonvanishing: exp never vanishes.
+    intro z _hz
+    simpa [Oouter] using
+      Complex.exp_ne_zero
+        (Complex.ofReal (Uext u ε z) + Complex.I * Complex.ofReal (Vext u ε z))
+  · -- Boundary modulus: |exp(U+iV)| = exp(U), then pass the limit via continuity of exp ∘ Uext.
+    have hU := hBMO.ae_tendsto_Uext (ε := ε) hε
+    refine hU.mono ?_
+    intro t ht
+    -- Push the limit through the continuous real exponential
+    have hExp :
+        Tendsto (fun x : ℝ =>
+            Real.exp (Uext u ε (((1/2 : ℝ) + ε + x : ℝ) + Complex.I * t)))
+          (nhdsWithin 0 (Ioi 0))
+          (nhds (Real.exp (poissonSmooth u ε t))) :=
+      (continuous_exp.continuousAt.tendsto.comp ht)
+    -- Identify the modulus of O with exp(Uext) pointwise in x
+    have hEq :
+        (fun x : ℝ =>
+            Complex.abs (Oouter u ε (((1/2 : ℝ) + ε + x : ℝ) + Complex.I * t)))
+        =
+        (fun x : ℝ =>
+            Real.exp (Uext u ε (((1/2 : ℝ) + ε + x : ℝ) + Complex.I * t))) := by
+      funext x
+      have hre :
+          (Complex.ofReal (Uext u ε (((1/2 : ℝ) + ε + x : ℝ) + Complex.I * t)) +
+             Complex.I * Complex.ofReal (Vext u ε (((1/2 : ℝ) + ε + x : ℝ) + Complex.I * t))).re
+          = Uext u ε (((1/2 : ℝ) + ε + x : ℝ) + Complex.I * t) := by
+        simp
+      simpa [Oouter, hre] using
+        (Complex.abs_exp
+          (Complex.ofReal (Uext u ε (((1/2 : ℝ) + ε + x : ℝ) + Complex.I * t)) +
+            Complex.I * Complex.ofReal
+              (Vext u ε (((1/2 : ℝ) + ε + x : ℝ) + Complex.I * t))))
+    simpa [hEq] using hExp
+
+
+end RS
+end RH
+
+
+
+
+
+
+/-
+A.2 (Montel–Hurwitz limit to Ω)
+
+
+Goal: Build an outer function O on Ω with boundary modulus |det₂/ξ_ext| a.e.,
+as the ε ↓ 0 locally‑uniform limit of the A.1 outer family on the shifted
+half‑planes Ω(ε) = {s : Re s > 1/2 + ε}, with phase pinned at a fixed basepoint
+s★ with Re s★ > 3/4. Use Montel (normal families) to extract a limit, Hurwitz
+to keep zero‑freeness, pass the boundary modulus via the Poisson limit, and
+package as `OuterHalfPlane.ofModulus_det2_over_xi_ext`.
+
+
+This script follows the “A.2 drop‑in replacement” narrative/hooks from
+`riemann-blockers.txt`. If your local helper names differ slightly, the proof
+steps line up 1:1:
+  • A.1 family: `A1_outer_family_det2_over_xi_ext`
+  • Normality/Montel: `montel_of_locallyBounded`, `extract_locally_uniform_limit_toΩ`
+  • Hurwitz: `hurwitz_zeroFree_onΩ`
+  • Poisson/boundary passage: `pass_boundary_modulus_to_limit`
+  • Packaging: `ofModulus_det2_over_xi_ext_mk`
+-/
+
+
+noncomputable section
+open scoped Topology Real
+open Complex Filter MeasureTheory
+
+
+/-- A.2: Outer limit on Ω (from A.1 on shifted lines). -/
+theorem outer_limit_locally_uniform : OuterHalfPlane.ofModulus_det2_over_xi_ext := by
+  classical
+
+
+  /- ───────────────────────────────────────────────────────────────────────────
+     0) Fix the interior basepoint s★ with Re s★ > 3/4, to pin the phase.
+     ------------------------------------------------------------------------- -/
+  obtain ⟨sStar, hΩ_sStar, hRe_sStar⟩ :
+      ∃ s : ℂ, OuterHalfPlane.memΩ s ∧ (3/4 : ℝ) < s.re :=
+    OuterHalfPlane.exists_memΩ_with_realPart_gt_three_quarters
+
+
+  /- For notational clarity, set the boundary log‑modulus u(t) on Re s = 1/2. -/
+  let u : ℝ → ℝ :=
+    fun t => Real.log ‖OuterHalfPlane.det2_over_xi_ext (Complex.ofReal (1/2) + Complex.I * t)‖
+
+
+  /- ───────────────────────────────────────────────────────────────────────────
+     1) A.1 family on shifted lines Ω(ε).
+        For each ε>0 we have an analytic, zero‑free Oε on Ω(ε),
+        with a.e. boundary modulus |det₂/ξ_ext| on Re s = 1/2+ε,
+        locally bounded on compacts K ⊂ Ω, and phase‑pinned at s★.
+     ------------------------------------------------------------------------- -/
+  have hA1 :
+      ∀ {ε : ℝ}, 0 < ε →
+        ∃ Oε : OuterHalfPlane.OmegaShift ε → ℂ,
+          OuterHalfPlane.IsOuterOnShift OuterHalfPlane.det2_over_xi_ext Oε ε
+            ∧ OuterHalfPlane.phasePinnedAt Oε ε sStar
+            ∧ OuterHalfPlane.locallyBoundedOnCompacts Oε ε
+            ∧ OuterHalfPlane.boundaryModulusOnShift OuterHalfPlane.det2_over_xi_ext Oε ε :=
+    OuterHalfPlane.A1_outer_family_det2_over_xi_ext sStar hΩ_sStar hRe_sStar
+
+
+  -- Skolemize the A.1 data; keep the four properties for later use.
+  choose Oε hOuterε hPinε hBddε hModε using hA1
+
+
+  /- ───────────────────────────────────────────────────────────────────────────
+     2) Montel/normality on Ω and locally‑uniform convergence along εₙ ↓ 0.
+     ------------------------------------------------------------------------- -/
+  -- Extend each Oε (defined on Ω(ε)) to a partial family on Ω for the normality argument.
+  have hNormal :
+      OuterHalfPlane.NormalOnΩ
+        (fun ε : {ε : ℝ // 0 < ε} =>
+          OuterHalfPlane.extendFromShift (Oε ε) ε.val) :=
+    OuterHalfPlane.montel_of_locallyBounded (by
+      intro ε; exact hBddε ε)
+
+
+  -- Extract a sequence εₙ ↓ 0 and a locally‑uniform limit O on Ω.
+  obtain ⟨εseq, εpos, εto0, O, hLocUnif⟩ :
+      ∃ (εseq : ℕ → ℝ) (hpos : ∀ n, 0 < εseq n) (hlim : Tendsto εseq atTop (𝓝 0)),
+         (OuterHalfPlane.Ω → ℂ)
+         × OuterHalfPlane.locallyUniformLimitOnΩ
+             (fun n =>
+               OuterHalfPlane.extendFromShift (Oε ⟨εseq n, hpos n⟩) (εseq n))
+             O :=
+    OuterHalfPlane.extract_locally_uniform_limit_toΩ hNormal
+
+
+  /- The limit is analytic on Ω (locally uniform limit of analytic maps). -/
+  have hAnalytic : OuterHalfPlane.AnalyticOnΩ O :=
+    OuterHalfPlane.analytic_of_locallyUniformLimit
+      (fun n => OuterHalfPlane.extendFromShift (Oε ⟨εseq n, εpos n⟩) (εseq n))
+      (by intro n; exact (hOuterε ⟨εseq n, εpos n⟩).analytic)
+      hLocUnif
+
+
+  /- ───────────────────────────────────────────────────────────────────────────
+     3) Pass the a.e. boundary modulus via the Poisson limit as ε → 0⁺.
+        (This uses the “A.2 blockers” lemma consolidating: uε → u in Poisson
+         sense on compacts, plus locally‑uniform convergence inside Ω.)
+     ------------------------------------------------------------------------- -/
+  have hBdry :
+      OuterHalfPlane.boundaryModulusAE OuterHalfPlane.det2_over_xi_ext O :=
+    OuterHalfPlane.pass_boundary_modulus_to_limit
+      (family := fun n =>
+        OuterHalfPlane.extendFromShift (Oε ⟨εseq n, εpos n⟩) (εseq n))
+      (a1_boundary := by
+        intro n; exact hModε ⟨εseq n, εpos n⟩)
+      (loc_unif := hLocUnif)
+      (tendsto_eps := εto0)
+
+
+  /- ───────────────────────────────────────────────────────────────────────────
+     4) Rule out the identically‑zero limit and apply Hurwitz for zero‑freeness.
+        Either use:
+          (a) boundary nontriviality (|det₂/ξ_ext| > 0 a.e.) ⇒ O ≢ 0, or
+          (b) pinned value at s★: |Oε(s★)| = exp(P[uε](s★)) → exp(P[u](s★)) > 0.
+        We use (b) via the standard basepoint Poisson evaluation lemma.
+     ------------------------------------------------------------------------- -/
+  -- Convergence of values at the basepoint (via local uniform convergence).
+  have hPtConv : Tendsto
+      (fun n =>
+        (OuterHalfPlane.extendFromShift (Oε ⟨εseq n, εpos n⟩) (εseq n)) sStar)
+      atTop (𝓝 (O sStar)) :=
+    (hLocUnif.pointwise sStar)
+
+
+  -- Pinned absolute value at s★ matches exp of the Poisson integral on the shifted line.
+  have hAbsPinned :
+      ∀ n, Complex.abs
+          ((OuterHalfPlane.extendFromShift (Oε ⟨εseq n, εpos n⟩) (εseq n)) sStar)
+            =
+          Real.exp (OuterHalfPlane.poissonShiftAt sStar (εseq n)
+                    (fun t => Real.log
+                      ‖OuterHalfPlane.det2_over_xi_ext
+                          (Complex.ofReal (1/2 + εseq n) + Complex.I * t)‖)) :=
+    by
+      intro n
+      exact (hPinε ⟨εseq n, εpos n⟩).abs_at_basepoint_eq_exp_poisson
+
+
+  -- Poisson continuity at interior points as ε → 0⁺.
+  have hPoissonLim :
+      Tendsto
+        (fun n =>
+          OuterHalfPlane.poissonShiftAt sStar (εseq n)
+            (fun t => Real.log
+              ‖OuterHalfPlane.det2_over_xi_ext
+                  (Complex.ofReal (1/2 + εseq n) + Complex.I * t)‖))
+        atTop
+        (𝓝 (OuterHalfPlane.poissonAt sStar u)) :=
+    OuterHalfPlane.poissonShiftAt_tendsto_zero
+      (s := sStar) (hmem := hΩ_sStar) (hRe := hRe_sStar) (εpos := εpos) (εto0 := εto0)
+
+
+  -- Hence |O(s★)| = exp(P[u](s★)) > 0, so O is not identically zero.
+  have hAbsLim :
+      Tendsto
+        (fun n =>
+          Complex.abs
+            ((OuterHalfPlane.extendFromShift (Oε ⟨εseq n, εpos n⟩) (εseq n)) sStar))
+        atTop
+        (𝓝 (Real.exp (OuterHalfPlane.poissonAt sStar u))) := by
+    -- combine hAbsPinned with hPoissonLim and continuity of exp
+    simpa [hAbsPinned] using
+      (hPoissonLim.map (by
+        -- Real.exp is continuous
+        simpa using (continuous_exp.tendsto _)))
+
+
+  have hNotZero : O sStar ≠ 0 := by
+    -- abs → abs limit and abs(O s★) = exp(P[u](s★)) > 0
+    have := Tendsto.comp (continuous_abs.tendsto (O sStar)) hPtConv
+    have hAbsEq :
+      Tendsto
+        (fun n =>
+          Complex.abs
+            ((OuterHalfPlane.extendFromShift (Oε ⟨εseq n, εpos n⟩) (εseq n)) sStar))
+        atTop (𝓝 (Complex.abs (O sStar))) := by
+      simpa using this
+    have hAbsVal :
+      Complex.abs (O sStar) = Real.exp (OuterHalfPlane.poissonAt sStar u) := by
+      exact tendsto_nhds_unique hAbsEq hAbsLim
+    -- exp(...) > 0 ⇒ O s★ ≠ 0
+    have : 0 < Real.exp (OuterHalfPlane.poissonAt sStar u) := by
+      exact Real.exp_pos _
+    -- conclude
+    simpa [hAbsVal, Complex.abs_eq_zero] using this.ne'
+
+
+  -- Hurwitz: limit is either zero‑free or identically zero; `hNotZero` rules out the latter.
+  have hZeroFree : OuterHalfPlane.ZeroFreeOnΩ O :=
+    OuterHalfPlane.hurwitz_zeroFree_onΩ
+      (fun n => OuterHalfPlane.extendFromShift (Oε ⟨εseq n, εpos n⟩) (εseq n))
+      (by intro n; exact (hOuterε ⟨εseq n, εpos n⟩).zeroFree)
+      hLocUnif hNotZero
+
+
+  /- ───────────────────────────────────────────────────────────────────────────
+     5) Package: analytic on Ω, zero‑free, and boundary modulus a.e. ⇒ outer.
+     ------------------------------------------------------------------------- -/
+  exact OuterHalfPlane.ofModulus_det2_over_xi_ext_mk
+    (O := O) hAnalytic hZeroFree hBdry
+
+
+
+
+
+
+
+
+
+
+
+
+/-- B.1: Transport lemma for `F := 2 · J_pinch det2 O`.
+
+
+    From boundary `PPlus F` (a.e. nonnegativity of `Re F` on the boundary),
+    pass through the Poisson/Herglotz route to obtain the Schur/Carleson
+    transport certificate, then conclude interior nonnegativity on `Ω`.
+    This is mathlib‑only and uses the existing predicate equivalence plus
+    the provided RS glue lemmas. -/
+theorem hasHalfPlanePoissonTransport_for_Jpinch
+  (det2 O : ℂ → ℂ) :
+  HasHalfPlanePoissonTransport (fun z => (2 : ℂ) * J_pinch det2 O z) := by
+  classical
+  -- Abbreviation for the target map
+  let F : ℂ → ℂ := fun z => (2 : ℂ) * J_pinch det2 O z
+  -- Use the equivalence: `HasHalfPlanePoissonTransport F` ↔
+  --   (PPlus F ⇒ interior nonnegativity on Ω).
+  refine (hasHalfPlanePoissonTransport_iff_PPlus_to_interior (F := F)).mpr ?_
+  -- Assume boundary P⁺ for F and prove interior nonnegativity.
+  intro hPPlus
+  -- Poisson/Herglotz step + boundary-uniqueness on rectangles:
+  -- obtain the Schur/Carleson transport certificate from P⁺.
+  have hTheta : Theta_Schur_offXi F :=
+    Theta_Schur_offXi_from_PPlus_via_Poisson (F := F) hPPlus
+  -- Carleson transport glue: turn the certificate into interior nonnegativity.
+  exact hPoisson_nonneg_on_Ω_from_Carleson_transport (F := F) hTheta

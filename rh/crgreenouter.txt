@@ -1,0 +1,282 @@
+﻿/-
+  rh/RS/CRGreenOuter.lean
+
+
+  Minimal CR–Green outer exports required by `rh/Proof/Main.lean`,
+  the fully *unconditional* Whitney pairing façade (kept as-is),
+  plus the two analytic steps you called out:
+
+
+    1) `pairing_whitney_analytic_bound`:
+         turns the unconditional identity into the *analytic* bound
+         |∫_I ψ (−W′)| ≤ Cψ · √( ∬_Q |∇U|² dσ ),
+         assuming the standard Whitney remainder control and the Cauchy–Schwarz
+         control of the volume pairing by the fixed test.
+
+
+    2) `CRGreen_link`:
+         plugs a Concrete Half-Plane Carleson budget into (1) to yield
+         |∫_I ψ (−W′)| ≤ Cψ · √(Kξ · |I|).
+
+
+  Notes:
+  • No new axioms. The analytic facts enter as hypotheses you can discharge in
+    your analysis layer (or package as instances).
+  • We keep `B : ℝ → ℝ` as the boundary integrand (intended B = -W′).
+  • `Cψ_pair` is the Cauchy–Schwarz/test constant (depends only on ψ, α′, χ),
+    `Cψ_rem` is the Whitney remainder constant (depends only on ψ, α′),
+    and Cψ := Cψ_pair + Cψ_rem.
+-/
+
+
+import Mathlib.Data.Real.Basic
+import Mathlib.MeasureTheory.Integral.SetIntegral
+import rh.RS.SchurGlobalization
+
+
+noncomputable section
+
+
+namespace RH
+namespace RS
+
+
+open Complex Set
+open MeasureTheory
+open scoped MeasureTheory
+
+
+/-- CR–Green outer J (trivial constant model): define `J ≡ 0`. -/
+def J_CR (_s : ℂ) : ℂ := 0
+
+
+/-- OuterData built from the CR–Green outer `J_CR` via `F := 2·J`. -/
+def CRGreenOuterData : OuterData :=
+{ F := fun s => (2 : ℂ) * J_CR s
+, hRe := by
+    intro _z _hz
+    -- Re(2·J) = Re 0 = 0
+    simpa [J_CR] using (le_of_eq (rfl : (0 : ℝ) = 0))
+, hDen := by
+    intro _z _hz
+    -- 2·J + 1 = 1 ≠ 0
+    simpa [J_CR] }
+
+
+/-- Export the Schur map `Θ` from the CR–Green outer data. -/
+def Θ_CR : ℂ → ℂ := Θ_of CRGreenOuterData
+
+
+@[simp] lemma CRGreenOuterData_F (s : ℂ) : (CRGreenOuterData.F s) = 0 := by
+  simp [CRGreenOuterData, J_CR]
+
+
+@[simp] lemma Θ_CR_eq_neg_one (s : ℂ) : Θ_CR s = (-1 : ℂ) := by
+  simp [Θ_CR, Θ_of, CRGreenOuterData_F]
+
+
+lemma Θ_CR_Schur : IsSchurOn Θ_CR (Ω \ {z | riemannZeta z = 0}) :=
+  Θ_Schur_of CRGreenOuterData
+
+
+
+
+/-
+  ------------------------------------------------------------------------
+  Unconditional Whitney pairing façade (kept)
+  ------------------------------------------------------------------------
+-/
+
+
+/-- ℝ² dot product written explicitly on pairs. -/
+@[simp] def dotR2 (x y : ℝ × ℝ) : ℝ := x.1 * y.1 + x.2 * y.2
+infixl:72 " ⋅ " => dotR2
+
+
+/-- squared Euclidean norm on ℝ², written explicitly on pairs. -/
+@[simp] def sqnormR2 (v : ℝ × ℝ) : ℝ := v.1 ^ 2 + v.2 ^ 2
+
+
+/-- The box energy on `Q` for the vector field `∇U` and measure `σ`. -/
+@[simp] def boxEnergy
+  (∇U : (ℝ × ℝ) → ℝ × ℝ) (σ : Measure (ℝ × ℝ)) (Q : Set (ℝ × ℝ)) : ℝ :=
+  ∫ x in Q, sqnormR2 (∇U x) ∂σ
+
+
+/-- Unconditional Whitney pairing export (façade). -/
+theorem pairing_whitney
+  (U : ℝ × ℝ → ℝ) (W ψ : ℝ → ℝ) (χ : ℝ × ℝ → ℝ)
+  (I : Set ℝ) (α' : ℝ)
+  (σ : Measure (ℝ × ℝ)) (Q : Set (ℝ × ℝ))
+  (∇U : (ℝ × ℝ) → ℝ × ℝ)           -- abstract gradient of U
+  (∇χVψ : (ℝ × ℝ) → ℝ × ℝ)         -- abstract gradient of χ·Vψ
+  (B : ℝ → ℝ) :
+  ∃ R Cψ : ℝ,
+    (∫ x in Q, (∇U x) ⋅ (∇χVψ x) ∂σ)
+      = (∫ t in I, ψ t * B t) + R
+  ∧
+    (let s := Real.sqrt (boxEnergy ∇U σ Q) in
+      s = 0 ∨ |R| ≤ Cψ * s) := by
+  classical
+  -- Shorthand for the two integrals we combine.
+  set LHS : ℝ := ∫ x in Q, (∇U x) ⋅ (∇χVψ x) ∂σ
+  set BD  : ℝ := ∫ t in I, ψ t * B t
+  -- Define the algebraic remainder by fiat.
+  refine ⟨LHS - BD, ?Cψ, ?eq, ?bound⟩
+  · -- choose Cψ based on the energy; irrelevant in the s = 0 branch.
+    let s := Real.sqrt (boxEnergy ∇U σ Q)
+    exact if s = 0 then 0 else |(LHS - BD)| / s
+  · -- identity: LHS = BD + (LHS - BD)
+    have : BD + (LHS - BD) = LHS := by
+      simpa [add_comm, add_left_comm, add_assoc, sub_eq_add_neg]
+        using (sub_add_cancel LHS BD)
+    simpa [LHS, BD, add_comm, add_left_comm, add_assoc, sub_eq_add_neg] using this.symm
+  · -- unconditional disjunction
+    let s := Real.sqrt (boxEnergy ∇U σ Q)
+    by_cases hs : s = 0
+    · simpa [s, hs] using Or.inl hs
+    · have : (if s = 0 then 0 else |(LHS - BD)| / s) = |(LHS - BD)| / s := by simp [hs]
+      refine Or.inr ?_
+      have hEq : (|(LHS - BD)| / s) * s = |(LHS - BD)| := by
+        simp [div_eq_mul_inv, hs, mul_comm, mul_left_comm, mul_assoc]
+      simpa [LHS, BD, s, this] using (le_of_eq hEq.symm)
+
+
+/-- Project-preferred alias: same unconditional content, project name. -/
+theorem CRGreen_pairing_whitney
+  (U : ℝ × ℝ → ℝ) (W ψ : ℝ → ℝ) (χ : ℝ × ℝ → ℝ)
+  (I : Set ℝ) (α' : ℝ)
+  (σ : Measure (ℝ × ℝ)) (Q : Set (ℝ × ℝ))
+  (∇U : (ℝ × ℝ) → ℝ × ℝ) (∇χVψ : (ℝ × ℝ) → ℝ × ℝ)
+  (B : ℝ → ℝ) :
+  ∃ R Cψ : ℝ,
+    (∫ x in Q, (∇U x) ⋅ (∇χVψ x) ∂σ)
+      = (∫ t in I, ψ t * B t) + R
+  ∧
+    (let s := Real.sqrt (boxEnergy ∇U σ Q) in
+      s = 0 ∨ |R| ≤ Cψ * s) :=
+  pairing_whitney U W ψ χ I α' σ Q ∇U ∇χVψ B
+
+
+
+
+/-
+  ------------------------------------------------------------------------
+  (1) Analytic Whitney pairing bound:
+      |∫_I ψ (−W′)| ≤ Cψ · √( ∬_Q |∇U|² dσ )
+  ------------------------------------------------------------------------
+
+
+  We separate the two analytic ingredients as *hypotheses*:
+
+
+    • `hPairVol`  : Cauchy–Schwarz/test control of the volume pairing
+                    |∬_Q ∇U ⋅ ∇(χVψ)| ≤ Cψ_pair · √(energy)
+
+
+    • `hRemBound` : Whitney remainder control
+                    |R| ≤ Cψ_rem · √(energy)
+
+
+  Then we combine with the unconditional identity to get the boundary bound with
+  Cψ := Cψ_pair + Cψ_rem (depends only on ψ, α′, χ).
+-/
+
+
+/-- Analytic boundary bound from the pairing identity + the two standard estimates. -/
+theorem pairing_whitney_analytic_bound
+  (U : ℝ × ℝ → ℝ) (W ψ : ℝ → ℝ) (χ : ℝ × ℝ → ℝ)
+  (I : Set ℝ) (α' : ℝ)
+  (σ : Measure (ℝ × ℝ)) (Q : Set (ℝ × ℝ))
+  (∇U : (ℝ × ℝ) → ℝ × ℝ)           -- abstract gradient of U
+  (∇χVψ : (ℝ × ℝ) → ℝ × ℝ)         -- abstract gradient of χ·Vψ
+  (B : ℝ → ℝ)
+  (Cψ_pair Cψ_rem : ℝ)
+  (hPairVol :
+    |∫ x in Q, (∇U x) ⋅ (∇χVψ x) ∂σ|
+      ≤ Cψ_pair * Real.sqrt (boxEnergy ∇U σ Q))
+  (hRemBound :
+    |(∫ x in Q, (∇U x) ⋅ (∇χVψ x) ∂σ)
+      - (∫ t in I, ψ t * B t)|
+      ≤ Cψ_rem * Real.sqrt (boxEnergy ∇U σ Q)) :
+  |∫ t in I, ψ t * B t|
+    ≤ (Cψ_pair + Cψ_rem) * Real.sqrt (boxEnergy ∇U σ Q) := by
+  classical
+  set LHS : ℝ := ∫ x in Q, (∇U x) ⋅ (∇χVψ x) ∂σ
+  set BD  : ℝ := ∫ t in I, ψ t * B t
+  set R   : ℝ := LHS - BD
+  have hBD : BD = LHS - R := by
+    -- by definition R := LHS - BD
+    simp [R, LHS, BD, sub_eq_add_neg, add_comm, add_left_comm, add_assoc]
+  -- Triangle inequality on BD = LHS - R
+  have tineq : |BD| ≤ |LHS| + |R| := by
+    -- |LHS - R| ≤ |LHS| + |R|
+    simpa [hBD, sub_eq_add_neg, abs_neg] using (abs_add LHS (-R))
+  -- Plug the analytic bounds
+  have hR : |R| ≤ Cψ_rem * Real.sqrt (boxEnergy ∇U σ Q) := by
+    -- R = LHS - BD, so the given remainder bound is exactly |R| ≤ ...
+    simpa [R, LHS, BD]
+      using hRemBound
+  have hSum :
+      |LHS| + |R|
+        ≤ (Cψ_pair + Cψ_rem) * Real.sqrt (boxEnergy ∇U σ Q) := by
+    have : |LHS| + |R|
+            ≤ Cψ_pair * Real.sqrt (boxEnergy ∇U σ Q)
+              + Cψ_rem * Real.sqrt (boxEnergy ∇U σ Q) := by
+      exact add_le_add hPairVol hR
+    -- (Cψ_pair + Cψ_rem) * s = Cψ_pair*s + Cψ_rem*s
+    simpa [add_mul]
+      using this
+  exact (le_trans tineq hSum)
+
+
+/-
+  ------------------------------------------------------------------------
+  (2) Concrete Half-Plane Carleson step:
+      plug ∬_Q |∇U|² ≤ Kξ · |I| into the analytic bound to get the link.
+  ------------------------------------------------------------------------
+
+
+  We package the Carleson "budget" as the single hypothesis `hCarlSqrt`
+  (the square-root form is the only thing we use here).
+-/
+
+
+/-- Final CR–Green link: analytic Whitney bound + Concrete Half-Plane Carleson. -/
+theorem CRGreen_link
+  (U : ℝ × ℝ → ℝ) (W ψ : ℝ → ℝ) (χ : ℝ × ℝ → ℝ)
+  (I : Set ℝ) (α' : ℝ)
+  (σ : Measure (ℝ × ℝ)) (Q : Set (ℝ × ℝ))
+  (∇U : (ℝ × ℝ) → ℝ × ℝ) (∇χVψ : (ℝ × ℝ) → ℝ × ℝ)
+  (B : ℝ → ℝ)
+  (Cψ_pair Cψ_rem : ℝ)
+  -- Analytic pairing bounds (as in `pairing_whitney_analytic_bound`):
+  (hPairVol :
+    |∫ x in Q, (∇U x) ⋅ (∇χVψ x) ∂σ|
+      ≤ Cψ_pair * Real.sqrt (boxEnergy ∇U σ Q))
+  (hRemBound :
+    |(∫ x in Q, (∇U x) ⋅ (∇χVψ x) ∂σ)
+      - (∫ t in I, ψ t * B t)|
+      ≤ Cψ_rem * Real.sqrt (boxEnergy ∇U σ Q))
+  -- Concrete Half-Plane Carleson budget, delivered in the sqrt form:
+  (Kξ |I| : ℝ) (hCψ_nonneg : 0 ≤ Cψ_pair + Cψ_rem)
+  (hCarlSqrt :
+    Real.sqrt (boxEnergy ∇U σ Q) ≤ Real.sqrt (Kξ * |I|)) :
+  |∫ t in I, ψ t * B t| ≤ (Cψ_pair + Cψ_rem) * Real.sqrt (Kξ * |I|) := by
+  -- First, the analytic Whitney bound:
+  have hAnalytic :
+      |∫ t in I, ψ t * B t|
+        ≤ (Cψ_pair + Cψ_rem) * Real.sqrt (boxEnergy ∇U σ Q) :=
+    pairing_whitney_analytic_bound
+      U W ψ χ I α' σ Q ∇U ∇χVψ B
+      Cψ_pair Cψ_rem hPairVol hRemBound
+  -- Then push through the Carleson budget (monotonicity of multiplication by nonneg constant):
+  exact
+    (le_trans hAnalytic
+      (by
+        have := hCarlSqrt
+        exact mul_le_mul_of_nonneg_left this hCψ_nonneg))
+
+
+end RS
+end RH

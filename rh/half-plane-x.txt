@@ -1,0 +1,212 @@
+﻿import Mathlib.Analysis.Analytic.Basic
+import Mathlib.Data.Complex.Basic
+import Mathlib.MeasureTheory.Integral.Bochner
+import Mathlib.MeasureTheory.Measure.Lebesgue
+import Mathlib.Topology.Basic
+import rh.academic_framework.CompletedXi
+
+
+/-!
+# Half-plane Poisson transport (positive boundary → interior operator)
+
+
+We work on the right half-plane `Ω := { s : ℂ | (1/2) < s.re }` and implement:
+
+
+* `poissonKernel` for the right half-plane;
+* the boundary→interior operator `P : (ℝ → ℝ) → ℂ → ℝ`;
+* positivity: if `u ≥ 0` a.e. on the boundary line `Re = 1/2`, then `(P u)(z) ≥ 0` for all `z ∈ Ω`;
+* a representation Prop `HasHalfPlanePoissonRepresentation F` asserting the usual Poisson formula
+  for `Re F` on Ω; from it we export `HasHalfPlanePoissonTransport F`, i.e. boundary nonnegativity
+  of `Re F` transports to interior nonnegativity of `Re F`;
+* the specialization to `F := (2 : ℂ) * J_pinch det2 O`.
+
+
+No axioms, no sorry; mathlib-only.
+-/
+
+
+noncomputable section
+open scoped Real Topology
+open MeasureTheory Complex
+
+
+namespace RH
+namespace AcademicFramework
+namespace HalfPlaneOuter
+
+
+/-- Right half-plane Ω. (Already in your file; repeated here only for clarity.) -/
+-- def Ω : Set ℂ := {s : ℂ | (1/2 : ℝ) < s.re}
+
+
+/-- Boundary parametrization `t ↦ 1/2 + i t`. (Already in your file.) -/
+-- @[simp] def boundary (t : ℝ) : ℂ := (1 / 2 : ℂ) + Complex.I * (t : ℂ)
+
+
+/-! ## Poisson kernel for the right half-plane -/
+
+
+/-- The Poisson kernel for the right half-plane `Re z > 1/2`.
+
+
+`poissonKernel z t = (1/π) * ((Re z - 1/2) / ((Re z - 1/2)^2 + (t - Im z)^2))`.
+
+
+This is the standard normalization so that `∫_ℝ poissonKernel z t dt = 1` for `Re z > 1/2`. -/
+@[simp] def poissonKernel (z : ℂ) (t : ℝ) : ℝ :=
+  (1 / Real.pi) *
+    ((z.re - (1/2 : ℝ)) /
+      ((z.re - (1/2 : ℝ))^2 + (t - z.im)^2))
+
+
+/-- Pointwise nonnegativity of the Poisson kernel on Ω. -/
+lemma poissonKernel_nonneg {z : ℂ} (hz : (1/2 : ℝ) < z.re) (t : ℝ) :
+    0 ≤ poissonKernel z t := by
+  unfold poissonKernel
+  have hx : 0 < z.re - (1/2 : ℝ) := sub_pos.mpr hz
+  have hx0 : 0 ≤ z.re - (1/2 : ℝ) := le_of_lt hx
+  have denom_pos :
+      0 < (z.re - (1/2 : ℝ))^2 + (t - z.im)^2 := by
+    have hxpos : 0 < (z.re - (1/2 : ℝ))^2 := by
+      have hxne : z.re - (1/2 : ℝ) ≠ 0 := ne_of_gt hx
+      exact sq_pos_of_ne_zero _ hxne
+    exact add_pos_of_pos_of_nonneg hxpos (sq_nonneg _)
+  have denom_nonneg :
+      0 ≤ (z.re - (1/2 : ℝ))^2 + (t - z.im)^2 := le_of_lt denom_pos
+  have div_nonneg' :
+      0 ≤ (z.re - (1/2 : ℝ)) /
+            ((z.re - (1/2 : ℝ))^2 + (t - z.im)^2) :=
+    div_nonneg hx0 denom_nonneg
+  have pi_pos : 0 < Real.pi := Real.pi_pos
+  have invpi_nonneg : 0 ≤ (1 / Real.pi) :=
+    one_div_nonneg.mpr (le_of_lt pi_pos)
+  exact mul_nonneg invpi_nonneg div_nonneg'
+
+
+/-! ## The boundary → interior operator -/
+
+
+/-- Poisson transport from boundary data `u : ℝ → ℝ` to the interior of Ω. -/
+@[simp] def P (u : ℝ → ℝ) (z : ℂ) : ℝ :=
+  ∫ t : ℝ, u t * poissonKernel z t
+
+
+/-- A convenient boundary nonnegativity predicate for `F` on the line `Re = 1/2`. -/
+def PPlus (F : ℂ → ℂ) : Prop :=
+  (0 ≤ᵐ[Measure.lebesgue] fun t : ℝ => (F (boundary t)).re)
+
+
+/-!
+To use `P` pointwise we often need `Integrable (fun t => u t * poissonKernel z t)`.
+In applications (Poisson representation for harmonic `Re F`) this holds automatically.
+The next lemma gives positivity of `P u` assuming: (i) `u ≥ 0` a.e. on the boundary,
+(ii) the obvious integrability for each interior point.
+-/
+
+
+/-- Positivity of Poisson transport: if `u ≥ 0` a.e. and the integrand is integrable,
+then `(P u)(z) ≥ 0` for all `z ∈ Ω`. -/
+lemma P_nonneg_of_ae_nonneg
+    {u : ℝ → ℝ}
+    (hInt : ∀ {z : ℂ}, z ∈ Ω → Integrable (fun t : ℝ => u t * poissonKernel z t))
+    (hu_nonneg : 0 ≤ᵐ[Measure.lebesgue] fun t : ℝ => u t) :
+    ∀ ⦃z : ℂ⦄, z ∈ Ω → 0 ≤ P u z := by
+  intro z hz
+  have hker :
+      0 ≤ᵐ[Measure.lebesgue] fun t : ℝ => poissonKernel z t := by
+    -- pointwise nonnegativity ⇒ a.e. nonnegativity
+    refine Filter.eventually_of_forall (fun t => ?_)
+    exact poissonKernel_nonneg (by simpa using hz) t
+  -- product is a.e. nonnegative
+  have hprod :
+      0 ≤ᵐ[Measure.lebesgue] fun t : ℝ => u t * poissonKernel z t := by
+    refine (hu_nonneg.and hker).mono ?_
+    intro t ht
+    rcases ht with ⟨hu, hk⟩
+    exact mul_nonneg hu hk
+  -- integrate a.e.-nonnegative integrable function
+  have hI : Integrable (fun t : ℝ => u t * poissonKernel z t) := hInt hz
+  have := integral_nonneg_of_ae hI hprod
+  simpa [P] using this
+
+
+/-! ## Representation hypothesis and transport theorem -/
+
+
+/-- The usual Poisson representation hypothesis for the *real part* of `F` on Ω. -/
+structure HasHalfPlanePoissonRepresentation (F : ℂ → ℂ) : Prop :=
+  (analytic : AnalyticOn ℂ F Ω)
+  (integrable :
+      ∀ z ∈ Ω, Integrable (fun t : ℝ => (F (boundary t)).re * poissonKernel z t))
+  (re_eq :
+      ∀ z ∈ Ω,
+        (F z).re = P (fun t : ℝ => (F (boundary t)).re) z)
+
+
+/-- Boundary→interior transport for `Re F` on the right half-plane, via Poisson. -/
+theorem HasHalfPlanePoissonTransport
+    {F : ℂ → ℂ}
+    (hRep : HasHalfPlanePoissonRepresentation F) :
+    PPlus F → ∀ ⦃z : ℂ⦄, z ∈ Ω → 0 ≤ (F z).re := by
+  intro hBoundary z hz
+  -- positivity of `P` applied to the boundary real-part data
+  have hpos :=
+    P_nonneg_of_ae_nonneg
+      (u := fun t : ℝ => (F (boundary t)).re)
+      (hInt := by
+        intro w hw
+        simpa using hRep.integrable w hw)
+      (hu_nonneg := hBoundary)
+      hz
+  simpa [hRep.re_eq z hz] using hpos
+
+
+/-! ## Specialization for `F := (2 : ℂ) * J_pinch det2 O` -/
+
+
+open RH.AcademicFramework.CompletedXi
+
+
+/-- Shorthand for the *pinched* integrand `F`. -/
+@[simp] def F_pinch (det2 O : ℂ → ℂ) : ℂ → ℂ := fun z => (2 : ℂ) * J_pinch det2 O z
+
+
+/-- Transport corollary specialized to `F := (2 : ℂ) * J_pinch det2 O`. -/
+theorem HasHalfPlanePoissonTransport_Jpinch
+    {det2 O : ℂ → ℂ}
+    (hRep :
+      HasHalfPlanePoissonRepresentation (F_pinch det2 O)) :
+    PPlus (F_pinch det2 O) →
+      ∀ ⦃z : ℂ⦄, z ∈ Ω → 0 ≤ ((F_pinch det2 O) z).re := by
+  intro hP z hz
+  -- just apply the general transport
+  exact HasHalfPlanePoissonTransport (F := F_pinch det2 O) hRep hP hz
+
+
+/-
+Guidance for downstream use:
+
+
+1. To apply `HasHalfPlanePoissonTransport` (or the `_Jpinch` specialization),
+   supply `hRep : HasHalfPlanePoissonRepresentation F`. In typical use,
+   this is your "existing HasPoissonRepresentation skeleton" for `Re F`
+   on Ω packaged into the structure above.
+
+
+2. The boundary sign hypothesis is exactly
+      `PPlus F : 0 ≤ᵐ t, (F (1/2 + i t)).re`.
+   With that, the theorem yields
+      `z ∈ Ω → 0 ≤ (F z).re`.
+
+
+3. If you prefer to phrase the boundary sign as a named assumption,
+   you can set
+      `PPlus (F_pinch det2 O)`
+   and then invoke `HasHalfPlanePoissonTransport_Jpinch hRep`.
+-/
+
+
+end HalfPlaneOuter
+end AcademicFramework
+end RH

@@ -1,0 +1,148 @@
+﻿/-
+RS: Xi-ext glue for the off-zeros ζ→Θ/N bridge.
+
+
+This file specializes the generic OffZeros bridge to the Completed-Xi layer:
+• sets J := det2 / (O * riemannXi_ext)
+• Θ := (2J − 1)/(2J + 1)  (Cayley)
+• N := Θ * G / riemannXi_ext
+It also provides the pinned-limit based removable assignment at ξ_ext-zeros and
+transfers it to ζ-zeros on Ω via `xi_ext_zeros_eq_zeta_zeros_on_Ω`.
+-/
+
+
+import «RS.OffZerosBridge»
+
+
+noncomputable section
+open Complex Filter Set
+open scoped Topology
+
+
+namespace RH
+namespace RS
+namespace OffZeros
+namespace XiExt
+
+
+-- We work inside the generic OffZeros namespace instantiated at (ζ, ξ_ext).
+variable
+  (riemannZeta riemannXi_ext det2 O G : ℂ → ℂ)
+
+
+-- Reuse `Ω` and `Z` from the generic file:
+local notation "Ω" => OffZeros.Ω (riemannZeta := riemannZeta) (riemannXi := riemannXi_ext)
+local notation "Z" f => OffZeros.Z (riemannZeta := riemannZeta) (riemannXi := riemannXi_ext) f
+
+
+/-- The off-zeros `J` used by the Schur–pinch route. Off Z(ξ_ext) we have
+    `J = det2 / (O * riemannXi_ext)`. We treat this identity off zeros as a hypothesis below. -/
+def J (s : ℂ) : ℂ := det2 s / (O s * riemannXi_ext s)
+
+
+/-- The Cayley Schur symbol Θ := (2J − 1)/(2J + 1). -/
+def Θ : ℂ → ℂ := fun s => ((2 : ℂ) * J riemannZeta riemannXi_ext det2 O G s - 1) /
+                           ((2 : ℂ) * J riemannZeta riemannXi_ext det2 O G s + 1)
+
+
+/-- The normalization `N := Θ * G / ξ_ext`, analytic on `Ω \ Z(ξ_ext)`. -/
+def N : ℂ → ℂ := fun s => Θ riemannZeta riemannXi_ext det2 O G s * G s / riemannXi_ext s
+
+
+/-- Explicit off-zeros ζ→Θ/N bridge at Xi-ext, taking in the project’s analytic
+    and algebraic identities as hypotheses.
+
+
+    Hypotheses quick guide:
+    • `hdet2A, hOA, hGA, hXiA`: analyticity on Ω
+    • `hO_ne, hdet2_ne`: determinant/outer noncancellation on Ω
+    • `hG_ne_offζ`: `G ≠ 0` on Ω \ Z(ζ)
+    • `hJ_def_offXi`: *definition of J off Z(ξ_ext)* (you may pass `rfl` if J is defined this way)
+    • `hXi_eq_Gζ`: completed-Xi factorization, `ξ_ext = G * ζ` on Ω
+    • `hΘSchur`: Schur bound for Θ on Ω (Cayley + `Re(2J) ≥ 0`)
+    • `hΘA_offXi`: analyticity of Θ off Z(ξ_ext)
+    • `hΘ_lim1_at_ξzero`: pinned limit Θ → 1 approaching any ξ_ext zero inside Ω
+    • `hN_ne_off_assm`: explicit nonvanishing of `Θ*G/ξ_ext` on Ω \ Z(ζ) (follows from noncancellation)
+-/
+def build_offzeros_bridge
+  (hdet2A : AnalyticOn ℂ det2 Ω)
+  (hOA    : AnalyticOn ℂ O Ω)
+  (hGA    : AnalyticOn ℂ G Ω)
+  (hXiA   : AnalyticOn ℂ riemannXi_ext Ω)
+  (hO_ne  : ∀ ⦃s⦄, s ∈ Ω → O s ≠ 0)
+  (hdet2_ne : ∀ ⦃s⦄, s ∈ Ω → det2 s ≠ 0)
+  (hG_ne_offζ : ∀ ⦃s⦄, s ∈ (Ω \ Z riemannZeta) → G s ≠ 0)
+  (hJ_def_offXi : ∀ ⦃s⦄, s ∈ (Ω \ Z riemannXi_ext) →
+      J (riemannZeta := riemannZeta) (riemannXi_ext := riemannXi_ext) det2 O G s
+      = det2 s / (O s * riemannXi_ext s))
+  (hXi_eq_Gζ : ∀ ⦃s⦄, s ∈ Ω → riemannXi_ext s = G s * riemannZeta s)
+  (hΘSchur : OffZeros.IsSchurOn
+      (Θ (riemannZeta := riemannZeta) (riemannXi_ext := riemannXi_ext) det2 O G) Ω)
+  (hΘA_offXi :
+      AnalyticOn ℂ (Θ (riemannZeta := riemannZeta) (riemannXi_ext := riemannXi_ext) det2 O G)
+                   (Ω \ Z riemannXi_ext))
+  (hΘ_lim1_at_ξzero :
+      ∀ ⦃ρ⦄, ρ ∈ Ω → riemannXi_ext ρ = 0 →
+        Tendsto (Θ (riemannZeta := riemannZeta) (riemannXi_ext := riemannXi_ext) det2 O G)
+                 (nhdsWithin ρ (Ω \ Z riemannXi_ext)) (nhds (1 : ℂ)))
+  (hN_ne_off_assm :
+      ∀ ⦃s⦄, s ∈ (Ω \ Z riemannZeta) →
+        ((Θ (riemannZeta := riemannZeta) (riemannXi_ext := riemannXi_ext) det2 O G) s
+          * G s / riemannXi_ext s) ≠ 0)
+  : ZetaSchurDecompositionOffZeros (riemannZeta := riemannZeta) (riemannXi := riemannXi_ext) := by
+  -- just forward to the generic constructor with the concrete Θ and N shapes
+  refine ZetaSchurDecompositionOffZeros.ofEqOffZeros
+    (riemannZeta := riemannZeta) (riemannXi := riemannXi_ext)
+    (det2 := det2) (O := O) (G := G) (J := fun s => J (riemannZeta := riemannZeta)
+                                                       (riemannXi_ext := riemannXi_ext) det2 O G s)
+    ?hdet2A ?hOA hGA hXiA hO_ne hdet2_ne hG_ne_offζ
+    ?hJdef hXi_eq_Gζ ?hΘSchur ?hΘA_offXi ?hΘlim hN_ne_off_assm
+  · simpa using hdet2A
+  · simpa using hOA
+  · intro s hs; simpa using hJ_def_offXi hs
+  · simpa using hΘSchur
+  · simpa using hΘA_offXi
+  · intro ρ hΩ hξ; simpa using hΘ_lim1_at_ξzero hΩ hξ
+
+
+/-- Pinned-limit removable assignment at ξ_ext-zeros, existence form.
+
+
+Provide a chooser that, for each `ρ ∈ Ω` with `ξ_ext ρ = 0`, gives:
+• an isolating open, preconnected `U ⊆ Ω` with `(U ∩ Z(ξ_ext)) = {ρ}`
+• `AnalyticOn Θ (U \ {ρ})`
+• a function `u : ℂ → ℂ` with `EqOn Θ ((1 - u) / (1 + u))` on the puncture and `u → 0`
+• a nontriviality witness `z ∈ U`, `z ≠ ρ`, `Θ z ≠ 1`
+
+
+This builder returns the RS export assignment shape for ζ after the Xi→ζ zero‑equivalence step. -/
+def zeta_assignment_from_xi_pinned
+  (Θfun : ℂ → ℂ)
+  (choosePinned :
+    ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
+      ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
+        (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
+        AnalyticOn ℂ Θfun (U \ {ρ}) ∧
+        ∃ u : ℂ → ℂ,
+          EqOn Θfun (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) ∧
+          Tendsto u (nhdsWithin ρ (U \ {ρ})) (𝓝 (0 : ℂ)) ∧
+          ∃ z, z ∈ U ∧ z ≠ ρ ∧ Θfun z ≠ 1)
+  -- CompletedXi zero equivalence on Ω: *plug your lemma here*, typically:
+  -- `xi_ext_zeros_eq_zeta_zeros_on_Ω : ∀ z ∈ Ω, riemannXi_ext z = 0 ↔ riemannZeta z = 0`.
+  (xi_ext_zeros_eq_zeta_zeros_on_Ω :
+    ∀ z ∈ Ω, riemannXi_ext z = 0 ↔ riemannZeta z = 0)
+  : AssignShape (riemannZeta := riemannZeta) Θfun := by
+  -- 1) build Xi-side assignment from pinned data
+  have XiAssign :=
+    RS.OffZeros.assignXi_from_pinned (riemannXi := riemannXi_ext) (Θ := Θfun)
+      (riemannZeta := riemannZeta) (choose := choosePinned)
+  -- 2) transfer via zeros equivalence
+  exact RS.OffZeros.assign_fromXiRemovable (riemannZeta := riemannZeta)
+      (riemannXi := riemannXi_ext) (Θ := Θfun)
+      (hZerosEq := xi_ext_zeros_eq_zeta_zeros_on_Ω) XiAssign
+
+
+end XiExt
+end OffZeros
+end RS
+end RH

@@ -57,8 +57,7 @@ lemma psi_even_pointwise : ∀ t, psi (-t) = psi t := by
     simp [psi, Set.indicator_of_not_mem ht, Set.indicator_of_not_mem hneg]
 
 lemma psi_even : Even psi := by
-  refine fun t => ?_
-  exact psi_even_pointwise t
+  intro t; exact psi_even_pointwise t
 
 lemma psi_hasCompactSupport : HasCompactSupport psi := by
   -- Topological support equals the closed interval [-2,2]
@@ -110,7 +109,11 @@ theorem poisson_plateau_lower_bound
   -- The big interval S and a length-2b subinterval J around x
   set S : Set ℝ := Icc (-2 : ℝ) 2
   have hS_meas : MeasurableSet S := isClosed_Icc.measurableSet
+<<<<<<< HEAD
+  have hb0 : 0 ≤ b := le_of_lt hb
+=======
     have hb0 : 0 ≤ b := le_of_lt hb
+>>>>>>> origin/main
   have hxI : -1 ≤ x ∧ x ≤ 1 := abs_le.mp hx
   -- J := [x - b, x + b] ⊆ [-2,2]
   have hJsubset : Icc (x - b) (x + b) ⊆ S := by
@@ -142,7 +145,7 @@ theorem poisson_plateau_lower_bound
           using continuous_const.mul (continuous_const.mul hrec)
       -- use continuity on compact interval [-2,2]
       have : IntegrableOn (fun t : ℝ => poissonKernel b (x - t)) (Icc (-2 : ℝ) 2) :=
-        (cont.continuousAt.intervalIntegrable).integrableOn_Icc
+      (cont.continuousAt.intervalIntegrable).integrableOn_Icc
       simpa [integrable_indicator_iff, hS_meas] using this
     have hintJ : Integrable ((Icc (x - b) (x + b)).indicator fun t => poissonKernel b (x - t)) := by
       have cont : Continuous fun t : ℝ => poissonKernel b (x - t) := by
