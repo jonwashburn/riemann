@@ -96,6 +96,89 @@ def J_pinch (det2 O : ℂ → ℂ) : ℂ → ℂ :=
 def Θ_pinch_of (det2 O : ℂ → ℂ) : ℂ → ℂ :=
   Theta_of_J (J_pinch det2 O)
 
+/-- On the boundary line Re s = 1/2, assuming the boundary modulus equality
+`|O(1/2+it)| = |det2/ξ_ext(1/2+it)|`, the pinch field has unit modulus:
+`|J_pinch det2 O (1/2+it)| = 1`, provided `O(1/2+it)` and `ξ_ext(1/2+it)` are nonzero. -/
+lemma boundary_abs_J_pinch_eq_one
+  {O : ℂ → ℂ}
+  (hBME : BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
+  (t : ℝ)
+  (hO : O (boundary t) ≠ 0)
+  (hXi : riemannXi_ext (boundary t) ≠ 0) :
+  Complex.abs (J_pinch det2 O (boundary t)) = 1 := by
+  classical
+  -- From boundary modulus eq: |O| = |det2/ξ|
+  have hOabs : Complex.abs (O (boundary t))
+      = Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) := hBME t
+  -- First, relate |O|·|ξ| = |det2|
+  have hprod : Complex.abs (O (boundary t)) * Complex.abs (riemannXi_ext (boundary t))
+      = Complex.abs (det2 (boundary t)) := by
+    -- multiply both sides of hOabs by |ξ|
+    have hmul :
+        Complex.abs ((det2 (boundary t)) / (riemannXi_ext (boundary t)) * (riemannXi_ext (boundary t)))
+          = Complex.abs (det2 (boundary t)) := by
+      -- algebraic identity (z / w) * w = z
+      have : (det2 (boundary t)) / (riemannXi_ext (boundary t)) * (riemannXi_ext (boundary t))
+            = det2 (boundary t) := by
+        field_simp [div_eq_mul_inv, hXi]
+      simpa [this]
+    have hmul_abs :
+        Complex.abs ((det2 (boundary t)) / (riemannXi_ext (boundary t)) * (riemannXi_ext (boundary t)))
+          = Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) *
+            Complex.abs (riemannXi_ext (boundary t)) := by
+      simpa using (Complex.abs.mul
+        ((det2 (boundary t)) / (riemannXi_ext (boundary t))) (riemannXi_ext (boundary t)))
+    -- rewrite |O| using hOabs
+    have : Complex.abs (O (boundary t)) * Complex.abs (riemannXi_ext (boundary t))
+          = Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) *
+            Complex.abs (riemannXi_ext (boundary t)) := by simpa [hOabs]
+    exact this.trans (hmul_abs.trans hmul)
+  -- Next, show |J| * (|O|·|ξ|) = |det2|
+  have hden_ne : (O (boundary t)) * (riemannXi_ext (boundary t)) ≠ 0 := mul_ne_zero hO hXi
+  have hJmul :
+      Complex.abs (J_pinch det2 O (boundary t))
+        * (Complex.abs (O (boundary t)) * Complex.abs (riemannXi_ext (boundary t)))
+      = Complex.abs (det2 (boundary t)) := by
+    -- Use the algebraic identity det2 = J_pinch * (O*ξ)
+    have : J_pinch det2 O (boundary t) * (O (boundary t) * riemannXi_ext (boundary t))
+          = det2 (boundary t) := by
+      simp [J_pinch, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+    have := congrArg Complex.abs this
+    simpa [Complex.abs.mul] using this
+  -- Denominator positivity
+  have hden_pos : 0 < Complex.abs (O (boundary t)) * Complex.abs (riemannXi_ext (boundary t)) := by
+    have h1 : 0 < Complex.abs (O (boundary t)) := Complex.abs.pos.mpr hO
+    have h2 : 0 < Complex.abs (riemannXi_ext (boundary t)) := Complex.abs.pos.mpr hXi
+    exact mul_pos h1 h2
+  -- Divide the equalities to conclude |J| = 1
+  have : Complex.abs (J_pinch det2 O (boundary t))
+      = Complex.abs (det2 (boundary t)) /
+        (Complex.abs (O (boundary t)) * Complex.abs (riemannXi_ext (boundary t))) := by
+    exact (eq_div_iff_mul_eq hden_pos.ne').mpr hJmul
+  -- Replace numerator with denominator via hprod and simplify
+  simpa [this, hprod]
+
+/-- Boundary bound for the pinch field: on Re s = 1/2, under the boundary
+modulus equality and nonvanishing at that boundary point, we have
+`|(F_pinch det2 O)(1/2+it).re| ≤ 2`. -/
+lemma boundary_Re_F_pinch_le_two
+  {O : ℂ → ℂ}
+  (hBME : BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
+  (t : ℝ)
+  (hO : O (boundary t) ≠ 0)
+  (hXi : riemannXi_ext (boundary t) ≠ 0) :
+  |((F_pinch det2 O) (boundary t)).re| ≤ (2 : ℝ) := by
+  classical
+  -- |Re w| ≤ |w|
+  have h1 : |((F_pinch det2 O) (boundary t)).re| ≤ Complex.abs ((F_pinch det2 O) (boundary t)) := by
+    exact Complex.abs_re_le_abs _
+  -- |F_pinch| = |2·J_pinch| = 2·|J_pinch| = 2
+  have hJ : Complex.abs (J_pinch det2 O (boundary t)) = 1 :=
+    boundary_abs_J_pinch_eq_one (O := O) hBME t hO hXi
+  have hF : Complex.abs ((F_pinch det2 O) (boundary t)) = 2 := by
+    simpa [F_pinch, hJ, Complex.abs.mul, Complex.abs.two, mul_one]
+  -- conclude
+  simpa [hF]
 /-- Analyticity of `J_pinch det2 O` on the off-zeros set `Ω \\ {ξ_ext = 0}`.
 
 Requires: `det2` analytic on `Ω`, `O` analytic and zero-free on `Ω`, and
@@ -139,6 +222,18 @@ lemma J_pinch_analytic_on_offXi
   refine (this.congr ?_)
   intro z hz
   simp [J_pinch, div_eq_mul_inv]
+
+/-- Specialization of `J_pinch_analytic_on_offXi` to the chosen outer
+from `OuterHalfPlane.ofModulus_det2_over_xi_ext`. Uses
+`OuterHalfPlane.choose_outer_spec` to supply analyticity/nonvanishing for `O`. -/
+lemma J_pinch_analytic_on_offXi_choose
+  (hDet2 : Det2OnOmega)
+  (hOuterExist : OuterHalfPlane.ofModulus_det2_over_xi_ext)
+  (hXi : AnalyticOn ℂ riemannXi_ext Ω)
+  : AnalyticOn ℂ (J_pinch det2 (OuterHalfPlane.choose_outer hOuterExist))
+      (Ω \\ {z | riemannXi_ext z = 0}) :=
+  J_pinch_analytic_on_offXi (hDet2 := hDet2)
+    (hO := (OuterHalfPlane.choose_outer_spec hOuterExist).1) (hXi := hXi)
 
 /-- Build a `PinchCertificateExt` from the paper `J_pinch` once the two
 key facts are supplied:

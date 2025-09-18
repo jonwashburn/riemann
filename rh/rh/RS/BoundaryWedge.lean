@@ -1842,6 +1842,16 @@ theorem PPlus_of_certificate
   -- Invoke the statement-level wedge implication
   exact hP ⟨Cbox, hCbox0, hCar⟩
 
+/-- Convenience: `(P+)` for the concrete pinch field
+`F := (2 : ℂ) * J_pinch det2 O` from a Kξ certificate and the
+statement‑level Carleson implication. -/
+lemma F_pinch_Plus_from_certificate
+  (α c : ℝ) (O : ℂ → ℂ)
+  (hKxi : RH.Cert.KxiWhitney.KxiBound α c)
+  (hP : RH.Cert.PPlusFromCarleson_exists (fun z => (2 : ℂ) * J_pinch det2 O z)) :
+  RH.Cert.PPlus (fun z => (2 : ℂ) * J_pinch det2 O z) := by
+  exact PPlus_of_certificate α c (fun z => (2 : ℂ) * J_pinch det2 O z) hKxi hP
+
 /- Construct a local Whitney wedge certificate from a concrete nonnegative
 Carleson budget witness. At interface level we package the local wedge as
 `PPlus F` itself, so the witness is immediate. This keeps the signature stable

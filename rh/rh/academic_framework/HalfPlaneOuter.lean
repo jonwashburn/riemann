@@ -430,6 +430,50 @@ lemma integrable_boundary_kernel_of_bounded
   exact Integrable.of_dominated (fun t => (F (boundary t)).re * poissonKernel z t)
     (fun t => M * poissonKernel z t) hMaj hDom
 
+/-- Specialized integrability for the pinch field at boundary with `M = 2`.
+Given outer existence `hOuterExist`, any fixed interior point `z` with
+`Re z > 1/2` yields an integrable boundary Poisson integrand for
+`F := F_pinch det2 (choose_outer hOuterExist)` using the bound
+`|(Re F(1/2+it))| ≤ 2` derived from the boundary modulus equality.
+-/
+lemma integrable_boundary_kernel_of_bounded'
+  (hOuterExist : RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext)
+  (z : ℂ) (hz : (1/2 : ℝ) < z.re) :
+  Integrable (fun t : ℝ =>
+    (F_pinch RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist) (boundary t)).re
+      * poissonKernel z t) := by
+  classical
+  -- Outer and boundary modulus equality
+  let O : ℂ → ℂ := RH.RS.OuterHalfPlane.choose_outer hOuterExist
+  have hBME : RH.RS.BoundaryModulusEq O (fun s => RH.RS.det2 s / riemannXi_ext s) :=
+    (RH.RS.OuterHalfPlane.choose_outer_spec hOuterExist).2
+  -- Uniform boundary bound |Re F| ≤ 2
+  have hBnd2 : ∀ t : ℝ,
+      |(F_pinch RH.RS.det2 O (boundary t)).re| ≤ (2 : ℝ) := by
+    intro t
+    -- Case split on boundary nonvanishing; if denom vanishes, the expression reduces to 0
+    by_cases hO : O (boundary t) = 0
+    · by_cases hXi : riemannXi_ext (boundary t) = 0
+      · -- F_pinch(boundary t) = 0 ⇒ bound holds
+        have : (F_pinch RH.RS.det2 O (boundary t)) = 0 := by
+          simp [F_pinch, RH.RS.J_pinch, hO, hXi, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+        simpa [this] using (abs_nonneg ((F_pinch RH.RS.det2 O (boundary t)).re)).le.trans (by norm_num)
+      · -- O=0, ξ≠0 still gives bound via direct inequality |Re w| ≤ 2|J|
+        -- Use general inequality through the previously proved boundary lemma when possible
+        have h := RH.RS.boundary_Re_F_pinch_le_two (O := O) hBME t (by simpa [hO]) (by exact hXi)
+        simpa using h
+    · by_cases hXi : riemannXi_ext (boundary t) = 0
+      · -- ξ=0 (O≠0): same as above, F_pinch(boundary t) = 0 under field convention
+        have : (F_pinch RH.RS.det2 O (boundary t)) = 0 := by
+          simp [F_pinch, RH.RS.J_pinch, hO, hXi, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+        simpa [this] using (abs_nonneg ((F_pinch RH.RS.det2 O (boundary t)).re)).le.trans (by norm_num)
+      · -- Nonvanishing case: apply the RS boundary bound lemma
+        have h := RH.RS.boundary_Re_F_pinch_le_two (O := O) hBME t (by exact hO) (by exact hXi)
+        simpa using h
+  -- Apply the general integrability lemma with M = 2
+  exact integrable_boundary_kernel_of_bounded
+    (F := F_pinch RH.RS.det2 O) (z := z) (M := 2) hz hBnd2
+
 end HalfPlaneOuter
 end AcademicFramework
 end RH
