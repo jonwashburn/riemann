@@ -483,7 +483,7 @@ lemma poisson_formula_re_for_halfplane_analytic
   (hS : S ⊆ Ω)
   (hAnalytic : AnalyticOn ℂ F S)
   (hBound2 : ∀ t : ℝ, |(F (boundary t)).re| ≤ (2 : ℝ))
-  (hL1loc : True)
+  (hL1loc : ∀ K : Set ℝ, IsCompact K → IntegrableOn (fun t => (F (boundary t)).re) K volume)
   (hRepOn : HasHalfPlanePoissonRepresentationOn F S)
   : ∀ z ∈ S, (F z).re = P (fun t : ℝ => (F (boundary t)).re) z := by
   intro z hz
