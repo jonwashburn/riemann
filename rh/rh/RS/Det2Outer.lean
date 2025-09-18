@@ -2,6 +2,7 @@ import Mathlib.Analysis.Analytic.Basic
 import Mathlib.Topology.Basic
 import Mathlib.Data.Real.Basic
 import rh.academic_framework.CompletedXi
+import rh.academic_framework.DiagonalFredholm.Determinant
 
 /-!
 # det₂ alias and half‑plane outer interface (RS layer)
@@ -51,6 +52,45 @@ def det2_on_Ω_proved
   (hA : AnalyticOn ℂ det2 Ω)
   (hNZ : ∀ {s}, s ∈ Ω → det2 s ≠ 0) : Det2OnOmega :=
   det2_on_Ω_assumed hA (by intro s hs; exact hNZ (s := s) hs)
+
+/-- Builder: derive `Det2OnOmega` for `RS.det2` from a diagonal Fredholm
+model and an analytic, nonvanishing renormalizer on `Ω`.
+
+Inputs:
+- `hBridge`: an analytic, nonvanishing `E` on `Ω` such that on `Ω`,
+  `det2 = diagDet2 · * E ·` (pointwise equality via `Set.EqOn`).
+- `hDiagA`: analyticity of the diagonal Fredholm determinant model on `Ω`.
+- `hDiagNZ`: nonvanishing of the diagonal model on `Ω`.
+
+Conclusion: `det2` is analytic and nonvanishing on `Ω`.
+
+Note: This is a packaging lemma; the concrete diagonal model and its
+properties live in the academic framework. -/
+def det2_on_Ω_proved_from_diagonal
+  (hBridge : ∃ E : ℂ → ℂ,
+      AnalyticOn ℂ E Ω ∧ (∀ {s}, s ∈ Ω → E s ≠ 0) ∧
+      Set.EqOn det2 (fun s => RH.AcademicFramework.DiagonalFredholm.diagDet2 s * E s) Ω)
+  (hDiagA : AnalyticOn ℂ RH.AcademicFramework.DiagonalFredholm.diagDet2 Ω)
+  (hDiagNZ : ∀ {s}, s ∈ Ω → RH.AcademicFramework.DiagonalFredholm.diagDet2 s ≠ 0)
+  : Det2OnOmega := by
+  classical
+  rcases hBridge with ⟨E, hEA, hENZ, hEq⟩
+  -- Analyticity: product of analytic functions on Ω
+  have hAnalytic : AnalyticOn ℂ det2 Ω := by
+    -- det2 ≡ diagDet2 * E on Ω
+    refine (AnalyticOn.congr ?prod hEq)
+    exact (hDiagA.mul hEA)
+  -- Nonvanishing: product of two nonvanishing functions on Ω
+  have hNonzero : ∀ {s}, s ∈ Ω → det2 s ≠ 0 := by
+    intro s hs
+    -- rewrite via hEq and use nonvanishing of each factor at s
+    have hEq_s : det2 s = RH.AcademicFramework.DiagonalFredholm.diagDet2 s * E s := by
+      have := hEq hs; simpa using this
+    have h1 : RH.AcademicFramework.DiagonalFredholm.diagDet2 s ≠ 0 := hDiagNZ (s := s) hs
+    have h2 : E s ≠ 0 := hENZ (s := s) hs
+    have : RH.AcademicFramework.DiagonalFredholm.diagDet2 s * E s ≠ 0 := mul_ne_zero h1 h2
+    simpa [hEq_s]
+  exact { analytic := hAnalytic, nonzero := hNonzero }
 
 /-- Half‑plane outer interface: `O` analytic and zero‑free on Ω. -/
 structure OuterHalfPlane (O : ℂ → ℂ) : Prop :=
