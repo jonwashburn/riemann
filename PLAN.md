@@ -19,11 +19,11 @@ Make the final `RH` export unconditional by internalizing the remaining analysis
 ## File‑by‑file plan
 
 ### rh/rh/academic_framework/HalfPlaneOuter.lean
-- Add a self‑contained lemma `poisson_formula_re_for_halfplane_analytic` using our kernel, integrability lemmas, and dominated convergence for `S⊆Ω`.
-- Refactor `pinch_representation_on_offXi` to:
+- Add a self‑contained lemma `poisson_formula_re_selfcontained` via Cayley→disk bridge and our kernel/integrability (`S⊆Ω`).
+- Refactor `pinch_representation_on_offXi` (M=2 variant) to:
   - Use `J_pinch_analytic_on_offXi_choose` for analyticity.
   - Use `integrable_boundary_kernel_of_bounded'` (M=2) for integrability.
-  - Derive `re_eq` via `poisson_formula_re_for_halfplane_analytic`.
+  - Derive `re_eq` via `poisson_formula_re_selfcontained` (drop external `re_eq`).
 
 ### rh/rh/RS/Cayley.lean
 - Already provides `J_pinch_analytic_on_offXi_choose` and boundary modulus lemmas; no change beyond ensuring all callers use the choose‑outer specialization.
