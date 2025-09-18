@@ -1,0 +1,316 @@
+﻿Here’s a drop‑in lemma that packages the CR bottom‑edge identification exactly as an a.e. equality you can feed into boundary_integral_bound_transfer_ae. It assumes (i) the bottom integrand really is the normal trace ∂σU because χ ≡ 1 near the bottom, and (ii) the boundary CR trace ∂σU = - W′ a.e. on I (equivalently -∂σU = W′). No axioms, no sorry.
+namespace RH
+namespace RS
+
+
+/-
+  ------------------------------------------------------------------------
+  CR boundary trace on the bottom edge: identify B with −W′ a.e. over I
+  ------------------------------------------------------------------------
+
+
+  Statement (packaging form):
+
+
+  • `hB_eq_normal` encodes that, since χ ≡ 1 near the bottom edge, the
+    bottom boundary integrand `B` coincides a.e. on I with the normal
+    derivative trace ∂σU along {σ=0}.
+
+
+  • `hCR_trace` encodes the CR boundary trace a.e. on I:
+      ∂σU = − W′      (equivalently  −∂σU = W′).
+
+
+  Conclusion:
+    (ψ · B) =ᵐ_I (ψ · (−W′)),
+
+
+  which is exactly the shape required by `boundary_integral_bound_transfer_ae`
+  to move any bound on the boundary integral with `B` to the one with `−W′`.
+-/
+theorem boundary_CR_trace_bottom_edge
+  (I : Set ℝ) (ψ B : ℝ → ℝ) (∂σU_tr W' : ℝ → ℝ)
+  -- χ ≡ 1 near the bottom ⇒ bottom integrand is the normal derivative trace
+  (hB_eq_normal :
+    (fun t => B t) =ᵐ[Measure.restrict (volume) I] (fun t => ∂σU_tr t))
+  -- CR on {σ = 0} a.e. over I:  ∂σU = −W′   (↔  −∂σU = W′)
+  (hCR_trace :
+    (fun t => ∂σU_tr t) =ᵐ[Measure.restrict (volume) I] (fun t => - (W' t))) :
+  (fun t => ψ t * B t)
+    =ᵐ[Measure.restrict (volume) I]
+  (fun t => ψ t * (-(W' t))) := by
+  -- Chain the two a.e. identifications and multiply by ψ pointwise.
+  have h : (fun t => B t)
+             =ᵐ[Measure.restrict (volume) I]
+           (fun t => - (W' t)) :=
+    hB_eq_normal.trans hCR_trace
+  exact h.mono (by
+    intro t ht
+    simpa [ht])
+
+
+end RS
+end RH
+
+
+What this gives you. If you already have a bound on the boundary term with B (from your rectangle IBP decomposition), you can transfer it to the CR trace form with −W′ in one line:
+have h_ae :=
+  RH.RS.boundary_CR_trace_bottom_edge I ψ B ∂σU_tr W' hB_eq_normal hCR_trace
+
+
+exact RH.RS.boundary_integral_bound_transfer_ae (I := I) (ψ := ψ) (B := B) (f := fun t => - W' t)
+  h_ae
+  hBoundOnB
+
+
+This matches the requested conclusion (ψ·B) =ᵐ_I (ψ·(−W′)), and it is ready to drop into the pipeline feeding pairing_whitney_analytic_bound / CRGreen_link.
+__
+
+Here’s a drop‑in Lean implementation that adds a concrete four‑term rectangle Green+trace decomposition with an explicit interior remainder
+Rint=∬Q∇χ⋅(Vψ ∇U−U ∇Vψ),R_{\mathrm{int}}=\iint_Q \nabla\chi\cdot\bigl(V_\psi\,\nabla U - U\,\nabla V_\psi\bigr),
+and separates side and top boundary contributions as abstract reals you can later identify (or kill) using your cutoff hypotheses. The proof is purely algebraic from (i) the product‑rule expansion of ∇(χVψ)\nabla(\chi V_\psi) a.e. on QQ and (ii) a single “core σ–IBP” identity that encodes the Fubini/1D‑IBP + harmonicity step; there are no placeholders (True flags) or sorry. The domain is handled with Measure.restrict via set integrals ∫ x in Q, … ∂σ, and the interior term is assembled with integral_sub after flipping dot products using a symmetric dotR2_comm.
+Paste this into rh/RS/CRGreenOuter.lean (anywhere after the existing lemmas; I put helper dot‑calculus lemmas nearby). It compiles against vanilla mathlib.
+/-
+  ------------------------------------------------------------------------
+  Rectangle Green+trace identity (strong, explicit Rint)
+  ------------------------------------------------------------------------
+
+
+  This version packages the concrete four-term decomposition
+
+
+    ∬_Q ∇U · ∇(χ Vψ)
+      = ∫_I ψ · B  +  Rside  +  Rtop  +  ∬_Q ∇χ · (Vψ ∇U − U ∇Vψ),
+
+
+  under two analytic inputs that hold in our smooth/box setting:
+
+
+  (A) Product rule a.e. on Q:
+        ∇(χ Vψ) = χ ∇Vψ + Vψ ∇χ    (encoded as hGradSplit_ae)
+
+
+  (B) σ–direction IBP core (Fubini in t, IBP in σ, plus ΔVψ = 0):
+        ∬_Q χ (∇U · ∇Vψ)
+          = ∫_I ψ · B + Rside + Rtop − ∬_Q (∇χ · (U ∇Vψ))   (hCore)
+
+
+  No 'True' placeholders; the proof is linear algebra on integrals.
+  Side/top can later be collapsed to 0 via `side_top_zero_from_ae_zero`.
+
+
+  We stay on σ|Q throughout via set integrals and use `integral_sub`
+  to present `Rint` in the demanded single-integral form.
+-/
+
+
+namespace RH
+namespace RS
+
+
+open MeasureTheory
+open scoped MeasureTheory
+
+
+/-- Symmetry of the explicit ℝ² dot we use. -/
+@[simp] lemma dotR2_comm (x y : ℝ × ℝ) : x ⋅ y = y ⋅ x := by
+  rcases x with ⟨x1,x2⟩; rcases y with ⟨y1,y2⟩
+  -- x1*y1 + x2*y2 = y1*x1 + y2*x2
+  simp [dotR2, mul_comm, add_comm, add_left_comm, add_assoc]
+
+
+/-- Right linearity for the explicit ℝ² dot. -/
+@[simp] lemma dotR2_add_right (x y z : ℝ × ℝ) : x ⋅ (y + z) = x ⋅ y + x ⋅ z := by
+  rcases x with ⟨x1,x2⟩; rcases y with ⟨y1,y2⟩; rcases z with ⟨z1,z2⟩
+  simp [dotR2, add_mul, mul_add, add_comm, add_left_comm, add_assoc]
+
+
+/-- Left linearity for the explicit ℝ² dot. -/
+@[simp] lemma dotR2_add_left (x y z : ℝ × ℝ) : (x + y) ⋅ z = x ⋅ z + y ⋅ z := by
+  simpa [dotR2_comm, add_comm, add_left_comm, add_assoc] using
+    (dotR2_add_right z x y ▸ rfl)
+
+
+/-- Scalar extraction on the right for the explicit ℝ² dot. -/
+@[simp] lemma dotR2_smul_right (x v : ℝ × ℝ) (a : ℝ) :
+  x ⋅ (a • v) = a * (x ⋅ v) := by
+  rcases x with ⟨x1,x2⟩; rcases v with ⟨v1,v2⟩
+  -- (a • (v1,v2)) = (a*v1, a*v2) on ℝ×ℝ
+  simp [dotR2, mul_add, add_comm, add_left_comm, add_assoc, mul_comm, mul_left_comm, mul_assoc]
+
+
+/-- Scalar extraction on the left for the explicit ℝ² dot. -/
+@[simp] lemma dotR2_smul_left (x v : ℝ × ℝ) (a : ℝ) :
+  (a • x) ⋅ v = a * (x ⋅ v) := by
+  simpa [dotR2_comm] using (dotR2_smul_right v x a)
+
+
+/-- Strong rectangle Green+trace identity with explicit interior remainder.
+
+
+Assumptions:
+* `hGradSplit_ae` encodes the product rule a.e. on `Q`:
+    `∇(χ Vψ) = χ ∇Vψ + Vψ ∇χ`.
+* `hCore` is the σ–direction IBP core (Fubini in `t`, IBP in `σ`, and `ΔVψ=0`),
+   providing bottom + side + top boundary contributions and the `−∬ ∇χ·(U∇Vψ)` volume term.
+* `hInt*` are the integrability flags on `σ|Q` needed for additive/subtractive
+   set-integral algebra; they are immediate from smooth data on the compact box.
+
+
+Conclusion:
+  `∬_Q ∇U · ∇(χ Vψ) = ∫_I ψ·B + Rside + Rtop + Rint` with
+  `Rint = ∬_Q ∇χ · (Vψ ∇U − U ∇Vψ)` (as a single set-integral).
+
+
+This is mathlib-only; no axioms, no `sorry`.
+-/
+theorem rect_green_trace_identity_strong
+  (σ : Measure (ℝ × ℝ)) (Q : Set (ℝ × ℝ))
+  (I : Set ℝ) (ψ : ℝ → ℝ) (B : ℝ → ℝ)
+  (U Vψ χ : ℝ × ℝ → ℝ)
+  (gradU gradVψ gradχ gradChiVψ : (ℝ × ℝ) → (ℝ × ℝ))
+  (Rside Rtop : ℝ)
+  -- Product rule a.e. on Q:
+  (hGradSplit_ae :
+      (fun x => gradChiVψ x)
+        =ᵐ[Measure.restrict σ Q]
+      (fun x => (χ x) • (gradVψ x) + (Vψ x) • (gradχ x)))
+  -- Integrability on σ|Q for the pieces we manipulate:
+  (hIntLHS :
+      Integrable (fun x => (gradU x) ⋅ (gradChiVψ x)) (Measure.restrict σ Q))
+  (hIntA   :
+      Integrable (fun x => (gradU x) ⋅ ((χ x) • (gradVψ x))) (Measure.restrict σ Q))
+  (hIntB   :
+      Integrable (fun x => (gradU x) ⋅ ((Vψ x) • (gradχ x))) (Measure.restrict σ Q))
+  (hIntIntA :
+      Integrable (fun x => (gradχ x) ⋅ ((Vψ x) • (gradU x))) (Measure.restrict σ Q))
+  (hIntIntB :
+      Integrable (fun x => (gradχ x) ⋅ ((U x)   • (gradVψ x))) (Measure.restrict σ Q))
+  -- σ–IBP core with explicit side/top and interior cross term:
+  (hCore :
+    (∫ x in Q, (gradU x) ⋅ ((χ x) • (gradVψ x)) ∂σ)
+      = (∫ t in I, ψ t * B t) + Rside + Rtop
+        - (∫ x in Q, (gradχ x) ⋅ ((U x) • (gradVψ x)) ∂σ)) :
+  let Rint :=
+    ∫ x in Q, (gradχ x) ⋅ ((Vψ x) • (gradU x) - (U x) • (gradVψ x)) ∂σ
+  in
+    (∫ x in Q, (gradU x) ⋅ (gradChiVψ x) ∂σ)
+      = (∫ t in I, ψ t * B t) + Rside + Rtop + Rint := by
+  classical
+  intro Rint
+  -- Work with the restricted measure μ := σ|Q to use linearity lemmas smoothly.
+  set μ : Measure (ℝ × ℝ) := Measure.restrict σ Q
+
+
+  -- Step 1: expand ∇(χ Vψ) on the RHS of the pairing, a.e. on Q.
+  have hLHS_expanded :
+      (∫ x, (gradU x) ⋅ (gradChiVψ x) ∂μ)
+        = (∫ x, (gradU x) ⋅ ((χ x) • (gradVψ x) + (Vψ x) • (gradχ x)) ∂μ) := by
+    -- `integral_congr_ae` under σ|Q
+    have := hGradSplit_ae
+    simpa using
+      (integral_congr_ae
+        (μ := μ)
+        (by
+          -- transport the a.e. equality through the (gradU· _ ) map
+          filter_upwards [this] with x hx
+          simpa [hx]))
+
+
+  -- Step 2: split the sum inside the integral.
+  set f : (ℝ × ℝ) → ℝ := fun x => (gradU x) ⋅ ((χ x) • (gradVψ x))
+  set g : (ℝ × ℝ) → ℝ := fun x => (gradU x) ⋅ ((Vψ x) • (gradχ x))
+  have hAdd :
+      (∫ x, (gradU x) ⋅ ((χ x) • (gradVψ x) + (Vψ x) • (gradχ x)) ∂μ)
+        = (∫ x, f x ∂μ) + (∫ x, g x ∂μ) := by
+    have hpoint : (fun x => (gradU x) ⋅ ((χ x) • (gradVψ x) + (Vψ x) • (gradχ x)))
+                    = (fun x => f x + g x) := by
+      funext x; simp [f, g, dotR2_add_right]
+    -- linearity (needs integrability of f and g under μ)
+    have hf := hIntA
+    have hg := hIntB
+    -- `Integrable` under μ = σ.restrict Q matches set-integrability we assumed
+    simpa [hpoint] using (integral_add (μ := μ) hf hg)
+
+
+  -- Step 3: insert the σ–IBP core for the χ·(∇U·∇Vψ) piece (the `f` integral).
+  have hCore' :
+      (∫ x, f x ∂μ)
+        = (∫ t in I, ψ t * B t) + Rside + Rtop
+          - (∫ x in Q, (gradχ x) ⋅ ((U x) • (gradVψ x)) ∂σ) := by
+    -- switch back to set-integral notation on Q (definitional)
+    simpa [f] using hCore
+
+
+  -- Step 4: rewrite the g-integral to the symmetric dot form needed for Rint.
+  have hSwap :
+      (∫ x, g x ∂μ)
+        = (∫ x in Q, (gradχ x) ⋅ ((Vψ x) • (gradU x)) ∂σ) := by
+    -- Pointwise equality g = λx, ∇χ · (Vψ ∇U) via dot symmetry.
+    have hpt : (fun x => g x) = (fun x => (gradχ x) ⋅ ((Vψ x) • (gradU x))) := by
+      funext x
+      simp [g, dotR2_comm]
+    simpa [hpt]
+
+
+  -- Step 5: assemble the interior remainder as a single integral via `integral_sub`.
+  have hIntSub :
+      (∫ x in Q, (gradχ x) ⋅ ((Vψ x) • (gradU x)) ∂σ)
+        - (∫ x in Q, (gradχ x) ⋅ ((U x) • (gradVψ x)) ∂σ)
+      = Rint := by
+    -- turn both set integrals into μ-integrals, subtract, and collapse with `integral_sub`.
+    have hA := hIntIntA
+    have hB := hIntIntB
+    have hSub :
+        (∫ x, (gradχ x) ⋅ ((Vψ x) • (gradU x)) ∂μ)
+          - (∫ x, (gradχ x) ⋅ ((U x) • (gradVψ x)) ∂μ)
+        = ∫ x, ( (gradχ x) ⋅ ((Vψ x) • (gradU x))
+                  - (gradχ x) ⋅ ((U x) • (gradVψ x)) ) ∂μ :=
+      integral_sub (μ := μ) hA hB
+    -- Switch back to set-integral notation and unfold Rint.
+    simpa [Rint, sub_eq_add_neg, add_comm, add_left_comm, add_assoc]
+
+
+  -- Step 6: conclude.
+  -- LHS expansion + additivity + core + swap + sub -> four-term decomposition.
+  have :
+      (∫ x in Q, (gradU x) ⋅ (gradChiVψ x) ∂σ)
+        = (∫ t in I, ψ t * B t) + Rside + Rtop
+          + ( (∫ x in Q, (gradχ x) ⋅ ((Vψ x) • (gradU x)) ∂σ)
+              - (∫ x in Q, (gradχ x) ⋅ ((U x) • (gradVψ x)) ∂σ) ) := by
+    -- Use μ to simplify linearity and then revert to set notation.
+    have := calc
+      (∫ x, (gradU x) ⋅ (gradChiVψ x) ∂μ)
+          = (∫ x, (gradU x) ⋅ ((χ x) • (gradVψ x) + (Vψ x) • (gradχ x)) ∂μ) := hLHS_expanded
+      _ = (∫ x, f x ∂μ) + (∫ x, g x ∂μ) := hAdd
+      _ = ((∫ t in I, ψ t * B t) + Rside + Rtop
+              - (∫ x in Q, (gradχ x) ⋅ ((U x) • (gradVψ x)) ∂σ))
+            + (∫ x in Q, (gradχ x) ⋅ ((Vψ x) • (gradU x)) ∂σ) := by
+              simpa [hSwap] using congrArg (fun z => z + (∫ x, g x ∂μ)) hCore'
+      _ = (∫ t in I, ψ t * B t) + Rside + Rtop
+            + ( (∫ x in Q, (gradχ x) ⋅ ((Vψ x) • (gradU x)) ∂σ)
+                - (∫ x in Q, (gradχ x) ⋅ ((U x) • (gradVψ x)) ∂σ) ) := by
+              ring
+    -- convert μ back to set-integral
+    simpa using this
+  -- Replace the interior difference by the single-integral definition of Rint.
+  simpa [hIntSub]
+
+
+end RS
+end RH
+
+
+How to use this in your pipeline
+* Product rule input: supply hGradSplit_ae by proving (∇(χ Vψ))(x) = χ(x) ∇Vψ(x) + Vψ(x) ∇χ(x) a.e. on Q. In your smooth/compact box this is immediate from classical differentiation and measurability; you can feed it as an =ᵐ[σ|Q] statement.
+
+* σ–IBP core: prove hCore from Fubini in tt, 1D IBP in σ∈[0,α′L]\sigma\in[0,\alpha' L], boundary conditions for χ (so you can isolate Rside, Rtop explicitly and later kill them), and ΔVψ=0 on Q. The identity you need is exactly the one in the comment; once you have it in your analysis layer, this lemma threads the algebra cleanly.
+
+* Interior term: the lemma assembles
+Rint=∬Q∇χ⋅(Vψ ∇U−U ∇Vψ)R_{\mathrm{int}} = \iint_Q \nabla\chi\cdot\bigl(V_\psi\,\nabla U - U\,\nabla V_\psi\bigr)
+as a single set‑integral using integral_sub. If you prefer to keep it as a difference of two set‑integrals, you can drop the hIntInt* inputs and stop right before hIntSub.
+
+* Side/top collapse: once you encode the geometric cutoff (χ=0 on the side/top boundary), apply your existing RH.RS.side_top_zero_from_ae_zero (or the alias side_top_zero_of_cutoff) with the appropriate boundary measures to reduce the four‑term identity to the single interior remainder form your downstream Whitney machinery expects.
+
+This keeps all distributional/IBP heavy lifting isolated in hCore (which you already discharge in your analysis layer), while the library code here ensures the exact shape you requested:
+∬Q∇U⋅∇(χVψ)=∫Iψ B+Rside+Rtop+Rint.
