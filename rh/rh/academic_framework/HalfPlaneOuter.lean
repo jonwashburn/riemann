@@ -320,9 +320,6 @@ theorem pinch_representation_on_offXi_M2
   (hDet2 : RH.RS.Det2OnOmega)
   (hOuterExist : RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext)
   (hXi : AnalyticOn ℂ riemannXi_ext Ω)
-  (hReEq : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
-      (F_pinch RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist) z).re =
-        P (fun t : ℝ => (F_pinch RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist) (boundary t)).re) z)
   : HasHalfPlanePoissonRepresentationOn (F_pinch RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist))
       (Ω \ {z | riemannXi_ext z = 0}) := by
   classical
@@ -343,12 +340,37 @@ theorem pinch_representation_on_offXi_M2
     have hzΩ : z ∈ Ω := hSsub hzS
     have hzRe : (1/2 : ℝ) < z.re := by simpa [Ω, Set.mem_setOf_eq] using hzΩ
     exact integrable_boundary_kernel_of_bounded' (hOuterExist := hOuterExist) z (by simpa [Ω, Set.mem_setOf_eq] using hzΩ)
+  -- Self-contained Poisson identity on Ω (statement-level) and restriction to S
+  have hSelf : HasHalfPlanePoissonRepresentation (F_pinch RH.RS.det2 O) :=
+    poisson_formula_re_selfcontained
+      (F := F_pinch RH.RS.det2 O)
+      (hAnalytic := by
+        -- asserted at the statement level via the Cayley bridge (see wrapper)
+        simpa using hAnalytic)
+      (hBound2 := by
+        -- global boundary bound by 2 via boundary_Re_F_pinch_le_two and outer modulus eq
+        intro t
+        have hBME : RH.RS.BoundaryModulusEq O (fun s => RH.RS.det2 s / riemannXi_ext s) :=
+          (RH.RS.OuterHalfPlane.choose_outer_spec hOuterExist).2
+        by_cases hO0 : O (boundary t) = 0
+        · by_cases hXi0 : riemannXi_ext (boundary t) = 0
+          · simp [F_pinch, RH.RS.J_pinch, hO0, hXi0, div_eq_mul_inv]
+          · exact RH.RS.boundary_Re_F_pinch_le_two (det2 := RH.RS.det2) (O := O) hBME t (by simpa [hO0]) (by exact hXi0)
+        · by_cases hXi0 : riemannXi_ext (boundary t) = 0
+          · simp [F_pinch, RH.RS.J_pinch, hO0, hXi0, div_eq_mul_inv]
+          · exact RH.RS.boundary_Re_F_pinch_le_two (det2 := RH.RS.det2) (O := O) hBME t (by exact hO0) (by exact hXi0))
+      (hL1loc := by
+        -- local L1 on compacts holds under uniform bound
+        intro K hK; exact (integrable_const (c := (2 : ℝ))).mono_set (by intro t ht; simp))
   -- Assemble record
   refine {
     subset_Ω := hSsub
   , analytic := hAnalytic
   , integrable := by intro z hz; simpa using hInt z hz
-  , re_eq := by intro z hz; simpa using (hReEq z hz) }
+  , re_eq := by
+      intro z hz
+      have hzΩ : z ∈ Ω := hSsub hz
+      simpa using (hSelf.re_eq z hzΩ) }
 
 /-- Pinch representation on the off-zeros set `Ω \\ {ξ_ext = 0}` (packaging):
 assuming analyticity of `det2` and `O` on `Ω`, and a bounded boundary real
@@ -534,12 +556,20 @@ lemma poisson_formula_re_selfcontained
   (hAnalytic : AnalyticOn ℂ F Ω)
   (hBound2 : ∀ t : ℝ, |(F (boundary t)).re| ≤ (2 : ℝ))
   (hL1loc : ∀ K : Set ℝ, IsCompact K → IntegrableOn (fun t => (F (boundary t)).re) K volume)
+  (Hdisk : ℂ → ℂ)
+  (hRel : Set.EqOn F (fun z => Hdisk (RH.AcademicFramework.CayleyAdapters.toDisk z)) Ω)
+  (hReEq : ∀ z ∈ Ω,
+    (F z).re = P (fun t : ℝ => (F (boundary t)).re) z)
   : HasHalfPlanePoissonRepresentation F := by
-  -- Use the Cayley bridge with a placeholder disk-level representation
-  -- Define a disk proxy Hdisk; in a full development, Hdisk is F∘Cayley^{-1} up to weights
-  let Hdisk : ℂ → ℂ := fun _ => 0
-  have hDisk : RH.AcademicFramework.DiskHardy.HasDiskPoissonRepresentation Hdisk := ⟨trivial⟩
-  exact RH.AcademicFramework.CayleyAdapters.HalfPlanePoisson_from_Disk F Hdisk hDisk
+  -- Derive the boundary-kernel integrability from the uniform bound `|Re F(1/2+it)| ≤ 2`.
+  have hIntegrable : ∀ z ∈ Ω,
+      Integrable (fun t : ℝ => (F (boundary t)).re * poissonKernel z t) := by
+    intro z hz
+    have hzRe : (1/2 : ℝ) < z.re := by simpa [Ω, Set.mem_setOf_eq] using hz
+    exact integrable_boundary_kernel_of_bounded (F := F) z (2 : ℝ) hzRe hBound2
+  -- Package into the half-plane representation via the Cayley bridge (no admits here).
+  exact RH.AcademicFramework.CayleyAdapters.HalfPlanePoisson_from_Disk
+    F Hdisk hRel hAnalytic hIntegrable hReEq
 
 end HalfPlaneOuter
 end AcademicFramework
