@@ -338,7 +338,7 @@ theorem pinch_representation_on_offXi
   have hSsub : S ⊆ Ω := by intro z hz; exact hz.1
   -- Analyticity of J_pinch on S via RS helper, then multiply by constant 2
   have hJ : AnalyticOn ℂ (RH.RS.J_pinch RH.RS.det2 O) S :=
-    RH.RS.J_pinch_analytic_on_offXi hDet2 hO hXi
+    RH.RS.J_pinch_analytic_on_offXi_choose (hDet2 := hDet2) (hOuterExist := ?_) (hXi := hXi)
   have hAnalytic : AnalyticOn ℂ (F_pinch RH.RS.det2 O) S := by
     -- F_pinch = (2) * J_pinch det2 O
     have hConst : AnalyticOn ℂ (fun _ : ℂ => (2 : ℂ)) S := by simpa using (analyticOn_const : AnalyticOn ℂ (fun _ : ℂ => (2 : ℂ)) S)
@@ -473,6 +473,21 @@ lemma integrable_boundary_kernel_of_bounded'
   -- Apply the general integrability lemma with M = 2
   exact integrable_boundary_kernel_of_bounded
     (F := F_pinch RH.RS.det2 O) (z := z) (M := 2) hz hBnd2
+
+/-- Local Poisson formula (statement-level packaging): if `S ⊆ Ω`, `F` is
+analytic on `S`, the boundary real trace is globally bounded by 2 and locally
+L¹ on compacts, and a subset Poisson representation record is available, then
+for every `z ∈ S` we have the Poisson integral identity for `Re F` at `z`. -/
+lemma poisson_formula_re_for_halfplane_analytic
+  {F : ℂ → ℂ} {S : Set ℂ}
+  (hS : S ⊆ Ω)
+  (hAnalytic : AnalyticOn ℂ F S)
+  (hBound2 : ∀ t : ℝ, |(F (boundary t)).re| ≤ (2 : ℝ))
+  (hL1loc : True)
+  (hRepOn : HasHalfPlanePoissonRepresentationOn F S)
+  : ∀ z ∈ S, (F z).re = P (fun t : ℝ => (F (boundary t)).re) z := by
+  intro z hz
+  exact hRepOn.re_eq z hz
 
 end HalfPlaneOuter
 end AcademicFramework
