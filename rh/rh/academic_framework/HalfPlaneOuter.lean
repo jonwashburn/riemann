@@ -313,6 +313,43 @@ theorem HasHalfPlanePoissonTransport_on_Jpinch
   intro hP
   exact HasHalfPlanePoissonTransport_on (F := F_pinch det2 O) (S := (Ω \ {z | riemannZeta z = 0})) hRepOn hP
 
+/-- Pinch representation on the off-zeros set for the chosen outer with M=2 bound
+derived internally from boundary modulus equality. Requires only the Poisson
+identity for the real part as an input. -/
+theorem pinch_representation_on_offXi_M2
+  (hDet2 : RH.RS.Det2OnOmega)
+  (hOuterExist : RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext)
+  (hXi : AnalyticOn ℂ riemannXi_ext Ω)
+  (hReEq : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+      (F_pinch RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist) z).re =
+        P (fun t : ℝ => (F_pinch RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist) (boundary t)).re) z)
+  : HasHalfPlanePoissonRepresentationOn (F_pinch RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist))
+      (Ω \ {z | riemannXi_ext z = 0}) := by
+  classical
+  -- notation
+  let O : ℂ → ℂ := RH.RS.OuterHalfPlane.choose_outer hOuterExist
+  let S : Set ℂ := (Ω \ {z | riemannXi_ext z = 0})
+  have hSsub : S ⊆ Ω := by intro z hz; exact hz.1
+  -- Analyticity on S
+  have hJ : AnalyticOn ℂ (RH.RS.J_pinch RH.RS.det2 O) S :=
+    RH.RS.J_pinch_analytic_on_offXi_choose (hDet2 := hDet2) (hOuterExist := hOuterExist) (hXi := hXi)
+  have hAnalytic : AnalyticOn ℂ (F_pinch RH.RS.det2 O) S := by
+    have hConst : AnalyticOn ℂ (fun _ : ℂ => (2 : ℂ)) S := by simpa using (analyticOn_const : AnalyticOn ℂ (fun _ : ℂ => (2 : ℂ)) S)
+    simpa [F_pinch] using hConst.mul hJ
+  -- Integrability via M=2 bound derived internally
+  have hInt : ∀ z ∈ S,
+      Integrable (fun t : ℝ => (F_pinch RH.RS.det2 O (boundary t)).re * poissonKernel z t) := by
+    intro z hzS
+    have hzΩ : z ∈ Ω := hSsub hzS
+    have hzRe : (1/2 : ℝ) < z.re := by simpa [Ω, Set.mem_setOf_eq] using hzΩ
+    exact integrable_boundary_kernel_of_bounded' (hOuterExist := hOuterExist) z (by simpa [Ω, Set.mem_setOf_eq] using hzΩ)
+  -- Assemble record
+  refine {
+    subset_Ω := hSsub
+  , analytic := hAnalytic
+  , integrable := by intro z hz; simpa using hInt z hz
+  , re_eq := by intro z hz; simpa using (hReEq z hz) }
+
 /-- Pinch representation on the off-zeros set `Ω \\ {ξ_ext = 0}` (packaging):
 assuming analyticity of `det2` and `O` on `Ω`, and a bounded boundary real
 trace for `F_pinch det2 O` along the critical line, plus a Poisson identity for
