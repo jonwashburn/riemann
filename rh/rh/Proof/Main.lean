@@ -1071,8 +1071,7 @@ theorem RiemannHypothesis_from_certificate_rep_on
       (RH.AcademicFramework.HalfPlaneOuter.F_pinch RH.RS.det2 O)
       (RH.RS.Ω \ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}) :=
     RH.AcademicFramework.HalfPlaneOuter.pinch_representation_on_offXi_M2
-      (hDet2 := hDet2) (hOuterExist := hOuterExist) (hXi := hXiAnalytic) (hReEq := by
-        intro z hz; simpa using (hReEq z hz))
+      (hDet2 := hDet2) (hOuterExist := hOuterExist) (hXi := hXiAnalytic)
   -- Produce (P+) for F := 2·J_pinch det2 O from the certificate Kξ + Carleson route
   let F : ℂ → ℂ := fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)
   have hPPlus : RH.Cert.PPlus F := by
