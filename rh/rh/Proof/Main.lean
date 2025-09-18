@@ -1004,3 +1004,32 @@ theorem RiemannHypothesis_from_certificate_route
   exact RH_from_certificate_poisson_and_pinned
     (α := α) (c := c) (hOuterExist := hOuterExist) (hTrans := hTrans)
     (hKxi := hKxi) (hP := hP) (hPinned := hPinned)
+
+/-- Convenience wrapper: replace the half–plane transport input by a Poisson
+representation of the pinch field. We derive the RS transport predicate from
+the representation and delegate to the main certificate route. -/
+theorem RiemannHypothesis_from_certificate_rep_route
+  (α c : ℝ)
+  (hOuterExist : RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext)
+  (hRep : RH.AcademicFramework.HalfPlaneOuter.HasHalfPlanePoissonRepresentation
+    (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist) z)))
+  (hKxi : RH.Cert.KxiWhitney.KxiBound α c)
+  (hPinned : ∀ ρ, ρ ∈ RH.RS.Ω → RH.AcademicFramework.CompletedXi.riemannXi_ext ρ = 0 →
+      ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ RH.RS.Ω ∧ ρ ∈ U ∧
+        (U ∩ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
+        ∃ (Θ_analytic_off_rho : AnalyticOn ℂ (RH.RS.Θ_pinch_of RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist)) (U \n+          {ρ}))
+          (u : ℂ → ℂ)
+          (hEq : Set.EqOn (RH.RS.Θ_pinch_of RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist)) (fun z => (1 - u z) / (1 + u z)) (U
+          {ρ}))
+          (hu0 : Filter.Tendsto u (nhdsWithin ρ (U \ {ρ})) (nhds (0 : ℂ)))
+          (z_nontrivial : ∃ z, z ∈ U ∧ z ≠ ρ ∧ (RH.RS.Θ_pinch_of RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist)) z ≠ 1),
+          True)
+  : RiemannHypothesis := by
+  -- Produce transport from representation for the pinch field
+  have hTrans : RH.RS.HasHalfPlanePoissonTransport
+    (fun z => (2 : ℂ) * RH.RS.J_pinch RH.RS.det2 (RH.RS.OuterHalfPlane.choose_outer hOuterExist) z) :=
+    RH.RS.transport_for_pinch_of_rep (det2 := RH.RS.det2) (O := RH.RS.OuterHalfPlane.choose_outer hOuterExist) hRep
+  -- Delegate to the existing certificate route
+  exact RiemannHypothesis_from_certificate_route
+    (α := α) (c := c) (hOuterExist := hOuterExist) (hTrans := hTrans)
+    (hKxi := hKxi) (hPinned := hPinned)
