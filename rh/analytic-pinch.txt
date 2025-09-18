@@ -1,0 +1,54 @@
+﻿/-
+  Removable-singularity pinch lemmas used by RS globalization.
+-/
+import Mathlib/Topology/Algebra/Analytic
+import Mathlib/Analysis/Complex/RemovableSingularity
+open Complex Set
+
+
+namespace RS
+
+
+/-- If g is analytic on a connected open U, |g| ≤ 1 on U \ {ρ}, and g(ρ) = 1, then g ≡ 1 on U. -/
+lemma schur_pinches_to_one
+  {U : Set ℂ} (hUopen : IsOpen U) (hUconn : IsPreconnected U) {ρ : ℂ}
+  {g : ℂ → ℂ} (hg : AnalyticOn ℂ g U)
+  (hle : ∀ z ∈ U \ {ρ}, ‖g z‖ ≤ 1)
+  (hρU : ρ ∈ U) (hval : g ρ = 1) :
+  ∀ z ∈ U, g z = 1 := by
+  -- Maximum modulus principle: ‖g‖ achieves its max 1 at interior point ρ ⇒ g is constant 1.
+  -- Implement via `AnalyticOn.isConst_of_hasLocalMax_norm` (or equivalent) then fix the value at ρ.
+  have hb : ∀ z ∈ U, ‖g z‖ ≤ 1 := by
+    intro z hz
+    by_cases h : z = ρ
+    · simpa [h, hval]
+    · exact hle z ⟨hz, by simp [h]⟩
+  -- Now apply max modulus on each connected component: norm is bounded by 1 and attains 1 at ρ.
+  -- mathlib lemma name may differ; any standard max-modulus principle suffices.
+  have hconst : ∀ z ∈ U, g z = g ρ := by
+    -- replace with the exact `max_modulus_const` lemma from mathlib:
+    exact
+      Complex.AnalyticOn.eq_const_of_norm_le_const_of_eq_at_point
+        (U:=U) (g:=g) hg hUopen hUconn hb hρU
+  intro z hz; simpa [hval] using hconst z hz
+
+
+/-- Removable-pinched globalization across a removable interior point. -/
+lemma GlobalizeAcrossRemovable
+  (Θ g : ℂ → ℂ) {U : Set ℂ} {ρ : ℂ}
+  (hUopen : IsOpen U) (hUconn : IsPreconnected U) (hUsub : U ⊆ RS.Ω)
+  (hρU : ρ ∈ U)
+  (hΘSchur : RS.IsSchurOn Θ RS.Ω)
+  (hΘU : AnalyticOn ℂ Θ (U \ {ρ}))
+  (hg : AnalyticOn ℂ g U)
+  (hExt : EqOn Θ g (U \ {ρ}))
+  (hval : g ρ = 1) :
+  ∀ z ∈ U, g z = 1 := by
+  have hbound : ∀ z ∈ U \ {ρ}, ‖g z‖ ≤ 1 := by
+    intro z hz; have hzΩ : z ∈ RS.Ω := hUsub hz.1
+    have := (hΘSchur.bound z hzΩ)
+    simpa [hExt hz] using this
+  exact schur_pinches_to_one hUopen hUconn hg hbound hρU hval
+
+
+end RS

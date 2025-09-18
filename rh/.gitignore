@@ -1,0 +1,15 @@
+# Lean build
+.lake/
+*.olean
+*.ilean
+*.trace
+
+# TeX aux in paper/
+paper/*.{aux,log,fls,fdb_latexmk,out,toc,bbl,blg}
+
+# macOS
+.DS_Store
+__lean_verify_rh
+
+# Ignore macOS AppleDouble resource forks
+._*

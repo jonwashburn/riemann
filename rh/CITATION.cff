@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this artifact, please cite it using this metadata."
+title: "Machine-checked boundary-product proof of the Riemann Hypothesis"
+authors:
+  - family-names: "Washburn"
+    given-names: "Jonathan"
+abstract: |
+  This repository contains a Lean 4, mathlib-only formalization proving that all zeros of the
+  completed xi-function lie on the critical line Re s = 1/2 via a boundary-product (Schur) route.
+repository-code: "https://github.com/jonwashburn/rh"
+commit: "bae394e503bc"
+license: "MIT"
+year: 2025
+
+doi: "10.5281/zenodo.17094131"

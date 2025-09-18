@@ -1,0 +1,74 @@
+﻿import Mathlib/MeasureTheory/Measure/RealLine
+import Mathlib/MeasureTheory/Integral/Bochner
+
+
+namespace RH
+namespace RS
+
+
+open MeasureTheory
+open scoped Real
+
+
+noncomputable section
+
+
+/-- Standard change‑of‑variables proof that the Lebesgue integral of an odd, integrable
+function on `ℝ` equals zero. Uses measure‑preserving negation and `integral_map`. -/
+private lemma integral_of_odd_eq_zero
+  (f : ℝ → ℝ) (hf_int : Integrable f)
+  (hodd : ∀ x, f (-x) = - f x) :
+  ∫ x, f x = (0 : ℝ) := by
+  -- Negation preserves Lebesgue measure
+  have hmp : MeasurePreserving (fun x : ℝ => -x) := MeasurePreserving.neg
+  have hmap : Measure.map (fun x : ℝ => -x) (volume : Measure ℝ) = (volume : Measure ℝ) := by
+    simpa using hmp.map_eq
+  -- Change of variables under the measure-preserving map
+  have hchg : ∫ x, f x = ∫ x, f ((fun x : ℝ => -x) x) := by
+    have hmeas : Measurable fun x : ℝ => -x := measurable_neg
+    calc
+      ∫ x, f x
+          = ∫ x, f x ∂(Measure.map (fun x : ℝ => -x) volume) := by simpa [hmap]
+      _ = ∫ x, f ((fun x : ℝ => -x) x) := by
+            simpa using
+              (integral_map (μ := volume) (f := f) (hf := hf_int) (T := fun x : ℝ => -x) hmeas)
+  -- The oddness flips the sign of the integral
+  have hodd_int : ∫ x, f (-x) = - ∫ x, f x := by
+    have : (fun x => f (-x)) = fun x => - f x := by
+      funext x; simpa [Pi.neg_apply] using congrArg id (hodd x)
+    calc
+      ∫ x, f (-x) = ∫ x, -(f x) := by simpa [this]
+      _ = - ∫ x, f x := by simpa using (integral_neg (f := f))
+  -- Compare the two expressions
+  have : ∫ x, f x = - ∫ x, f x := by
+    simpa [Function.comp] using hchg.trans hodd_int
+  simpa using eq_neg_self_iff.mpr this
+
+
+/-- **Target (1)** — An even window annihilates the linear mode:
+if `g` is even and `t ↦ t·g t` is integrable, then `∫ t, t·g t = 0`. -/
+lemma even_function_linear_vanishes
+  (g : ℝ → ℝ) (hg_even : ∀ t, g (-t) = g t)
+  (hg_t_integrable : Integrable (fun t => t * g t)) :
+  ∫ t, t * g t = (0 : ℝ) := by
+  -- The integrand is odd because `g` is even
+  have hodd' : ∀ t, (fun x => x * g x) (-t) = - (fun x => x * g x) t := by
+    intro t
+    -- `g (-t) = g t`, so `(-t) * g (-t) = (-t) * g t = -(t * g t)`
+    simpa [hg_even t]  -- `simp` knows `(-a) * b = - (a*b)`
+  -- Apply the standard odd-integral-vanishes lemma
+  simpa using
+    integral_of_odd_eq_zero (f := fun t => t * g t) hg_t_integrable hodd'
+
+
+/-- A thin wrapper used elsewhere in this file; binder order preserved.
+This immediately reduces to `even_function_linear_vanishes`. -/
+lemma even_window_annihilates_affine_simplified
+  (g : ℝ → ℝ) (hg_even : ∀ t, g (-t) = g t)
+  (hg_t_integrable : Integrable (fun t => t * g t)) :
+  ∫ t, t * g t = (0 : ℝ) := by
+  simpa using even_function_linear_vanishes g hg_even hg_t_integrable
+
+
+end
+end

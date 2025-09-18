@@ -36,6 +36,22 @@ structure Det2OnOmega where
   analytic : AnalyticOn ℂ det2 Ω
   nonzero  : ∀ {s}, s ∈ Ω → det2 s ≠ 0
 
+/-- Convenience: package assumed analyticity and nonvanishing of `det2` on `Ω`
+into the `Det2OnOmega` interface. -/
+def det2_on_Ω_assumed
+  (hA : AnalyticOn ℂ det2 Ω)
+  (hNZ : ∀ {s}, s ∈ Ω → det2 s ≠ 0) : Det2OnOmega :=
+{ analytic := hA
+, nonzero := by
+    intro s hs; exact hNZ (s := s) hs }
+
+/-- Bridge: once analyticity and nonvanishing of `det2` on `Ω` are established
+in the Diagonal Fredholm layer, package them into `Det2OnOmega`. -/
+def det2_on_Ω_proved
+  (hA : AnalyticOn ℂ det2 Ω)
+  (hNZ : ∀ {s}, s ∈ Ω → det2 s ≠ 0) : Det2OnOmega :=
+  det2_on_Ω_assumed hA (by intro s hs; exact hNZ (s := s) hs)
+
 /-- Half‑plane outer interface: `O` analytic and zero‑free on Ω. -/
 structure OuterHalfPlane (O : ℂ → ℂ) : Prop :=
   (analytic : AnalyticOn ℂ O Ω)

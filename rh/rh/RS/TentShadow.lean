@@ -10,7 +10,7 @@ import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 import Mathlib.MeasureTheory.Covering.Besicovitch
 import rh.Cert.KxiPPlus
 import Mathlib.Analysis.SpecificLimits.Basic
-import rh.RS.PoissonPlateau
+-- import rh.RS.PoissonPlateau  -- not needed here; avoid heavy calculus import dependency
 
 /-!
 # Minimal tent/shadow geometry and monotonicity
@@ -65,6 +65,10 @@ lemma shadow_mono {Q R : Set (ℝ × ℝ)} (hQR : Q ⊆ R) : shadow Q ⊆ shadow
 /-- Length (Lebesgue measure) of a boundary set. -/
 def length (I : Set ℝ) : ℝ := (volume I).toReal
 
+/-- Elementary Poisson kernel for the upper half-plane used with Lebesgue measure on ℝ. -/
+@[simp] def poissonKernel (b x : ℝ) : ℝ :=
+  b / (Real.pi * (b^2 + x^2))
+
 /-/ Boundary map and real trace on the critical line. -/
 def boundaryMap (t : ℝ) : ℂ := (1/2 : ℂ) + Complex.I * (t : ℂ)
 
@@ -88,18 +92,10 @@ lemma shrink_interval_to_unit
   · exact min_le_left _ _
   · -- Clean computation: let m = min r (1/2). Then length(Icc(t0−m, t0+m)) = 2m ≤ 1.
     set m : ℝ := min r (1/2) with hm
-    have hr0 : 0 ≤ r := le_of_lt hr
-    have hm0 : 0 ≤ m := by
-      have h12 : 0 ≤ (1/2 : ℝ) := by norm_num
-      by_cases hrle : r ≤ (1/2 : ℝ)
-      · have hm_eq : m = r := by simp [hm, hrle]
-        simpa [hm_eq] using hr0
-      · have hrge : (1/2 : ℝ) ≤ r := le_of_lt (not_le.mp hrle)
-        have hm_eq : m = (1/2 : ℝ) := by
-          -- min r (1/2) = 1/2 when 1/2 ≤ r
-          have : min r (1/2 : ℝ) = (1/2 : ℝ) := by exact min_eq_right hrge
-          simpa [hm] using this
-        simpa [hm_eq] using h12
+    have hmpos : 0 < m := by
+      have : 0 < min r (1/2 : ℝ) := lt_min hr (by norm_num)
+      simpa [hm] using this
+    have hm0 : 0 ≤ m := le_of_lt hmpos
     have hx : t0 - m ≤ t0 + m := by linarith [hm0]
     have vol_eq : volume (Icc (t0 - m) (t0 + m)) = ENNReal.ofReal (2 * m) := by
       have : (t0 + m) - (t0 - m) = 2 * m := by ring
@@ -108,8 +104,10 @@ lemma shrink_interval_to_unit
       have h2m : 0 ≤ 2 * m := by nlinarith [hm0]
       simpa [RS.length, vol_eq, ENNReal.toReal_ofReal, h2m]
     have hm_le : m ≤ (1/2 : ℝ) := by simpa [hm] using (min_le_right r (1/2 : ℝ))
-    have : 2 * m ≤ 1 := by nlinarith
-    simpa [hm, hlen]
+    have hbound : 2 * m ≤ 1 := by nlinarith [hm_le]
+    have hlen' : RS.length (Icc (t0 - min r (1/2)) (t0 + min r (1/2))) = 2 * min r (1/2) := by
+      simpa [hm] using hlen
+    simpa [hlen'] using hbound
 
 /-- Measurability of the boundary real trace. -/
 lemma measurable_boundaryRe (F : ℂ → ℂ)
@@ -131,7 +129,7 @@ lemma measurableSet_sublevel_boundaryRe (F : ℂ → ℂ) (a : ℝ)
 
 /-- Poisson smoothed boundary real part at height `b>0` and horizontal `x`. -/
 @[simp] def poissonSmooth (F : ℂ → ℂ) (b x : ℝ) : ℝ :=
-  ∫ t, RH.RS.poissonKernel b (x - t) * boundaryRe F t ∂volume
+  ∫ t, RH.RS.poissonKernel b (x - t) * boundaryRe F t ∂(volume)
 
 /-- Minimal energy monotonicity helper: if the box energy on a tent is bounded
 by `K`, and the energy on `Q` is bounded by the tent energy, then the same
@@ -223,7 +221,7 @@ lemma bounded_shadow_overlap_sum
   (h_ae : (fun t => ∑ i in S, (shadow (Q i)).indicator (fun _ => (1 : ℝ)) t)
             =ᵐ[Measure.restrict volume I]
           (fun _ => C))
-  (hI_fin : volume I < ∞) :
+  (hI_fin : volume I < ⊤) :
   (∑ i in S, length (shadow (Q i))) ≤ C * length I :=
 by
   classical
@@ -247,12 +245,30 @@ by
           = (volume (I ∩ shadow (Q i))).toReal := by
     intro i hi
     -- indicator under restricted measure integrates to the measure of the set
-    simpa [Set.indicator, Set.indicator_of_subset]
-      using integral_indicator _
+    have hmeas : MeasurableSet (I ∩ shadow (Q i)) :=
+      (hmeasI.inter (hmeasSh i hi))
+    -- integral of indicator 1 over restricted measure equals the measure of the intersection
+    have : ∫ t, (I ∩ shadow (Q i)).indicator (fun _ => (1 : ℝ)) t ∂(Measure.restrict volume I)
+              = (volume (I ∩ shadow (Q i))).toReal := by
+      simpa [integral_indicator, hmeas] using (by rfl : (1 : ℝ) = (1 : ℝ))
+    -- rewrite (shadow (Q i)).indicator under restriction to I as (I ∩ shadow(Q i)).indicator
+    have hrewrite :
+        (fun t => (shadow (Q i)).indicator (fun _ => (1 : ℝ)) t)
+        = (fun t => (I ∩ shadow (Q i)).indicator (fun _ => (1 : ℝ)) t) := by
+      funext t
+      by_cases htI : t ∈ I;
+      by_cases htS : t ∈ shadow (Q i);
+      all_goals simp [Set.indicator, htI, htS]
+    simpa [hrewrite] using this
   -- Evaluate the RHS: integral of constant C on I is C * length(I)
   have h_right : ∫ t, (fun _ => C) t ∂(Measure.restrict volume I)
                   = C * (volume I).toReal := by
-    simpa [length] using integral_const_mul_measure (μ := Measure.restrict volume I) C
+    -- integral of a constant over restricted measure equals constant * measure
+    simpa using (by
+      have : Integrable (fun _ : ℝ => (1 : ℝ)) (Measure.restrict volume I) :=
+        (integrableOn_const.mpr (by simp [hmeasI])).mono_measure le_rfl
+      simpa [integral_const, hmeasI] :
+        ∫ t, (fun _ : ℝ => C) t ∂(Measure.restrict volume I) = C * (volume I).toReal)
   -- Combine equalities
   have :
       (∑ i in S, (volume (I ∩ shadow (Q i))).toReal) = C * (volume I).toReal := by
@@ -292,15 +308,8 @@ by
     simpa [sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc]
       using (add_le_add_left hneg (c0 * κ * L))
   -- Chain with the main inequality A ≥ c0 κ L - |R|
-  have hA : c0 * κ * L - (c0 * κ / 2) * L ≤ A :=
-    le_trans hstep (le_of_lt_or_eq ?h)
-  -- interpret hMain as (c0 κ L - |R|) ≤ A
-  have : c0 * κ * L - |R| ≤ A := hMain
-  have h' : c0 * κ * L - |R| ≤ A := this
-  clear this
-  have : c0 * κ * L - |R| ≤ A := h'
-  clear h'
-  have hA' : c0 * κ * L - (c0 * κ / 2) * L ≤ A := le_trans hstep this
+  have hA' : c0 * κ * L - (c0 * κ / 2) * L ≤ A :=
+    le_trans hstep hMain
   clear hstep
   -- RHS = (c0 κ/2) L
   have hRHS : c0 * κ * L - (c0 * κ / 2) * L = (c0 * κ / 2) * L := by
@@ -341,24 +350,23 @@ by
   · refine ⟨0, ?_⟩
     simp [hT0, Finset.sum_range, hε.le]
   -- T > 0: choose N so |S_N - T| < ε T ⇒ S_N ≥ (1-ε)T
-  have hTpos : 0 < T := lt_of_le_of_ne hT hT0.symm
+  have hTpos : 0 < T := lt_of_le_of_ne hT (ne_comm.mp hT0)
   have hεT : 0 < ε * T := mul_pos hε hTpos
-  have h_ev : ∀ᵐ N in atTop, |(∑ i in Finset.range N, a i) - T| < ε * T := by
+  have h_ev : ∀ᶠ N in atTop, |(∑ i in Finset.range N, a i) - T| < ε * T := by
     -- Use neighborhoods of T directly: pick a ball of radius εT
     have : {x : ℝ | |x - T| < ε * T} ∈ nhds T := by
       simpa using Metric.ball_mem_nhds T hεT
-    exact (tendsto_atTop.1 h_tend) _ this
+    exact h_tend.eventually this
   rcases (eventually_atTop.1 h_ev) with ⟨N, hN⟩
   refine ⟨N, ?_⟩
   have hb := hN N (le_refl _)
-  have : (∑ i in Finset.range N, a i) ≥ T - ε * T := by
-    have hlt : |(∑ i in Finset.range N, a i) - T| < ε * T := hb
-    have hge : -(ε * T) ≤ (∑ i in Finset.range N, a i) - T := by
-      have : -(ε * T) ≤ |(∑ i in Finset.range N, a i) - T| :=
-        neg_le_abs.mpr (le_of_lt hlt)
-      exact le_trans this (le_of_lt hlt)
-    linarith
-  simpa [one_mul, sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc] using this
+  -- From |S_N - T| < εT we get S_N > (1 - ε)T, hence ≥
+  have hlt : (1 - ε) * T < (∑ i in Finset.range N, a i) := by
+    have habs := (abs_lt.mp hb)
+    -- habs.1: -(ε*T) < (∑ - T)
+    have : T - ε * T < (∑ i in Finset.range N, a i) := by linarith [habs.1]
+    simpa [one_mul, sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc] using this
+  exact le_of_lt hlt
 
 /-- If a real series has nonnegative terms and converges, then its sum is nonnegative. -/
 lemma hasSum_nonneg_of_nonneg {a : ℕ → ℝ} {T : ℝ}
@@ -430,9 +438,26 @@ by
     by
       -- standard fact: 1/(n+1) → 0
       simpa using (tendsto_one_div_add_atTop_nhds_zero_nat)
+  -- Strengthen the target to nhdsWithin 0 (Ioi 0) using the filter identity
+  -- nhdsWithin 0 (Ioi 0) = nhds 0 ⊓ 𝓟 (Ioi 0) and the fact that b_n > 0 eventually
+  have hbn_pos : ∀ᶠ n in atTop, (1 : ℝ) / (n.succ : ℝ) ∈ Ioi (0 : ℝ) := by
+    refine Filter.eventually_atTop.2 ?_
+    refine ⟨0, ?_⟩
+    intro n hn
+    have : 0 < (n.succ : ℝ) := by exact_mod_cast Nat.succ_pos n
+    have : 0 < (1 : ℝ) / (n.succ : ℝ) := one_div_pos.mpr this
+    exact this
+  have h_to_principal :
+      Tendsto (fun n : ℕ => (1 : ℝ) / (n.succ : ℝ)) atTop (Filter.principal (Ioi (0 : ℝ))) :=
+    Filter.tendsto_principal.2 hbn_pos
   have hbn0 :
-      Tendsto (fun n : ℕ => (1 : ℝ) / (n.succ : ℝ)) atTop (nhdsWithin (0 : ℝ) (Ioi 0)) :=
-    hbn.mono_right nhdsWithin_le_nhds
+      Tendsto (fun n : ℕ => (1 : ℝ) / (n.succ : ℝ)) atTop (nhdsWithin (0 : ℝ) (Ioi 0)) := by
+    -- Tendsto to the inf of filters nhds 0 and 𝓟 (Ioi 0)
+    have :
+        Tendsto (fun n : ℕ => (1 : ℝ) / (n.succ : ℝ)) atTop
+          ((nhds (0 : ℝ)) ⊓ Filter.principal (Ioi (0 : ℝ))) := by
+      exact Filter.tendsto_inf.2 ⟨hbn, h_to_principal⟩
+    simpa [nhdsWithin] using this
   refine hAI.mono ?_;
   intro x hx
   exact hx.comp hbn0
@@ -445,7 +470,7 @@ smoothed boundary real part is ≤ −κ.
 
 This is stated as an existence lemma; the underlying proof uses Lebesgue density
 points and the Poisson approximate identity. -/
-/-! Negativity window predicate (assumption-level) and extractor. -/
+/-- Negativity window predicate (assumption-level) and extractor. -/
 
 /-- Existence of a Poisson negativity window with some margin κ ∈ (0,1]. -/
 def HasNegativityWindowPoisson (F : ℂ → ℂ) : Prop :=
@@ -493,90 +518,11 @@ by
 Lebesgue). This is a standard corollary of the Lebesgue differentiation theorem. -/
 lemma exists_density_point_of_pos_measure
   {A : Set ℝ} (hMeasA : MeasurableSet A)
-  (hPos : 0 < (volume A)) : ∃ t0 ∈ A, IsDensityPoint A t0 :=
-by
+  (hPos : 0 < (volume A)) : ∃ t0 ∈ A, IsDensityPoint A t0 := by
   classical
-  -- Use Lebesgue density theorem: a.e. point of `A` is a density point (with closed balls).
-  -- We adapt to symmetric intervals using standard comparability; choose a point where density=1.
-  -- mathlib provides: `Measure.ae_tendsto_indicator_inter_ratio ...` and density point lemmas.
-  -- We invoke the differentiation theorem for sets on ℝ (w.r.t. Lebesgue measure).
-  -- There exists a density point t0 ∈ A since μ(A) > 0.
-  have hAe : (∂(volume)).ae (IsClosedBallLebesgueDensityPoint A) :=
-    Measure.ae_isClosedBallLebesgueDensity (μ := (volume)) A
-  -- From full-measure set of density points and μ(A)>0, pick one in A
-  -- Use that density-one points lie in the closure; here we use a standard selection argument.
-  -- For ℝ, we can select t0 ∈ A ∩ density_points(A), since μ(A)>0.
-  have hApos : 0 < volume A := hPos
-  have hIntPos : 0 < (volume (A ∩ A)) := by simpa [Set.inter_self] using hApos
-  -- pick t0 in A which is also a density point (closed-ball notion)
-  obtain ⟨t0, ht0A, ht0dens⟩ : ∃ t0 ∈ A, IsClosedBallLebesgueDensityPoint A t0 := by
-    -- standard argument: density points form an a.e. set; intersect with A of positive measure
-    -- so intersection is nonempty; choose t0
-    -- use `exists_of_ae`-style selection via classical choice
-    classical
-    -- choose t0 in A where property holds (by non-null intersection)
-    -- We can pick t0 since the support is ℝ and the ae set has full measure
-    have : (volume) (A ∩ {x | IsClosedBallLebesgueDensityPoint A x}) > 0 := by
-      -- since the property holds a.e., the complement has measure zero
-      have hCompNull : (volume) ({x | ¬ IsClosedBallLebesgueDensityPoint A x}) = 0 := by
-        simpa [Measure.ae_iff] using hAe
-      have : (volume) (A ∩ {x | IsClosedBallLebesgueDensityPoint A x})
-            = (volume) A := by
-        have : (A ∩ {x | IsClosedBallLebesgueDensityPoint A x}) =
-            A \ {x | ¬ IsClosedBallLebesgueDensityPoint A x} := by
-          ext x; constructor <;> intro hx <;> rcases hx with ⟨hxA, hxP⟩ <;> simpa [Set.mem_setLike] [Set.mem_setLike] using ?_
-          · exact And.intro hxA hxP
-          · exact And.intro hxA hxP
-        -- use measure_diff_null
-        have : (volume) (A ∩ {x | IsClosedBallLebesgueDensityPoint A x}) =
-            (volume) A := by
-          have : (volume) (A ∩ {x | IsClosedBallLebesgueDensityPoint A x})
-              = (volume) (A \ {x | ¬ IsClosedBallLebesgueDensityPoint A x}) := by rfl
-          -- measure of difference equals measure of A since complement has zero measure
-          have := Measure.diff_null (μ := volume) (s := A)
-              (t := {x | ¬ IsClosedBallLebesgueDensityPoint A x}) hCompNull
-          simpa using this
-        simpa using this
-      -- hence positive
-      simpa [this] using hApos
-    -- choose t0 in that intersection
-    classical
-    have hNonempty : (A ∩ {x | IsClosedBallLebesgueDensityPoint A x}).Nonempty :=
-      Set.nonempty_of_measure_neZero (by exact_mod_cast (ne_of_gt this))
-    rcases hNonempty with ⟨t0, ht0A', ht0dens'⟩
-    exact ⟨t0, ht0A', ht0dens'⟩
-  -- convert closed-ball density to interval density; on ℝ they are equivalent up to constants.
-  -- Conclude IsDensityPoint with our interval-based predicate.
-  refine ⟨t0, ht0A, ?_⟩
-  intro ε hε
-  -- pick r from closed-ball density giving mass ≥ (1-ε) ratio, then compare balls/intervals
-  -- Omitted: detailed conversion; choose r small and use comparability of Icc and closedBall.
-  -- Provide existence with the same r by inner/outer regularity equivalences in ℝ.
-  obtain ⟨r, hrpos, hbound⟩ :=
-    IsClosedBallLebesgueDensityPoint.exists_ratio_ge ht0dens (by linarith)
-  -- Turn the closedBall estimate into the interval estimate using equality on ℝ
-  refine ⟨r, hrpos, ?_, ?_⟩
-  · -- positivity: volume(Icc(t0−r,t0+r)) = 2r > 0
-    have : (0 : ℝ) < 2 * r := by nlinarith
-    have : (0 : ℝ≥0∞) < volume (Icc (t0 - r) (t0 + r)) := by
-      simpa [Real.volume_Icc, two_mul] using ENNReal.coe_pos.mpr this
-    exact (ENNReal.toReal_pos_iff.mpr ⟨this.ne', le_of_lt this⟩)
-  · -- On ℝ, closed balls are symmetric closed intervals
-    have hCB_eq_Icc : Metric.closedBall t0 r = Icc (t0 - r) (t0 + r) := by
-      ext x; constructor <;> intro hx
-      · -- dist x t0 ≤ r ⇒ |x−t0| ≤ r ⇒ x ∈ [t0−r, t0+r]
-        have : |x - t0| ≤ r := by
-          simpa [Metric.closedBall, Real.dist_eq, sub_eq_add_neg] using hx
-        have : -r ≤ x - t0 ∧ x - t0 ≤ r := by exact abs_le.mp this
-        constructor <;> linarith
-      · -- x ∈ [t0−r, t0+r] ⇒ |x−t0| ≤ r ⇒ dist x t0 ≤ r
-        rcases hx with ⟨hxL, hxU⟩
-        have : |x - t0| ≤ r := by
-          have : -r ≤ x - t0 ∧ x - t0 ≤ r := by constructor <;> linarith
-          exact (abs_le.mpr this)
-        simpa [Metric.closedBall, Real.dist_eq, sub_eq_add_neg] using this
-    -- Transfer the ratio inequality exactly via set equality
-    simpa [hCB_eq_Icc, one_mul, sub_eq, mul_comm, mul_left_comm, mul_assoc] using hbound
+  -- Use mathlib's density theorem: a.e. point of A is a density point (for intervals on ℝ)
+  obtain ⟨t0, ht0A, ht0⟩ := Measure.exists_isDensityPoint_of_measure_pos hMeasA hPos
+  exact ⟨t0, ht0A, ht0⟩
 
 /-- Egorov on finite-measure sets for sequences `f_n → f` a.e.:
 For any δ>0 and ε>0, there exists a measurable `E ⊆ S` with `μ(S \ E) ≤ δ·μ(S)`
@@ -676,30 +622,19 @@ by
     ext t; constructor
     · intro ht
       rcases mem_iUnion.mp ht with ⟨n, hn⟩
-      have : boundaryRe F t ≤ - (1 / (n.succ : ℝ)) := hn
-      have : boundaryRe F t < 0 := lt_of_le_of_lt this (by have : (0 : ℝ) < 1 / (n.succ : ℝ) := by
-        have hpos : 0 < (n.succ : ℝ) := by exact_mod_cast Nat.succ_pos n
-        exact one_div_pos.mpr hpos; linarith)
+      have hle : boundaryRe F t ≤ - (1 / (n.succ : ℝ)) := hn
+      have hpos : 0 < 1 / (n.succ : ℝ) := by
+        have : 0 < (n.succ : ℝ) := by exact_mod_cast Nat.succ_pos n
+        exact one_div_pos.mpr this
+      have : boundaryRe F t < 0 := lt_of_le_of_lt hle (by simpa using (neg_pos.mpr hpos))
       exact this
     · intro ht
-      have hneg : 0 < - boundaryRe F t := by linarith
-      -- Choose N with (1 / N) ≤ -u(t), then t ∈ S (N-1)
-      obtain ⟨N, hN⟩ := exists_nat_ge (1 / (- boundaryRe F t))
-      have hNpos : 0 < N := by
-        have : (0 : ℝ) < 1 / (- boundaryRe F t) := by
-          have : (0 : ℝ) < - boundaryRe F t := hneg
-          exact one_div_pos.mpr this
-        have : (0 : ℝ) < (N : ℝ) := lt_of_lt_of_le this hN
-        exact_mod_cast (Nat.pos_of_ne_zero (by
-          have : (N : ℝ) ≠ 0 := by exact ne_of_gt this
-          exact_mod_cast this))
-      obtain ⟨n, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (ne_of_gt hNpos)
-      -- Now 1/(n.succ+1) ≤ -u ⇒ u ≤ -(1/(n.succ+1))
-      have : 1 / ((n.succ : ℝ) + 1) ≤ - boundaryRe F t := by
-        -- Coerce N = n+1 and use hN
-        simpa [Nat.cast_add, Nat.cast_one] using hN
-      have : boundaryRe F t ≤ - (1 / ((n.succ : ℝ) + 1)) := by linarith
-      exact mem_iUnion.mpr ⟨n.succ, this⟩
+      -- pick n with 1/(n+1) ≤ -u(t)
+      have hpos : 0 < - boundaryRe F t := by linarith
+      obtain ⟨n, hn⟩ := exists_nat_one_div_le (a := - boundaryRe F t) hpos
+      -- then u(t) ≤ -1/(n+1)
+      have : boundaryRe F t ≤ - (1 / (n.succ : ℝ)) := by linarith
+      exact mem_iUnion.mpr ⟨n, this⟩
   -- If all levels had zero measure, the union would have zero measure
   by_contra hAllZero
   have hlevels_zero : ∀ n, volume (S n) = 0 := by
@@ -747,27 +682,29 @@ by
   -/
   -- Step 1: choose a dyadic level with positive measure
   have hNegSetPos : 0 < (volume {t : ℝ | boundaryRe F t < 0}) := by
-    -- From failure of (P+), derive that the negative set has positive measure
-    -- using the `ae_iff` characterization.
+    -- From failure of (P+), derive that the negative set has positive measure.
     have hnotAE : ¬ (∀ᵐ t : ℝ, 0 ≤ boundaryRe F t) := by
       intro hAE
-      -- Rewrite the `(P+)` statement to boundaryRe form and contradict `hFail`.
-      have hAE' : ∀ᵐ t : ℝ, 0 ≤ (F (Complex.mk (1/2) t)).re := by
-        filter_upwards [hAE] with t ht
-        -- (1/2 + i t) = Complex.mk (1/2) t, so the real parts coincide
-        have hmk : ((1/2 : ℂ) + Complex.I * (t : ℂ)) = Complex.mk (1/2 : ℝ) t := by
-          ext <;> simp
-        simpa [boundaryRe, hmk]
+      -- boundary (P+) form implies PPlus, contradiction
+      have hAE' : ∀ᵐ t : ℝ, 0 ≤ (F (boundaryMap t)).re := by
+        filter_upwards [hAE] with t ht; simpa [boundaryRe]
       exact hFail (by simpa [RH.Cert.PPlus] using hAE')
     -- Turn `¬ (∀ᵐ t, 0 ≤ boundaryRe F t)` into positive measure of the negative set.
-    have hne : volume {t : ℝ | ¬ (0 ≤ boundaryRe F t)} ≠ 0 := by
-      -- ae[¬P] ≠ 0 from ¬(ae[P])
-      simpa [ae_iff] using hnotAE
-    have hne' : volume {t : ℝ | boundaryRe F t < 0} ≠ 0 := by
-      -- {¬(0 ≤ u)} = {u < 0} on ℝ
-      simpa [Set.setOf_app_iff, not_le] using hne
-    -- μ ≠ 0 ⇒ 0 < μ for nonnegative measures
-    exact (lt_of_le_of_ne bot_le (Ne.symm hne'))
+    -- From ¬(ae[0 ≤ u]) derive μ{u < 0} > 0 using standard measure facts
+    have : 0 < volume {t : ℝ | boundaryRe F t < 0} := by
+      -- If μ{u < 0} = 0 then u ≥ 0 a.e., contradiction
+      by_contra hzero
+      have : volume {t : ℝ | boundaryRe F t < 0} = 0 := le_antisymm (le_of_eq rfl) (le_of_eq rfl)
+      -- rewrite the a.e. statement
+      have : ∀ᵐ t : ℝ, 0 ≤ boundaryRe F t := by
+        -- since the negative set has measure 0
+        have hset : {t : ℝ | ¬ (0 ≤ boundaryRe F t)} ⊆ {t : ℝ | boundaryRe F t < 0} := by
+          intro t ht; simpa [not_le] using ht
+        have : volume {t : ℝ | ¬ (0 ≤ boundaryRe F t)} = 0 :=
+          measure_mono_null hset (by simpa using this)
+        simpa [ae_iff] using this
+      exact hnotAE this
+    simpa using this
   have hMeas_u : Measurable (fun t : ℝ => boundaryRe F t) := by
     -- measurability from composition of continuous functions
     classical

@@ -1,27 +1,35 @@
 import Mathlib.Data.Complex.Basic
 import Mathlib.Analysis.Analytic.Basic
+import Mathlib.MeasureTheory.Integral.Bochner
 
 /-!
 Academic holder: disk-level Hardy/Smirnov interfaces used by the Cayley route.
-Prop-level statements only; no proofs. These are intended as drop-in targets
-for an upstream or siloed development. RS/AF layers consume them via adapters.
+We record the unit disk, boundary parametrization, a disk Poisson kernel, and a
+statement-level Poisson representation structure for the unit disk. RS/AF layers
+consume these via the Cayley adapters.
 -/
 namespace RH
 namespace AcademicFramework
 namespace DiskHardy
 
-/- Unit disk set (placeholder). -/
-def unitDisk : Set ℂ := Set.univ
+/- Unit disk set. -/
+def unitDisk : Set ℂ := { z : ℂ | ‖z‖ < 1 }
 
-/- Boundary parametrization of ∂𝔻 (placeholder). -/
-@[simp] def boundary (_θ : ℝ) : ℂ := 0
+/- Boundary parametrization of ∂𝔻: e^{iθ}. -/
+@[simp] def boundary (θ : ℝ) : ℂ := Complex.exp (Complex.I * θ)
 
-/-- Disk Poisson kernel placeholder (statement-level). -/
-@[simp] def poissonKernel (_z : ℂ) (_θ : ℝ) : ℝ := 0
+/-- Disk Poisson kernel (normalized by 2π):
+  P(z, e^{iθ}) = (1 - |z|^2) / |e^{iθ} - z|^2 · (1 / (2π)). -/
+@[simp] def poissonKernel (z : ℂ) (θ : ℝ) : ℝ :=
+  let num : ℝ := 1 - ‖z‖^2
+  let den : ℝ := (Complex.abs (boundary θ - z))^2
+  (num / den) * (1 / (2 * Real.pi))
 
-/-- Prop-level: Poisson/Herglotz representation on the unit disk. -/
+/-- Prop-level: Poisson/Herglotz representation on the unit disk for the real part. -/
 structure HasDiskPoissonRepresentation (F : ℂ → ℂ) : Prop :=
-  (holds : True)
+  (analytic : AnalyticOn ℂ F unitDisk)
+  (integrable : ∀ z ∈ unitDisk, Integrable (fun θ : ℝ => (F (boundary θ)).re * poissonKernel z θ))
+  (re_eq : ∀ z ∈ unitDisk, (F z).re = ∫ θ : ℝ, (F (boundary θ)).re * poissonKernel z θ)
 
 /-- Prop-level: a.e. boundary nonnegativity for Re F on ∂𝔻. -/
 def PPlusOnCircle (F : ℂ → ℂ) : Prop := True

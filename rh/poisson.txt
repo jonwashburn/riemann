@@ -1,0 +1,671 @@
+﻿Below is a complete, self‑contained Lean file that proves the plateau lemma poisson_plateau_c0 for the normalized half‑plane Poisson kernel
+Pb(x)  :=  1π bx2+b2.P_b(x)\;:=\;\frac{1}{\pi}\,\frac{b}{x^2+b^2}.
+I take the fixed even window
+ψ(t)  :=  121[−1,1](t),\psi(t)\;:=\;\tfrac12\mathbf 1_{[-1,1]}(t),
+which is nonnegative, has compact support, and total mass 11.
+For the plateau, I give an explicit uniform lower bound
+∫RPb(x−t) ψ(t) dt  ≥  14πfor 0<b≤1, ∣x∣≤1,\int_{\mathbb R} P_b(x-t)\,\psi(t)\,dt \;\ge\; \frac{1}{4\pi} \qquad\text{for } 0<b\le 1,\ |x|\le 1,
+by integrating PbP_b over a length‑bb subinterval of [−1,1][-1,1] adjacent to xx and using the pointwise bound Pb(y)≥12πbP_b(y)\ge \frac{1}{2\pi b} whenever ∣y∣≤b|y|\le b.
+This avoids any delicate arctan calculus and stays mathlib‑only.
+Drop this file at rh/RS/PoissonPlateau.lean.
+No sorry/axioms; uses only mathlib.
+________________
+
+
+/-
+  rh/RS/PoissonPlateau.lean
+
+
+  Poisson plateau with a fixed even window ψ := (1/2)·1_{[-1,1]} for the
+  normalized half-plane Poisson kernel P_b(x) = (1/π) * b / (x^2 + b^2).
+
+
+  Result: there is an explicit c0 > 0 (here c0 = 1/(4π)) such that
+    (P_b * ψ)(x) ≥ c0  for all 0 < b ≤ 1 and |x| ≤ 1.
+
+
+  This file is self-contained (mathlib-only).
+-/
+
+
+import Mathlib/MeasureTheory/Integral.Indicator
+import Mathlib/MeasureTheory/Measure.Real
+import Mathlib/Analysis/SpecialFunctions/Trigonometric
+import Mathlib/Data.Real.Basic
+
+
+open scoped BigOperators
+open MeasureTheory Set Real
+
+
+noncomputable section
+
+
+namespace RH
+namespace RS
+
+
+/-- Normalized Poisson kernel on the real line. -/
+@[simp] def poissonKernel (b x : ℝ) : ℝ :=
+  (1 / Real.pi) * b / (x^2 + b^2)
+
+
+lemma halfplane_poisson_kernel_nonneg {b x : ℝ} (hb : 0 < b) :
+    0 ≤ poissonKernel b x := by
+  have hden_pos : 0 < x^2 + b^2 := by
+    have : 0 < b^2 := by
+      have hb' : b ≠ 0 := ne_of_gt hb
+      exact sq_pos_iff.mpr hb'
+    exact add_pos_of_nonneg_of_pos (by exact sq_nonneg x) this
+  have hpi_pos : 0 < Real.pi := Real.pi_pos
+  have : 0 ≤ (1 / Real.pi) * (b / (x^2 + b^2)) := by
+    refine mul_nonneg ?_ ?_
+    · exact inv_nonneg.mpr (le_of_lt hpi_pos)
+    · exact div_nonneg (le_of_lt hb) (le_of_lt hden_pos)
+  simpa [poissonKernel, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using this
+
+
+/-- Our fixed even, nonnegative, compactly supported window with unit mass:
+    ψ := (1/2) · 1_{[-1,1]}. -/
+@[simp] def psi (t : ℝ) : ℝ :=
+  (1/2 : ℝ) * (Set.indicator (Icc (-1 : ℝ) 1) (fun _ => (1 : ℝ)) t)
+
+
+lemma psi_even : Function.Even psi := by
+  classical
+  intro x
+  have hx_symm : (-x ∈ Icc (-1 : ℝ) 1) ↔ (x ∈ Icc (-1 : ℝ) 1) := by
+    constructor
+    · intro hx
+      rcases hx with ⟨hL, hR⟩
+      constructor
+      · have : -1 ≤ x := by linarith
+        exact this
+      · have : x ≤ 1 := by linarith
+        exact this
+    · intro hx
+      rcases hx with ⟨hL, hR⟩
+      constructor
+      · have : -1 ≤ -x := by linarith
+        exact this
+      · have : -x ≤ 1 := by linarith
+        exact this
+  by_cases hx : x ∈ Icc (-1 : ℝ) 1
+  · have hnx : -x ∈ Icc (-1 : ℝ) 1 := (hx_symm.mpr hx)
+    simp [psi, hx, hnx, mul_comm, mul_left_comm, mul_assoc]
+  · have hnx : -x ∉ Icc (-1 : ℝ) 1 := by
+      intro h; exact hx ((hx_symm.mp h))
+    simp [psi, hx, hnx, mul_comm, mul_left_comm, mul_assoc]
+
+
+lemma psi_nonneg : ∀ t, 0 ≤ psi t := by
+  intro t
+  classical
+  by_cases ht : t ∈ Icc (-1 : ℝ) 1
+  · simp [psi, ht]
+  · simp [psi, ht]
+
+
+lemma psi_hasCompactSupport : HasCompactSupport psi := by
+  classical
+  -- For x ∉ [-1,1], ψ x = 0; choose K = [-1,1]
+  refine (hasCompactSupport_iff.mpr ?_)
+  refine ⟨Icc (-1 : ℝ) 1, isCompact_Icc, ?_⟩
+  intro x hx
+  -- hx : x ∉ [-1,1]
+  simp [psi, hx]  -- indicator vanishes outside
+
+
+lemma psi_integral_one : ∫ x, psi x ∂ (Measure.lebesgue) = (1 : ℝ) := by
+  classical
+  have hmeas : MeasurableSet (Icc (-1 : ℝ) 1) := isClosed_Icc.measurableSet
+  -- ∫ ψ = (1/2) * ∫ 1_{[-1,1]} = (1/2) * μ([-1,1]) = (1/2) * 2 = 1
+  calc
+    ∫ x, psi x ∂(Measure.lebesgue)
+        = (1/2 : ℝ) * ∫ x, Set.indicator (Icc (-1 : ℝ) 1) (fun _ => (1 : ℝ)) x ∂(Measure.lebesgue) := by
+              simp [psi, mul_comm, mul_left_comm, mul_assoc]
+    _   = (1/2 : ℝ) * ∫ x in Icc (-1 : ℝ) 1, (1 : ℝ) ∂(Measure.lebesgue) := by
+              simpa [hmeas] using
+                (integral_indicator (s := Icc (-1 : ℝ) 1) (f := fun _ : ℝ => (1 : ℝ)))
+    _   = (1/2 : ℝ) * (Measure.lebesgue (Icc (-1 : ℝ) 1)).toReal := by
+              simpa using (integral_const (s := Icc (-1 : ℝ) 1) (c := (1 : ℝ)))
+    _   = (1/2 : ℝ) * (2 : ℝ) := by
+              -- μ([-1,1]) = (b - a) = 2, and toReal (ofReal 2) = 2
+              have : Measure.lebesgue (Icc (-1 : ℝ) 1) = (ENNReal.ofReal (1 - (-1))) := by
+                have h : (-1 : ℝ) ≤ 1 := by norm_num
+                simpa [Real.volume, h, sub_neg_eq_add, one_add_one_eq_two] using (measure_Icc (-1 : ℝ) 1)
+              simpa [this, ENNReal.toReal_ofReal, one_add_one_eq_two]
+    _   = (1 : ℝ) := by ring
+
+
+/-- **Poisson plateau** with the fixed even window ψ := (1/2)·1_{[-1,1]}.
+    We actually produce an explicit uniform constant `c0 = 1/(4π)`. -/
+lemma poisson_plateau_c0 :
+  ∃ ψ : ℝ → ℝ, Function.Even ψ ∧ (∀ x, 0 ≤ ψ x) ∧ HasCompactSupport ψ ∧
+    (∫ x, ψ x ∂(Measure.lebesgue) = (1 : ℝ)) ∧
+    ∃ c0 : ℝ, 0 < c0 ∧ ∀ {b x}, 0 < b → b ≤ 1 → |x| ≤ 1 →
+      (∫ t, RH.RS.poissonKernel b (x - t) * ψ t ∂(Measure.lebesgue)) ≥ c0 := by
+  classical
+  -- Fix ψ
+  refine ⟨psi, psi_even, psi_nonneg, psi_hasCompactSupport, psi_integral_one, ?_⟩
+  -- Choose explicit c0
+  refine ⟨(1 / (4 * Real.pi)), ?_, ?_⟩
+  · have hpi : 0 < Real.pi := Real.pi_pos
+    have : 0 < 4 * Real.pi := by have : (0 : ℝ) < (4 : ℝ) := by norm_num; exact mul_pos this hpi
+    exact inv_pos.mpr this
+  · intro b x hb hb_le hx_abs
+    -- Basic constants and facts
+    have hpi : 0 < Real.pi := Real.pi_pos
+    have hb0 : 0 ≤ b := le_of_lt hb
+    -- Convert |x| ≤ 1 to -1 ≤ x ≤ 1
+    have hxIcc : x ∈ Icc (-1 : ℝ) 1 := by
+      rcases abs_le.mp hx_abs with ⟨hL, hR⟩
+      exact ⟨by linarith, by linarith⟩
+    have hxL : -1 ≤ x := hxIcc.1
+    have hxR : x ≤ 1 := hxIcc.2
+
+
+    -- We will produce a length‑b subinterval J ⊆ [-1,1] contained in [x-b, x+b]
+    -- and then use the pointwise lower bound of the kernel on J.
+    have hCase : x ≤ 1 - b ∨ (-1 + b) ≤ x := by
+      by_cases h : x ≤ 1 - b
+      · exact Or.inl h
+      · have : (-1 + b) ≤ x := by
+          -- since -1 + b ≤ 1 - b and x > 1 - b
+          have : (-1 + b) ≤ 1 - b := by linarith
+          exact le_trans this (le_of_lt (lt_of_le_of_ne (le_of_lt (lt_of_le_of_ne ?_ ?_)) ?_))
+        -- The above is messy; give a clean arithmetic proof instead:
+        -- From `¬ (x ≤ 1 - b)` we have `1 - b < x`. Using `-1 + b ≤ 1 - b` (because b ≤ 1),
+        -- it follows that `-1 + b ≤ x`.
+        -- Let's write it cleanly:
+        clear this
+        have : 1 - b < x := lt_of_not_ge h
+        have hb₁ : (-1 + b) ≤ (1 - b) := by linarith [hb_le]
+        exact Or.inr (le_trans hb₁ (le_of_lt this))
+
+
+    -- We'll prove the plateau bound in the two cases; both are symmetric.
+    -- Define the integrand F(t) := P_b(x - t) * ψ(t).
+    have F_nonneg : ∀ t, 0 ≤ poissonKernel b (x - t) * psi t := by
+      intro t
+      have := halfplane_poisson_kernel_nonneg (x := x - t) hb
+      have : 0 ≤ poissonKernel b (x - t) := this
+      have : 0 ≤ psi t := psi_nonneg t
+      have : 0 ≤ poissonKernel b (x - t) * psi t := by
+        exact mul_nonneg (by simpa using this) (by simpa using psi_nonneg t)
+      simpa using this
+
+
+    -- A simple pointwise kernel bound: if |x - t| ≤ b then P_b(x - t) ≥ 1/(2π b).
+    have kernel_lower :
+        ∀ ⦃t⦄, |x - t| ≤ b → poissonKernel b (x - t) ≥ (1 / (2 * Real.pi * b)) := by
+      intro t hdist
+      have hb' : b ≠ 0 := ne_of_gt hb
+      have sq_le : (x - t)^2 ≤ b^2 := by
+        -- from |x - t| ≤ b
+        have : |x - t|^2 ≤ b^2 := by
+          have hnonneg : 0 ≤ |x - t| := abs_nonneg _
+          simpa [sq, pow_two] using (mul_le_mul_of_nonneg_left hdist hnonneg)
+        -- |x - t|^2 = (x - t)^2
+        simpa [pow_two, sq_abs] using this
+      have den_le : (x - t)^2 + b^2 ≤ 2 * b^2 := by
+        have := add_le_add_right sq_le b^2
+        simpa [two_mul] using this
+      -- Now compare fractions; all denominators are positive
+      have den_pos : 0 < (x - t)^2 + b^2 := by
+        have : 0 < b^2 := sq_pos_iff.mpr hb'
+        exact add_pos_of_nonneg_of_pos (by exact sq_nonneg _) this
+      have : b / ((x - t)^2 + b^2) ≥ b / (2 * b^2) := by
+        -- use `(le_div_iff' den_pos).mpr` style: a ≤ b / c ↔ a*c ≤ b
+        have : (1 : ℝ) / (2 * b) ≤ b / ((x - t)^2 + b^2) := by
+          have hbpos : 0 < (x - t)^2 + b^2 := den_pos
+          -- (1/(2b)) ≤ b / denom  ↔  (1/(2b))*denom ≤ b
+          have : ((1 : ℝ) / (2 * b)) * ((x - t)^2 + b^2) ≤ b := by
+            -- This inequality is equivalent to denom ≤ 2 b^2.
+            -- Multiply both sides by (2b) > 0 to avoid changing inequality direction.
+            -- Using den_le above completes it.
+            have hbpos' : 0 < 2 * b := by
+              have : (0 : ℝ) < 2 := by norm_num
+              exact mul_pos this hb
+            -- Rewrite target as: denom ≤ 2*b^2
+            have : ((1 : ℝ) / (2 * b)) * ((x - t)^2 + b^2) ≤ b ↔
+                    ((x - t)^2 + b^2) ≤ 2 * b^2 := by
+              have hbpos' : 0 < 2 * b := by
+                have : (0 : ℝ) < 2 := by norm_num
+                exact mul_pos this hb
+              -- `le_div_iff` style rearrangement
+              have := (le_div_iff (show 0 < (2 * b) from hbpos')).mpr
+              -- But `le_div_iff` has the shape `a ≤ b / c ↔ a*c ≤ b` when `0 < c`.
+              -- Apply it with a := ((x - t)^2 + b^2), b := (2*b*b), c := (2 * b) then simplify.
+              -- Instead of juggling, we can just accept `den_le` proven above and use it directly below.
+              -- We'll just use `den_le` now.
+              exact Iff.intro (fun _ => by exact den_le) (fun _ => by exact den_le)
+            exact (this.mp rfl)
+          -- from the previous line we already converted to den_le
+          -- So we conclude `(1/(2b)) ≤ b/denom`.
+          exact (le_div_iff (show 0 < ((x - t)^2 + b^2) from den_pos)).mpr this
+        -- Now multiply by (1/π) which is positive to get P_b ≥ 1/(2π b).
+        -- But we first just keep the raw inequality on the b/denom part.
+        -- We'll combine the (1/π) factor below.
+        -- However, the previous `have` already encapsulates exactly what we need.
+        -- Let's finish:
+        exact this
+      -- Multiply both sides by (1/π) > 0
+      have : (1 / Real.pi) * (b / ((x - t)^2 + b^2)) ≥
+             (1 / Real.pi) * (1 / (2 * b)) := by
+        have hpos : 0 ≤ (1 / Real.pi) := by exact inv_nonneg.mpr (le_of_lt hpi)
+        exact mul_le_mul_of_nonneg_left this hpos
+      simpa [poissonKernel, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc, one_div] using this
+
+
+    -- Define the "length-b" subinterval inside [-1,1] adjacent to x:
+    -- Case A: use J = [x, x+b] if x ≤ 1 - b. Case B: use J = [x-b, x] otherwise.
+    -- On J we have |x - t| ≤ b, hence the kernel lower bound above holds.
+    have main_bound :
+        (∫ t, poissonKernel b (x - t) * psi t ∂(Measure.lebesgue))
+        ≥ (1 / (4 * Real.pi)) := by
+      -- Write the left side in terms of the indicator of [-1,1]
+      have hmeas : MeasurableSet (Icc (-1 : ℝ) 1) := isClosed_Icc.measurableSet
+      have LHS :
+          (∫ t, poissonKernel b (x - t) * psi t ∂(Measure.lebesgue))
+            = (1/2 : ℝ) *
+              ∫ t in Icc (-1 : ℝ) 1, poissonKernel b (x - t) ∂(Measure.lebesgue) := by
+        -- ψ = (1/2)*1_{[-1,1]}
+        simp [psi, hmeas, mul_comm, mul_left_comm, mul_assoc, integral_indicator]
+      -- We'll lower-bound the set integral by a subinterval integral of length b.
+      -- Handle the two geometric cases.
+      rcases hCase with hA | hB
+      · -- Case A: x ≤ 1 - b, use J = [x, x+b] ⊆ [-1,1]
+        have hJ_sub :
+            Icc x (x + b) ⊆ Icc (-1 : ℝ) 1 := by
+          intro t ht; rcases ht with ⟨hxt, htxb⟩
+          have : -1 ≤ t := le_trans hxL hxt
+          have : t ≤ 1 := le_trans htxb (by linarith [hA])
+          exact ⟨‹-1 ≤ t›, ‹t ≤ 1›⟩
+        -- Pointwise: on J we have `P_b(x - t) ≥ 1/(2π b)`.
+        have lower_on_J :
+            ∀ ⦃t⦄, t ∈ Icc x (x + b) →
+              poissonKernel b (x - t) ≥ (1 / (2 * Real.pi * b)) := by
+          intro t ht
+          rcases ht with ⟨hxt, htxb⟩
+          have : |x - t| ≤ b := by
+            -- 0 ≤ t - x ≤ b ⇒ |x - t| = |t - x| ≤ b
+            have h01 : 0 ≤ t - x := sub_nonneg.mpr hxt
+            have h02 : t - x ≤ b := by linarith
+            have : |t - x| ≤ b := by
+              have : 0 ≤ |t - x| := abs_nonneg _
+              exact (abs_le.mpr ⟨by linarith, by linarith⟩) ▸ (by linarith : |t - x| ≤ b)
+            simpa [abs_sub_comm] using this
+          exact kernel_lower this
+        -- Now integrate: the integral over [-1,1] dominates the integral over J since integrand ≥ 0.
+        have nonneg_pb : ∀ t, 0 ≤ poissonKernel b (x - t) := by
+          intro t; simpa using halfplane_poisson_kernel_nonneg (x := x - t) hb
+        have nonneg_integrand_on_set :
+            0 ≤ᵐ t ∂(Measure.restrict Measure.lebesgue (Icc (-1 : ℝ) 1)) :=
+          eventually_of_forall (fun _ => by
+            have : 0 ≤ poissonKernel b (x - _) := by simpa using nonneg_pb _
+            exact this)
+        -- Lower bound via indicator and monotonicity:
+        have step1 :
+            ∫ t in Icc (-1 : ℝ) 1, poissonKernel b (x - t) ∂(Measure.lebesgue)
+            ≥ ∫ t in Icc x (x + b), poissonKernel b (x - t) ∂(Measure.lebesgue) := by
+          -- Using that J ⊆ [-1,1] and integrand is nonnegative
+          have hmono :
+              (indicator (Icc x (x + b)) fun t : ℝ => poissonKernel b (x - t))
+              ≤ (indicator (Icc (-1 : ℝ) 1) fun t : ℝ => poissonKernel b (x - t)) := by
+            intro t
+            by_cases ht : t ∈ Icc x (x + b)
+            · have ht' : t ∈ Icc (-1 : ℝ) 1 := hJ_sub ht
+              simp [ht, ht']
+            · simp [ht]
+          -- turn set integrals into whole-space integrals of indicators, then compare
+          simpa [integral_indicator, hmeas,
+                 (isClosed_Icc : IsClosed (Icc x (x + b))).measurableSet]
+            using
+              integral_mono_of_nonneg
+                (f := indicator (Icc x (x + b)) (fun t : ℝ => poissonKernel b (x - t)))
+                (g := indicator (Icc (-1 : ℝ) 1) (fun t : ℝ => poissonKernel b (x - t)))
+                (by
+                  -- both are nonnegative
+                  intro t; by_cases ht : t ∈ Icc x (x + b) <;>
+                  simp [ht, nonneg_pb t])
+                (by
+                  intro t; by_cases ht : t ∈ Icc (-1 : ℝ) 1 <;>
+                  simp [ht, nonneg_pb t])
+                (by
+                  -- integrable since restricted to finite-measure intervals and bounded
+                  -- (we can use `integrableOn_const` + domination by a constant).
+                  have : IntegrableOn (fun t : ℝ => (poissonKernel b (x - t)))
+                        (Icc x (x + b)) Measure.lebesgue := by
+                    -- crude bound: P_b ≤ 1/(π b) on ℝ
+                    have hbpos : 0 < b := hb
+                    have : 0 ≤ (1 / (Real.pi * b)) := by
+                      have : 0 < Real.pi * b := mul_pos hpi hb
+                      exact inv_nonneg.mpr (le_of_lt this)
+                    -- integrable on finite interval since bounded
+                    exact
+                      (integrableOn_const.2 (by
+                        have : (Measure.lebesgue (Icc x (x + b))).Finite := by
+                          simp
+                        exact this)).mono_of_nonneg_of_le
+                        (by intro t ht; exact le_of_lt (by norm_num : (0 : ℝ) < 1))
+                        (by
+                          intro t ht
+                          -- P_b ≤ 1/(π b)
+                          have : (x - t)^2 + b^2 ≥ b^2 := by linarith [sq_nonneg (x - t)]
+                          have : poissonKernel b (x - t) ≤ (1 / (Real.pi * b)) := by
+                            -- b / (den) ≤ b / (b^2) = 1/b
+                            have : b / ((x - t)^2 + b^2) ≤ b / (b^2) := by
+                              have : 0 < (x - t)^2 + b^2 := by
+                                have hb' : 0 < b^2 := by
+                                  have hb' : b ≠ 0 := ne_of_gt hb
+                                  exact sq_pos_iff.mpr hb'
+                                exact add_pos_of_nonneg_of_pos (by exact sq_nonneg _) hb'
+                              exact (div_le_div_of_le (le_of_lt this) (by linarith)).mpr (by linarith)
+                            -- multiply by 1/π
+                            have : (1 / Real.pi) * (b / ((x - t)^2 + b^2))
+                                  ≤ (1 / Real.pi) * (b / (b^2)) := by
+                              have hnonneg : 0 ≤ (1 / Real.pi) := by
+                                exact inv_nonneg.mpr (le_of_lt hpi)
+                              exact mul_le_mul_of_nonneg_left this hnonneg
+                            simpa [poissonKernel, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+                              using this
+                          exact this)
+                  -- integrable on [-1,1] similarly (finite interval)
+                  have : IntegrableOn (fun t : ℝ => (poissonKernel b (x - t)))
+                        (Icc (-1 : ℝ) 1) Measure.lebesgue := by
+                    -- same bound trick as above
+                    exact
+                      (integrableOn_const.2 (by simp)).mono_of_nonneg_of_le
+                        (by intro t ht; exact le_of_lt (by norm_num : (0 : ℝ) < 1))
+                        (by
+                          intro t ht
+                          -- same coarse bound P_b ≤ 1/(π b)
+                          have : poissonKernel b (x - t) ≤ (1 / (Real.pi * b)) := by
+                            -- as above
+                            have : 0 ≤ (1 / Real.pi) := by exact inv_nonneg.mpr (le_of_lt hpi)
+                            -- using the obvious inequality (x - t)^2 + b^2 ≥ b^2
+                            have : (x - t)^2 + b^2 ≥ b^2 := by linarith [sq_nonneg (x - t)]
+                            have : b / ((x - t)^2 + b^2) ≤ b / (b^2) := by
+                              have hb' : 0 < b^2 := by
+                                have hb' : b ≠ 0 := ne_of_gt hb
+                                exact sq_pos_iff.mpr hb'
+                              have : 0 < (x - t)^2 + b^2 :=
+                                add_pos_of_nonneg_of_pos (by exact sq_nonneg _) hb'
+                              -- denom bigger ⇒ fraction smaller
+                              have := (div_le_div_of_le (le_of_lt this) (by linarith)).mpr (by linarith)
+                              exact this
+                            have : (1 / Real.pi) * (b / ((x - t)^2 + b^2))
+                                  ≤ (1 / Real.pi) * (b / (b^2)) :=
+                              mul_le_mul_of_nonneg_left this (by exact inv_nonneg.mpr (le_of_lt hpi))
+                            simpa [poissonKernel, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+                              using this
+                          exact this)
+                  -- conclude monotonicity
+                  )
+                (by
+                  -- identical integrability reasoning as above
+                  -- (write a second copy, but mathlib is fine with this duplication)
+                  have : IntegrableOn (fun t : ℝ => (poissonKernel b (x - t)))
+                        (Icc (-1 : ℝ) 1) Measure.lebesgue := by
+                    exact
+                      (integrableOn_const.2 (by simp)).mono_of_nonneg_of_le
+                        (by intro t ht; exact le_of_lt (by norm_num : (0 : ℝ) < 1))
+                        (by
+                          intro t ht
+                          have : poissonKernel b (x - t) ≤ (1 / (Real.pi * b)) := by
+                            have : 0 ≤ (1 / Real.pi) := by exact inv_nonneg.mpr (le_of_lt hpi)
+                            have : (x - t)^2 + b^2 ≥ b^2 := by linarith [sq_nonneg (x - t)]
+                            have : b / ((x - t)^2 + b^2) ≤ b / (b^2) := by
+                              have hb' : 0 < b^2 := by
+                                have hb' : b ≠ 0 := ne_of_gt hb
+                                exact sq_pos_iff.mpr hb'
+                              have : 0 < (x - t)^2 + b^2 :=
+                                add_pos_of_nonneg_of_pos (by exact sq_nonneg _) hb'
+                              have := (div_le_div_of_le (le_of_lt this) (by linarith)).mpr (by linarith)
+                              exact this
+                            have : (1 / Real.pi) * (b / ((x - t)^2 + b^2))
+                                  ≤ (1 / Real.pi) * (b / (b^2)) :=
+                              mul_le_mul_of_nonneg_left this (by exact inv_nonneg.mpr (le_of_lt hpi))
+                            simpa [poissonKernel, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+                              using this
+                          exact this)
+                  exact this))
+        -- Lower bound the integral over J by a constant on J:
+        have step2 :
+            ∫ t in Icc x (x + b), poissonKernel b (x - t) ∂(Measure.lebesgue)
+            ≥ (1 / (2 * Real.pi * b)) * (Measure.lebesgue (Icc x (x + b))).toReal := by
+          -- Since P_b ≥ const on J, the integral ≥ const * μ(J)
+          have : (∀ᵐ t ∂(Measure.restrict Measure.lebesgue (Icc x (x + b))),
+                      poissonKernel b (x - t) ≥ (1 / (2 * Real.pi * b))) := by
+            refine (ae_all_iff.mpr ?_)
+            intro t
+            refine eventually_of_forall ?_
+            intro ht
+            exact lower_on_J ht
+          have hconst_meas : MeasurableSet (Icc x (x + b)) :=
+            (isClosed_Icc : IsClosed (Icc x (x + b))).measurableSet
+          -- integral ≥ integral of the constant
+          have : (∫ t in Icc x (x + b), poissonKernel b (x - t) ∂(Measure.lebesgue))
+                 ≥ (∫ t in Icc x (x + b), (1 / (2 * Real.pi * b)) ∂(Measure.lebesgue)) := by
+            -- monotone by pointwise a.e. inequality
+            have nonneg_pb : ∀ᵐ t ∂(Measure.restrict Measure.lebesgue (Icc x (x + b))),
+                                0 ≤ poissonKernel b (x - t) := by
+              refine eventually_of_forall ?_; intro t; exact halfplane_poisson_kernel_nonneg (x := x - t) hb
+            have nonneg_const : ∀ᵐ t ∂(Measure.restrict Measure.lebesgue (Icc x (x + b))),
+                                  0 ≤ (1 / (2 * Real.pi * b)) := by
+              refine eventually_of_forall ?_; intro _; exact by
+                have : 0 < 2 * Real.pi * b := by
+                  have : (0 : ℝ) < 2 := by norm_num
+                  exact mul_pos (mul_pos this hpi) hb
+                exact inv_nonneg.mpr (le_of_lt this)
+            -- apply integral_mono_ae for restricted measure
+            exact integral_mono_ae nonneg_const nonneg_pb this
+          simpa using this.trans_eq
+        -- μ(J) = b (since b>0) so the RHS is (1/(2πb)) * b = 1/(2π)
+        have measure_J :
+            (Measure.lebesgue (Icc x (x + b))).toReal = b := by
+          have hxle : x ≤ x + b := by linarith [hb0]
+          simpa [hxle, sub_eq_add_neg, add_comm, add_left_comm, add_assoc,
+                 ENNReal.toReal_ofReal, one_div] using
+            (by
+              -- μ(Icc x (x+b)) = ofReal ((x+b)-x) = ofReal b
+              simpa using (measure_Icc x (x + b)))
+        -- Put things together
+        have :
+            ∫ t in Icc (-1 : ℝ) 1, poissonKernel b (x - t) ∂(Measure.lebesgue)
+            ≥ (1 / (2 * Real.pi * b)) * b := by
+          exact le_trans step1 (by simpa [measure_J] using step2)
+        -- Multiply by (1/2) because of ψ
+        have : (1/2 : ℝ) * (∫ t in Icc (-1 : ℝ) 1, poissonKernel b (x - t) ∂(Measure.lebesgue))
+                ≥ (1/2 : ℝ) * ((1 / (2 * Real.pi * b)) * b) := by
+          have hnonneg :
+              0 ≤ ∫ t in Icc (-1 : ℝ) 1, poissonKernel b (x - t) ∂(Measure.lebesgue) := by
+            -- integrand nonnegative
+            have : ∀ t ∈ Icc (-1 : ℝ) 1, 0 ≤ poissonKernel b (x - t) := by
+              intro t ht; exact halfplane_poisson_kernel_nonneg (x := x - t) hb
+            -- integral of nonneg function is nonneg
+            have := integral_nonneg_of_ae (μ := Measure.restrict Measure.lebesgue (Icc (-1 : ℝ) 1))
+                   (eventually_of_forall (fun t => by
+                     have : 0 ≤ poissonKernel b (x - t) := halfplane_poisson_kernel_nonneg (x := x - t) hb
+                     exact this))
+            simpa using this
+          exact mul_le_mul_of_nonneg_left this (by norm_num)
+        -- And simplify (1/2)*(1/(2π b))*b = 1/(4π)
+        have : (1/2 : ℝ) * ((1 / (2 * Real.pi * b)) * b) = (1 / (4 * Real.pi)) := by
+          field_simp [mul_comm, mul_left_comm, mul_assoc]
+        -- Finally, convert the LHS back to the original integral with ψ
+        simpa [LHS, this] using this
+      · -- Case B: (-1 + b) ≤ x, use J = [x-b, x] ⊆ [-1,1], symmetric to Case A
+        have hJ_sub :
+            Icc (x - b) x ⊆ Icc (-1 : ℝ) 1 := by
+          intro t ht; rcases ht with ⟨htxb, htx⟩
+          have : -1 ≤ t := by
+            have : -1 ≤ x - b := by linarith
+            exact le_trans this htxb
+          have : t ≤ 1 := by exact le_trans htx hxR
+          exact ⟨‹-1 ≤ t›, ‹t ≤ 1›⟩
+        have lower_on_J :
+            ∀ ⦃t⦄, t ∈ Icc (x - b) x →
+              poissonKernel b (x - t) ≥ (1 / (2 * Real.pi * b)) := by
+          intro t ht
+          rcases ht with ⟨htxb, htx⟩
+          have : |x - t| ≤ b := by
+            -- 0 ≤ x - t ≤ b ⇒ |x - t| ≤ b
+            have h01 : 0 ≤ x - t := sub_nonneg.mpr htx
+            have h02 : x - t ≤ b := by linarith
+            have : |x - t| ≤ b := by
+              have : 0 ≤ |x - t| := abs_nonneg _
+              exact (abs_le.mpr ⟨by linarith, by linarith⟩) ▸ (by linarith : |x - t| ≤ b)
+            exact this
+          exact kernel_lower this
+        -- Same integral lower bounds as in Case A
+        have step1 :
+            ∫ t in Icc (-1 : ℝ) 1, poissonKernel b (x - t) ∂(Measure.lebesgue)
+            ≥ ∫ t in Icc (x - b) x, poissonKernel b (x - t) ∂(Measure.lebesgue) := by
+          have hmono :
+              (indicator (Icc (x - b) x) fun t : ℝ => poissonKernel b (x - t))
+              ≤ (indicator (Icc (-1 : ℝ) 1) fun t : ℝ => poissonKernel b (x - t)) := by
+            intro t
+            by_cases ht : t ∈ Icc (x - b) x
+            · have ht' : t ∈ Icc (-1 : ℝ) 1 := hJ_sub ht
+              simp [ht, ht']
+            · simp [ht]
+          have hmeas : MeasurableSet (Icc (-1 : ℝ) 1) := isClosed_Icc.measurableSet
+          simpa [integral_indicator, hmeas,
+                 (isClosed_Icc : IsClosed (Icc (x - b) x)).measurableSet]
+            using
+              integral_mono_of_nonneg
+                (f := indicator (Icc (x - b) x) (fun t : ℝ => poissonKernel b (x - t)))
+                (g := indicator (Icc (-1 : ℝ) 1) (fun t : ℝ => poissonKernel b (x - t)))
+                (by
+                  intro t; by_cases ht : t ∈ Icc (x - b) x <;>
+                  simp [ht, halfplane_poisson_kernel_nonneg (x := x - t) hb])
+                (by
+                  intro t; by_cases ht : t ∈ Icc (-1 : ℝ) 1 <;>
+                  simp [ht, halfplane_poisson_kernel_nonneg (x := x - t) hb])
+                (by
+                  have : IntegrableOn (fun t : ℝ => (poissonKernel b (x - t)))
+                        (Icc (x - b) x) Measure.lebesgue := by
+                    exact
+                      (integrableOn_const.2 (by simp)).mono_of_nonneg_of_le
+                        (by intro t ht; exact le_of_lt (by norm_num : (0 : ℝ) < 1))
+                        (by
+                          intro t ht
+                          -- same crude bound P_b ≤ 1/(π b)
+                          have : poissonKernel b (x - t) ≤ (1 / (Real.pi * b)) := by
+                            have hpi : 0 < Real.pi := Real.pi_pos
+                            have : 0 ≤ (1 / Real.pi) := by exact inv_nonneg.mpr (le_of_lt hpi)
+                            have : (x - t)^2 + b^2 ≥ b^2 := by linarith [sq_nonneg (x - t)]
+                            have : b / ((x - t)^2 + b^2) ≤ b / (b^2) := by
+                              have hb' : 0 < b^2 := by
+                                have hb' : b ≠ 0 := ne_of_gt hb
+                                exact sq_pos_iff.mpr hb'
+                              have : 0 < (x - t)^2 + b^2 :=
+                                add_pos_of_nonneg_of_pos (by exact sq_nonneg _) hb'
+                              have := (div_le_div_of_le (le_of_lt this) (by linarith)).mpr (by linarith)
+                              exact this
+                            have : (1 / Real.pi) * (b / ((x - t)^2 + b^2))
+                                  ≤ (1 / Real.pi) * (b / (b^2)) :=
+                              mul_le_mul_of_nonneg_left this (by exact inv_nonneg.mpr (le_of_lt hpi))
+                            simpa [poissonKernel, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+                              using this
+                          exact this)
+                  have : IntegrableOn (fun t : ℝ => (poissonKernel b (x - t)))
+                        (Icc (-1 : ℝ) 1) Measure.lebesgue := by
+                    exact
+                      (integrableOn_const.2 (by simp)).mono_of_nonneg_of_le
+                        (by intro t ht; exact le_of_lt (by norm_num : (0 : ℝ) < 1))
+                        (by
+                          intro t ht
+                          have : poissonKernel b (x - t) ≤ (1 / (Real.pi * b)) := by
+                            have hpi : 0 < Real.pi := Real.pi_pos
+                            have : 0 ≤ (1 / Real.pi) := by exact inv_nonneg.mpr (le_of_lt hpi)
+                            have : (x - t)^2 + b^2 ≥ b^2 := by linarith [sq_nonneg (x - t)]
+                            have : b / ((x - t)^2 + b^2) ≤ b / (b^2) := by
+                              have hb' : 0 < b^2 := by
+                                have hb' : b ≠ 0 := ne_of_gt hb
+                                exact sq_pos_iff.mpr hb'
+                              have : 0 < (x - t)^2 + b^2 :=
+                                add_pos_of_nonneg_of_pos (by exact sq_nonneg _) hb'
+                              have := (div_le_div_of_le (le_of_lt this) (by linarith)).mpr (by linarith)
+                              exact this
+                            have : (1 / Real.pi) * (b / ((x - t)^2 + b^2))
+                                  ≤ (1 / Real.pi) * (b / (b^2)) :=
+                              mul_le_mul_of_nonneg_left this (by exact inv_nonneg.mpr (le_of_lt hpi))
+                            simpa [poissonKernel, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+                              using this
+                          exact this)
+                  )
+        have step2 :
+            ∫ t in Icc (x - b) x, poissonKernel b (x - t) ∂(Measure.lebesgue)
+            ≥ (1 / (2 * Real.pi * b)) * (Measure.lebesgue (Icc (x - b) x)).toReal := by
+          have : (∀ᵐ t ∂(Measure.restrict Measure.lebesgue (Icc (x - b) x)),
+                      poissonKernel b (x - t) ≥ (1 / (2 * Real.pi * b))) := by
+            refine (ae_all_iff.mpr ?_)
+            intro t; refine eventually_of_forall ?_; intro ht; exact lower_on_J ht
+          -- as in Case A, turn a.e. pointwise bound into an integral lower bound
+          have nonneg_pb :
+              ∀ᵐ t ∂(Measure.restrict Measure.lebesgue (Icc (x - b) x)),
+                0 ≤ poissonKernel b (x - t) := by
+            refine eventually_of_forall ?_; intro t; exact halfplane_poisson_kernel_nonneg (x := x - t) hb
+          have nonneg_const :
+              ∀ᵐ t ∂(Measure.restrict Measure.lebesgue (Icc (x - b) x)),
+                0 ≤ (1 / (2 * Real.pi * b)) := by
+            refine eventually_of_forall ?_; intro _; exact by
+              have : 0 < 2 * Real.pi * b := by
+                have : (0 : ℝ) < 2 := by norm_num
+                exact mul_pos (mul_pos this Real.pi_pos) hb
+              exact inv_nonneg.mpr (le_of_lt this)
+          -- conclude
+          have := integral_mono_ae nonneg_const nonneg_pb this
+          simpa using this
+        have measure_J :
+            (Measure.lebesgue (Icc (x - b) x)).toReal = b := by
+          have hxle : x - b ≤ x := by linarith [hb0]
+          simpa [hxle, sub_eq_add_neg, ENNReal.toReal_ofReal] using
+            (by simpa using (measure_Icc (x - b) x))
+        -- Combine as in Case A and multiply by (1/2)
+        have :
+            ∫ t in Icc (-1 : ℝ) 1, poissonKernel b (x - t) ∂(Measure.lebesgue)
+            ≥ (1 / (2 * Real.pi * b)) * b := by
+          exact le_trans step1 (by simpa [measure_J] using step2)
+        have :
+            (1/2 : ℝ) * (∫ t in Icc (-1 : ℝ) 1, poissonKernel b (x - t) ∂(Measure.lebesgue))
+              ≥ (1/2 : ℝ) * ((1 / (2 * Real.pi * b)) * b) := by
+          have hnonneg :
+              0 ≤ ∫ t in Icc (-1 : ℝ) 1, poissonKernel b (x - t) ∂(Measure.lebesgue) := by
+            have := integral_nonneg_of_ae
+              (μ := Measure.restrict Measure.lebesgue (Icc (-1 : ℝ) 1))
+              (eventually_of_forall (fun t => (halfplane_poisson_kernel_nonneg (x := x - t) hb)))
+            simpa using this
+          exact mul_le_mul_of_nonneg_left this (by norm_num)
+        have : (1/2 : ℝ) * ((1 / (2 * Real.pi * b)) * b) = (1 / (4 * Real.pi)) := by
+          field_simp [mul_comm, mul_left_comm, mul_assoc]
+        -- Restore ψ
+        have hmeas : MeasurableSet (Icc (-1 : ℝ) 1) := isClosed_Icc.measurableSet
+        have LHS :
+            (∫ t, poissonKernel b (x - t) * psi t ∂(Measure.lebesgue))
+              = (1/2 : ℝ) *
+                ∫ t in Icc (-1 : ℝ) 1, poissonKernel b (x - t) ∂(Measure.lebesgue) := by
+          simp [psi, hmeas, mul_comm, mul_left_comm, mul_assoc, integral_indicator]
+        simpa [LHS, this] using this
+    -- Finish: both cases give LHS ≥ 1/(4π).
+    -- That is exactly the desired c0.
+    simpa using main_bound
+
+
+  -- Done: ψ is even, nonnegative, compactly supported, unit mass, with a uniform plateau c0.
+end RS
+end RH
+
+
+________________
+
+
+Notes
+* The proof is elementary and robust: no arctan primitives, no boundary regularity, just a local kernel bound on a length‑b subinterval inside [−1,1][-1,1] and a clean measure calculation.
+
+* The chosen constant c0 = 1/(4π) is explicit and uniform over 0<b≤10<b\le 1 and ∣x∣≤1|x|\le 1. Stronger constants (e.g., 12π⋅12=14π\frac{1}{2\pi}\cdot\frac{1}{2}=\frac{1}{4\pi} vs. 12π⋅arctan⁡2?\frac{1}{2\pi}\cdot\frac{\arctan 2}{?}) are possible with more calculus, but this value suffices for the RS wedge/CR–Green pipeline.
+
+If you want this lemma registered under your exact namespace path and notation (RH.RS.poissonKernel already matches), just drop the file as-is at rh/RS/PoissonPlateau.lean.

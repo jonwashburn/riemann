@@ -1,0 +1,76 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\pagestyle{empty}
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+
+% --- Locked constants (digits from the manuscript) ---
+\newcommand{\czero}{0.17620819} % c_0(psi)
+\newcommand{\CH}{0.65}          % C_H(psi)
+\newcommand{\CP}{0.020}         % C_P(kappa) with kappa=0.010
+\newcommand{\CHone}{0.2400}     % C_psi^(H1)
+\newcommand{\Kzero}{0.03486808} % K_0
+\newcommand{\Kxi}{0.0219955}    % K_xi
+\newcommand{\Ugam}{0.011803}    % ||U_Gamma||_area
+\newcommand{\Cbox}{0.0686666}   % C_box
+\newcommand{\Mpsi}{0.0800745}   % M_psi bound
+
+\begin{document}
+\small
+\begin{center}
+{\Large One–Page Map of the Proof (Product–Certificate Route)}\\[2pt]
+{Outer–normalized ratio $\mathcal J$; wedge (P+) via a length–free certificate; RH by Poisson, Cayley, and removability}
+\end{center}
+
+\textbf{Objects and normalizations.}
+\begin{itemize}
+  \item Outer–normalized ratio: $\displaystyle \mathcal J(s)=\frac{\operatorname{det}_2(I-A(s))}{\mathcal O(s)\,\xi(s)}$, \quad Cayley: $\Theta=\frac{2\mathcal J-1}{2\mathcal J+1}$.
+  \item Window and schedule: even $\psi$ with $\psi\equiv1$ on $[-1,1]$, $\operatorname{supp}\psi\subset[-2,2]$; Whitney boxes with $L\le 1/\log\langle T\rangle$, aperture $\alpha\in[1,2]$.
+  \item Phase drop density on an interval $I$: $\displaystyle \int_I(-w'(t))\,dt$.
+\end{itemize}
+
+\textbf{Locked constants (camera–ready).}
+\[
+ c_0(\psi)=\czero,\quad C_H(\psi)\le \CH,\quad C_P(\kappa)=\CP\ (\kappa=0.010),\quad C_\psi^{(H^1)}=\CHone.
+\]
+\[
+ K_0\le \Kzero,\quad K_\xi\le \Kxi,\quad \|U_\Gamma\|_{\mathrm{area}}\le \Ugam
+ \ \Rightarrow\ C_{\mathrm{box}}\le \Cbox,\quad M_\psi\le \frac{4}{\pi}C_\psi^{(H^1)}\sqrt{C_{\mathrm{box}}}\le \Mpsi.
+\]
+
+\textbf{Length–free product certificate (interval–uniform).}
+\[
+ c_0(\psi)\,\mu\big(Q(I)\big)\ \le\ \int_{\mathbb R}(-w')\,\varphi_{L,t_0}\ \le\ C_H(\psi)\,M_\psi\ +\ C_P(\kappa)\qquad(\text{support chosen so }C_{\mathrm{tail}}=0).
+\]
+Define the scalar wedge parameter
+\[
+  \Upsilon\ :=\ \frac{C_H(\psi)\,M_\psi+C_P(\kappa)}{c_0(\psi)}\ \le\ \frac{\CH\cdot\Mpsi+\CP}{\czero}\ =\ 0.40890\ \le\ \tfrac12.
+\]
+\textbf{Two–line implication.} If $\mu(Q(I))\le \Upsilon$ for all $I$, then $\int_I(-w')\le \pi\,\Upsilon\le \tfrac{\pi}{2}$ for all $I$; hence the boundary wedge \textit{(P+)} holds: $\Re\big(2\mathcal J(\tfrac12+it)\big)\ge 0$ a.e.
+
+\textbf{From (P+) to RH.}
+\begin{itemize}
+  \item Poisson transport: boundary (P+) $\Rightarrow$ $2\mathcal J$ is Herglotz on $\Omega$.
+  \item Cayley transform: $\Theta=(2\mathcal J-1)/(2\mathcal J+1)$ is Schur on $\Omega$.
+  \item Removable singularity at $\rho\in Z(\xi)$: bounded Schur on a punctured disc extends holomorphically; hence $\mathcal J$ has no poles in $\Omega$.
+  \item Globalization/pinch: no poles in $\Omega$ $\Rightarrow$ no zeros of $\xi$ in $\Omega$; by the functional equation, all nontrivial zeros lie on $\Re s=\tfrac12$ (RH).
+\end{itemize}
+
+\textbf{Independence / non–circularity notes.}
+\begin{itemize}
+  \item $C_{\mathrm{box}}=K_0+K_\xi+\|U_\Gamma\|_{\mathrm{area}}$ with $K_0$ (prime–power tail), $K_\xi$ (neutralized zeros, cubic decay), and the Archimedean term from Stirling/digamma.
+  \item $M_\psi\le \tfrac{4}{\pi}C_\psi^{(H^1)}\sqrt{C_{\mathrm{box}}}$ (fixed aperture H$^1$–BMO/Carleson embedding), with $C_\psi^{(H^1)}$ evaluated once (analytic enclosure $<0.245$, locked $0.2400$).
+\end{itemize}
+
+\textbf{Status of PSC.} The sum–form PSC inequality closes numerically with the printed window (independent of $M_\psi$ and $C_{\mathrm{box}}$), but PSC is \emph{archived} and not used to deduce (P+); the main chain to (P+) runs solely through the product certificate above.
+
+\vfill
+\noindent\textit{Digits:}\ $\czero=\tfrac{1}{2\pi}\arctan 2$; $\Kzero,\Kxi,\Ugam$ per Appendix~D/B/C; $\Cbox=\Kzero+\Kxi+\Ugam=\Cbox$; $\Mpsi=\tfrac{4}{\pi}\cdot\CHone\cdot\sqrt{\Cbox}=\Mpsi$.
+
+\end{document}

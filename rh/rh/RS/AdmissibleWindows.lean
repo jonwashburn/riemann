@@ -125,7 +125,7 @@ match the narrative in the manuscript and agents guide.
 /-- Placeholder Poisson test energy on a fixed-aperture Whitney box `Q(α'·I)`.
 This lightweight RS interface returns `0` by definition to keep dependencies
 minimal; downstream modules only rely on the existence of a uniform bound. -/
-def poissonEnergyOnBox (α' : ℝ) (I : BaseInterval) (φ : ℝ → ℝ) : ℝ := 0
+def poissonEnergyOnBox (_α' : ℝ) (_I : BaseInterval) (_φ : ℝ → ℝ) : ℝ := 0
 
 /-- The placeholder Poisson energy is nonnegative. -/
 @[simp] lemma poissonEnergyOnBox_nonneg

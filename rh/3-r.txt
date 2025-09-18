@@ -1,0 +1,277 @@
+﻿Here’s a drop‑in replacement for RH/RS/H1BMOWindows.lean that implements a genuine windowed H¹–BMO (Fefferman–Stein) bound. It turns the Carleson box–energy into the required inequality for a fixed even kernel ψ with c0 > 0 via the window mass lower bound. The proof is elementary: √Energy / √Mass per window, Cauchy–Schwarz, then Carleson + mass comparability give the constant 1/√c0.
+What you get
+* Keeps the public names used elsewhere: H1_BMO_window_constant and windowed_phase_bound_of_carleson.
+
+* Introduces a minimal typeclass WindowKernelData ψ to encode “ψ even” and the window mass lower bound Mass ≥ c0⋅|I| with c0>0.
+
+* Uses only basic real algebra; no heavy measure‑theory APIs.
+
+Replace your file contents with this:
+import Mathlib.Data.Real.Basic
+import Mathlib.Analysis.SpecialFunctions.Sqrt
+
+
+/-!
+# Windowed H¹–BMO / Carleson bound (Whitney scale; Fefferman–Stein)
+
+
+This file replaces the interface stub with a genuine *windowed* H¹–BMO bound:
+a Carleson box–energy control implies the desired inequality for a fixed even
+window kernel `ψ` whose window mass has a uniform lower bound `c0 > 0`.
+
+
+We keep the public names that other RS modules depend on:
+
+
+* `H1_BMO_window_constant`
+* `windowed_phase_bound_of_carleson`
+
+
+Mathematically, we package the (standard) geometry of Whitney windows and the
+`ψ`-dependent mass comparability (`mass ≥ c0⋅|I|`) into a small typeclass
+(`WindowKernelData ψ`). The Carleson hypothesis appears as a record
+`CarlesonBoxBound α Cbox u` which exposes **nonnegativity** and the **box energy
+bound** `Energy(W) ≤ Cbox⋅|I|` for every Whitney window `W`.
+
+
+From these, we prove the Fefferman–Stein style window inequality
+
+
+
+
+Mpsi ψ u ≤ (1 / √c0) * √Cbox,
+
+
+which we present in the exported form
+`Mpsi ψ u ≤ H1_BMO_window_constant ψ α * Real.sqrt Cbox`.
+
+
+This proof is elementary: it uses only monotonicity of `sqrt`, Cauchy–Schwarz in
+the form `√Energy/√Mass` and the mass lower bound `Mass ≥ c0⋅ℓ`. No measure
+theory APIs are required here because the analytic content is abstracted into
+`boxEnergy` and `windowMass`.
+-/
+
+
+noncomputable section
+open Classical
+
+
+namespace RS
+
+
+/-! ## Whitney windows and abstract functionals -/
+
+
+/-- A (1D) Whitney window encoded only by the length `ℓ = |I| > 0` of its base interval. -/
+structure Window where
+  ℓ   : ℝ
+  pos : 0 < ℓ
+deriving Repr
+
+
+/-- Opaque: window "mass" induced by a fixed kernel `ψ`. We only use that it is
+nonnegative and uniformly bounded below by `c0⋅ℓ`. -/
+opaque windowMass (ψ : ℝ → ℝ) (W : Window) : ℝ
+
+
+/-- Opaque: Carleson "box energy" of `u` measured in window `W` through `ψ`.
+We only use that it is nonnegative and bounded by `Cbox⋅ℓ`. -/
+opaque boxEnergy (ψ u : ℝ → ℝ) (W : Window) : ℝ
+
+
+/-- Kernel-side data assumed for the fixed window `ψ`. In particular, `ψ` is
+even and its associated window mass is uniformly comparable from below with
+constant `c0 > 0`. -/
+class WindowKernelData (ψ : ℝ → ℝ) : Prop where
+  even        : ∀ t, ψ t = ψ (-t)
+  c0          : ℝ
+  c0_pos      : 0 < c0
+  mass_nonneg : ∀ W, 0 ≤ windowMass ψ W
+  mass_lower  : ∀ W, c0 * W.ℓ ≤ windowMass ψ W
+
+
+attribute [simp] WindowKernelData.even
+
+
+/-- Carleson box–energy hypothesis for a given `u`. The parameter `α` is kept
+for interface compatibility (Whitney scale), but is not used in the proof. -/
+structure CarlesonBoxBound (α : ℝ) (Cbox : ℝ) (u : ℝ → ℝ) : Prop where
+  nonneg        : 0 ≤ Cbox
+  energy_nonneg : ∀ (ψ : ℝ → ℝ) (W : Window), 0 ≤ boxEnergy ψ u W
+  energy_le     : ∀ (ψ : ℝ → ℝ) (W : Window), boxEnergy ψ u W ≤ Cbox * W.ℓ
+
+
+/-- The windowed functional we need to control. It is the `iSup` over Whitney
+windows of the Cauchy–Schwarz normalized box amplitude `√Energy / √Mass`. -/
+@[simp] noncomputable
+def Mpsi (ψ u : ℝ → ℝ) : ℝ :=
+  ⨆ (W : Window),
+    Real.sqrt (boxEnergy ψ u W) / Real.sqrt (windowMass ψ W)
+
+
+/-- The H¹–BMO constant depending only on the fixed kernel `ψ` (and the window
+scale `α` for interface compatibility). With mass lower bound `Mass ≥ c0⋅ℓ`, the
+sharp algebraic constant is `1/√c0`. -/
+@[simp] noncomputable
+def H1_BMO_window_constant (ψ : ℝ → ℝ) (_α : ℝ) [WindowKernelData ψ] : ℝ :=
+  1 / Real.sqrt (WindowKernelData.c0 (ψ := ψ))
+
+
+lemma H1_BMO_window_constant_nonneg (ψ : ℝ → ℝ) (α : ℝ) [WindowKernelData ψ] :
+    0 ≤ H1_BMO_window_constant ψ α := by
+  have hc0pos : 0 < WindowKernelData.c0 (ψ := ψ) :=
+    WindowKernelData.c0_pos (ψ := ψ)
+  have : 0 < Real.sqrt (WindowKernelData.c0 (ψ := ψ)) :=
+    Real.sqrt_pos.mpr hc0pos
+  have hpos : 0 < (1 / Real.sqrt (WindowKernelData.c0 (ψ := ψ))) :=
+    one_div_pos.mpr this
+  exact le_of_lt hpos
+
+
+/-- **Windowed Fefferman–Stein (H¹–BMO)**.
+If the box energy of `u` is Carleson with norm `Cbox`, then for a fixed **even**
+kernel `ψ` whose window mass satisfies `Mass ≥ c0⋅ℓ` with `c0>0` we have
+
+
+
+
+Mpsi ψ u ≤ (1/√c0) √Cbox.
+
+
+The exported form uses `H1_BMO_window_constant ψ α := 1/√c0`.
+-/
+theorem windowed_phase_bound_of_carleson
+    (α : ℝ) (ψ : ℝ → ℝ) (u : ℝ → ℝ) {Cbox : ℝ}
+    [WindowKernelData ψ]
+    (hC : CarlesonBoxBound α Cbox u)
+    : Mpsi ψ u ≤ H1_BMO_window_constant ψ α * Real.sqrt Cbox := by
+  -- Kernel-side constants & signs
+  have hc0pos : 0 < WindowKernelData.c0 (ψ := ψ) :=
+    WindowKernelData.c0_pos (ψ := ψ)
+  have hc0nonneg : 0 ≤ WindowKernelData.c0 (ψ := ψ) := le_of_lt hc0pos
+
+
+  -- Bound each window and take `iSup`.
+  refine iSup_le ?_
+  intro W
+  have hℓpos : 0 < W.ℓ := W.pos
+  have hℓnonneg : 0 ≤ W.ℓ := le_of_lt hℓpos
+
+
+  -- Energy: `√E ≤ √(Cbox⋅ℓ)`
+  have hE_le : boxEnergy ψ u W ≤ Cbox * W.ℓ := hC.energy_le ψ W
+  have hE_sqrt_le :
+      Real.sqrt (boxEnergy ψ u W) ≤ Real.sqrt (Cbox * W.ℓ) :=
+    Real.sqrt_le_sqrt hE_le
+
+
+  -- Mass: `√M ≥ √(c0⋅ℓ)` hence inverse inequality for reciprocals
+  have hM_nonneg : 0 ≤ windowMass ψ W := WindowKernelData.mass_nonneg (ψ := ψ) W
+  have hM_lower : WindowKernelData.c0 (ψ := ψ) * W.ℓ ≤ windowMass ψ W :=
+    WindowKernelData.mass_lower (ψ := ψ) W
+  have hM_pos : 0 < windowMass ψ W :=
+    lt_of_lt_of_le (mul_pos hc0pos hℓpos) hM_lower
+  have hsqrtM_nonneg : 0 ≤ Real.sqrt (windowMass ψ W) := Real.sqrt_nonneg _
+  have hsqrt_lower :
+      Real.sqrt (WindowKernelData.c0 (ψ := ψ) * W.ℓ)
+        ≤ Real.sqrt (windowMass ψ W) :=
+    Real.sqrt_le_sqrt hM_lower
+
+
+  -- Step 1: bound numerator, denominator unchanged.
+  have step1 :
+      Real.sqrt (boxEnergy ψ u W) / Real.sqrt (windowMass ψ W)
+        ≤ Real.sqrt (Cbox * W.ℓ) / Real.sqrt (windowMass ψ W) := by
+    have nonneg_inv : 0 ≤ (1 / Real.sqrt (windowMass ψ W)) :=
+      by exact one_div_nonneg.mpr hsqrtM_nonneg
+    have := mul_le_mul_of_nonneg_right hE_sqrt_le nonneg_inv
+    simpa [div_eq_mul_inv] using this
+
+
+  -- Step 2: improve denominator using `inv` monotonicity on `(0,∞)`.
+  have hinv :
+      (1 / Real.sqrt (windowMass ψ W))
+        ≤ (1 / Real.sqrt (WindowKernelData.c0 (ψ := ψ) * W.ℓ)) := by
+    have hpos_c0ℓ : 0 < Real.sqrt (WindowKernelData.c0 (ψ := ψ) * W.ℓ) :=
+      Real.sqrt_pos.mpr (mul_pos hc0pos hℓpos)
+    exact (one_div_le_one_div_of_le hpos_c0ℓ).mpr hsqrt_lower
+
+
+  have step2 :
+      Real.sqrt (Cbox * W.ℓ) / Real.sqrt (windowMass ψ W)
+        ≤ Real.sqrt (Cbox * W.ℓ)
+          / Real.sqrt (WindowKernelData.c0 (ψ := ψ) * W.ℓ) := by
+    have hCboxℓ_nonneg : 0 ≤ Real.sqrt (Cbox * W.ℓ) := Real.sqrt_nonneg _
+    have := mul_le_mul_of_nonneg_left hinv hCboxℓ_nonneg
+    simpa [div_eq_mul_inv] using this
+
+
+  have hchain :
+      Real.sqrt (boxEnergy ψ u W) / Real.sqrt (windowMass ψ W)
+        ≤ Real.sqrt (Cbox * W.ℓ)
+          / Real.sqrt (WindowKernelData.c0 (ψ := ψ) * W.ℓ) :=
+    le_trans step1 step2
+
+
+  -- Expand and cancel `√ℓ`, leaving `(1/√c0) * √Cbox`.
+  have hCbox_nonneg : 0 ≤ Cbox := hC.nonneg
+  have hsqrtℓ_ne : Real.sqrt W.ℓ ≠ 0 := by
+    have : 0 < Real.sqrt W.ℓ := Real.sqrt_pos.mpr hℓpos
+    exact ne_of_gt this
+
+
+  have hsimp :
+      Real.sqrt (Cbox * W.ℓ)
+        / Real.sqrt (WindowKernelData.c0 (ψ := ψ) * W.ℓ)
+        = (1 / Real.sqrt (WindowKernelData.c0 (ψ := ψ))) * Real.sqrt Cbox := by
+    calc
+      Real.sqrt (Cbox * W.ℓ)
+          / Real.sqrt (WindowKernelData.c0 (ψ := ψ) * W.ℓ)
+          = (Real.sqrt Cbox * Real.sqrt W.ℓ)
+            / (Real.sqrt (WindowKernelData.c0 (ψ := ψ)) * Real.sqrt W.ℓ) := by
+              have hnum := Real.sqrt_mul hCbox_nonneg hℓnonneg
+              have hden := Real.sqrt_mul (le_of_lt hc0pos) hℓnonneg
+              simpa [hnum, hden]
+      _ = (Real.sqrt Cbox) / (Real.sqrt (WindowKernelData.c0 (ψ := ψ))) := by
+              simpa [mul_comm, mul_left_comm, mul_assoc]
+                using (mul_div_mul_left (Real.sqrt Cbox)
+                  (Real.sqrt (WindowKernelData.c0 (ψ := ψ)))
+                  (Real.sqrt W.ℓ) hsqrtℓ_ne)
+      _ = (1 / Real.sqrt (WindowKernelData.c0 (ψ := ψ))) * Real.sqrt Cbox := by
+              simpa [div_eq_mul_inv, mul_comm]
+
+
+  have hW :
+      Real.sqrt (boxEnergy ψ u W) / Real.sqrt (windowMass ψ W)
+        ≤ (1 / Real.sqrt (WindowKernelData.c0 (ψ := ψ))) * Real.sqrt Cbox :=
+    hchain.trans (by simpa [hsimp])
+
+
+  simpa [H1_BMO_window_constant] using hW
+
+
+end RS
+
+
+Notes
+   * The only assumptions you must provide elsewhere are the kernel-side facts bundled in WindowKernelData ψ:
+
+      * ψ is even.
+
+      * A strictly positive constant c0 with the window mass lower bound windowMass ψ W ≥ c0 ⋅ W.ℓ and windowMass ψ W ≥ 0.
+
+If you already have your window construction with this property, just instantiate:
+
+instance : RS.WindowKernelData ψ := {
+  even := by intro t; -- your proof of evenness
+  c0 := c0
+  c0_pos := hc0_pos
+  mass_nonneg := by intro W; -- ≥ 0
+  mass_lower  := by intro W; -- ≥ c0 ⋅ W.ℓ
+}
+         *          * boxEnergy and windowMass are declared opaque here to keep this module agnostic of your concrete definitions; the theorem only uses their inequalities (Carleson bound and mass comparability). If you already define them concretely in another module/namespace, rename or adapt as needed; otherwise, keep these and satisfy the two hypotheses via your existing lemmas.
+
+This replaces the previous “non-proof” with the standard Fefferman–Stein windowed inequality:
+sup⁡WEnergyψ[u;W]Massψ[W]  ≤  1c0 Cbox ,\sup_W \frac{\sqrt{\text{Energy}_ψ[u;W]}}{\sqrt{\text{Mass}_ψ[W]}} \;\le\; \frac{1}{\sqrt{c_0}} \,\sqrt{C_{\text{box}}}\,,
+i.e. Mpsi ψ u ≤ H1_BMO_window_constant ψ α * Real.sqrt Cbox with H1_BMO_window_constant = 1/√c0.

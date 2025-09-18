@@ -1,0 +1,204 @@
+﻿\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1in]{geometry}
+
+
+\title{Blockers Resolved: Whitney--Plateau Coercivity and Carleson Capture}
+\author{Jonathan Washburn\\
+Recognition Science, Recognition Physics Institute\\
+\texttt{jon@recognitionphysics.org}\\
+Austin, Texas, USA}
+\date{}
+
+
+\theoremstyle{plain}
+\newtheorem{lemma}{Lemma}
+\newtheorem{remark}{Remark}
+
+
+\begin{document}
+\maketitle
+
+
+\noindent We work in the right half-plane $\Omega=\{x+iy:x>\tfrac12\}$ with $\delta(z)=x-\tfrac12$. For a boundary function $f$, write $H_f$ for its Poisson extension with kernel
+\[
+P(z,t)=\frac{1}{\pi}\frac{\delta(z)}{\delta(z)^2+(y-t)^2},\qquad z=x+iy\in\Omega.
+\]
+The weighted (Whitney/Carleson) energy is $\mathcal{E}[W]=\iint_\Omega \delta\,|\nabla W|^2\,dA$.
+We recall the Littlewood--Paley identity (shifted half-plane):
+\[
+\iint_{\Omega}\delta\,\nabla H_f\!\cdot\!\nabla H_g\,dA=\frac{1}{2}\int_{\mathbb{R}} f\,g\,dt,
+\]
+proved by the standard Fourier-in-$t$ computation (as in Stein, \emph{Harmonic Analysis}, Chapter~IV).
+
+
+\medskip
+\noindent\textbf{Whitney geometry.}
+Fix a dyadic grid $\mathcal{D}$ on $\mathbb{R}$. For $I\in\mathcal{D}$ with length $\ell(I)$, let the associated Whitney box and Carleson box be
+\[
+Q(I):=\Big\{\,(x,y):\ y\in I,\quad \tfrac12+\tfrac12\ell(I)<x<\tfrac12+\ell(I)\,\Big\},\qquad
+B(I):=\Big\{\,(x,y):\ y\in I,\ 0<\delta(x,y)<\ell(I)\,\Big\}.
+\]
+We write $I_Q:=I$ and $\ell(Q):=\ell(I)$ when $Q=Q(I)$. For a fixed large dilation parameter $M\ge 8$, define the window and ring
+\[
+Q^*(I):=\Big\{\,(x,y):\ y\in I^{(M)}\ \text{(the $M$-fold dilation of $I$)},\ 0<\delta<M\,\ell(I)\,\Big\},\qquad R(I):=Q^*(I)\setminus Q(I).
+\]
+A family $\mathcal{S}\subset\mathcal{D}$ is \emph{Carleson} if $\sum_{I\in\mathcal{S},\,I\subset J}|I|\le C|J|$ for all $J\in\mathcal{D}$.
+If $\mathcal{S}$ is pairwise disjoint (in $\mathbb{R}$), then it is Carleson with $C=1$, and the windows $\{Q^*(I):I\in\mathcal{S}\}$ have bounded overlap in $\Omega$ with a constant depending only on $M$.
+
+
+\medskip
+\noindent\textbf{A fixed window bump with small tails.}
+Fix $\psi\in C_c^\infty([-2,2])$ with $\int \psi=0$ and $\|\psi\|_{L^2}=1$. For $I\in\mathcal{D}$ centered at $y_I$ set
+\[
+\psi_I(t):=\ell(I)^{-1/2}\,\psi\!\left(\frac{t-y_I}{\ell(I)}\right),\qquad 
+\phi_I:=\psi_{I}-\tfrac12\,\psi_{I^{+}}-\tfrac12\,\psi_{I^{-}},
+\]
+where $I^{\pm}$ are the translates of $I$ by $\pm M\ell(I)$. Then $\phi_I\in C_c^\infty(I^{(M)})$, $\int \phi_I=0$, and $\|\phi_I\|_{L^2}\simeq 1$ (absolute, independent of $I$ and $M$). Let $B_I:=H_{\phi_I}$.
+
+
+\begin{lemma}[Window bump energy and tails]\label{lem:window-bump}
+There exists $C\ge 1$ such that for all dyadic $I$ and $M\ge 8$,
+\[
+\iint_{\Omega}\delta\,|\nabla B_I|^2\,dA\ \le\ C,\qquad 
+\iint_{\Omega\setminus Q^*(I)}\delta\,|\nabla B_I|^2\,dA\ \le\ \frac{C}{M}.
+\]
+\emph{Proof.} The global bound is the Littlewood--Paley identity with $f=g=\phi_I$:
+$\iint \delta|\nabla B_I|^2=\tfrac12\|\phi_I\|_{L^2}^2\le C$.
+For the tail, split $\Omega\setminus Q^*(I)$ into the far-vertical part $\{\delta\ge M\ell(I)\}$ and the lateral part $\{|y-y_I|\ge M\ell(I),\ \delta<M\ell(I)\}$.
+For the vertical tail, the Fourier computation yields
+\[
+\iint_{\delta\ge a}\delta\,|\nabla H_f|^2\,dA
+= \frac12\int_{\mathbb{R}} \bigl(1+2a|\xi|\bigr)e^{-2a|\xi|}\,|\widehat{f}(\xi)|^2\,d\xi
+\le \frac{C}{a}\,\|f\|_{L^2}^2,
+\]
+uniformly in $f$; taking $a=M\ell(I)$ and $f=\phi_I$ gives the claimed $C/M$ bound. For the lateral tail, use the pointwise Poisson decay
+$|\nabla B_I(x,y)|\lesssim \int_{I^{(M)}} \frac{\delta}{(\delta^2+(y-t)^2)}\,|\phi_I(t)|\,dt$, then Cauchy--Schwarz in $t$, integrate in $(x,y)$ over $\{|y-y_I|\ge M\ell(I),\,\delta<M\ell(I)\}$, and sum the geometric series in $k=\lfloor |y-y_I|/\ell(I)\rfloor$ to obtain $\lesssim C/M$. This is the standard ``window tail'' estimate in the Fefferman--Stein window method (see, e.g., the treatments in Garnett, \emph{Bounded Analytic Functions}, and Kenig, \emph{Harmonic Analysis Techniques for Second Order Elliptic Boundary Value Problems}). \qedhere
+\end{lemma}
+
+
+\begin{remark}
+All implicit constants depend only on the fixed bump $\psi$ and absolute geometry; none depend on $I$, $M$, or the function under test.
+\end{remark}
+
+
+\medskip
+\noindent\textbf{Whitney--plateau coercivity.}
+For $W$ harmonic with $\mathcal{E}[W]<\infty$ and $I\in\mathcal{D}$, set
+\[
+E(I):=\iint_{Q(I)}\delta\,|\nabla W|^2\,dA,\qquad A(I):=\iint_{\Omega}\delta\,|\nabla B_I|^2\,dA\ \simeq 1.
+\]
+Fix a small parameter $\kappa\in(0,1)$ (to be chosen) and define a scaled window test
+\[
+V_I:=s_I\,B_I,\qquad s_I^2:=\kappa\,E(I)\,/\,A(I)\ \simeq \kappa\,E(I).
+\]
+Note that $V_I=H_{\varphi_I}$ with $\varphi_I:=s_I\phi_I\in C_c^\infty(I^{(M)})$.
+
+
+\begin{lemma}[Whitney--plateau coercivity]\label{lem:plateau}
+For each dyadic $I$ and $M\ge 8$,
+\[
+\iint_{\Omega}\delta\,\nabla W\cdot\nabla V_I\,dA
+\ \ge\ \frac{1}{2}\,E(I)\ -\ \underbrace{\frac12\iint_{R(I)}\delta\,|\nabla W|^2\,dA}_{\mathrm{ring}(I)}\ -\ \underbrace{\frac12\iint_{\Omega}\delta\,|\nabla V_I|^2\,dA}_{\mathrm{self}(I)}\ -\ \underbrace{\Big|\iint_{\Omega\setminus Q^*(I)}\delta\,\nabla W\cdot\nabla V_I\,dA\Big|}_{\mathrm{tail}(I)}.
+\]
+Consequently,
+\[
+\iint_{\Omega}\delta\,\nabla W\cdot\nabla V_I\,dA
+\ \ge\ \Big(\frac{1}{2}-C\kappa\Big)\,E(I)\ -\ \frac12\iint_{R(I)}\delta\,|\nabla W|^2\,dA\ -\ C\,\sqrt{\kappa}\,M^{-1/2}\,\sqrt{E(I)}\,\sqrt{\mathcal{E}[W]},
+\]
+with an absolute $C$.
+\emph{Proof.}
+On $Q^*(I)$, apply $a\cdot b\ge \tfrac12|a|^2-\tfrac12|b|^2$ to $a=\sqrt{\delta}\,\nabla W$, $b=\sqrt{\delta}\,\nabla V_I$ to get
+\[
+\iint_{Q^*(I)}\delta\,\nabla W\cdot\nabla V_I\ \ge\ \tfrac12\iint_{Q^*(I)}\delta\,|\nabla W|^2-\tfrac12\iint_{Q^*(I)}\delta\,|\nabla V_I|^2.
+\]
+Subtract $\frac12\int_{R(I)}\delta|\nabla W|^2$ from the right to isolate $\tfrac12 E(I)$, and then add back the off-window piece to cover all of $\Omega$:
+\[
+\iint_{\Omega}\delta\,\nabla W\cdot\nabla V_I
+\ \ge\ \tfrac12 E(I)-\tfrac12\iint_{R(I)}\delta|\nabla W|^2-\tfrac12\iint_{\Omega}\delta|\nabla V_I|^2-\Big|\iint_{\Omega\setminus Q^*(I)}\delta\,\nabla W\cdot\nabla V_I\Big|.
+\]
+The ``self'' term equals $\tfrac12 s_I^2 A(I)=\tfrac12\kappa\,E(I)$ by construction. For the ``tail'' term, use Cauchy--Schwarz and Lemma~\ref{lem:window-bump}:
+\[
+\mathrm{tail}(I)\ \le\ \Big(\iint_{\Omega\setminus Q^*(I)}\delta\,|\nabla W|^2\Big)^{\!1/2}
+\Big(\iint_{\Omega\setminus Q^*(I)}\delta\,|\nabla V_I|^2\Big)^{\!1/2}
+\ \le\ C\,\sqrt{\kappa}\,M^{-1/2}\,\sqrt{E(I)}\,\sqrt{\mathcal{E}[W]}.
+\]
+Combine these to obtain the displayed form. \qedhere
+\end{lemma}
+
+
+\begin{remark}
+Two features matter: (i) the linear coercivity $\tfrac12 E(I)$ is universal (no alignment of directions is needed); (ii) the two error types are a local ``ring'' term over $R(I)$ and a global tail, both tunable to be small by choosing $M$ large and $\kappa$ small.
+\end{remark}
+
+
+\medskip
+\noindent\textbf{Carleson capture of energy.}
+Let $\mu$ be the finite measure on $\Omega$ defined by $d\mu=\delta\,|\nabla W|^2\,dA$.
+
+
+\begin{lemma}[Carleson capture]\label{lem:capture}
+For every $\varepsilon\in(0,1)$ there exist $R>0$ and a finite interval $J_0\subset\mathbb{R}$ such that
+\[
+\mu\Big(\Omega\setminus\big(T(J_0)\cap\{\delta<R\}\big)\Big)<\frac{\varepsilon}{2}\,\mu(\Omega),
+\]
+where $T(J_0)=B(J_0)$. On the finite dyadic tree $\{I\in\mathcal{D}:I\subset J_0\}$, define
+\[
+\lambda:=\frac{\varepsilon}{2|J_0|}\,\mu\big(T(J_0)\cap\{\delta<R\}\big),
+\qquad \mathcal{S}:=\text{ maximal dyadic }I\subset J_0\text{ with }\mu(B(I)\cap\{\delta<R\})>\lambda\,|I|.
+\]
+Then $\mathcal{S}$ is pairwise disjoint (hence Carleson with constant $1$) and
+\[
+\mu\Big(\bigcup_{I\in\mathcal{S}} B(I)\Big)\ \ge\ (1-\varepsilon)\,\mu(\Omega).
+\]
+\emph{Proof.}
+First pick $R$ so that $\mu(\{\delta\ge R\})<(\varepsilon/4)\mu(\Omega)$ and $J_0=[-Y,Y]$ with $Y$ large so that $\mu(\{|y|\ge Y\})<(\varepsilon/4)\mu(\Omega)$; this gives the first display. The family $\mathcal{S}$ is pairwise disjoint by maximality. On the complement $T(J_0)\setminus\bigcup_{I\in\mathcal{S}}B(I)$, every sub-box $B(J)$ has $\mu(B(J)\cap\{\delta<R\})\le \lambda|J|$, and by disjointness of the stopping boxes it follows that
+\[
+\mu\Big(T(J_0)\cap\{\delta<R\}\setminus \bigcup_{I\in\mathcal{S}}B(I)\Big)\ \le\ \lambda\,|J_0|
+\ =\ \frac{\varepsilon}{2}\,\mu\big(T(J_0)\cap\{\delta<R\}\big).
+\]
+Add back the $(\varepsilon/2)\mu(\Omega)$ tail outside $T(J_0)\cap\{\delta<R\}$ to obtain
+$\mu\big(\bigcup_{I\in\mathcal{S}}B(I)\big)\ge (1-\varepsilon)\mu(\Omega)$. \qedhere
+\end{lemma}
+
+
+\medskip
+\noindent\textbf{Summation and the global lower bound.}
+Let $\varepsilon\in(0,1)$ be fixed and choose $R,J_0,\mathcal{S}$ from Lemma~\ref{lem:capture}. For each $I\in\mathcal{S}$, let $Q(I)$ be the Whitney box and pick $M\ge 8$ and $\kappa\in(0,1)$ (to be fixed momentarily). Form $V_I$ as in Lemma~\ref{lem:plateau}. Summing the inequality in Lemma~\ref{lem:plateau} over $I\in\mathcal{S}$ gives
+\[
+\sum_{I\in\mathcal{S}}\iint_{\Omega}\delta\,\nabla W\cdot\nabla V_I\,dA
+\ \ge\ \Big(\tfrac12-C\kappa\Big)\sum_{I\in\mathcal{S}}E(I)
+\ -\ \frac12\sum_{I\in\mathcal{S}}\iint_{R(I)}\delta\,|\nabla W|^2
+\ -\ C\,\sqrt{\kappa}\,M^{-1/2}\,\sqrt{\sum_{I\in\mathcal{S}}E(I)}\,\sqrt{\mathcal{E}[W]}.
+\]
+Because $\{I\in\mathcal{S}\}$ is pairwise disjoint, the windows $\{Q^*(I)\}$ have bounded overlap (depending only on $M$), hence
+\[
+\sum_{I\in\mathcal{S}}\iint_{R(I)}\delta\,|\nabla W|^2\ \le\ C(M)\,\mathcal{E}[W].
+\]
+Moreover, $\sum_{I\in\mathcal{S}}E(I)=\iint_{\bigcup_{I\in\mathcal{S}}Q(I)}\delta\,|\nabla W|^2\ge (1-\varepsilon)\,\mathcal{E}[W]$ by Lemma~\ref{lem:capture}. Therefore,
+\[
+\sum_{I\in\mathcal{S}}\iint_{\Omega}\delta\,\nabla W\cdot\nabla V_I\,dA
+\ \ge\ \Big(\tfrac12-C\kappa\Big)(1-\varepsilon)\,\mathcal{E}[W]\ -\ \frac12 C(M)\,\mathcal{E}[W]\ -\ C\,\sqrt{\kappa}\,M^{-1/2}\,\mathcal{E}[W].
+\]
+Choose $M$ large so that $\tfrac12 C(M)\le \tfrac14$, then choose $\kappa$ small so that $C\kappa\le \tfrac18$ and also $C\sqrt{\kappa}M^{-1/2}\le \tfrac18$. With these choices and $\varepsilon\le \tfrac18$, we obtain the \emph{global coercivity}:
+\begin{equation}\label{eq:global-coercivity}
+\sum_{I\in\mathcal{S}}\iint_{\Omega}\delta\,\nabla W\cdot\nabla V_I\,dA\ \ge\ c_0\,\mathcal{E}[W],\qquad c_0>0\ \text{absolute.}
+\end{equation}
+
+
+\medskip
+\noindent\textbf{Consequences.}
+If $W$ is harmonic with $\mathcal{E}[W]<\infty$ and
+\[
+\iint_{\Omega}\delta\,\nabla W\cdot\nabla H_\varphi\,dA=0\qquad\text{for all }\varphi\in C_c^\infty(\mathbb{R}),
+\]
+then in particular the left-hand side of \eqref{eq:global-coercivity} vanishes for the chosen $\{\varphi_I\}$ (since $V_I=H_{\varphi_I}$), which forces $\mathcal{E}[W]=0$ by \eqref{eq:global-coercivity}. Hence $\nabla W\equiv 0$ and $W$ is constant; with a pinning value $W(z_0)=0$ we have $W\equiv 0$.
+This is precisely the energy-class Dirichlet uniqueness (pairing form). As explained in the main note, applying this to $W=u-H_f$ with $u=\mathrm{Re}\,F$ and $f=u|_{x=1/2}$ (in the $L^2$ nontangential sense) yields the Poisson representation for $\mathrm{Re}\,F$.
+
+
+\begin{remark}[On sources and portability]
+The window design above is the classical Fefferman--Stein ``windowed tests'' method. The tail and overlap controls are standard; see the window constructions in Garnett (\emph{Bounded Analytic Functions}, Chapter~VI) and Kenig (\emph{Harmonic Analysis Techniques for Second Order Elliptic Boundary Value Problems}, early chapters on Carleson measures and sawtooth regions). The arguments translate verbatim to $\{x>\sigma_0\}$ upon replacing $\delta$ by $x-\sigma_0$, and (by horizontal translation) to the upper half-plane.
+\end{remark}
+
+
+\end{document}
