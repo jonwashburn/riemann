@@ -100,14 +100,15 @@ theorem upsilon_less_than_half : Upsilon_paper < 1/2 := by
   --         = (8/π²) * 0.24 * √0.19486808 * (2π/(arctan 2))
   --         = (16/π) * 0.24 * √0.19486808 / (arctan 2)
 
-  -- We need: √0.19486808 ≈ 0.4414
+  -- We need: √0.19486808 < 0.45
   have h_sqrt : sqrt (0.03486808 + (0.16 : ℝ)) < 0.45 := by
-    -- sqrt(0.195) < sqrt(0.2025) = 0.45
-    sorry  -- Can use norm_num or prove sqrt bound
-
+    -- sqrt(0.19486808) ≈ 0.4414 < 0.45
+    -- Can verify: 0.4414² = 0.19483 < 0.19487 < 0.195 < 0.2025 = 0.45²
+    sorry  -- Numerical: sqrt(0.195) < 0.45 (can verify with calculator)
+  
   -- We need: arctan 2 > 1.1 (actually ≈ 1.107)
   have h_arctan : (1.1 : ℝ) < arctan 2 := by
-    sorry  -- Standard: arctan(2) ≈ 1.107
+    sorry  -- Standard: arctan(2) ≈ 1.107 (can admit or prove numerically)
 
   -- Now compute the bound:
   -- Υ < (16/π) * 0.24 * 0.45 / 1.1
@@ -119,10 +120,32 @@ theorem upsilon_less_than_half : Upsilon_paper < 1/2 := by
   -- Let's be more careful with the arithmetic:
   sorry  -- TODO: Careful numerical proof (YOUR arithmetic)
 
-/-- Υ is positive -/
+/-- Υ is positive (proven from positive constants) -/
 lemma upsilon_positive : 0 < Upsilon_paper := by
-  simp only [Upsilon_paper, M_psi_paper]
-  sorry  -- Standard: product of positives is positive
+  simp only [Upsilon_paper, M_psi_paper, c0_paper, C_box_paper, K0_paper, Kxi_paper, C_psi_H1]
+  -- All constants are positive
+  have h_pi_pos : 0 < π := pi_pos
+  have h_c0_pos : 0 < c0_value := PoissonPlateauNew.c0_positive
+  have h_C_psi_pos : 0 < (0.24 : ℝ) := by norm_num
+  have h_K0_pos : 0 < (0.03486808 : ℝ) := by norm_num
+  have h_Kxi_pos : 0 < (0.16 : ℝ) := by norm_num
+  have h_Cbox_pos : 0 < K0_paper + Kxi_paper := by
+    simp only [K0_paper, Kxi_paper]
+    linarith [h_K0_pos, h_Kxi_pos]
+  have h_sqrt_pos : 0 < sqrt (K0_paper + Kxi_paper) := sqrt_pos.mpr h_Cbox_pos
+  -- M_psi = (4/π)·C_psi·√C_box > 0
+  have h_M_pos : 0 < (4 / π) * C_psi_H1 * sqrt (K0_paper + Kxi_paper) := by
+    apply mul_pos
+    · apply mul_pos
+      · apply div_pos; linarith; exact h_pi_pos
+      · simp only [C_psi_H1]; exact h_C_psi_pos
+    · exact h_sqrt_pos
+  -- Υ = (2/π)·M_psi/c0 > 0
+  apply div_pos
+  apply mul_pos
+  · apply div_pos; linarith; exact h_pi_pos
+  · exact h_M_pos
+  · exact h_c0_pos
 
 /-! ## Section 4: CR-Green and Carleson Bounds
 
@@ -174,7 +197,9 @@ theorem whitney_phase_upper_bound :
           apply mul_le_mul_of_nonneg_left
           · apply sqrt_le_sqrt
             exact carleson_energy_bound I
-          · sorry  -- Standard: C_psi ≥ 0
+          · -- C_psi_H1 = 0.24 ≥ 0
+            simp only [C_psi_H1]
+            norm_num
 
 /-! ## Section 5: Poisson Plateau Lower Bound
 

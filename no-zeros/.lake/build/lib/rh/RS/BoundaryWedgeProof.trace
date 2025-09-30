@@ -6,15 +6,9 @@
    "././././rh/RS/BoundaryWedgeProof.lean:91:8: declaration uses 'sorry'",
    "level": "warning"},
   {"message":
-   "././././rh/RS/BoundaryWedgeProof.lean:123:6: declaration uses 'sorry'",
+   "././././rh/RS/BoundaryWedgeProof.lean:232:8: unused variable `h_upsilon`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/BoundaryWedgeProof.lean:167:8: declaration uses 'sorry'",
-   "level": "warning"},
-  {"message":
-   "././././rh/RS/BoundaryWedgeProof.lean:207:8: unused variable `h_upsilon`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
-   "level": "warning"},
-  {"message":
-   "././././rh/RS/BoundaryWedgeProof.lean:214:8: declaration uses 'sorry'",
+   "././././rh/RS/BoundaryWedgeProof.lean:239:8: declaration uses 'sorry'",
    "level": "warning"}],
- "depHash": "4854611064514417757"}
+ "depHash": "1097141734153543757"}
