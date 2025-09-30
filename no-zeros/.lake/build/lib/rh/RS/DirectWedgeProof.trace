@@ -2,4 +2,4 @@
  [{"message":
    ".> LEAN_PATH=././.lake/packages/batteries/.lake/build/lib:././.lake/packages/Qq/.lake/build/lib:././.lake/packages/aesop/.lake/build/lib:././.lake/packages/proofwidgets/.lake/build/lib:././.lake/packages/Cli/.lake/build/lib:././.lake/packages/importGraph/.lake/build/lib:././.lake/packages/LeanSearchClient/.lake/build/lib:././.lake/packages/plausible/.lake/build/lib:././.lake/packages/mathlib/.lake/build/lib:././.lake/build/lib DYLD_LIBRARY_PATH= /Users/jonathanwashburn/.elan/toolchains/leanprover--lean4---v4.13.0/bin/lean -Dpp.unicode.fun=true -Dpp.proofs.withType=false -DautoImplicit=false -DrelaxedAutoImplicit=false ././././rh/RS/DirectWedgeProof.lean -R ./././. -o ././.lake/build/lib/rh/RS/DirectWedgeProof.olean -i ././.lake/build/lib/rh/RS/DirectWedgeProof.ilean -c ././.lake/build/ir/rh/RS/DirectWedgeProof.c --json",
    "level": "trace"}],
- "depHash": "226815158127797518"}
+ "depHash": "15330599268620413867"}

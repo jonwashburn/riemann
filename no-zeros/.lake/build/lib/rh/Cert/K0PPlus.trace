@@ -2,4 +2,4 @@
  [{"message":
    ".> LEAN_PATH=././.lake/packages/batteries/.lake/build/lib:././.lake/packages/Qq/.lake/build/lib:././.lake/packages/aesop/.lake/build/lib:././.lake/packages/proofwidgets/.lake/build/lib:././.lake/packages/Cli/.lake/build/lib:././.lake/packages/importGraph/.lake/build/lib:././.lake/packages/LeanSearchClient/.lake/build/lib:././.lake/packages/plausible/.lake/build/lib:././.lake/packages/mathlib/.lake/build/lib:././.lake/build/lib DYLD_LIBRARY_PATH= /Users/jonathanwashburn/.elan/toolchains/leanprover--lean4---v4.13.0/bin/lean -Dpp.unicode.fun=true -Dpp.proofs.withType=false -DautoImplicit=false -DrelaxedAutoImplicit=false ././././rh/Cert/K0PPlus.lean -R ./././. -o ././.lake/build/lib/rh/Cert/K0PPlus.olean -i ././.lake/build/lib/rh/Cert/K0PPlus.ilean -c ././.lake/build/ir/rh/Cert/K0PPlus.c --json",
    "level": "trace"}],
- "depHash": "6935447927193475390"}
+ "depHash": "720084735327367126"}

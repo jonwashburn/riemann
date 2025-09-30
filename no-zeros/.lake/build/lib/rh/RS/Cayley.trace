@@ -26,4 +26,4 @@
   {"message":
    "././././rh/RS/Cayley.lean:274:3: unused variable `hDet2`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"}],
- "depHash": "15953373760297596979"}
+ "depHash": "11302583325948702889"}

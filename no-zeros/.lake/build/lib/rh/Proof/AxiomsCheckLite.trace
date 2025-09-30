@@ -1,0 +1,41 @@
+{"log":
+ [{"message":
+   ".> LEAN_PATH=././.lake/packages/batteries/.lake/build/lib:././.lake/packages/Qq/.lake/build/lib:././.lake/packages/aesop/.lake/build/lib:././.lake/packages/proofwidgets/.lake/build/lib:././.lake/packages/Cli/.lake/build/lib:././.lake/packages/importGraph/.lake/build/lib:././.lake/packages/LeanSearchClient/.lake/build/lib:././.lake/packages/plausible/.lake/build/lib:././.lake/packages/mathlib/.lake/build/lib:././.lake/build/lib DYLD_LIBRARY_PATH= /Users/jonathanwashburn/.elan/toolchains/leanprover--lean4---v4.13.0/bin/lean -Dpp.unicode.fun=true -Dpp.proofs.withType=false -DautoImplicit=false -DrelaxedAutoImplicit=false ././././rh/Proof/AxiomsCheckLite.lean -R ./././. -o ././.lake/build/lib/rh/Proof/AxiomsCheckLite.olean -i ././.lake/build/lib/rh/Proof/AxiomsCheckLite.ilean -c ././.lake/build/ir/rh/Proof/AxiomsCheckLite.c --json",
+   "level": "trace"},
+  {"message":
+   "././././rh/Proof/AxiomsCheckLite.lean:9:0: Axioms: RH.Proof.Export.pipeline_ready_unconditional",
+   "level": "info"},
+  {"message":
+   "././././rh/Proof/AxiomsCheckLite.lean:10:0: 'RH.Proof.Export.pipeline_ready_unconditional' depends on axioms: [propext, Classical.choice, Quot.sound]",
+   "level": "info"},
+  {"message":
+   "././././rh/Proof/AxiomsCheckLite.lean:12:0: Axioms: RH.Proof.Export.RiemannHypothesis_final",
+   "level": "info"},
+  {"message":
+   "././././rh/Proof/AxiomsCheckLite.lean:13:0: 'RH.Proof.Export.RiemannHypothesis_final' depends on axioms: [propext, Classical.choice, Quot.sound]",
+   "level": "info"},
+  {"message":
+   "././././rh/Proof/AxiomsCheckLite.lean:15:0: Axioms: RH.Proof.Export.RH",
+   "level": "info"},
+  {"message":
+   "././././rh/Proof/AxiomsCheckLite.lean:16:0: 'RH.Proof.Export.RH' depends on axioms: [propext, Classical.choice, Quot.sound]",
+   "level": "info"},
+  {"message":
+   "././././rh/Proof/AxiomsCheckLite.lean:18:0: Axioms: RH.Proof.Export.RiemannHypothesis_from_certificate_route",
+   "level": "info"},
+  {"message":
+   "././././rh/Proof/AxiomsCheckLite.lean:19:0: 'RH.Proof.Export.RiemannHypothesis_from_certificate_route' depends on axioms: [propext, Classical.choice, Quot.sound]",
+   "level": "info"},
+  {"message":
+   "././././rh/Proof/AxiomsCheckLite.lean:21:0: Axioms: RH.Proof.Export.RiemannHypothesis_from_certificate_rep_on_via_cov",
+   "level": "info"},
+  {"message":
+   "././././rh/Proof/AxiomsCheckLite.lean:22:0: 'RH.Proof.Export.RiemannHypothesis_from_certificate_rep_on_via_cov' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]",
+   "level": "info"},
+  {"message":
+   "././././rh/Proof/AxiomsCheckLite.lean:24:0: Axioms: RH.Proof.Export.RiemannHypothesis_mathlib_from_CR_outer_ext",
+   "level": "info"},
+  {"message":
+   "././././rh/Proof/AxiomsCheckLite.lean:25:0: 'RH.Proof.Export.RiemannHypothesis_mathlib_from_CR_outer_ext' depends on axioms: [propext,\n sorryAx,\n Classical.choice,\n Quot.sound,\n RH.RS.outer_exists]",
+   "level": "info"}],
+ "depHash": "2018651587419934432"}

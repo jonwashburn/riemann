@@ -1,0 +1,85 @@
+{"log":
+ [{"message":
+   ".> LEAN_PATH=././.lake/packages/batteries/.lake/build/lib:././.lake/packages/Qq/.lake/build/lib:././.lake/packages/aesop/.lake/build/lib:././.lake/packages/proofwidgets/.lake/build/lib:././.lake/packages/Cli/.lake/build/lib:././.lake/packages/importGraph/.lake/build/lib:././.lake/packages/LeanSearchClient/.lake/build/lib:././.lake/packages/plausible/.lake/build/lib:././.lake/packages/mathlib/.lake/build/lib:././.lake/build/lib DYLD_LIBRARY_PATH= /Users/jonathanwashburn/.elan/toolchains/leanprover--lean4---v4.13.0/bin/lean -Dpp.unicode.fun=true -Dpp.proofs.withType=false -DautoImplicit=false -DrelaxedAutoImplicit=false ././././rh/RS/PoissonPlateauNew.lean -R ./././. -o ././.lake/build/lib/rh/RS/PoissonPlateauNew.olean -i ././.lake/build/lib/rh/RS/PoissonPlateauNew.ilean -c ././.lake/build/ir/rh/RS/PoissonPlateauNew.c --json",
+   "level": "trace"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:73:18: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:82:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:87:2: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:86:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message": "././././rh/RS/PoissonPlateauNew.lean:92:20: unused name: h2",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:90:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:97:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:115:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:121:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:129:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:139:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:152:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:196:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:206:8: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:272:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:281:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:289:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:326:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:332:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:346:8: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:367:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:375:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:382:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:390:62: unused variable `hx`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:399:49: unused variable `hb`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:448:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PoissonPlateauNew.lean:456:6: declaration uses 'sorry'",
+   "level": "warning"}],
+ "depHash": "1403858461726755444"}

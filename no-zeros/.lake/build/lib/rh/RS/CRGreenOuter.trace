@@ -3,81 +3,89 @@
    ".> LEAN_PATH=././.lake/packages/batteries/.lake/build/lib:././.lake/packages/Qq/.lake/build/lib:././.lake/packages/aesop/.lake/build/lib:././.lake/packages/proofwidgets/.lake/build/lib:././.lake/packages/Cli/.lake/build/lib:././.lake/packages/importGraph/.lake/build/lib:././.lake/packages/LeanSearchClient/.lake/build/lib:././.lake/packages/plausible/.lake/build/lib:././.lake/packages/mathlib/.lake/build/lib:././.lake/build/lib DYLD_LIBRARY_PATH= /Users/jonathanwashburn/.elan/toolchains/leanprover--lean4---v4.13.0/bin/lean -Dpp.unicode.fun=true -Dpp.proofs.withType=false -DautoImplicit=false -DrelaxedAutoImplicit=false ././././rh/RS/CRGreenOuter.lean -R ./././. -o ././.lake/build/lib/rh/RS/CRGreenOuter.olean -i ././.lake/build/lib/rh/RS/CRGreenOuter.ilean -c ././.lake/build/ir/rh/RS/CRGreenOuter.c --json",
    "level": "trace"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:60:7: unused variable `hsum`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "././././rh/RS/CRGreenOuter.lean:63:7: unused variable `hsum`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
-  {"message":
-   "././././rh/RS/CRGreenOuter.lean:164:6: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+  {"message": "././././rh/RS/CRGreenOuter.lean:111:8: declaration uses 'sorry'",
    "level": "warning"},
-  {"message":
-   "././././rh/RS/CRGreenOuter.lean:167:6: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+  {"message": "././././rh/RS/CRGreenOuter.lean:149:4: declaration uses 'sorry'",
    "level": "warning"},
-  {"message":
-   "././././rh/RS/CRGreenOuter.lean:168:4: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+  {"message": "././././rh/RS/CRGreenOuter.lean:149:4: declaration uses 'sorry'",
    "level": "warning"},
-  {"message":
-   "././././rh/RS/CRGreenOuter.lean:182:8: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
-   "level": "warning"},
-  {"message":
-   "././././rh/RS/CRGreenOuter.lean:161:9: unused variable `h'`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
-   "level": "warning"},
-  {"message":
-   "././././rh/RS/CRGreenOuter.lean:162:9: unused variable `hsum`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+  {"message": "././././rh/RS/CRGreenOuter.lean:172:6: declaration uses 'sorry'",
    "level": "warning"},
   {"message":
    "././././rh/RS/CRGreenOuter.lean:236:6: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:238:6: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+   "././././rh/RS/CRGreenOuter.lean:239:6: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:239:4: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+   "././././rh/RS/CRGreenOuter.lean:240:4: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:234:9: unused variable `h'`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "././././rh/RS/CRGreenOuter.lean:254:8: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:235:9: unused variable `hsum`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "././././rh/RS/CRGreenOuter.lean:233:9: unused variable `h'`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:328:8: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+   "././././rh/RS/CRGreenOuter.lean:234:9: unused variable `hsum`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:329:6: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+   "././././rh/RS/CRGreenOuter.lean:308:6: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:380:35: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+   "././././rh/RS/CRGreenOuter.lean:310:6: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:384:34: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+   "././././rh/RS/CRGreenOuter.lean:311:4: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:519:9: unused variable `hc`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "././././rh/RS/CRGreenOuter.lean:306:9: unused variable `h'`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:534:9: unused variable `hRHSnn`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "././././rh/RS/CRGreenOuter.lean:307:9: unused variable `hsum`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:544:7: unused variable `hAB`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "././././rh/RS/CRGreenOuter.lean:400:8: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:549:7: unused variable `hCD`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "././././rh/RS/CRGreenOuter.lean:401:6: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:672:8: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+   "././././rh/RS/CRGreenOuter.lean:452:35: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:673:6: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+   "././././rh/RS/CRGreenOuter.lean:456:34: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:674:4: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+   "././././rh/RS/CRGreenOuter.lean:591:9: unused variable `hc`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:818:31: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+   "././././rh/RS/CRGreenOuter.lean:606:9: unused variable `hRHSnn`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:894:48: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+   "././././rh/RS/CRGreenOuter.lean:616:7: unused variable `hAB`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/CRGreenOuter.lean:922:4: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+   "././././rh/RS/CRGreenOuter.lean:621:7: unused variable `hCD`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/CRGreenOuter.lean:744:8: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/CRGreenOuter.lean:745:6: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/CRGreenOuter.lean:746:4: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/CRGreenOuter.lean:890:31: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/CRGreenOuter.lean:966:48: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/CRGreenOuter.lean:994:4: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
    "level": "warning"}],
- "depHash": "18076672480721812679"}
+ "depHash": "10106981328254391637"}

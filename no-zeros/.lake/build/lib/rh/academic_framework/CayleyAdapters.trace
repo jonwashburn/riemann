@@ -29,4 +29,4 @@
   {"message":
    "././././rh/academic_framework/CayleyAdapters.lean:230:3: unused variable `hRel`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"}],
- "depHash": "5268290871232823456"}
+ "depHash": "7922978346078661451"}

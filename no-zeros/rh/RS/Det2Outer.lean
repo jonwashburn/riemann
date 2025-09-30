@@ -29,8 +29,14 @@ open Complex Set RH.AcademicFramework.CompletedXi
 /-- Right half–plane domain Ω. -/
 local notation "Ω" => RH.RS.Ω
 
-/-- RS symbol for det₂ on Ω (defined elsewhere; reserved here as an opaque symbol). -/
-noncomputable opaque det2 : ℂ → ℂ
+/-- RS symbol for det₂ on Ω: the 2-modified Euler product over primes.
+
+    det₂(s) = ∏ₚ (1 - p^(-s)) * exp(p^(-s))
+
+    This is the determinant of I - A(s) where A is the diagonal operator with
+    eigenvalues p^(-s) on an orthonormal basis indexed by primes. -/
+noncomputable def det2 (s : ℂ) : ℂ :=
+  ∏' (p : Nat.Primes), RH.AcademicFramework.DiagonalFredholm.det2EulerFactor s p
 
 /-- Analytic/nonvanishing facts for `det2` on Ω (interface record). -/
 structure Det2OnOmega where

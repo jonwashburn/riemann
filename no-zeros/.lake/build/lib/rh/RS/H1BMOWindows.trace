@@ -3,18 +3,30 @@
    ".> LEAN_PATH=././.lake/packages/batteries/.lake/build/lib:././.lake/packages/Qq/.lake/build/lib:././.lake/packages/aesop/.lake/build/lib:././.lake/packages/proofwidgets/.lake/build/lib:././.lake/packages/Cli/.lake/build/lib:././.lake/packages/importGraph/.lake/build/lib:././.lake/packages/LeanSearchClient/.lake/build/lib:././.lake/packages/plausible/.lake/build/lib:././.lake/packages/mathlib/.lake/build/lib:././.lake/build/lib DYLD_LIBRARY_PATH= /Users/jonathanwashburn/.elan/toolchains/leanprover--lean4---v4.13.0/bin/lean -Dpp.unicode.fun=true -Dpp.proofs.withType=false -DautoImplicit=false -DrelaxedAutoImplicit=false ././././rh/RS/H1BMOWindows.lean -R ./././. -o ././.lake/build/lib/rh/RS/H1BMOWindows.olean -i ././.lake/build/lib/rh/RS/H1BMOWindows.ilean -c ././.lake/build/ir/rh/RS/H1BMOWindows.c --json",
    "level": "trace"},
   {"message":
-   "././././rh/RS/H1BMOWindows.lean:57:10: unused variable `ψ`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "././././rh/RS/H1BMOWindows.lean:34:16: unused variable `ψ`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/H1BMOWindows.lean:57:12: unused variable `u`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "././././rh/RS/H1BMOWindows.lean:40:15: unused variable `ψ`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/H1BMOWindows.lean:79:5: unused variable `hC`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "././././rh/RS/H1BMOWindows.lean:40:17: unused variable `u`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/H1BMOWindows.lean:115:29: unused variable `md`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "././././rh/RS/H1BMOWindows.lean:40:29: unused variable `W`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/H1BMOWindows.lean:115:53: unused variable `ed`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "././././rh/RS/H1BMOWindows.lean:61:10: unused variable `ψ`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/H1BMOWindows.lean:61:12: unused variable `u`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/H1BMOWindows.lean:83:5: unused variable `hC`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/H1BMOWindows.lean:119:29: unused variable `md`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/H1BMOWindows.lean:119:53: unused variable `ed`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"}],
- "depHash": "9409799369964499894"}
+ "depHash": "1396227672041022379"}

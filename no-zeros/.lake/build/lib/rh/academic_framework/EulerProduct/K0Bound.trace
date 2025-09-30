@@ -14,4 +14,4 @@
   {"message":
    "././././rh/academic_framework/EulerProduct/K0Bound.lean:183:6: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
    "level": "warning"}],
- "depHash": "12013150070877594117"}
+ "depHash": "15239951482975989860"}

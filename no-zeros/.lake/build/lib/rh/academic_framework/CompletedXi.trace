@@ -38,4 +38,4 @@
   {"message":
    "././././rh/academic_framework/CompletedXi.lean:147:4: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
    "level": "warning"}],
- "depHash": "4063444548496239052"}
+ "depHash": "17535186338322128415"}

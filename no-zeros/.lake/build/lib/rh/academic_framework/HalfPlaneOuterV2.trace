@@ -8,4 +8,4 @@
   {"message":
    "././././rh/academic_framework/HalfPlaneOuterV2.lean:488:7: unused variable `hFormula`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"}],
- "depHash": "812630899088340366"}
+ "depHash": "11614590416611973273"}

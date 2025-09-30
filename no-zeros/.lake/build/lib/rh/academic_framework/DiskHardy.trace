@@ -1,14 +1,5 @@
 {"log":
  [{"message":
    ".> LEAN_PATH=././.lake/packages/batteries/.lake/build/lib:././.lake/packages/Qq/.lake/build/lib:././.lake/packages/aesop/.lake/build/lib:././.lake/packages/proofwidgets/.lake/build/lib:././.lake/packages/Cli/.lake/build/lib:././.lake/packages/importGraph/.lake/build/lib:././.lake/packages/LeanSearchClient/.lake/build/lib:././.lake/packages/plausible/.lake/build/lib:././.lake/packages/mathlib/.lake/build/lib:././.lake/build/lib DYLD_LIBRARY_PATH= /Users/jonathanwashburn/.elan/toolchains/leanprover--lean4---v4.13.0/bin/lean -Dpp.unicode.fun=true -Dpp.proofs.withType=false -DautoImplicit=false -DrelaxedAutoImplicit=false ././././rh/academic_framework/DiskHardy.lean -R ./././. -o ././.lake/build/lib/rh/academic_framework/DiskHardy.olean -i ././.lake/build/lib/rh/academic_framework/DiskHardy.ilean -c ././.lake/build/ir/rh/academic_framework/DiskHardy.c --json",
-   "level": "trace"},
-  {"message":
-   "././././rh/academic_framework/DiskHardy.lean:68:19: unused variable `F`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
-   "level": "warning"},
-  {"message":
-   "././././rh/academic_framework/DiskHardy.lean:71:26: unused variable `F`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
-   "level": "warning"},
-  {"message":
-   "././././rh/academic_framework/DiskHardy.lean:74:40: unused variable `F`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
-   "level": "warning"}],
- "depHash": "5317727525935740669"}
+   "level": "trace"}],
+ "depHash": "5808401797607939225"}

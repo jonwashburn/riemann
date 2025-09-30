@@ -63,16 +63,6 @@ lemma HasDiskPoissonRepresentation_real
   : HasDiskPoissonRepresentation F :=
 HasDiskPoissonRepresentation_of_data (F := F) hA hI hEq
 
-/-! Statement-level placeholders retained for API compatibility. -/
-/-- Prop-level: a.e. boundary nonnegativity for Re F on ∂𝔻. -/
-def PPlusOnCircle (F : ℂ → ℂ) : Prop := True
-
-/-- Prop-level: positivity transport on 𝔻 from boundary a.e. nonnegativity. -/
-def DiskPoissonTransport (F : ℂ → ℂ) : Prop := True
-
-/-- Prop-level: disk outer existence with prescribed boundary modulus. -/
-def ExistsDiskOuterWithBoundaryModulus (F : ℂ → ℂ) : Prop := True
-
 end DiskHardy
 end AcademicFramework
 end RH
