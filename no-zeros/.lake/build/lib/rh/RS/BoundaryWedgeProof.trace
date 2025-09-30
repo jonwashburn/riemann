@@ -3,9 +3,18 @@
    ".> LEAN_PATH=././.lake/packages/batteries/.lake/build/lib:././.lake/packages/Qq/.lake/build/lib:././.lake/packages/aesop/.lake/build/lib:././.lake/packages/proofwidgets/.lake/build/lib:././.lake/packages/Cli/.lake/build/lib:././.lake/packages/importGraph/.lake/build/lib:././.lake/packages/LeanSearchClient/.lake/build/lib:././.lake/packages/plausible/.lake/build/lib:././.lake/packages/mathlib/.lake/build/lib:././.lake/build/lib DYLD_LIBRARY_PATH= /Users/jonathanwashburn/.elan/toolchains/leanprover--lean4---v4.13.0/bin/lean -Dpp.unicode.fun=true -Dpp.proofs.withType=false -DautoImplicit=false -DrelaxedAutoImplicit=false ././././rh/RS/BoundaryWedgeProof.lean -R ./././. -o ././.lake/build/lib/rh/RS/BoundaryWedgeProof.olean -i ././.lake/build/lib/rh/RS/BoundaryWedgeProof.ilean -c ././.lake/build/ir/rh/RS/BoundaryWedgeProof.c --json",
    "level": "trace"},
   {"message":
-   "././././rh/RS/BoundaryWedgeProof.lean:85:8: declaration uses 'sorry'",
+   "././././rh/RS/BoundaryWedgeProof.lean:91:8: declaration uses 'sorry'",
    "level": "warning"},
   {"message":
-   "././././rh/RS/BoundaryWedgeProof.lean:97:6: declaration uses 'sorry'",
+   "././././rh/RS/BoundaryWedgeProof.lean:123:6: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/BoundaryWedgeProof.lean:167:8: declaration uses 'sorry'",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/BoundaryWedgeProof.lean:207:8: unused variable `h_upsilon`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/BoundaryWedgeProof.lean:214:8: declaration uses 'sorry'",
    "level": "warning"}],
- "depHash": "13601842952866718285"}
+ "depHash": "4854611064514417757"}
