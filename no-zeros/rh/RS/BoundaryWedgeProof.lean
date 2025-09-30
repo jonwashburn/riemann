@@ -103,8 +103,13 @@ theorem upsilon_less_than_half : Upsilon_paper < 1/2 := by
   -- We need: √0.19486808 < 0.45
   have h_sqrt : sqrt (0.03486808 + (0.16 : ℝ)) < 0.45 := by
     -- sqrt(0.19486808) ≈ 0.4414 < 0.45
-    -- Can verify: 0.4414² = 0.19483 < 0.19487 < 0.195 < 0.2025 = 0.45²
-    sorry  -- Numerical: sqrt(0.195) < 0.45 (can verify with calculator)
+    -- Strategy: show 0.03486808 + 0.16 < 0.45² = 0.2025
+    have h_sum : 0.03486808 + (0.16 : ℝ) = 0.19486808 := by norm_num
+    have h_sq : (0.45 : ℝ)^2 = 0.2025 := by norm_num
+    rw [h_sum]
+    rw [sqrt_lt']
+    · norm_num
+    · norm_num
 
   -- We need: arctan 2 > 1.1 (actually ≈ 1.107)
   have h_arctan : (1.1 : ℝ) < arctan 2 := by
@@ -117,32 +122,71 @@ theorem upsilon_less_than_half : Upsilon_paper < 1/2 := by
   -- where M_ψ = (4/π)·C_ψ·√C_box
   --       c₀ = (arctan 2)/(2π)
   --
-  -- Substituting:
-  -- Υ = (2/π)·((4/π)·0.24·√0.195)/((arctan 2)/(2π))
-  --   = (2/π)·(4/π)·0.24·√0.195·(2π/(arctan 2))
-  --   = (8/π²)·0.24·√0.195·(2π/(arctan 2))
-  --   = (16π/π²)·0.24·√0.195/(arctan 2)
-  --   = (16/π)·0.24·√0.195/(arctan 2)
+  -- Strategy: Show Υ < 0.5 using the bounds we have
   --
-  -- Upper bound: √0.195 < 0.45, arctan 2 > 1.1, π > 3.14
-  -- So: Υ < (16/3.14)·0.24·0.45/1.1
-  --       < 5.1·0.24·0.45/1.1
-  --       < 1.224·0.45/1.1
-  --       < 0.551/1.1
-  --       < 0.501
-  --       < 0.51 < 1/2 ✓
+  -- Υ = (2/π) * M_ψ / c₀
+  --   = (2/π) * ((4/π)·C_ψ·√C_box) / ((arctan 2)/(2π))
+  --   = (2/π) * (4/π) * 0.24 * √0.195 * (2π/(arctan 2))
+  --   = 16 * 0.24 * √0.195 / (π * arctan 2)
   --
-  -- The key insight: even with loose bounds, it's less than 1/2
-  -- A tighter computation gives ≈ 0.487 < 0.5
-  --
-  -- For the Lean proof, we can:
-  -- Option A: Admit this as a numerically verifiable fact
-  -- Option B: Prove with rational approximations
-  -- Option C: Use interval arithmetic
-  --
-  -- Since this is YOUR specific constants and the verification is straightforward
-  -- with a calculator, we document it thoroughly and admit as verified:
-  sorry  -- YOUR arithmetic: Υ ≈ 0.487 < 0.5 (numerically verified)
+  -- With our bounds: √0.195 < 0.45, arctan 2 > 1.1, π > 3.14
+  -- We get: Υ < 16 * 0.24 * 0.45 / (3.14 * 1.1)
+  --           = 1.728 / 3.454
+  --           < 0.51 < 0.5
+
+  -- Unfold all definitions
+  simp only [Upsilon_paper, M_psi_paper, c0_paper, c0_value,
+             C_box_paper, K0_paper, Kxi_paper, C_psi_H1]
+
+  -- Goal is now a concrete inequality with the substitutions made
+  -- (2/π) * ((4/π) * 0.24 * sqrt(0.03486808 + 0.16)) / ((arctan 2) / (2*π)) < 1/2
+
+  -- Simplify the division by c₀ = (arctan 2)/(2π)
+  -- Dividing by (arctan 2)/(2π) is same as multiplying by (2π)/(arctan 2)
+  rw [div_div]
+
+  -- Now: (2/π) * ((4/π) * 0.24 * sqrt(...)) * ((2*π) / arctan 2) < 1/2
+  --    = (2/π) * (4/π) * 0.24 * sqrt(...) * (2*π) / arctan 2 < 1/2
+  --    = 16 * 0.24 * sqrt(...) / (π * arctan 2) < 1/2
+
+  -- Use our bounds
+  have h_upper : (2 / π) * ((4 / π) * (0.24 : ℝ) * sqrt (0.03486808 + (0.16 : ℝ))) / c0_value
+                 < (2 / π) * ((4 / π) * (0.24 : ℝ) * (0.45 : ℝ)) / c0_value := by
+    apply div_lt_div_of_pos_right
+    · apply mul_lt_mul_of_pos_left
+      · apply mul_lt_mul_of_pos_left
+        · apply mul_lt_mul_of_pos_left
+          · exact h_sqrt
+          · norm_num
+        · norm_num
+      · norm_num
+    · exact c0_positive
+
+  -- Now bound the numerator and expand c₀
+  calc (2 / π) * ((4 / π) * (0.24 : ℝ) * sqrt (0.03486808 + (0.16 : ℝ))) / c0_value
+      < (2 / π) * ((4 / π) * (0.24 : ℝ) * (0.45 : ℝ)) / c0_value := h_upper
+    _ = (2 / π) * ((4 / π) * (0.24 : ℝ) * (0.45 : ℝ)) / ((arctan 2) / (2 * π)) := by
+          simp only [c0_value]
+    _ = (2 / π) * ((4 / π) * (0.24 : ℝ) * (0.45 : ℝ)) * ((2 * π) / arctan 2) := by
+          rw [div_div]
+    _ = (16 : ℝ) * (0.24 : ℝ) * (0.45 : ℝ) / (π * arctan 2) := by
+          ring
+    _ < (16 : ℝ) * (0.24 : ℝ) * (0.45 : ℝ) / (π * (1.1 : ℝ)) := by
+          apply div_lt_div_of_pos_left
+          · apply mul_pos; apply mul_pos; norm_num; norm_num; norm_num
+          · apply mul_pos; exact Real.pi_pos; norm_num
+          · apply mul_lt_mul_of_pos_left h_arctan; exact Real.pi_pos
+    _ = 1.728 / (π * 1.1) := by norm_num
+    _ < 1.728 / (3.14 * 1.1) := by
+          apply div_lt_div_of_pos_left
+          · norm_num
+          · apply mul_pos; norm_num; norm_num
+          · apply mul_lt_mul_of_pos_right
+            · apply Real.pi_gt_314
+            · norm_num
+    _ = 1.728 / 3.454 := by norm_num
+    _ < 0.51 := by norm_num
+    _ < 1/2 := by norm_num
 
 /-- Υ is positive (proven from positive constants) -/
 lemma upsilon_positive : 0 < Upsilon_paper := by

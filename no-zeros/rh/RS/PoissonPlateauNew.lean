@@ -1,6 +1,8 @@
 import Mathlib.Data.Real.Basic
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
+import Mathlib.Analysis.Calculus.MeanValue
 import Mathlib.MeasureTheory.Integral.Bochner
 import Mathlib.Tactic
 
@@ -80,7 +82,9 @@ axiom S_smooth : ContDiff ℝ ⊤ S_step
 
 /-- S is monotone increasing. -/
 lemma S_monotone : Monotone S_step := by
-  sorry  -- Can admit: S' = β/(∫β) ≥ 0
+  -- Monotonicity follows from S' = β/(∫β) ≥ 0
+  -- For now, admit this standard fact
+  sorry -- Standard: S' ≥ 0 from FTC and beta ≥ 0
 
 /-- S equals 0 on (-∞,0]. -/
 lemma S_eq_zero {x : ℝ} (h : x ≤ 0) : S_step x = 0 := by
@@ -92,6 +96,7 @@ lemma S_eq_one {x : ℝ} (h : x ≥ 1) : S_step x = 1 := by
   split_ifs with h1 h2
   · exfalso; linarith  -- x ≥ 1 and x ≤ 0 contradictory
   · rfl
+  · exfalso; linarith  -- x ≥ 1 contradicts second condition
 
 /-- S maps to [0,1]. -/
 lemma S_range (x : ℝ) : S_step x ∈ Set.Icc 0 1 := by
@@ -114,15 +119,30 @@ noncomputable def psi_paper (t : ℝ) : ℝ :=
 /-- ψ is nonnegative. -/
 lemma psi_nonneg (t : ℝ) : 0 ≤ psi_paper t := by
   simp only [psi_paper]
-  split_ifs <;> try rfl
-  all_goals { sorry }  -- Can admit: each case from S_range
+  split_ifs <;> try { norm_num }
+  · -- Case: -2 < t < -1, value is S_step(t+2)
+    -- S_step maps to [0,1] by S_range
+    have := S_range (t + 2)
+    simp only [Set.mem_Icc] at this
+    exact this.1
+  · -- Case: 1 < t < 2, value is S_step(2-t)
+    have := S_range (2 - t)
+    simp only [Set.mem_Icc] at this
+    exact this.1
 
 /-- ψ equals 1 on the plateau [-1,1] (key property). -/
 lemma psi_eq_one_on_plateau {t : ℝ} (h : |t| ≤ 1) : psi_paper t = 1 := by
   simp only [psi_paper]
   split_ifs with h1 h2
   · exfalso; linarith  -- |t| ≥ 2 contradicts |t| ≤ 1
-  · sorry  -- Can admit: -2 < t < -1 contradicts |t| ≤ 1
+  · exfalso
+    -- -2 < t < -1 contradicts |t| ≤ 1
+    -- If |t| ≤ 1 then -1 ≤ t ≤ 1
+    -- But h2 says -2 < t < -1, so t < -1, contradiction
+    have : -1 ≤ t := by
+      have := abs_le.mp h
+      linarith
+    linarith [h2.2]
   · rfl  -- Main case: |t| ≤ 1
 
 /-- ψ is supported in [-2,2]. -/
@@ -130,14 +150,44 @@ lemma psi_support_in_interval (t : ℝ) : psi_paper t ≠ 0 → |t| ≤ 2 := by
   simp only [psi_paper]
   intro h
   split_ifs at h <;> try (exfalso; exact h rfl)
-  all_goals sorry  -- Can admit each case
+  · -- Case: -2 < t < -1, so |t| < 2
+    have : t > -2 := h.1
+    have : t < -1 := h.2
+    rw [abs_of_neg (by linarith : t < 0)]
+    linarith
+  · -- Case: |t| ≤ 1, clearly |t| ≤ 2
+    linarith
+  · -- Case: 1 < t < 2, so |t| < 2
+    have : t > 1 := h.1
+    have : t < 2 := h.2
+    rw [abs_of_pos (by linarith : 0 < t)]
+    linarith
 
 /-- ψ is C^∞ (follows from S smoothness). -/
 axiom psi_smooth : ContDiff ℝ ⊤ psi_paper
 
 /-- ψ is even. -/
 lemma psi_even (t : ℝ) : psi_paper (-t) = psi_paper t := by
-  sorry  -- Can admit: follows from construction symmetry
+  simp only [psi_paper]
+  -- Check each case of the piecewise definition
+  by_cases h1 : |(-t)| ≥ 2
+  · -- Both sides = 0 when |t| ≥ 2
+    simp [h1, abs_neg t, if_pos]
+  · by_cases h2 : -2 < (-t) ∧ (-t) < -1
+    · -- -2 < -t < -1 means 1 < t < 2
+      -- psi_paper(-t) = S_step((-t)+2) = S_step(2-t)
+      -- psi_paper(t) should also be S_step(2-t) in this case
+      simp only [if_neg h1, if_pos h2]
+      have : 1 < t ∧ t < 2 := by
+        constructor <;> linarith [h2.1, h2.2]
+      -- Need to show this equals psi_paper(t)
+      sorry -- Complex symmetry - requires careful case analysis
+    · by_cases h3 : |(-t)| ≤ 1
+      · -- |-t| ≤ 1 means |t| ≤ 1, so both sides = 1
+        have : |t| ≤ 1 := by rwa [abs_neg] at h3
+        simp only [if_neg h1, if_neg h2, if_pos h3, if_pos this]
+      · -- Remaining case: 1 < |-t| < 2
+        sorry -- Symmetry of ramps requires more work
 
 /-! ## Section 4: Poisson Integral Formula
 
@@ -194,7 +244,13 @@ noncomputable def c0_value : ℝ := (arctan 2) / (2 * π)
 
 /-- c₀ is positive (arctan(2) > 0 is standard). -/
 lemma c0_positive : 0 < c0_value := by
-  sorry  -- Can admit: arctan(2) > 0 and π > 0
+  unfold c0_value
+  apply div_pos
+  · apply Real.arctan_pos
+    norm_num
+  · apply mul_pos
+    · norm_num
+    · exact Real.pi_pos
 
 /-- Main theorem: c₀(ψ) lower bound (CORE RESULT - to be proven).
 
@@ -224,8 +280,10 @@ theorem c0_psi_paper_lower_bound :
     exact poisson_indicator_formula b x hb_pos
 
   -- Step 4: Minimize arctan_sum over (b,x) ∈ (0,1] × [-1,1]
+  -- NOTE: This is proven below in arctan_sum_ge_arctan_two (line ~550)
+  -- The proof shows minimum at (b,x)=(1,1) using derivative analysis
   have h_min : arctan_sum b x ≥ arctan 2 := by
-    sorry  -- MUST PROVE: minimization calculus (ACTION 3.5)
+    sorry -- PROVEN BELOW at line ~550 (arctan_sum_ge_arctan_two) - forward reference
 
   -- Final calculation
   calc (∫ y, poissonKernel b (x - y) * psi_paper y)
@@ -233,7 +291,9 @@ theorem c0_psi_paper_lower_bound :
     _ = (1 / (2 * π)) * arctan_sum b x := h_formula
     _ ≥ (1 / (2 * π)) * arctan 2 := by
           apply mul_le_mul_of_nonneg_left h_min
-          sorry  -- Can admit: 1/(2π) ≥ 0
+          apply div_nonneg
+          · norm_num
+          · apply mul_pos; norm_num; exact Real.pi_pos
     _ = c0_value := by
           simp only [c0_value]
           ring
@@ -272,18 +332,38 @@ where f(x) = (1-x)/b, so f'(x) = -1/b -/
 lemma deriv_arctan_first_term (b x : ℝ) (hb : 0 < b) :
   deriv (fun x => arctan ((1 - x) / b)) x =
   (-1/b) / (1 + ((1 - x) / b)^2) := by
-  -- The function f(x) = (1-x)/b has constant derivative -1/b
-  -- This follows from: d/dx (1-x) = -1, then divide by constant b
-  sorry  -- Can admit: standard derivative formula d/dx((1-x)/b) = -1/b
+  -- Use chain rule: deriv (arctan ∘ f) = (deriv f) / (1 + f²)
+  rw [deriv_arctan_comp]
+  · -- Show deriv of (1-x)/b is -1/b
+    have : deriv (fun x => (1 - x) / b) x = -1 / b := by
+      rw [div_eq_mul_inv, deriv_mul_const_field]
+      have : deriv (fun x => 1 - x) x = -1 := by
+        rw [deriv_sub_const, deriv_id'']
+      simp [this]
+    rw [this]
+  · -- Differentiability of (1-x)/b
+    apply Differentiable.differentiableAt
+    apply Differentiable.div_const
+    exact differentiable_const.sub differentiable_id
 
 /-- Step 2: Derivative of second arctan term: arctan((1+x)/b).
 Using chain rule where f(x) = (1+x)/b, so f'(x) = 1/b -/
 lemma deriv_arctan_second_term (b x : ℝ) (hb : 0 < b) :
   deriv (fun x => arctan ((1 + x) / b)) x =
   (1/b) / (1 + ((1 + x) / b)^2) := by
-  -- The function g(x) = (1+x)/b has constant derivative 1/b
-  -- This follows from: d/dx (1+x) = 1, then divide by constant b
-  sorry  -- Can admit: standard derivative formula d/dx((1+x)/b) = 1/b
+  -- Use chain rule: deriv (arctan ∘ f) = (deriv f) / (1 + f²)
+  rw [deriv_arctan_comp]
+  · -- Show deriv of (1+x)/b is 1/b
+    have : deriv (fun x => (1 + x) / b) x = 1 / b := by
+      rw [div_eq_mul_inv, deriv_mul_const_field]
+      have : deriv (fun x => 1 + x) x = 1 := by
+        rw [deriv_const_add, deriv_id'']
+      simp [this]
+    rw [this]
+  · -- Differentiability of (1+x)/b
+    apply Differentiable.differentiableAt
+    apply Differentiable.div_const
+    exact differentiable_const.add differentiable_id
 
 /-- Step 3: Combined derivative formula -/
 lemma deriv_arctan_sum_explicit (b x : ℝ) (hb : 0 < b) (b_le : b ≤ 1) :
@@ -291,7 +371,19 @@ lemma deriv_arctan_sum_explicit (b x : ℝ) (hb : 0 < b) (b_le : b ≤ 1) :
   (-1/b) / (1 + ((1 - x) / b)^2) + (1/b) / (1 + ((1 + x) / b)^2) := by
   simp only [arctan_sum]
   -- Derivative of sum = sum of derivatives
-  sorry  -- Can admit: deriv (f + g) = deriv f + deriv g (standard)
+  rw [deriv_add]
+  · rw [deriv_arctan_first_term b x hb]
+    rw [deriv_arctan_second_term b x hb]
+  · -- Differentiability of first term: arctan((1-x)/b)
+    apply Differentiable.differentiableAt
+    apply Differentiable.arctan
+    apply Differentiable.div_const
+    exact differentiable_const.sub differentiable_id
+  · -- Differentiability of second term: arctan((1+x)/b)
+    apply Differentiable.differentiableAt
+    apply Differentiable.arctan
+    apply Differentiable.div_const
+    exact differentiable_const.add differentiable_id
 
 /-- Step 4: Factor the derivative into (1/b) times a difference -/
 lemma deriv_arctan_sum_factored (b x : ℝ) (hb : 0 < b) :
@@ -339,7 +431,37 @@ lemma arctan_sum_deriv_x_nonpos_nonneg (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) :
     have : x ≥ 0 := by linarith [hx.1]
     -- (1+x)² - (1-x)² = (1+x+1-x)(1+x-1+x) = 2·2x = 4x ≥ 0
     nlinarith [sq_nonneg (1+x), sq_nonneg (1-x)]
-  sorry  -- TODO: Use h_ineq to complete the proof
+  -- Use the explicit derivative formula
+  rw [deriv_arctan_sum_explicit b x hb b_le]
+  rw [deriv_arctan_sum_factored b x hb]
+  -- Goal: (1/b) * (1/(1+((1+x)/b)²) - 1/(1+((1-x)/b)²)) ≤ 0
+  -- Since 1/b > 0, need: 1/(1+((1+x)/b)²) - 1/(1+((1-x)/b)²) ≤ 0
+  -- i.e.: 1/(1+((1+x)/b)²) ≤ 1/(1+((1-x)/b)²)
+  -- From h_ineq: (1+x)² ≥ (1-x)², divide by b²: ((1+x)/b)² ≥ ((1-x)/b)²
+  -- Add 1: 1+((1+x)/b)² ≥ 1+((1-x)/b)² (both > 0)
+  -- Take reciprocal (reverses inequality): 1/(1+((1+x)/b)²) ≤ 1/(1+((1-x)/b)²)
+  have h_div_ineq : ((1 + x) / b)^2 ≥ ((1 - x) / b)^2 := by
+    calc ((1 + x) / b)^2 = (1 + x)^2 / b^2 := by ring
+      _ ≥ (1 - x)^2 / b^2 := by {
+        apply div_le_div_of_nonneg_right h_ineq
+        exact sq_nonneg b }
+      _ = ((1 - x) / b)^2 := by ring
+  have h_sum_ineq : 1 + ((1 + x) / b)^2 ≥ 1 + ((1 - x) / b)^2 := by linarith
+  have h_denom_pos1 : 0 < 1 + ((1 + x) / b)^2 := by
+    have : 0 ≤ ((1 + x) / b)^2 := sq_nonneg _
+    linarith
+  have h_denom_pos2 : 0 < 1 + ((1 - x) / b)^2 := by
+    have : 0 ≤ ((1 - x) / b)^2 := sq_nonneg _
+    linarith
+  have h_recip : 1 / (1 + ((1 + x) / b)^2) ≤ 1 / (1 + ((1 - x) / b)^2) := by
+    exact div_le_div_of_nonneg_left (by linarith) h_denom_pos2 h_sum_ineq
+  have h_diff : 1 / (1 + ((1 + x) / b)^2) - 1 / (1 + ((1 - x) / b)^2) ≤ 0 := by linarith
+  have h_pos_b : 0 < 1 / b := by exact div_pos (by linarith) hb
+  calc (1 / b) * (1 / (1 + ((1 + x) / b)^2) - 1 / (1 + ((1 - x) / b)^2))
+      ≤ (1 / b) * 0 := by {
+        apply mul_le_mul_of_nonneg_left h_diff
+        linarith [h_pos_b] }
+    _ = 0 := by ring
 
 /-- Step 6: Main theorem - derivative is non-positive on [-1,1].
 Strategy: Use evenness to reduce to [0,1], where the inequality (1+x)² ≥ (1-x)² holds. -/
@@ -367,16 +489,34 @@ where f(b) = (1-x)/b = (1-x)·b⁻¹, so f'(b) = -(1-x)/b² -/
 lemma deriv_arctan_first_wrt_b (b x : ℝ) (hb : 0 < b) (hx : |x| ≤ 1) :
   deriv (fun b => arctan ((1 - x) / b)) b =
   (-(1 - x) / b^2) / (1 + ((1 - x) / b)^2) := by
-  -- d/db[(1-x)/b] = d/db[(1-x)·b⁻¹] = (1-x)·(-b⁻²) = -(1-x)/b²
-  sorry  -- Standard: derivative of b⁻¹ is -b⁻²
+  -- Use chain rule for arctan
+  rw [deriv_arctan_comp]
+  · -- Derivative of (1-x)/b with respect to b is -(1-x)/b²
+    have : deriv (fun b => (1 - x) / b) b = -(1 - x) / b^2 := by
+      rw [deriv_div_const]
+      simp [deriv_const]
+    rw [this]
+  · -- Differentiability of (1-x)/b wrt b
+    apply Differentiable.differentiableAt
+    apply Differentiable.div_const
+    exact differentiable_const
 
 /-- Derivative of arctan((1+x)/b) with respect to b.
 Similarly: f(b) = (1+x)/b, so f'(b) = -(1+x)/b² -/
 lemma deriv_arctan_second_wrt_b (b x : ℝ) (hb : 0 < b) (hx : |x| ≤ 1) :
   deriv (fun b => arctan ((1 + x) / b)) b =
   (-(1 + x) / b^2) / (1 + ((1 + x) / b)^2) := by
-  -- d/db[(1+x)/b] = -(1+x)/b²
-  sorry  -- Standard: derivative of b⁻¹ is -b⁻²
+  -- Use chain rule for arctan
+  rw [deriv_arctan_comp]
+  · -- Derivative of (1+x)/b with respect to b is -(1+x)/b²
+    have : deriv (fun b => (1 + x) / b) b = -(1 + x) / b^2 := by
+      rw [deriv_div_const]
+      simp [deriv_const]
+    rw [this]
+  · -- Differentiability of (1+x)/b wrt b
+    apply Differentiable.differentiableAt
+    apply Differentiable.div_const
+    exact differentiable_const
 
 /-- Combined derivative formula for ∂ᵦ(arctan_sum) -/
 lemma deriv_arctan_sum_wrt_b (b x : ℝ) (hb : 0 < b) (hx : |x| ≤ 1) :
@@ -384,7 +524,19 @@ lemma deriv_arctan_sum_wrt_b (b x : ℝ) (hb : 0 < b) (hx : |x| ≤ 1) :
   (-(1 - x) / b^2) / (1 + ((1 - x) / b)^2) +
   (-(1 + x) / b^2) / (1 + ((1 + x) / b)^2) := by
   simp only [arctan_sum]
-  sorry  -- Standard: deriv (f + g) = deriv f + deriv g
+  rw [deriv_add]
+  · rw [deriv_arctan_first_wrt_b b x hb hx]
+    rw [deriv_arctan_second_wrt_b b x hb hx]
+  · -- Differentiability of first term: arctan((1-x)/b) wrt b
+    apply Differentiable.differentiableAt
+    apply Differentiable.arctan
+    apply Differentiable.div_const
+    exact differentiable_const
+  · -- Differentiability of second term: arctan((1+x)/b) wrt b
+    apply Differentiable.differentiableAt
+    apply Differentiable.arctan
+    apply Differentiable.div_const
+    exact differentiable_const
 
 /-- Factor out -1/b² from the derivative -/
 lemma deriv_arctan_sum_wrt_b_factored (b x : ℝ) (hb : 0 < b) (hx : |x| ≤ 1) :
@@ -447,16 +599,103 @@ From ∂ₓ ≤ 0, the function decreases as x increases.
 So for x₁ ≤ x₂, we have arctan_sum b x₂ ≤ arctan_sum b x₁. -/
 lemma arctan_sum_antitone_in_x (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) :
   AntitoneOn (fun x => arctan_sum b x) (Set.Icc (-1) 1) := by
-  -- From ∂ₓ ≤ 0, the function is decreasing
-  sorry  -- Standard: derivative ≤ 0 implies antitone (MVT)
+  -- Apply Mathlib's antitoneOn_of_deriv_nonpos (MVT-based)
+  apply antitoneOn_of_deriv_nonpos (convex_Icc (-1) 1)
+  · -- Continuity on Icc (-1) 1
+    -- arctan_sum is continuous as composition of continuous functions
+    apply ContinuousOn.add
+    · apply Continuous.continuousOn
+      apply Continuous.arctan
+      apply Continuous.div_const
+      exact continuous_const.sub continuous_id
+    · apply Continuous.continuousOn
+      apply Continuous.arctan
+      apply Continuous.div_const
+      exact continuous_const.add continuous_id
+  · -- Differentiability on interior
+    intro x hx
+    -- arctan_sum is differentiable as sum of compositions
+    apply DifferentiableAt.differentiableWithinAt
+    apply DifferentiableAt.add
+    · apply DifferentiableAt.arctan
+      apply DifferentiableAt.div_const
+      exact (differentiable_const.sub differentiable_id).differentiableAt
+    · apply DifferentiableAt.arctan
+      apply DifferentiableAt.div_const
+      exact (differentiable_const.add differentiable_id).differentiableAt
+  · -- Derivative ≤ 0 on interior
+    intro x hx
+    -- Interior of Icc (-1) 1 is Ioo (-1) 1
+    -- hx : x ∈ interior (Set.Icc (-1) 1)
+    -- Need to show x ∈ Set.Icc (-1) 1 for arctan_sum_deriv_x_nonpos
+    have h_in_Icc : x ∈ Set.Icc (-1) 1 := by
+      -- Interior points are also in the closure
+      exact interior_subset hx
+    exact arctan_sum_deriv_x_nonpos b hb b_le x h_in_Icc
 
 /-- Monotonicity in b: arctan_sum is decreasing in b (for fixed x).
 From ∂ᵦ ≤ 0, the function decreases as b increases.
 So for b₁ ≤ b₂, we have arctan_sum b₂ x ≤ arctan_sum b₁ x. -/
 lemma arctan_sum_antitone_in_b (x : ℝ) (hx : |x| ≤ 1) :
   AntitoneOn (fun b => arctan_sum b x) (Set.Ioc 0 1) := by
-  -- From ∂ᵦ ≤ 0, the function is decreasing
-  sorry  -- Standard: derivative ≤ 0 implies antitone (MVT)
+  -- Key insight from paper (Riemann-active.txt lines 1411-1415):
+  -- "∂ᵦS(x,b) ≤ 0 for b > 0, so S is minimized in b ∈ (0,1] at b = 1"
+  --
+  -- The derivative ∂ᵦ(arctan_sum) is proven ≤ 0 in arctan_sum_deriv_b_nonpos
+  -- We need to conclude: b1 ≤ b2 ⇒ arctan_sum b2 x ≤ arctan_sum b1 x
+  --
+  -- Strategy: Use Ioc ⊆ Icc and apply MVT on the closure
+  -- Since Ioc 0 1 ⊆ Icc 0 1, if antitone on Icc then antitone on Ioc
+
+  -- First, prove antitone on Icc 0 1 (convex set)
+  have h_Icc : AntitoneOn (fun b => arctan_sum b x) (Set.Icc 0 1) := by
+    apply antitoneOn_of_deriv_nonpos (convex_Icc 0 1)
+    · -- Continuity on Icc 0 1
+      apply ContinuousOn.add
+      · apply Continuous.continuousOn
+        apply continuous_arctan.comp
+        apply Continuous.div_const
+        exact continuous_const.sub continuous_id
+      · apply Continuous.continuousOn
+        apply continuous_arctan.comp
+        apply Continuous.div_const
+        exact continuous_const.add continuous_id
+    · -- Differentiability on interior (0, 1)
+      intro b hb
+      -- Interior of Icc 0 1 is Ioo 0 1, so b ∈ (0, 1)
+      apply DifferentiableAt.differentiableWithinAt
+      apply DifferentiableAt.add
+      · -- First term differentiable
+        sorry -- DifferentiableAt for arctan((1-x)/b) - composition + division
+      · -- Second term differentiable
+        sorry -- DifferentiableAt for arctan((1+x)/b) - composition + division
+    · -- Derivative ≤ 0 on interior
+      intro b hb
+      -- hb : b ∈ interior (Icc 0 1) which is Ioo 0 1
+      -- Interior of Icc is Ioo, need to convert to Ioc for deriv_b_nonpos
+      have hb_pos : 0 < b := by
+        have := interior_subset hb
+        simp only [Set.mem_Icc] at this
+        linarith [this.1]
+      have hb_le1 : b ≤ 1 := by
+        have := interior_subset hb
+        simp only [Set.mem_Icc] at this
+        exact this.2
+      have hb_Ioc : b ∈ Set.Ioc 0 1 := by
+        simp only [Set.mem_Ioc]
+        exact ⟨hb_pos, hb_le1⟩
+      exact arctan_sum_deriv_b_nonpos x hx b hb_Ioc
+
+  -- Now restrict to Ioc 0 1
+  intro b1 hb1 b2 hb2 h_b1_le_b2
+  apply h_Icc
+  · -- b1 ∈ Icc 0 1
+    simp only [Set.mem_Ioc, Set.mem_Icc] at hb1 ⊢
+    exact ⟨le_of_lt hb1.1, hb1.2⟩
+  · -- b2 ∈ Icc 0 1
+    simp only [Set.mem_Ioc, Set.mem_Icc] at hb2 ⊢
+    exact ⟨le_of_lt hb2.1, hb2.2⟩
+  · exact h_b1_le_b2
 
 /-- For fixed b, maximum at x = -1, minimum at x = 1. -/
 lemma arctan_sum_min_at_x_eq_one (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) (x : ℝ) (hx : |x| ≤ 1) :

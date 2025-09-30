@@ -121,7 +121,11 @@ theorem J_CR_boundary_abs_one (O : OuterOnOmega) :
     sorry  -- Admit: det2 ≠ 0 on critical line (Euler product, standard)
 
   have hO_ne : O.outer (boundary t) ≠ 0 := by
-    sorry  -- Admit: follows from O.nonzero (trivial membership check)
+    apply O.nonzero
+    -- boundary t ∈ Ω since Re(boundary t) = 1/2 and we need Re > 1/2
+    -- Actually, boundary is ON the boundary Re = 1/2, need to check if this is valid
+    -- For now, this requires knowing the domain of O.nonzero
+    sorry  -- Need to verify boundary t is in the domain of O
 
   -- Core RH-specific algebra: Prove |det2 / (O·ξ)| = 1
   --
@@ -136,12 +140,39 @@ theorem J_CR_boundary_abs_one (O : OuterOnOmega) :
   --                  = |det2| / (|det2|/|ξ| · |ξ|) [abs of quotient]
   --                  = |det2| / |det2|           [cancel: (a/b)·b = a]
   --                  = 1                         [a/a = 1]
-  --
-  -- Each step is standard field arithmetic. The Lean proof uses:
-  -- abs_div, Complex.abs.map_mul, div_mul_cancel₀, div_self
-  --
-  -- TODO: Complete Lean syntax (30-60 min of API work)
-  sorry
+
+  -- Step 1: Expand J_CR definition and boundary
+  simp only [J_CR, boundary]
+
+  -- Step 2: Use abs properties for division and multiplication
+  rw [Complex.abs_div, Complex.abs_mul]
+
+  -- Step 3: Substitute hmod: |O| = |det2/ξ|
+  rw [hmod]
+
+  -- Step 4: Expand |det2/ξ|
+  rw [Complex.abs_div]
+
+  -- Goal now: |det2| / (|det2| / |ξ| * |ξ|) = 1
+  -- This simplifies to: |det2| / |det2| = 1 by cancellation
+
+  -- Step 5: Algebraic cancellation - (a/b)·b = a when b ≠ 0
+  have h_cancel : Complex.abs (det2 (boundary t)) / Complex.abs (riemannXi_ext (boundary t)) *
+                  Complex.abs (riemannXi_ext (boundary t)) =
+                  Complex.abs (det2 (boundary t)) := by
+    apply div_mul_cancel₀
+    exact (Complex.abs.pos hξ_ne).ne'
+
+  -- Step 6: Simplify using cancellation
+  have h_denom : Complex.abs (det2 (boundary t)) / Complex.abs (riemannXi_ext (boundary t)) *
+                 Complex.abs (riemannXi_ext (boundary t)) =
+                 Complex.abs (det2 (boundary t)) := h_cancel
+
+  -- Rewrite the denominator
+  rw [h_denom]
+
+  -- Now we have: |det2| / |det2| = 1
+  exact div_self (Complex.abs.pos hdet_ne).ne'
 
 
 /-- OuterData built from the CR–Green outer `J_CR` via `F := 2·J`.
