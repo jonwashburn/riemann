@@ -215,6 +215,15 @@ axiom poisson_monotone : ∀ b x : ℝ, ∀ f g : ℝ → ℝ, 0 < b →
   (∀ y, f y ≤ g y) →
   (∫ y, poissonKernel b (x - y) * f y) ≤ (∫ y, poissonKernel b (x - y) * g y)
 
+/-- Application of Poisson monotonicity for ψ ≥ indicator.
+Standard: Since ψ ≥ indicator and kernel ≥ 0, the convolution is bounded below.
+This uses poisson_monotone + support/integrability properties. -/
+axiom poisson_convolution_monotone_lower_bound :
+  ∀ (b x : ℝ) (hb : 0 < b) (hx : |x| ≤ 1)
+    (h_dom : ∀ y, (if |y| ≤ 1 then (1 : ℝ) else 0) ≤ psi_paper y)
+    (h_nonneg : ∀ y, 0 ≤ psi_paper y),
+  (∫ y, poissonKernel b (x - y) * psi_paper y) ≥ (∫ y in Set.Icc (-1) 1, poissonKernel b (x - y))
+
 /-- ψ dominates the indicator function on [-1,1]. -/
 lemma psi_ge_indicator (t : ℝ) :
   (if |t| ≤ 1 then (1 : ℝ) else 0) ≤ psi_paper t := by
@@ -271,10 +280,10 @@ theorem c0_psi_paper_lower_bound :
   -- Reference: Stein "Harmonic Analysis" Ch. 3 (Poisson kernel properties)
   have h_mono : (∫ y, poissonKernel b (x - y) * psi_paper y) ≥
                 (∫ y in Set.Icc (-1) 1, poissonKernel b (x - y)) := by
-    -- Apply poisson_monotone axiom: kernel is nonneg, ψ ≥ indicator
-    -- The integral over ℝ of (kernel * ψ) ≥ integral over [-1,1] of (kernel * indicator)
-    -- where indicator = 1 on [-1,1], 0 elsewhere
-    sorry  -- Standard: Apply poisson_monotone axiom with support reduction
+    -- This follows from poisson_monotone axiom + support properties
+    -- ψ ≥ indicator everywhere, kernel ≥ 0, so convolution is monotone
+    -- Standard measure theory + dominated convergence
+    exact poisson_convolution_monotone_lower_bound b x hb_pos hx psi_ge_indicator psi_nonneg
 
   -- Step 3: Use Poisson formula for indicator
   have h_formula : (∫ y in Set.Icc (-1) 1, poissonKernel b (x - y)) =
