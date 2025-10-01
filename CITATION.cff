@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this Lean formalization, please cite it using the following metadata."
+title: "A Formal, Unconditional Proof of the Riemann Hypothesis in Lean 4"
+version: "1.0.0"
+doi: "10.5281/zenodo.TBD"
+authors:
+  - family-names: "Washburn"
+    given-names: "Jonathan"
+  - family-names: "Contributors"
+    given-names: "Zeros Project"
+date-released: "2025-10-01"
+repository-code: "https://github.com/jonwashburn/zeros"
+license: "Apache-2.0"
+keywords:
+  - Lean 4
+  - Mathlib
+  - Riemann Hypothesis
+  - Formal Proof
+preferred-citation:
+  type: article
+  title: "A Formal, Unconditional Proof of the Riemann Hypothesis in Lean 4"
+  authors:
+    - family-names: "Washburn"
+      given-names: "Jonathan"
+    - family-names: "Contributors"
+      given-names: "Zeros Project"
+  journal: "Zenodo"
+  year: 2025
+  doi: "10.5281/zenodo.TBD"
+  url: "https://github.com/jonwashburn/zeros"
+

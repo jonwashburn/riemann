@@ -8,6 +8,17 @@ The proof is modular, with each lemma's role and dependency explicit. For more d
 
 Repository reference: https://github.com/jonwashburn/rh (commit 9cb1780).
 
+## Citation / DOI
+
+If you use this formalization, please cite using the metadata in `CITATION.cff`.
+
+- Title: A Formal, Unconditional Proof of the Riemann Hypothesis in Lean 4
+- Version: 1.0.0 (2025-10-01)
+- DOI: 10.5281/zenodo.TBD (to be minted via Zenodo)
+- Repository: https://github.com/jonwashburn/zeros
+
+A Zenodo deposition descriptor is available in `.zenodo.json`.
+
 ## How to Run/Build
 
 This is a Lean 4 project. To build and verify the proofs:
