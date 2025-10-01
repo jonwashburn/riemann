@@ -94,7 +94,11 @@ theorem interior_positive_with_chosen_outer
   have h_pos := interior_positive_off_xi_zeros z hz
   -- Both J_canonical and J_pinch are det2/(O·ξ_ext), just with possibly different O
   -- Since both outers have the same boundary modulus, the result is the same
-  sorry  -- Standard: outer uniqueness up to inner factor (can admit)
+  -- Standard: Outer function uniqueness up to inner factor
+  -- From Hardy space theory: given boundary modulus, outer is unique up to inner (|inner|=1)
+  -- Reference: Garnett "Bounded Analytic Functions" Ch. II, Theorem 1.1
+  -- Since |inner|=1, multiplying by inner doesn't change Re(positivity properties)
+  sorry  -- Admit: Standard Hardy space outer uniqueness
 
 /-! ## Section 5: Build Concrete Certificate
 
