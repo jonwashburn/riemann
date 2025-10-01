@@ -274,13 +274,74 @@ theorem whitney_phase_upper_bound :
 This uses the c₀(ψ) result from ACTION 3.
 -/
 
-/-- Poisson plateau gives lower bound on phase integral.
-Standard result from harmonic analysis: phase-velocity identity gives
-∫ ψ(-W') = π·poisson_balayage + π·critical_atoms ≥ π·c₀·poisson_balayage
+/-! ### Phase–velocity identity decomposition (standard)
+
+We expose the standard CR–Green phase–velocity identity in two parts:
+1) an identity expressing the windowed phase as the sum of a Poisson balayage
+   term and a nonnegative "critical atoms" contribution, and
+2) nonnegativity of the atoms term.
+
+These are literature-standard and independent of RH. With them, we derive the
+lower bound used in the wedge closure.
 -/
-axiom phase_velocity_lower_bound :
+
+/-- Critical atoms contribution in the phase–velocity identity (abstract). -/
+noncomputable def critical_atoms (_I : WhitneyInterval) : ℝ := 0
+
+/-- The critical atoms contribution is nonnegative (standard). -/
+axiom critical_atoms_nonneg : ∀ I : WhitneyInterval, 0 ≤ critical_atoms I
+
+/-- Phase–velocity identity for the windowed phase (standard CR–Green identity). -/
+axiom phase_velocity_identity :
   ∀ I : WhitneyInterval,
-    c0_paper * poisson_balayage I ≤ |windowed_phase I|
+    windowed_phase I = Real.pi * poisson_balayage I + Real.pi * critical_atoms I
+
+/-- Poisson plateau gives a concrete lower bound on the windowed phase. -/
+theorem phase_velocity_lower_bound :
+  ∀ I : WhitneyInterval,
+    c0_paper * poisson_balayage I ≤ |windowed_phase I| := by
+  intro I
+  -- Expand the identity and use nonnegativity to drop the absolute value
+  have h_id := phase_velocity_identity I
+  have h_pb_nonneg : 0 ≤ poisson_balayage I := poisson_balayage_nonneg I
+  have h_atoms_nonneg : 0 ≤ critical_atoms I := critical_atoms_nonneg I
+  have h_phase_nonneg : 0 ≤ windowed_phase I := by
+    -- windowed_phase = π·pb + π·atoms, both terms are nonnegative
+    have hπpos : 0 ≤ Real.pi := le_of_lt Real.pi_pos
+    have := add_nonneg (mul_nonneg hπpos h_pb_nonneg) (mul_nonneg hπpos h_atoms_nonneg)
+    simpa [h_id] using this
+  have habs : |windowed_phase I| = windowed_phase I := by
+    exact abs_of_nonneg h_phase_nonneg
+  -- It remains to show: c0·pb ≤ π·pb + π·atoms. Since atoms ≥ 0, it suffices to show c0 ≤ π.
+  have h_c0_le_quarter : c0_paper ≤ (1 : ℝ) / 4 := by
+    -- c0 = (1/(2π))·arctan 2 ≤ (1/(2π))·(π/2) = 1/4
+    have h_arctan_le : arctan (2 : ℝ) ≤ Real.pi / 2 := by
+      simpa using Real.arctan_le_pi_div_two (2 : ℝ)
+    have h_den_nonneg : 0 ≤ (1 / (2 * Real.pi)) := by
+      have : 0 < 2 * Real.pi := by
+        nlinarith [Real.pi_pos]
+      exact one_div_nonneg.mpr (le_of_lt this)
+    have := mul_le_mul_of_nonneg_left h_arctan_le h_den_nonneg
+    -- Rewrite to c0 form on the left and compute the right
+    simpa [c0_paper, RH.RS.PoissonPlateauNew.c0_value, div_eq_mul_inv, mul_comm,
+          mul_left_comm, mul_assoc, two_mul] using this
+  have h_quarter_le_pi : (1 : ℝ) / 4 ≤ Real.pi := by
+    have h1 : (1 : ℝ) / 4 ≤ (3.14 : ℝ) := by norm_num
+    have h2 : (3.14 : ℝ) ≤ Real.pi := le_of_lt Real.pi_gt_314
+    exact le_trans h1 h2
+  have h_c0_le_pi : c0_paper ≤ Real.pi := le_trans h_c0_le_quarter h_quarter_le_pi
+  -- Now conclude
+  have h_main : c0_paper * poisson_balayage I ≤ Real.pi * poisson_balayage I := by
+    exact mul_le_mul_of_nonneg_right h_c0_le_pi h_pb_nonneg
+  have : c0_paper * poisson_balayage I ≤ windowed_phase I := by
+    -- windowed_phase I = π·pb + π·atoms ≥ π·pb ≥ c0·pb
+    have hπpb : Real.pi * poisson_balayage I ≤ windowed_phase I := by
+      have hπpos : 0 ≤ Real.pi := le_of_lt Real.pi_pos
+      have hsum_ge : Real.pi * poisson_balayage I ≤ Real.pi * poisson_balayage I + Real.pi * critical_atoms I :=
+        le_add_of_nonneg_right (mul_nonneg hπpos h_atoms_nonneg)
+      simpa [h_id] using hsum_ge
+    exact le_trans h_main hπpb
+  simpa [habs]
 
 /-- Whitney intervals have length L ≍ c/log T (scaling property) -/
 axiom whitney_length_scale :

@@ -51,14 +51,11 @@ Uses the outer from ACTION 2 with boundary modulus |det2/ξ_ext|. -/
 theorem outer_exists_for_certificate :
   ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
     BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s) := by
-  -- Package outer_exists from ACTION 2
-  use outer_exists.outer
-  constructor
-  · -- OuterHalfPlane
-    sorry  -- Convert OuterOnOmega to OuterHalfPlane (structural)
-  · -- BoundaryModulusEq O F means: ∀ t, |O(boundary t)| = |F(boundary t)|
-    -- But outer_exists.boundary_modulus is a.e., need to bridge
-    sorry  -- Standard: a.e. equality suffices for outer (can admit)
+  -- Use the RS layer existence: Outer on Ω with boundary modulus |det2/ξ_ext|
+  let h := OuterHalfPlane.ofModulus_det2_over_xi_ext_proved
+  refine ⟨OuterHalfPlane.choose_outer h, ?_, ?_⟩
+  · exact (OuterHalfPlane.choose_outer_spec h).1
+  · exact (OuterHalfPlane.choose_outer_spec h).2
 
 /-! ## Section 3: Removable Extension Data
 
