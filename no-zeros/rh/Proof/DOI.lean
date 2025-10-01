@@ -1,10 +1,11 @@
 import Lake
 
+namespace RH
+
 /--
 Metadata for DOI citation of this Lean formalization.
 This record is intended to be mirrored in CITATION.cff and .zenodo.json.
 -/
-namespace RH
 
 structure DOIRecord where
   title : String
