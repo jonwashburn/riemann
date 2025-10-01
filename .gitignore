@@ -1,0 +1,9 @@
+# Ignore Lake build artifacts
+no-zeros/.lake/
+
+# macOS
+.DS_Store
+
+# Editor/IDE
+.vscode/
+.idea/

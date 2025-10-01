@@ -93,7 +93,7 @@ lake env lean --run rh/Proof/AxiomsCheckLite.lean
 
 - Repository: [github.com/jonwashburn/zeros](https://github.com/jonwashburn/zeros)
 - Project site: [recognitionphysics.org](https://recognitionphysics.org)
-- ResearchGate (Jonathan Washburn): [researchgate.net/profile/Jonathan-Washburn](https://www.researchgate.net/profile/Jonathan-Washburn)
+- ResearchGate (Jonathan Washburn): [researchgate.net/profile/Jonathan-Washburn-2](https://www.researchgate.net/profile/Jonathan-Washburn-2)
 
 ## Citation
 
