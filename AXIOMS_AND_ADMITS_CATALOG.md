@@ -12,6 +12,7 @@ Purpose: Enumerate all axioms/admitted results, assess Mathlib coverage, and pro
 - Category: Complex/Harmonic/Number theory/Calculus/Measure/Structural
 - Mathlib: Exists? (Y/N/Partial) – suggested lemma/module
 - Plan: Replace with (proof/citation/keep)
+ - Status: 🟢 Standard (unconditional) | 🟠 Blocker (needs resolution)
 
 ---
 
@@ -59,12 +60,13 @@ Purpose: Enumerate all axioms/admitted results, assess Mathlib coverage, and pro
 - Plan: Keep admitted with citations (Evans; Fefferman–Stein)
  - Status: 🟢 Standard (Green identity + H¹/BMO); literature-backed
 
-7) phase_velocity_lower_bound : c0_paper * poisson_balayage I ≤ |windowed_phase I|
+ 7) phase_velocity_lower_bound : c0_paper * poisson_balayage I ≤ |windowed_phase I|
 - Kind: axiom
 - Category: Phase identity
 - Mathlib: N (problem-specific)
 - Plan: Keep; this is your construction’s interface
  - Status: 🟠 Blocker (internal proof specific to ψ/window; not general Mathlib)
+   - Note: Requires wiring CR–Green identity with ψ and lower bound c₀; tracked as RH-specific task.
 
 8) whitney_length_scale : ∀ I, I.len > 0
 - Kind: axiom
@@ -169,12 +171,13 @@ Purpose: Enumerate all axioms/admitted results, assess Mathlib coverage, and pro
 - Plan: Replace with Rudin theorem + analytic extension glue
  - Status: 🟢 Standard (removable singularities; packaging work remains)
 
-21) OuterHalfPlane from OuterOnOmega witness (structural)
+ 21) OuterHalfPlane from OuterOnOmega witness (structural)
 - Kind: gap (not an `axiom`, but admitted in proof)
 - Category: Structural refinement
 - Mathlib: N/A
 - Plan: Implement structure morphism and a.e. boundary modulus bridge
- - Status: 🟠 Pending (structural glue; does not affect unconditional status)
+ - Status: 🟠 Blocker (structural glue; does not affect unconditional status)
+   - Note: Implement structure morphism and a.e.→aeq boundary modulus bridge.
 
 22) Outer uniqueness up to inner factor for positivity transfer
 - Kind: gap (admitted proof step)
