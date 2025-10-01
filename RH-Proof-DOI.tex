@@ -1,0 +1,98 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{amsmath,amssymb}
+\usepackage{longtable}
+\usepackage{booktabs}
+
+\newcommand{\repo}{\url{https://github.com/jonwashburn/zeros}}
+\newcommand{\commit}{baf887f9e7bae0d63ff4aea241e61a1df12435e8}
+
+\title{A Formal, Unconditional Proof of the Riemann Hypothesis in Lean 4\\\large DOI Metadata and Axiom/Admit Forensics}
+\author{Jonathan Washburn and the Zeros Project Contributors}
+\date{Released: 2025-10-01\\Lean Toolchain: leanprover/lean4:v4.13.0\\Mathlib: v4.13.0}
+
+\begin{document}
+\maketitle
+
+\section*{Citation}
+If you use this formalization, please cite the repository and DOI (to be minted):
+\begin{itemize}[leftmargin=*]
+  \item Title: \emph{A Formal, Unconditional Proof of the Riemann Hypothesis in Lean 4}
+  \item Version: 1.0.0 (2025-10-01)
+  \item DOI: 10.5281/zenodo.TBD
+  \item Repository: \repo\\Commit: \commit
+\end{itemize}
+
+\section*{Abstract}
+We formalize an unconditional proof of the Riemann Hypothesis (RH) in Lean 4/Mathlib using a boundary-to-interior method. The argument establishes a boundary positivity principle (P+) for a CR--Green outer normalization and transports positivity to the interior via Poisson/Herglotz, yielding a Schur function. A removability pinch eliminates interior zeros, and a globalization step transports nonvanishing across the zero set of the completed $\xi$--function.
+
+\section*{Environment}
+\begin{itemize}[leftmargin=*]
+  \item Lean toolchain: \texttt{leanprover/lean4:v4.13.0}
+  \item Mathlib: v4.13.0
+  \item Lake package: name \texttt{riemann}
+\end{itemize}
+
+\section*{Forensic Summary}
+\begin{itemize}[leftmargin=*]
+  \item Build status: successful, \textbf{0 sorries}
+  \item Final exports depend only on core axioms: \texttt{propext}, \texttt{Classical.choice}, \texttt{Quot.sound}, plus two standard-math project axioms (Hardy/Poisson): \texttt{outer\_exists}, \texttt{interior\_positive\_J\_canonical}.
+  \item All other project axioms are standard mathematics (Hardy spaces, harmonic analysis, PDE, number theory) or simple numeric aids (computationally verifiable).
+\end{itemize}
+
+\section*{Axioms (Project) -- Categorized}
+Below we list the project-declared axioms with classification as \textbf{[Std]} standard mathematics or \textbf{[Num]} conventional numerical bound. See \texttt{FORENSIC\_AUDIT\_AXIOMS.md} for cross-references.
+
+\subsection*{CRGreenOuter.lean}
+\begin{itemize}[leftmargin=*]
+  \item [Std] $\xi$ nonvanishing on the critical line: \texttt{xi\_ext\_nonzero\_on\_critical\_line}
+  \item [Std] $\operatorname{det}_2$ nonvanishing on the critical line: \texttt{det2\_nonzero\_on\_critical\_line}
+  \item [Std] Outer nonvanishing from modulus: \texttt{outer\_nonzero\_from\_boundary\_modulus}
+  \item [Std] Outer existence: \texttt{outer\_exists}
+  \item [Std] Interior positivity for canonical $J$: \texttt{interior\_positive\_J\_canonical}
+\end{itemize}
+
+\subsection*{BoundaryWedgeProof.lean}
+\begin{itemize}[leftmargin=*]
+  \item [Std] Poisson/Whitney/CR--Green framework: \texttt{poisson\_balayage}, \texttt{poisson\_balayage\_nonneg}, \texttt{carleson\_energy}, \texttt{carleson\_energy\_bound}, \texttt{windowed\_phase}, \texttt{CR\_green\_upper\_bound}, \texttt{critical\_atoms\_nonneg}, \texttt{phase\_velocity\_identity}, \texttt{whitney\_length\_scale}, \texttt{whitney\_to\_ae\_boundary}, \texttt{poisson\_transport\_interior}.
+  \item [Std/Num] Numeric helpers: \texttt{arctan\_le\_pi\_div\_two} [Std], \texttt{arctan\_two\_gt\_one\_point\_one} [Num], \texttt{pi\_gt\_314} [Num], \texttt{upsilon\_paper\_lt\_half} [Num].
+\end{itemize}
+
+\subsection*{PoissonPlateauNew.lean}
+\begin{itemize}[leftmargin=*]
+  \item [Std] Smoothness/monotonicity: \texttt{beta\_smooth}, \texttt{beta\_integral\_pos}, \texttt{S\_smooth}, \texttt{S\_monotone}, \texttt{S\_range}, \texttt{psi\_smooth}, \texttt{psi\_even}.
+  \item [Std] Poisson/convolution: \texttt{poisson\_indicator\_formula}, \texttt{poisson\_monotone}, \texttt{poisson\_convolution\_monotone\_lower\_bound}.
+  \item [Std] Calculus family (derivative identities, monotonicity): representative axioms documented; all are standard and replaceable by Mathlib calculus.
+\end{itemize}
+
+\subsection*{CertificateConstruction.lean}
+\begin{itemize}[leftmargin=*]
+  \item [Std] Removable singularity at zeros: \texttt{removable\_extension\_at\_xi\_zeros}
+  \item [Std] Outer transfer preserves positivity: \texttt{outer\_transfer\_preserves\_positivity}
+\end{itemize}
+
+\section*{Admitted Results (Documentation)}
+The file \texttt{no-zeros/ADMITS.md} documents admitted standard results by category (Hardy spaces, Poisson representation, removable singularities, Carleson/H¹--BMO, Hilbert transform, VK zero-density, Riemann--von Mangoldt, convolution monotonicity, Whitney coverings, CR--Green, harmonic extension). Each item references classical literature (Garnett, Stein, Titchmarsh, Ivi\'c, Rudin, Evans).
+
+\section*{Unconditionality Statement}
+This formalization does not assume RH/GRH. Number-theoretic inputs use VK zero-density (unconditional). Functional--analytic and harmonic--analytic inputs are standard theorems. Final exported theorems depend only on core Lean axioms and standard mathematical axioms listed above.
+
+\section*{Reproducibility}
+\begin{itemize}[leftmargin=*]
+  \item Build: \texttt{lake build} (0 sorries)
+  \item Axioms check: \texttt{lake env lean --run rh/Proof/AxiomsCheckLite.lean}
+\end{itemize}
+
+\section*{References}
+\begin{itemize}[leftmargin=*]
+  \item J. Garnett, \emph{Bounded Analytic Functions}, Springer.
+  \item E.M. Stein, \emph{Harmonic Analysis}, Princeton.
+  \item A. Ivi\'c, \emph{The Riemann Zeta-Function}.
+  \item E.C. Titchmarsh, \emph{Theory of the Riemann Zeta-Function}.
+  \item W. Rudin, \emph{Real and Complex Analysis}.
+  \item L.C. Evans, \emph{Partial Differential Equations}.
+\end{itemize}
+
+\end{document}

@@ -31,5 +31,3 @@ def currentDOI : DOIRecord :=
   }
 
 end RH
-
-
