@@ -154,13 +154,13 @@ theorem J_CR_boundary_abs_one (O : OuterOnOmega) :
   simp only [J_CR, boundary]
 
   -- Step 2: Use abs properties for division and multiplication
-  rw [Complex.abs_div, Complex.abs_mul]
+  rw [abs_div, Complex.abs_mul]
 
   -- Step 3: Substitute hmod: |O| = |det2/ξ|
   rw [hmod]
 
   -- Step 4: Expand |det2/ξ|
-  rw [Complex.abs_div]
+  rw [abs_div]
 
   -- Goal now: |det2| / (|det2| / |ξ| * |ξ|) = 1
   -- This simplifies to: |det2| / |det2| = 1 by cancellation
