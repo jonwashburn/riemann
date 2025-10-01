@@ -292,12 +292,10 @@ theorem c0_psi_paper_lower_bound :
     exact poisson_indicator_formula b x hb_pos
 
   -- Step 4: Minimize arctan_sum over (b,x) ∈ (0,1] × [-1,1]
-  -- Minimization theorem: proven below around line ~800
+  -- Minimization theorem: proven below around line ~780
   -- The minimum occurs at (b,x)=(1,1) via derivative analysis
   have h_min : arctan_sum b x ≥ arctan 2 := by
-    -- This will be proven later in this file as arctan_sum_ge_arctan_two
-    -- For now, this is YOUR RH-specific minimization result
-    sorry -- TODO: Use arctan_sum_ge_arctan_two once we reach its definition
+    exact arctan_sum_ge_arctan_two b x hb_pos hb_le hx
 
   -- Final calculation
   calc (∫ y, poissonKernel b (x - y) * psi_paper y)
