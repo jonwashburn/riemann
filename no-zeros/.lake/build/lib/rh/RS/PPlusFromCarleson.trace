@@ -16,5 +16,41 @@
    "level": "warning"},
   {"message":
    "././././rh/RS/PPlusFromCarleson.lean:49:24: unused variable `hPlateau`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PPlusFromCarleson.lean:53:13: unused variable `U`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PPlusFromCarleson.lean:53:29: unused variable `W`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PPlusFromCarleson.lean:53:54: unused variable `χ`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PPlusFromCarleson.lean:54:25: unused variable `α'`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PPlusFromCarleson.lean:58:13: unused variable `hPairVol`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PPlusFromCarleson.lean:62:13: unused variable `hEqDecomp`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PPlusFromCarleson.lean:65:13: unused variable `hSideZero`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PPlusFromCarleson.lean:65:37: unused variable `hTopZero`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PPlusFromCarleson.lean:66:13: unused variable `hRintBound`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PPlusFromCarleson.lean:68:13: unused variable `hCψ_nonneg`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PPlusFromCarleson.lean:69:13: unused variable `hEnergy_le`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "level": "warning"},
+  {"message":
+   "././././rh/RS/PPlusFromCarleson.lean:70:15: unused variable `hCar'`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"}],
- "depHash": "1152769434320446697"}
+ "depHash": "10894259389439011257"}

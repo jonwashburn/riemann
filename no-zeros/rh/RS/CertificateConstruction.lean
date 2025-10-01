@@ -89,17 +89,12 @@ theorem interior_positive_with_chosen_outer
   ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
     0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)).re := by
   intro z hz
-  -- Our outer_exists has the same properties as Classical.choose hOuter
-  -- So J_pinch with either outer gives the same positivity
-  have h_pos := interior_positive_off_xi_zeros z hz
-  -- Both J_canonical and J_pinch are det2/(O·ξ_ext), just with possibly different O
-  -- Since both outers have the same boundary modulus, the result is the same
-  -- Standard: Outer function uniqueness up to inner factor (Hardy space theory)
-  -- When two outers have the same boundary modulus, their quotient is an inner function
-  -- (|inner|=1 everywhere). Multiplying by inner preserves Re(F) ≥ 0.
-  -- Reference: Garnett "Bounded Analytic Functions" Ch. II, Theorem 1.1
-  -- This is a standard Hardy space result, provable from inner function properties
-  exact h_pos  -- The positivity is preserved under outer substitution
+  -- Standard: J_pinch positivity from J_canonical positivity
+  -- Both are det2/(O·ξ_ext) with potentially different outers
+  -- When outers have same boundary modulus, quotient is inner (|·|=1)
+  -- Multiplying by inner preserves Re ≥ 0
+  -- Reference: Garnett Ch. II (Hardy space outer uniqueness)
+  sorry
 
 /-! ## Section 5: Build Concrete Certificate
 

@@ -1,6 +1,6 @@
 // Lean compiler output
 // Module: rh.RS.PPlusFromCarleson
-// Imports: Init Mathlib.Data.Complex.Basic Mathlib.MeasureTheory.Measure.Lebesgue.Basic rh.Cert.KxiPPlus rh.RS.BoundaryWedge rh.RS.CRGreenOuter rh.RS.PoissonPlateau rh.RS.PoissonAI
+// Imports: Init Mathlib.Data.Complex.Basic Mathlib.MeasureTheory.Measure.Lebesgue.Basic rh.Cert.KxiPPlus rh.RS.BoundaryWedgeProof rh.RS.CRGreenOuter rh.RS.PoissonPlateau rh.RS.PoissonAI
 #include <lean/lean.h>
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wunused-parameter"
@@ -17,7 +17,7 @@ lean_object* initialize_Init(uint8_t builtin, lean_object*);
 lean_object* initialize_Mathlib_Data_Complex_Basic(uint8_t builtin, lean_object*);
 lean_object* initialize_Mathlib_MeasureTheory_Measure_Lebesgue_Basic(uint8_t builtin, lean_object*);
 lean_object* initialize_rh_Cert_KxiPPlus(uint8_t builtin, lean_object*);
-lean_object* initialize_rh_RS_BoundaryWedge(uint8_t builtin, lean_object*);
+lean_object* initialize_rh_RS_BoundaryWedgeProof(uint8_t builtin, lean_object*);
 lean_object* initialize_rh_RS_CRGreenOuter(uint8_t builtin, lean_object*);
 lean_object* initialize_rh_RS_PoissonPlateau(uint8_t builtin, lean_object*);
 lean_object* initialize_rh_RS_PoissonAI(uint8_t builtin, lean_object*);
@@ -38,7 +38,7 @@ lean_dec_ref(res);
 res = initialize_rh_Cert_KxiPPlus(builtin, lean_io_mk_world());
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
-res = initialize_rh_RS_BoundaryWedge(builtin, lean_io_mk_world());
+res = initialize_rh_RS_BoundaryWedgeProof(builtin, lean_io_mk_world());
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
 res = initialize_rh_RS_CRGreenOuter(builtin, lean_io_mk_world());
