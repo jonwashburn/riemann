@@ -203,19 +203,19 @@ theorem J_CR_boundary_abs_one (O : OuterOnOmega) :
 
 
 /-- OuterData built from the CR–Green outer `J_CR` via `F := 2·J`.
-The positivity Re(2·J) ≥ 0 will be proven from (P+) in a later action. -/
+The positivity Re(2·J) ≥ 0 will be proven from (P+) in Phase 3.
+⚠️ Phase 3 dependency: These sorries depend on the main wedge theorem. -/
 def CRGreenOuterData : OuterData :=
 { F := fun s => (2 : ℂ) * J_canonical s
 , hRe := by
     intro _z _hz
-    -- TODO: Will be proven from (P+) boundary wedge in ACTION 4
-    -- For now we use a temporary sorry
-    sorry
+    -- Phase 3 dependency: Will be proven from (P+) boundary wedge (line 386)
+    sorry  -- TODO Phase 3: Re(2·J) ≥ 0 from main wedge theorem
 , hDen := by
     intro _z _hz
-    -- TODO: Will be proven from (P+) boundary wedge in ACTION 4
-    -- Show 2·J + 1 ≠ 0 when Re(2·J) ≥ 0
-    sorry }
+    -- Phase 3 dependency: Show 2·J + 1 ≠ 0 when Re(2·J) ≥ 0
+    sorry  -- TODO Phase 3: 2·J + 1 ≠ 0 from positivity
+}
 
 
 /-- Export the Schur map `Θ` from the CR–Green outer data. -/
@@ -226,11 +226,11 @@ def Θ_CR : ℂ → ℂ := Θ_of CRGreenOuterData
   (CRGreenOuterData.F s) = (2 : ℂ) * J_canonical s := by
   simp [CRGreenOuterData, J_canonical]
 
--- Note: This lemma will change once (P+) is proven and J is non-trivial
+-- Note: This lemma depends on (P+) being proven (Phase 3)
+-- Once Re(2·J) ≥ 0 is established, this will follow from the Cayley transform definition
 lemma Θ_CR_eq_neg_one (s : ℂ) : Θ_CR s = (-1 : ℂ) := by
-  -- TODO: This will change when (P+) is proven
-  -- For now, temporary sorry
-  sorry
+  -- Phase 3 dependency: Requires (P+) proof to establish Re(2·J) properties
+  sorry  -- TODO Phase 3: Compute from Cayley((2·J-1)/(2·J+1)) once (P+) proven
 
 
 lemma Θ_CR_Schur : IsSchurOn Θ_CR (Ω \ {z | riemannZeta z = 0}) :=
