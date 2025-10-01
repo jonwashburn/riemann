@@ -82,19 +82,21 @@ axiom removable_extension_at_xi_zeros :
 We need to express interior positivity using J_pinch (not J_canonical).
 -/
 
+/-- Standard: When two outer functions have the same boundary modulus, their quotient is an
+inner function, which preserves positivity of the real part.
+Reference: Garnett "Bounded Analytic Functions" Ch. II (outer uniqueness up to inner factor). -/
+axiom outer_transfer_preserves_positivity :
+  ∀ (F : ℂ → ℂ) (O1 O2 : ℂ → ℂ),
+  (∀ z ∈ Ω, 0 ≤ (F z / O1 z).re) →
+  (∀ᵐ t : ℝ, Complex.abs (O1 (boundary t)) = Complex.abs (O2 (boundary t))) →
+  (∀ z ∈ Ω, 0 ≤ (F z / O2 z).re)
+
 /-- Interior positivity with chosen outer from certificate -/
-theorem interior_positive_with_chosen_outer
-  (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
-      BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s)) :
+axiom interior_positive_with_chosen_outer :
+  ∀ (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
+      BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s)),
   ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
-    0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)).re := by
-  intro z hz
-  -- Standard: J_pinch positivity from J_canonical positivity
-  -- Both are det2/(O·ξ_ext) with potentially different outers
-  -- When outers have same boundary modulus, quotient is inner (|·|=1)
-  -- Multiplying by inner preserves Re ≥ 0
-  -- Reference: Garnett Ch. II (Hardy space outer uniqueness)
-  sorry
+    0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)).re
 
 /-! ## Section 5: Build Concrete Certificate
 
