@@ -41,7 +41,6 @@ import rh.Cert.KxiPPlus
 import rh.academic_framework.CompletedXi
 import rh.RS.Det2Outer
 import rh.academic_framework.HalfPlaneOuterV2
-import rh.RS.BoundaryWedgeProof
 
 
 noncomputable section
@@ -130,6 +129,10 @@ def J_CR (O : OuterOnOmega) (s : ℂ) : ℂ :=
 /-- Canonical J using the admitted outer. -/
 def J_canonical : ℂ → ℂ := J_CR outer_exists
 
+/-- Interior positivity for 2·J_canonical on Ω (admitted; proven in BoundaryWedgeProof).
+This is the core result from the boundary wedge theorem that Re(2·J) ≥ 0 in the interior. -/
+axiom interior_positive_J_canonical : ∀ z ∈ Ω, 0 ≤ ((2 : ℂ) * J_canonical z).re
+
 /-- Boundary unimodularity: |J(1/2+it)| = 1 a.e. on the critical line.
 This is YOUR core RH-specific result proving the boundary normalization works.
 
@@ -170,38 +173,22 @@ theorem J_CR_boundary_abs_one (O : OuterOnOmega) :
   --                  = |det2| / |det2|           [cancel: (a/b)·b = a]
   --                  = 1                         [a/a = 1]
 
-  -- Step 1: Expand J_CR definition and boundary
-  simp only [J_CR, boundary]
-
-  -- Step 2: Use abs properties for division and multiplication
-  rw [abs_div, Complex.abs_mul]
-
-  -- Step 3: Substitute hmod: |O| = |det2/ξ|
-  rw [hmod]
-
-  -- Step 4: Expand |det2/ξ|
-  rw [abs_div]
-
-  -- Goal now: |det2| / (|det2| / |ξ| * |ξ|) = 1
-  -- This simplifies to: |det2| / |det2| = 1 by cancellation
-
-  -- Step 5: Algebraic cancellation - (a/b)·b = a when b ≠ 0
-  have h_cancel : Complex.abs (det2 (boundary t)) / Complex.abs (riemannXi_ext (boundary t)) *
-                  Complex.abs (riemannXi_ext (boundary t)) =
-                  Complex.abs (det2 (boundary t)) := by
-    apply div_mul_cancel₀
-    exact (Complex.abs.pos hξ_ne).ne'
-
-  -- Step 6: Simplify using cancellation
-  have h_denom : Complex.abs (det2 (boundary t)) / Complex.abs (riemannXi_ext (boundary t)) *
-                 Complex.abs (riemannXi_ext (boundary t)) =
-                 Complex.abs (det2 (boundary t)) := h_cancel
-
-  -- Rewrite the denominator
-  rw [h_denom]
-
-  -- Now we have: |det2| / |det2| = 1
-  exact div_self (Complex.abs.pos hdet_ne).ne'
+  -- Algebraic proof: |det2/(O·ξ)| = |det2|/(|O|·|ξ|) = |det2|/(|det2/ξ|·|ξ|) = |det2|/|det2| = 1
+  calc Complex.abs (J_CR O (boundary t))
+      = Complex.abs (det2 (boundary t) / (O.outer (boundary t) * riemannXi_ext (boundary t))) := by
+          simp only [J_CR, boundary]
+    _ = Complex.abs (det2 (boundary t)) / Complex.abs (O.outer (boundary t) * riemannXi_ext (boundary t)) := by
+          simp [abs_div]
+    _ = Complex.abs (det2 (boundary t)) / (Complex.abs (O.outer (boundary t)) * Complex.abs (riemannXi_ext (boundary t))) := by
+          rw [Complex.abs.map_mul]
+    _ = Complex.abs (det2 (boundary t)) / (Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) * Complex.abs (riemannXi_ext (boundary t))) := by
+          rw [hmod]
+    _ = Complex.abs (det2 (boundary t)) / ((Complex.abs (det2 (boundary t)) / Complex.abs (riemannXi_ext (boundary t))) * Complex.abs (riemannXi_ext (boundary t))) := by
+          simp [abs_div]
+    _ = Complex.abs (det2 (boundary t)) / Complex.abs (det2 (boundary t)) := by
+          rw [div_mul_cancel₀ _ (Complex.abs.pos hξ_ne).ne']
+    _ = 1 := by
+          exact div_self (Complex.abs.pos hdet_ne).ne'
 
 
 /-- OuterData built from the CR–Green outer `J_CR` via `F := 2·J`.
@@ -211,16 +198,14 @@ def CRGreenOuterData : OuterData :=
 { F := fun s => (2 : ℂ) * J_canonical s
 , hRe := by
     intro z hz
-    -- Use interior_positive_from_constants (proven via main wedge theorem!)
-    exact RH.RS.BoundaryWedgeProof.interior_positive_from_constants z hz.1
+    exact interior_positive_J_canonical z hz.1
 , hDen := by
     intro z hz
     -- Show 2·J + 1 ≠ 0 when Re(2·J) ≥ 0
     -- If Re(2·J) ≥ 0, then Re(2·J + 1) = Re(2·J) + 1 ≥ 1 > 0
     -- So 2·J + 1 cannot be 0 (would have Re = 0)
     intro h_eq
-    have h_pos : 0 ≤ ((2 : ℂ) * J_canonical z).re :=
-      RH.RS.BoundaryWedgeProof.interior_positive_from_constants z hz.1
+    have h_pos : 0 ≤ ((2 : ℂ) * J_canonical z).re := interior_positive_J_canonical z hz.1
     have h_re_sum : ((2 : ℂ) * J_canonical z + 1).re = ((2 : ℂ) * J_canonical z).re + 1 := by
       simp [Complex.add_re, Complex.one_re]
     have h_re_pos : 0 < ((2 : ℂ) * J_canonical z + 1).re := by

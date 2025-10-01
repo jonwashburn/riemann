@@ -2,84 +2,60 @@
  [{"message":
    ".> LEAN_PATH=././.lake/packages/batteries/.lake/build/lib:././.lake/packages/Qq/.lake/build/lib:././.lake/packages/aesop/.lake/build/lib:././.lake/packages/proofwidgets/.lake/build/lib:././.lake/packages/Cli/.lake/build/lib:././.lake/packages/importGraph/.lake/build/lib:././.lake/packages/LeanSearchClient/.lake/build/lib:././.lake/packages/plausible/.lake/build/lib:././.lake/packages/mathlib/.lake/build/lib:././.lake/build/lib DYLD_LIBRARY_PATH= /Users/jonathanwashburn/.elan/toolchains/leanprover--lean4---v4.13.0/bin/lean -Dpp.unicode.fun=true -Dpp.proofs.withType=false -DautoImplicit=false -DrelaxedAutoImplicit=false ././././rh/RS/PoissonPlateauNew.lean -R ./././. -o ././.lake/build/lib/rh/RS/PoissonPlateauNew.olean -i ././.lake/build/lib/rh/RS/PoissonPlateauNew.ilean -c ././.lake/build/ir/rh/RS/PoissonPlateauNew.c --json",
    "level": "trace"},
-  {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:73:18: declaration uses 'sorry'",
+  {"message": "././././rh/RS/PoissonPlateauNew.lean:103:20: unused name: h2",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:82:6: declaration uses 'sorry'",
+   "././././rh/RS/PoissonPlateauNew.lean:223:15: unused variable `hb`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:87:2: declaration uses 'sorry'",
+   "././././rh/RS/PoissonPlateauNew.lean:223:28: unused variable `hx`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:86:6: declaration uses 'sorry'",
-   "level": "warning"},
-  {"message": "././././rh/RS/PoissonPlateauNew.lean:92:20: unused name: h2",
+   "././././rh/RS/PoissonPlateauNew.lean:224:5: unused variable `h_dom`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:90:6: declaration uses 'sorry'",
+   "././././rh/RS/PoissonPlateauNew.lean:225:5: unused variable `h_nonneg`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:97:6: declaration uses 'sorry'",
+   "././././rh/RS/PoissonPlateauNew.lean:270:7: unused variable `h_dom`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:115:6: declaration uses 'sorry'",
+   "././././rh/RS/PoissonPlateauNew.lean:332:2: try 'simp' instead of 'simpa'\nnote: this linter can be disabled with `set_option linter.unnecessarySimpa false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:121:6: declaration uses 'sorry'",
+   "././././rh/RS/PoissonPlateauNew.lean:349:45: unused variable `hb`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:129:6: declaration uses 'sorry'",
+   "././././rh/RS/PoissonPlateauNew.lean:356:46: unused variable `hb`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:139:6: declaration uses 'sorry'",
+   "././././rh/RS/PoissonPlateauNew.lean:397:51: unused variable `hb`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:152:6: declaration uses 'sorry'",
+   "././././rh/RS/PoissonPlateauNew.lean:397:64: unused variable `b_le`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:196:6: declaration uses 'sorry'",
+   "././././rh/RS/PoissonPlateauNew.lean:404:52: unused variable `hb`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:206:8: declaration uses 'sorry'",
+   "././././rh/RS/PoissonPlateauNew.lean:404:65: unused variable `b_le`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:274:6: declaration uses 'sorry'",
+   "././././rh/RS/PoissonPlateauNew.lean:405:3: unused variable `hx_neg`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:283:6: declaration uses 'sorry'",
+   "././././rh/RS/PoissonPlateauNew.lean:405:20: unused variable `hx_bound`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:291:6: declaration uses 'sorry'",
+   "././././rh/RS/PoissonPlateauNew.lean:440:46: unused variable `hb`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:328:6: declaration uses 'sorry'",
+   "././././rh/RS/PoissonPlateauNew.lean:440:59: unused variable `hx`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:360:7: unused variable `h_denom_pos1`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
+   "././././rh/RS/PoissonPlateauNew.lean:447:47: unused variable `hb`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"},
   {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:378:8: declaration uses 'sorry'",
-   "level": "warning"},
-  {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:399:6: declaration uses 'sorry'",
-   "level": "warning"},
-  {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:407:6: declaration uses 'sorry'",
-   "level": "warning"},
-  {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:414:6: declaration uses 'sorry'",
-   "level": "warning"},
-  {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:422:62: unused variable `hx`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
-   "level": "warning"},
-  {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:431:49: unused variable `hb`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
-   "level": "warning"},
-  {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:480:6: declaration uses 'sorry'",
-   "level": "warning"},
-  {"message":
-   "././././rh/RS/PoissonPlateauNew.lean:504:6: declaration uses 'sorry'",
+   "././././rh/RS/PoissonPlateauNew.lean:447:60: unused variable `hx`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`",
    "level": "warning"}],
- "depHash": "3028185918007067694"}
+ "depHash": "2275357224140357393"}

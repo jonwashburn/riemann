@@ -1,6 +1,6 @@
 // Lean compiler output
 // Module: rh.RS.BoundaryAI
-// Imports: Init rh.academic_framework.HalfPlaneOuterV2 rh.RS.BoundaryWedge rh.RS.Cayley rh.RS.Domain
+// Imports: Init rh.academic_framework.HalfPlaneOuterV2 rh.RS.BoundaryWedgeProof rh.RS.Cayley rh.RS.Domain
 #include <lean/lean.h>
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wunused-parameter"
@@ -15,7 +15,7 @@ extern "C" {
 #endif
 lean_object* initialize_Init(uint8_t builtin, lean_object*);
 lean_object* initialize_rh_academic__framework_HalfPlaneOuterV2(uint8_t builtin, lean_object*);
-lean_object* initialize_rh_RS_BoundaryWedge(uint8_t builtin, lean_object*);
+lean_object* initialize_rh_RS_BoundaryWedgeProof(uint8_t builtin, lean_object*);
 lean_object* initialize_rh_RS_Cayley(uint8_t builtin, lean_object*);
 lean_object* initialize_rh_RS_Domain(uint8_t builtin, lean_object*);
 static bool _G_initialized = false;
@@ -29,7 +29,7 @@ lean_dec_ref(res);
 res = initialize_rh_academic__framework_HalfPlaneOuterV2(builtin, lean_io_mk_world());
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
-res = initialize_rh_RS_BoundaryWedge(builtin, lean_io_mk_world());
+res = initialize_rh_RS_BoundaryWedgeProof(builtin, lean_io_mk_world());
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
 res = initialize_rh_RS_Cayley(builtin, lean_io_mk_world());

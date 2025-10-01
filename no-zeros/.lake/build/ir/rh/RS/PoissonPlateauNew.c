@@ -1,6 +1,6 @@
 // Lean compiler output
 // Module: rh.RS.PoissonPlateauNew
-// Imports: Init Mathlib.Data.Real.Basic Mathlib.Analysis.SpecialFunctions.Exp Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan Mathlib.MeasureTheory.Integral.Bochner Mathlib.Tactic
+// Imports: Init Mathlib.Data.Real.Basic Mathlib.Analysis.SpecialFunctions.Exp Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv rh.RS.PoissonPlateauCore Mathlib.Analysis.Calculus.MeanValue Mathlib.MeasureTheory.Integral.Bochner Mathlib.Tactic
 #include <lean/lean.h>
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wunused-parameter"
@@ -17,6 +17,9 @@ lean_object* initialize_Init(uint8_t builtin, lean_object*);
 lean_object* initialize_Mathlib_Data_Real_Basic(uint8_t builtin, lean_object*);
 lean_object* initialize_Mathlib_Analysis_SpecialFunctions_Exp(uint8_t builtin, lean_object*);
 lean_object* initialize_Mathlib_Analysis_SpecialFunctions_Trigonometric_Arctan(uint8_t builtin, lean_object*);
+lean_object* initialize_Mathlib_Analysis_SpecialFunctions_Trigonometric_ArctanDeriv(uint8_t builtin, lean_object*);
+lean_object* initialize_rh_RS_PoissonPlateauCore(uint8_t builtin, lean_object*);
+lean_object* initialize_Mathlib_Analysis_Calculus_MeanValue(uint8_t builtin, lean_object*);
 lean_object* initialize_Mathlib_MeasureTheory_Integral_Bochner(uint8_t builtin, lean_object*);
 lean_object* initialize_Mathlib_Tactic(uint8_t builtin, lean_object*);
 static bool _G_initialized = false;
@@ -34,6 +37,15 @@ res = initialize_Mathlib_Analysis_SpecialFunctions_Exp(builtin, lean_io_mk_world
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
 res = initialize_Mathlib_Analysis_SpecialFunctions_Trigonometric_Arctan(builtin, lean_io_mk_world());
+if (lean_io_result_is_error(res)) return res;
+lean_dec_ref(res);
+res = initialize_Mathlib_Analysis_SpecialFunctions_Trigonometric_ArctanDeriv(builtin, lean_io_mk_world());
+if (lean_io_result_is_error(res)) return res;
+lean_dec_ref(res);
+res = initialize_rh_RS_PoissonPlateauCore(builtin, lean_io_mk_world());
+if (lean_io_result_is_error(res)) return res;
+lean_dec_ref(res);
+res = initialize_Mathlib_Analysis_Calculus_MeanValue(builtin, lean_io_mk_world());
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
 res = initialize_Mathlib_MeasureTheory_Integral_Bochner(builtin, lean_io_mk_world());

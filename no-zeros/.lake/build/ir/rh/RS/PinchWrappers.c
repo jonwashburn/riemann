@@ -1,6 +1,6 @@
 // Lean compiler output
 // Module: rh.RS.PinchWrappers
-// Imports: Init rh.RS.Cayley rh.RS.Det2Outer rh.RS.PinchCertificate rh.RS.PinchIngredients rh.academic_framework.CompletedXi rh.Proof.Main rh.RS.BoundaryWedge
+// Imports: Init rh.RS.Cayley rh.RS.Det2Outer rh.RS.PinchCertificate rh.RS.PinchIngredients rh.academic_framework.CompletedXi rh.Proof.Main rh.RS.BoundaryWedgeProof
 #include <lean/lean.h>
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wunused-parameter"
@@ -432,7 +432,7 @@ lean_object* initialize_rh_RS_PinchCertificate(uint8_t builtin, lean_object*);
 lean_object* initialize_rh_RS_PinchIngredients(uint8_t builtin, lean_object*);
 lean_object* initialize_rh_academic__framework_CompletedXi(uint8_t builtin, lean_object*);
 lean_object* initialize_rh_Proof_Main(uint8_t builtin, lean_object*);
-lean_object* initialize_rh_RS_BoundaryWedge(uint8_t builtin, lean_object*);
+lean_object* initialize_rh_RS_BoundaryWedgeProof(uint8_t builtin, lean_object*);
 static bool _G_initialized = false;
 LEAN_EXPORT lean_object* initialize_rh_RS_PinchWrappers(uint8_t builtin, lean_object* w) {
 lean_object * res;
@@ -459,7 +459,7 @@ lean_dec_ref(res);
 res = initialize_rh_Proof_Main(builtin, lean_io_mk_world());
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
-res = initialize_rh_RS_BoundaryWedge(builtin, lean_io_mk_world());
+res = initialize_rh_RS_BoundaryWedgeProof(builtin, lean_io_mk_world());
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
 l_RH_RS_term_u03a9____x40_rh_RS_PinchWrappers___hyg_8____closed__1 = _init_l_RH_RS_term_u03a9____x40_rh_RS_PinchWrappers___hyg_8____closed__1();

@@ -1,6 +1,6 @@
 // Lean compiler output
 // Module: rh.Proof.Main
-// Imports: Init rh.academic_framework.Certificate rh.RS.SchurGlobalization rh.RS.BoundaryWedge rh.Cert.KxiWhitney Mathlib.Topology.Defs.Filter rh.academic_framework.EulerProductMathlib rh.academic_framework.CompletedXi rh.academic_framework.CompletedXiSymmetry rh.academic_framework.Theta rh.RS.OffZerosBridge rh.RS.Cayley rh.RS.PinchCertificate rh.RS.XiExtBridge rh.RS.SchurGlobalization rh.RS.CRGreenOuter Mathlib.NumberTheory.LSeries.RiemannZeta Mathlib.Tactic Mathlib.Analysis.SpecialFunctions.Gamma.Deligne Mathlib.Topology.Basic rh.RS.PinchIngredients
+// Imports: Init rh.academic_framework.Certificate rh.RS.SchurGlobalization rh.RS.BoundaryWedgeProof rh.Cert.KxiWhitney Mathlib.Topology.Defs.Filter rh.academic_framework.EulerProductMathlib rh.academic_framework.CompletedXi rh.academic_framework.CompletedXiSymmetry rh.academic_framework.Theta rh.RS.OffZerosBridge rh.RS.Cayley rh.RS.PinchCertificate rh.RS.XiExtBridge rh.RS.SchurGlobalization rh.RS.CRGreenOuter Mathlib.NumberTheory.LSeries.RiemannZeta Mathlib.Tactic Mathlib.Analysis.SpecialFunctions.Gamma.Deligne Mathlib.Topology.Basic rh.RS.PinchIngredients
 #include <lean/lean.h>
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wunused-parameter"
@@ -16,7 +16,7 @@ extern "C" {
 lean_object* initialize_Init(uint8_t builtin, lean_object*);
 lean_object* initialize_rh_academic__framework_Certificate(uint8_t builtin, lean_object*);
 lean_object* initialize_rh_RS_SchurGlobalization(uint8_t builtin, lean_object*);
-lean_object* initialize_rh_RS_BoundaryWedge(uint8_t builtin, lean_object*);
+lean_object* initialize_rh_RS_BoundaryWedgeProof(uint8_t builtin, lean_object*);
 lean_object* initialize_rh_Cert_KxiWhitney(uint8_t builtin, lean_object*);
 lean_object* initialize_Mathlib_Topology_Defs_Filter(uint8_t builtin, lean_object*);
 lean_object* initialize_rh_academic__framework_EulerProductMathlib(uint8_t builtin, lean_object*);
@@ -48,7 +48,7 @@ lean_dec_ref(res);
 res = initialize_rh_RS_SchurGlobalization(builtin, lean_io_mk_world());
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
-res = initialize_rh_RS_BoundaryWedge(builtin, lean_io_mk_world());
+res = initialize_rh_RS_BoundaryWedgeProof(builtin, lean_io_mk_world());
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
 res = initialize_rh_Cert_KxiWhitney(builtin, lean_io_mk_world());
