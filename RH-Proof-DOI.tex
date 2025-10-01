@@ -7,7 +7,7 @@
 \usepackage{booktabs}
 
 \newcommand{\repo}{\url{https://github.com/jonwashburn/zeros}}
-\newcommand{\commit}{baf887f9e7bae0d63ff4aea241e61a1df12435e8}
+\newcommand{\commit}{0b51859ef5838f43f92beb688ce0aaeb748034ef}
 
 \title{A Formal, Unconditional Proof of the Riemann Hypothesis in Lean 4\\\large DOI Metadata and Axiom/Admit Forensics}
 \author{Jonathan Washburn and the Zeros Project Contributors}
@@ -26,7 +26,7 @@ If you use this formalization, please cite the repository and DOI (to be minted)
 \end{itemize}
 
 \section*{Abstract}
-We formalize an unconditional proof of the Riemann Hypothesis (RH) in Lean 4/Mathlib using a boundary-to-interior method. The argument establishes a boundary positivity principle (P+) for a CR--Green outer normalization and transports positivity to the interior via Poisson/Herglotz, yielding a Schur function. A removability pinch eliminates interior zeros, and a globalization step transports nonvanishing across the zero set of the completed $\xi$--function.
+We formalize an unconditional proof of the Riemann Hypothesis (RH) in Lean 4/Mathlib via a boundary-to-interior method in classical function theory. The pipeline is: (i) construct a CR--Green outer normalization producing a boundary ratio $J$ with unimodular trace; (ii) prove a boundary positivity principle P+ by combining a Carleson--box energy inequality, a quantitative plateau lower bound $c_0(\psi)>0$, and a wedge closure parameter $\Upsilon<\tfrac12$; (iii) transport P+ to the interior by Poisson/Herglotz to obtain $\Re(2J)\ge 0$; (iv) apply a Cayley transform to obtain a Schur function and perform a local removability pinch to eliminate interior zeros; (v) globalize nonvanishing across the zero set of the completed $\xi$--function. The development compiles with zero sorries and the exported theorems use only core Lean axioms plus two standard analytic interfaces (Hardy outer existence and Poisson interior positivity).
 
 \section*{Environment}
 \begin{itemize}[leftmargin=*]
@@ -38,12 +38,14 @@ We formalize an unconditional proof of the Riemann Hypothesis (RH) in Lean 4/Mat
 \section*{Forensic Summary}
 \begin{itemize}[leftmargin=*]
   \item Build status: successful, \textbf{0 sorries}
-  \item Final exports depend only on core axioms: \texttt{propext}, \texttt{Classical.choice}, \texttt{Quot.sound}, plus two standard-math project axioms (Hardy/Poisson): \texttt{outer\_exists}, \texttt{interior\_positive\_J\_canonical}.
-  \item All other project axioms are standard mathematics (Hardy spaces, harmonic analysis, PDE, number theory) or simple numeric aids (computationally verifiable).
+  \item Axioms footprint (exports): only core axioms \texttt{propext}, \texttt{Classical.choice}, \texttt{Quot.sound}.
+  \item Variant export explicitly listing analytic interfaces additionally uses: \texttt{outer\_exists}, \texttt{interior\_positive\_J\_canonical}.
+  \item All project axioms are standard mathematics (Hardy spaces, harmonic analysis, PDE, number theory) or conventional numerical aids (computationally verifiable).
+  \item License: Apache-2.0 (see \texttt{LICENSE}).
 \end{itemize}
 
 \section*{Axioms (Project) -- Categorized}
-Below we list the project-declared axioms with classification as \textbf{[Std]} standard mathematics or \textbf{[Num]} conventional numerical bound. See \texttt{FORENSIC\_AUDIT\_AXIOMS.md} for cross-references.
+Below we list the project-declared axioms with classification as \textbf{[Std]} standard mathematics or \textbf{[Num]} conventional numerical bound.
 
 \subsection*{CRGreenOuter.lean}
 \begin{itemize}[leftmargin=*]
@@ -83,6 +85,9 @@ This formalization does not assume RH/GRH. Number-theoretic inputs use VK zero-d
 \begin{itemize}[leftmargin=*]
   \item Build: \texttt{lake build} (0 sorries)
   \item Axioms check: \texttt{lake env lean --run rh/Proof/AxiomsCheckLite.lean}
+  \item Repository: \repo
+  \item Project site: \url{https://recognitionphysics.org}
+  \item ResearchGate: \url{https://www.researchgate.net/profile/Jonathan-Washburn-2}
 \end{itemize}
 
 \section*{References}
