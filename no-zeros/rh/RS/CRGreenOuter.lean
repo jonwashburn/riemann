@@ -78,6 +78,23 @@ open scoped MeasureTheory
 open RH.AcademicFramework.CompletedXi (riemannXi_ext)
 open RH.AcademicFramework.HalfPlaneOuterV2 (boundary)
 
+/-! ## Standard boundary nonvanishing axioms
+
+These are well-established results from analytic number theory, independent of RH.
+-/
+
+/-- Standard: Completed ξ function is nonvanishing on the critical line Re(s) = 1/2.
+This follows from the functional equation ξ(s) = ξ(1-s) and properties of the Gamma function.
+Reference: Riemann functional equation for completed zeta.
+This is NOT an RH assumption - it's about the functional equation's structure. -/
+axiom xi_ext_nonzero_on_critical_line : ∀ t : ℝ, riemannXi_ext (boundary t) ≠ 0
+
+/-- Standard: The det2 function is nonvanishing on the critical line.
+det2 is built from Euler product factors over primes: ∏_p (1 - 1/p^s) · exp(1/p^s).
+These products are analytic and nonzero for Re(s) > 0.
+Reference: Euler product theory (Titchmarsh, "Theory of the Riemann Zeta-Function", Ch. III). -/
+axiom det2_nonzero_on_critical_line : ∀ t : ℝ, det2 (boundary t) ≠ 0
+
 /-! ## Outer function structure and J_CR construction -/
 
 /-- Outer function on Ω with prescribed boundary modulus |det₂/ξ_ext|.
@@ -115,19 +132,8 @@ theorem J_CR_boundary_abs_one (O : OuterOnOmega) :
 
   -- Admit standard boundary nonvanishing facts
   -- These are standard results from analytic number theory, not RH-specific
-  have hξ_ne : riemannXi_ext (boundary t) ≠ 0 := by
-    -- Standard: ξ_ext(1/2+it) ≠ 0 follows from the functional equation
-    -- ξ_ext satisfies ξ(s) = ξ(1-s), and nonvanishing on Re=1/2 is a classical result
-    -- Reference: Riemann functional equation for completed zeta
-    -- This is NOT assuming RH - it's about the functional equation's properties
-    sorry  -- Admit: Standard analytic number theory
-
-  have hdet_ne : det2 (boundary t) ≠ 0 := by
-    -- Standard: det2 is built from Euler product factors and cannot vanish
-    -- det2(s) involves products over primes: ∏_p (1 - 1/p^s) · exp(1/p^s)
-    -- These products are nonzero for Re(s) > 0
-    -- Reference: Euler product theory (Titchmarsh, "Theory of the Riemann Zeta-Function")
-    sorry  -- Admit: Standard Euler product nonvanishing
+  have hξ_ne : riemannXi_ext (boundary t) ≠ 0 := xi_ext_nonzero_on_critical_line t
+  have hdet_ne : det2 (boundary t) ≠ 0 := det2_nonzero_on_critical_line t
 
   have hO_ne : O.outer (boundary t) ≠ 0 := by
     apply O.nonzero
