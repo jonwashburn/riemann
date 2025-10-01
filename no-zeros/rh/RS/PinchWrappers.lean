@@ -5,7 +5,7 @@ import rh.RS.PinchIngredients
 import rh.academic_framework.CompletedXi
 import rh.Proof.Main
 -- keep packaging decoupled to avoid cycles; consumers can import XiExtBridge directly if needed
-import rh.RS.BoundaryWedge
+import rh.RS.BoundaryWedgeProof
 
 /-!
 # Pinch wrappers: encode manuscript implications and feed the builder

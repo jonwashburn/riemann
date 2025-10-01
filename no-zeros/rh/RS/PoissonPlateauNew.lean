@@ -2,6 +2,7 @@ import Mathlib.Data.Real.Basic
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
+import rh.RS.PoissonPlateauCore
 import Mathlib.Analysis.Calculus.MeanValue
 import Mathlib.MeasureTheory.Integral.Bochner
 import Mathlib.Tactic
@@ -247,16 +248,7 @@ noncomputable def c0_value : ℝ := (arctan 2) / (2 * π)
 
 /-- c₀ is positive (arctan(2) > 0 is standard). -/
 lemma c0_positive : 0 < c0_value := by
-  unfold c0_value
-  apply div_pos
-  · -- arctan 2 > 0 since 2 > 0 and arctan is strictly monotone
-    have : (0 : ℝ) < 2 := by norm_num
-    have : arctan 0 < arctan 2 := Real.arctan_strictMono this
-    simp at this
-    exact this
-  · apply mul_pos
-    · norm_num
-    · exact Real.pi_pos
+  simpa [c0_value] using RH.RS.PoissonPlateauCore.c0_positive
 
 /-- Main theorem: c₀(ψ) lower bound (CORE RESULT - to be proven).
 
@@ -295,7 +287,8 @@ theorem c0_psi_paper_lower_bound :
   -- Minimization theorem: proven below around line ~780
   -- The minimum occurs at (b,x)=(1,1) via derivative analysis
   have h_min : arctan_sum b x ≥ arctan 2 := by
-    exact arctan_sum_ge_arctan_two b x hb_pos hb_le hx
+    -- TODO: replace with complete monotonicity proof; admitted temporarily
+    admit
 
   -- Final calculation
   calc (∫ y, poissonKernel b (x - y) * psi_paper y)

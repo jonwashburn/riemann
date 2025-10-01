@@ -41,6 +41,7 @@ import rh.Cert.KxiPPlus
 import rh.academic_framework.CompletedXi
 import rh.RS.Det2Outer
 import rh.academic_framework.HalfPlaneOuterV2
+import rh.RS.BoundaryWedgeProof
 
 
 noncomputable section
@@ -95,14 +96,6 @@ These products are analytic and nonzero for Re(s) > 0.
 Reference: Euler product theory (Titchmarsh, "Theory of the Riemann Zeta-Function", Ch. III). -/
 axiom det2_nonzero_on_critical_line : ∀ t : ℝ, det2 (boundary t) ≠ 0
 
-/-- Standard: Outer function nonvanishing at boundary from boundary modulus.
-If |O(boundary t)| = |det2/ξ_ext| a.e. and both det2, ξ_ext are nonzero, then O ≠ 0.
-This uses: a.e. equality + continuity → pointwise nonvanishing.
-Reference: Standard measure theory + Hardy space theory. -/
-axiom outer_nonzero_from_boundary_modulus : ∀ (O : OuterOnOmega) (t : ℝ)
-  (hξ : riemannXi_ext (boundary t) ≠ 0) (hdet : det2 (boundary t) ≠ 0)
-  (h_zero : O.outer (boundary t) = 0), False
-
 /-! ## Outer function structure and J_CR construction -/
 
 /-- Outer function on Ω with prescribed boundary modulus |det₂/ξ_ext|.
@@ -114,6 +107,15 @@ structure OuterOnOmega where
   boundary_modulus : ∀ᵐ t : ℝ,
     Complex.abs (outer (boundary t)) =
     Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t))
+
+/-- Standard: Outer function nonvanishing at boundary from boundary modulus.
+If |O(boundary t)| = |det2/ξ_ext| a.e. and both det2, ξ_ext are nonzero, then O ≠ 0.
+This uses: a.e. equality + continuity → pointwise nonvanishing.
+Reference: Standard measure theory + Hardy space theory. -/
+axiom outer_nonzero_from_boundary_modulus : ∀ (O : OuterOnOmega) (t : ℝ)
+  (hξ : riemannXi_ext (boundary t) ≠ 0) (hdet : det2 (boundary t) ≠ 0)
+  (h_zero : O.outer (boundary t) = 0), False
+-- moved above
 
 /-- Admit outer existence (standard Hardy space outer factorization).
 Reference: Garnett "Bounded Analytic Functions" Ch. II (outer from boundary modulus).

@@ -1,7 +1,7 @@
 import Mathlib.Data.Complex.Basic
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 import rh.Cert.KxiPPlus
-import rh.RS.BoundaryWedge
+import rh.RS.BoundaryWedgeProof
 import rh.RS.CRGreenOuter
 import rh.RS.PoissonPlateau
 import rh.RS.PoissonAI

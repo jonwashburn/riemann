@@ -1,5 +1,6 @@
 import rh.RS.CRGreenOuter
 import rh.RS.PoissonPlateauNew
+import rh.RS.PoissonPlateauCore
 import rh.Cert.KxiPPlus
 import rh.academic_framework.HalfPlaneOuterV2
 import Mathlib.Tactic
@@ -24,6 +25,7 @@ namespace RH.RS.BoundaryWedgeProof
 
 open Real Complex
 open RH.RS.PoissonPlateauNew (c0_value)
+open RH.RS.PoissonPlateauCore (c0_positive)
 open RH.AcademicFramework.HalfPlaneOuterV2 (boundary)
 
 /-! ## Section 1: Boundary Wedge Predicate -/

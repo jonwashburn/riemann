@@ -1,6 +1,6 @@
 import rh.academic_framework.Certificate
 import rh.RS.SchurGlobalization
-import rh.RS.BoundaryWedge
+import rh.RS.BoundaryWedgeProof
 import rh.Cert.KxiWhitney
 import Mathlib.Topology.Defs.Filter
 import rh.academic_framework.EulerProductMathlib
