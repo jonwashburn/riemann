@@ -100,7 +100,7 @@ If |O(boundary t)| = |det2/ξ_ext| a.e. and both det2, ξ_ext are nonzero, then 
 This uses: a.e. equality + continuity → pointwise nonvanishing.
 Reference: Standard measure theory + Hardy space theory. -/
 axiom outer_nonzero_from_boundary_modulus : ∀ (O : OuterOnOmega) (t : ℝ)
-  (hξ : riemannXi_ext (boundary t) ≠ 0) (hdet : det2 (boundary t) ≠ 0) 
+  (hξ : riemannXi_ext (boundary t) ≠ 0) (hdet : det2 (boundary t) ≠ 0)
   (h_zero : O.outer (boundary t) = 0), False
 
 /-! ## Outer function structure and J_CR construction -/
@@ -208,13 +208,24 @@ The positivity Re(2·J) ≥ 0 will be proven from (P+) in Phase 3.
 def CRGreenOuterData : OuterData :=
 { F := fun s => (2 : ℂ) * J_canonical s
 , hRe := by
-    intro _z _hz
-    -- Phase 3 dependency: Will be proven from (P+) boundary wedge (line 386)
-    sorry  -- TODO Phase 3: Re(2·J) ≥ 0 from main wedge theorem
+    intro z hz
+    -- Use interior_positive_from_constants (proven via main wedge theorem!)
+    exact RH.RS.BoundaryWedgeProof.interior_positive_from_constants z hz.1
 , hDen := by
-    intro _z _hz
-    -- Phase 3 dependency: Show 2·J + 1 ≠ 0 when Re(2·J) ≥ 0
-    sorry  -- TODO Phase 3: 2·J + 1 ≠ 0 from positivity
+    intro z hz
+    -- Show 2·J + 1 ≠ 0 when Re(2·J) ≥ 0
+    -- If Re(2·J) ≥ 0, then Re(2·J + 1) = Re(2·J) + 1 ≥ 1 > 0
+    -- So 2·J + 1 cannot be 0 (would have Re = 0)
+    intro h_eq
+    have h_pos : 0 ≤ ((2 : ℂ) * J_canonical z).re :=
+      RH.RS.BoundaryWedgeProof.interior_positive_from_constants z hz.1
+    have h_re_sum : ((2 : ℂ) * J_canonical z + 1).re = ((2 : ℂ) * J_canonical z).re + 1 := by
+      simp [Complex.add_re, Complex.one_re]
+    have h_re_pos : 0 < ((2 : ℂ) * J_canonical z + 1).re := by
+      rw [h_re_sum]; linarith
+    have h_re_zero : ((2 : ℂ) * J_canonical z + 1).re = 0 := by
+      rw [h_eq]; simp [Complex.zero_re]
+    linarith
 }
 
 
