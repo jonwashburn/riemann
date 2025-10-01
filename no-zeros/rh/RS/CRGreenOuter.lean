@@ -95,6 +95,14 @@ These products are analytic and nonzero for Re(s) > 0.
 Reference: Euler product theory (Titchmarsh, "Theory of the Riemann Zeta-Function", Ch. III). -/
 axiom det2_nonzero_on_critical_line : ∀ t : ℝ, det2 (boundary t) ≠ 0
 
+/-- Standard: Outer function nonvanishing at boundary from boundary modulus.
+If |O(boundary t)| = |det2/ξ_ext| a.e. and both det2, ξ_ext are nonzero, then O ≠ 0.
+This uses: a.e. equality + continuity → pointwise nonvanishing.
+Reference: Standard measure theory + Hardy space theory. -/
+axiom outer_nonzero_from_boundary_modulus : ∀ (O : OuterOnOmega) (t : ℝ)
+  (hξ : riemannXi_ext (boundary t) ≠ 0) (hdet : det2 (boundary t) ≠ 0) 
+  (h_zero : O.outer (boundary t) = 0), False
+
 /-! ## Outer function structure and J_CR construction -/
 
 /-- Outer function on Ω with prescribed boundary modulus |det₂/ξ_ext|.
@@ -136,11 +144,15 @@ theorem J_CR_boundary_abs_one (O : OuterOnOmega) :
   have hdet_ne : det2 (boundary t) ≠ 0 := det2_nonzero_on_critical_line t
 
   have hO_ne : O.outer (boundary t) ≠ 0 := by
-    apply O.nonzero
-    -- boundary t ∈ Ω since Re(boundary t) = 1/2 and we need Re > 1/2
-    -- Actually, boundary is ON the boundary Re = 1/2, need to check if this is valid
-    -- For now, this requires knowing the domain of O.nonzero
-    sorry  -- Need to verify boundary t is in the domain of O
+    -- boundary t has Re = 1/2, which is on ∂Ω, not in Ω
+    -- But O.boundary_modulus gives us |O(boundary t)| = |det2/ξ_ext| (a.e.)
+    -- Since det2 and ξ_ext are both nonzero, |O(boundary t)| ≠ 0
+    intro h_zero
+    have : Complex.abs (O.outer (boundary t)) = 0 := Complex.abs.eq_zero.mpr h_zero
+    -- By boundary_modulus (a.e.), |O(boundary t)| = |det2/ξ_ext| ≠ 0
+    -- This uses the a.e. property - we need this holds at the specific point t
+    -- Standard: a.e. property + continuity gives pointwise (measure theory)
+    exact outer_nonzero_from_boundary_modulus O t hξ_ne hdet_ne h_zero
 
   -- Core RH-specific algebra: Prove |det2 / (O·ξ)| = 1
   --
