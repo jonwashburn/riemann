@@ -734,7 +734,7 @@ lemma arctan_sum_antitone_in_b (x : ℝ) (hx : |x| ≤ 1) :
         apply DifferentiableAt.div_const
         exact differentiable_const.differentiableAt
         exact hb_pos.ne'
-      · -- Second term differentiable: arctan((1+x)/b) wrt b  
+      · -- Second term differentiable: arctan((1+x)/b) wrt b
         apply DifferentiableAt.arctan
         apply DifferentiableAt.div_const
         exact differentiable_const.differentiableAt

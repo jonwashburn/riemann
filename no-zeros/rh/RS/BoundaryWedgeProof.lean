@@ -111,9 +111,13 @@ theorem upsilon_less_than_half : Upsilon_paper < 1/2 := by
     · norm_num
     · norm_num
 
-  -- We need: arctan 2 > 1.1 (actually ≈ 1.107)
+  -- We need: arctan 2 > 1.1 (actually arctan(2) ≈ 1.10714871779...)
+  -- This is a numerical fact that can be verified computationally
+  -- Reference: arctan(2) = 1.1071487177940905... (standard numerical tables)
   have h_arctan : (1.1 : ℝ) < arctan 2 := by
-    sorry  -- Standard: arctan(2) ≈ 1.107 (can admit or prove numerically)
+    -- Can be proven using norm_num with sufficient precision, or admitted as numerical fact
+    -- For now, admit as standard numerical computation
+    sorry  -- Numerical: arctan(2) ≈ 1.107 > 1.1 (verifiable via computation)
 
   -- Main arithmetic proof (YOUR RH-specific computation):
   -- We have helpers: h_sqrt : sqrt(...) < 0.45 and h_arctan : 1.1 < arctan 2
@@ -364,11 +368,22 @@ theorem wedge_holds_on_whitney :
       ≤ |windowed_phase I| := phase_velocity_lower_bound I
     _ ≤ C_psi_H1 * sqrt (Kxi_paper * (2 * I.len)) := whitney_phase_upper_bound I
 
-/-- Main theorem: (P+) holds from YOUR constants -/
+/-- Main theorem: (P+) holds from YOUR constants.
+⚠️ CRITICAL - Phase 3, Task 3.2: This is THE main wedge theorem.
+This is novel RH-specific work that assembles:
+  - CR-Green pairing bound
+  - Carleson energy bound  
+  - Poisson transport
+  - Phase velocity identity (c₀ from PoissonPlateauNew)
+Into the final boundary positivity principle (P+).
+
+CANNOT be admitted - must be proven as it's the core of the boundary-to-interior method.
+Estimated effort: 3-5 days (Phase 3).
+Reference: Paper Section on "Whitney wedge closure" - YOUR novel construction. -/
 theorem PPlus_from_constants : PPlus_canonical := by
-  -- The wedge inequality on Whitney intervals implies (P+)
-  -- This uses: Υ < 1/2 (proven above) and standard wedge argument
-  sorry  -- Standard: Whitney wedge → (P+) (harmonic analysis)
+  -- TODO (Phase 3, Task 3.2): Assemble wedge components
+  -- Uses: Υ < 1/2 (proven above), CR-Green + Carleson + Poisson
+  sorry  -- ⚠️ MUST PROVE - Main wedge theorem (Phase 3, ~3-5 days)
 
 /-! ## Section 7: Interior Positivity
 
