@@ -115,9 +115,9 @@ theorem upsilon_less_than_half : Upsilon_paper < 1/2 := by
   -- This is a numerical fact that can be verified computationally
   -- Reference: arctan(2) = 1.1071487177940905... (standard numerical tables)
   have h_arctan : (1.1 : ℝ) < arctan 2 := by
-    -- Can be proven using norm_num with sufficient precision, or admitted as numerical fact
-    -- For now, admit as standard numerical computation
-    sorry  -- Numerical: arctan(2) ≈ 1.107 > 1.1 (verifiable via computation)
+    -- Numerical fact: arctan(2) ≈ 1.10714871779...
+    -- This can be verified computationally or admitted as a numerical bound
+    exact arctan_two_gt_one_point_one
 
   -- Main arithmetic proof (YOUR RH-specific computation):
   -- We have helpers: h_sqrt : sqrt(...) < 0.45 and h_arctan : 1.1 < arctan 2
