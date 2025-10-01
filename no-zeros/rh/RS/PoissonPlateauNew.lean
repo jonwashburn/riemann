@@ -313,16 +313,20 @@ The core calculus proofs showing arctan_sum is minimized at (b,x) = (1,1).
 These are YOUR RH-specific derivative calculations.
 -/
 
-/-- Standard: arctan(0) = 0. -/
-axiom arctan_zero : arctan 0 = 0
+-- Standard: `Real.arctan 0 = 0` is in Mathlib
+@[simp] lemma arctan_zero : arctan 0 = 0 := by
+  simpa using Real.arctan_zero
 
-/-- Standard: arctan is strictly monotone. -/
-axiom arctan_strictMono : StrictMono arctan
+-- Standard: strict monotonicity of arctan is in Mathlib
+lemma arctan_strictMono : StrictMono arctan := by
+  simpa using Real.arctan_strictMono
 
-/-- Derivative of arctan composition (standard chain rule). -/
-axiom deriv_arctan_comp : ∀ (f : ℝ → ℝ) (x : ℝ),
+-- Standard derivative chain rule for arctan composition
+lemma deriv_arctan_comp : ∀ (f : ℝ → ℝ) (x : ℝ),
   DifferentiableAt ℝ f x →
-  deriv (fun x => arctan (f x)) x = (deriv f x) / (1 + (f x)^2)
+  deriv (fun x => arctan (f x)) x = (1 / (1 + (f x)^2)) * deriv f x := by
+  intro f x hf
+  simpa using (Real.deriv_arctan (hc := hf))
 
 /-! ### Step-by-step derivative calculations for ACTION 3.5.2 -/
 
@@ -333,7 +337,21 @@ lemma deriv_arctan_first_term (b x : ℝ) (hb : 0 < b) :
   deriv (fun x => arctan ((1 - x) / b)) x =
   (-1/b) / (1 + ((1 - x) / b)^2) := by
   -- Use chain rule: deriv (arctan ∘ f) = (deriv f) / (1 + f²)
-  rw [deriv_arctan_comp]
+  have hf : DifferentiableAt ℝ (fun x => (1 - x) / b) x := by
+    apply DifferentiableAt.div_const
+    exact (differentiable_const.sub differentiable_id).differentiableAt
+  have := deriv_arctan_comp (fun x => (1 - x) / b) x hf
+  -- result gives (1/(1+f^2))*deriv f; rearrange to target form
+  have htarget :
+      (1 / (1 + ((1 - x) / b) ^ 2)) * deriv (fun x => (1 - x) / b) x
+      = (-1 / b) / (1 + ((1 - x) / b) ^ 2) := by
+    have hdf : deriv (fun x => (1 - x) / b) x = -1 / b := by
+      rw [div_eq_mul_inv, deriv_mul_const_field]
+      have : deriv (fun x => 1 - x) x = -1 := by
+        rw [deriv_sub_const, deriv_id'']
+      simp [this]
+    simpa [hdf, mul_comm] 
+  simpa [htarget]
   · -- Show deriv of (1-x)/b is -1/b
     have : deriv (fun x => (1 - x) / b) x = -1 / b := by
       rw [div_eq_mul_inv, deriv_mul_const_field]
@@ -352,7 +370,17 @@ lemma deriv_arctan_second_term (b x : ℝ) (hb : 0 < b) :
   deriv (fun x => arctan ((1 + x) / b)) x =
   (1/b) / (1 + ((1 + x) / b)^2) := by
   -- Use chain rule: deriv (arctan ∘ f) = (deriv f) / (1 + f²)
-  rw [deriv_arctan_comp]
+  have hf : DifferentiableAt ℝ (fun x => (1 + x) / b) x := by
+    apply DifferentiableAt.div_const
+    exact (differentiable_const.add differentiable_id).differentiableAt
+  have := deriv_arctan_comp (fun x => (1 + x) / b) x hf
+  have hdf : deriv (fun x => (1 + x) / b) x = 1 / b := by
+    rw [div_eq_mul_inv, deriv_mul_const_field]
+    have : deriv (fun x => 1 + x) x = 1 := by
+      rw [deriv_const_add, deriv_id'']
+    simp [this]
+  -- massage to target
+  simpa [hdf, mul_comm] 
   · -- Show deriv of (1+x)/b is 1/b
     have : deriv (fun x => (1 + x) / b) x = 1 / b := by
       rw [div_eq_mul_inv, deriv_mul_const_field]
