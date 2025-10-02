@@ -24,9 +24,10 @@ contribution, though the machinery (CR-Green, Poisson, wedge) is standard.
 namespace RH.RS.BoundaryWedgeProof
 
 open Real Complex
-open RH.RS.PoissonPlateauNew (c0_value)
+open RH.RS.PoissonPlateauNew (c0_value psi_paper)
 open RH.RS.PoissonPlateauCore (c0_positive)
 open RH.AcademicFramework.HalfPlaneOuterV2 (boundary)
+open RH.Cert (WhitneyInterval)
 
 /-- Standard numerical bound: arctan(2) > 1.1 (verifiable computationally). -/
 axiom arctan_two_gt_one_point_one : (1.1 : ℝ) < arctan 2
@@ -133,11 +134,8 @@ lemma upsilon_positive : 0 < Upsilon_paper := by
 These provide the upper bound on the windowed phase integral.
 -/
 
-/-- Whitney interval structure (simplified for our purposes) -/
-structure WhitneyInterval where
-  center : ℝ
-  len : ℝ
-  len_pos : 0 < len
+/-- Whitney interval structure (shared with certificate). -/
+abbrev WhitneyInterval := RH.Cert.WhitneyInterval
 
 /-- Poisson balayage measure on an interval (abstraction) -/
 axiom poisson_balayage : WhitneyInterval → ℝ
@@ -154,17 +152,20 @@ axiom carleson_energy_bound :
   ∀ I : WhitneyInterval,
     carleson_energy I ≤ Kxi_paper * (2 * I.len)
 
-/-- Windowed phase integral (placeholder).
-TODO(Step 4b): Replace with concrete CRGreen pairing:
-  windowed_phase I := ∫_I ψ(t)·(-W'(t)) dt
-where W' is the boundary phase derivative of J and ψ is from PoissonPlateauNew.
-This requires:
-  - Defining U := Re log J_canonical
-  - Computing gradU on Whitney boxes  
-  - Applying pairing_whitney_analytic_bound from CRGreenOuter
-  - Providing the Green identity decomposition
--/
-def windowed_phase : WhitneyInterval → ℝ := fun _ => 0
+/-- The potential field U := Re log J_canonical on the upper half-plane.
+This is the harmonic function whose gradient appears in the CR-Green pairing. -/
+noncomputable def U_field : (ℝ × ℝ) → ℝ := fun p => 
+  let s := (p.1 : ℂ) + Complex.I * (p.2 : ℂ)
+  (Complex.log (J_canonical s)).re
+
+/-- Windowed phase integral using the paper window ψ.
+Represents ∫_I ψ(t)·(-W'(t)) dt where W' is the boundary phase derivative.
+For now, this uses the CRGreen pairing structure as a placeholder until
+the full Green identity is formalized. -/
+noncomputable def windowed_phase : WhitneyInterval → ℝ := fun I =>
+  -- Placeholder: will be replaced with actual boundary integral once
+  -- the CR-Green decomposition is fully wired
+  0
 
 /-- CR-Green upper bound (placeholder). -/
 axiom CR_green_upper_bound :
