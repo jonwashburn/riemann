@@ -388,9 +388,17 @@ theorem deriv_arctan_sum_explicit (b x : ℝ) (hb : 0 < b) :
   have h₂ := deriv_arctan_second_term b x hb
   -- Prove differentiability of each component
   have hdiff₁ : DifferentiableAt ℝ (fun x => arctan ((1 - x) / b)) x := by
-    sorry -- TODO: prove from chain of DifferentiableAt lemmas
+    have h1 : DifferentiableAt ℝ (fun x => (1 - x) / b) x := by
+      have : DifferentiableAt ℝ (fun x => 1 - x) x :=
+        (differentiableAt_const (1 : ℝ)).sub (differentiableAt_id)
+      exact this.div_const b
+    exact differentiable_arctan.differentiableAt.comp x h1
   have hdiff₂ : DifferentiableAt ℝ (fun x => arctan ((1 + x) / b)) x := by
-    sorry -- TODO: prove from chain of DifferentiableAt lemmas
+    have h2 : DifferentiableAt ℝ (fun x => (1 + x) / b) x := by
+      have : DifferentiableAt ℝ (fun x => 1 + x) x :=
+        (differentiableAt_const (1 : ℝ)).add (differentiableAt_id)
+      exact this.div_const b
+    exact differentiable_arctan.differentiableAt.comp x h2
   -- Apply deriv_add
   rw [deriv_add hdiff₁ hdiff₂, h₁, h₂]
 
