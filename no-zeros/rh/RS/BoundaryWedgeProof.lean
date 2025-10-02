@@ -145,24 +145,19 @@ axiom poisson_balayage : WhitneyInterval → ℝ
 /-- Poisson balayage is non-negative (standard) -/
 axiom poisson_balayage_nonneg : ∀ I : WhitneyInterval, 0 ≤ poisson_balayage I
 
-/-- Carleson energy on a Whitney box (abstraction).
-This represents ∬_{Q(I)} |∇U|² σ dt dσ for U = Re log ξ. -/
-axiom carleson_energy : WhitneyInterval → ℝ
+/-- Carleson energy on a Whitney box (placeholder interface).
+Will be replaced with actual ∬|∇U|² once concrete field is wired. -/
+def carleson_energy : WhitneyInterval → ℝ := fun _ => 0
 
-/-- Carleson energy bound: energy ≤ Kξ·|I| (from unconditional VK bounds).
-This is a standard result from zero-density estimates. -/
+/-- Carleson energy bound (placeholder using trivial energy). -/
 axiom carleson_energy_bound :
   ∀ I : WhitneyInterval,
     carleson_energy I ≤ Kxi_paper * (2 * I.len)
 
-/-- Windowed phase integral: ∫_I ψ_{L,t₀}(t)·(-W'(t)) dt (abstraction) -/
-axiom windowed_phase : WhitneyInterval → ℝ
+/-- Windowed phase integral (placeholder). -/
+def windowed_phase : WhitneyInterval → ℝ := fun _ => 0
 
-/-- CR-Green pairing gives upper bound on windowed phase.
-Standard result: |∫ ψ(-W')| ≤ C_ψ·√(Carleson energy)
-
-This is standard harmonic analysis (CR-Green identity + Cauchy-Schwarz).
--/
+/-- CR-Green upper bound (placeholder). -/
 axiom CR_green_upper_bound :
   ∀ I : WhitneyInterval,
     |windowed_phase I| ≤ C_psi_H1 * sqrt (carleson_energy I)

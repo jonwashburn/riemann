@@ -129,27 +129,27 @@ Admits only boundary nonvanishing (standard). -/
 theorem J_CR_boundary_abs_one (O : OuterOnOmega) :
   ∀ᵐ t : ℝ, Complex.abs (J_CR O (boundary t)) = 1 := by
   filter_upwards [O.boundary_modulus] with t hmod_impl
-  
+
   have hdet_ne : det2 (boundary t) ≠ 0 := det2_nonzero_on_critical_line t
-  
+
   by_cases hx_ne : riemannXi_ext (boundary t) ≠ 0
   · -- Case: ξ_ext(boundary t) ≠ 0
     have hmod : Complex.abs (O.outer (boundary t)) =
                 Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) :=
       hmod_impl hx_ne
-    
+
     set d := Complex.abs (det2 (boundary t)) with hd_def
-    set o := Complex.abs (O.outer (boundary t)) with ho_def  
+    set o := Complex.abs (O.outer (boundary t)) with ho_def
     set x := Complex.abs (riemannXi_ext (boundary t)) with hx_def
-    
+
     have hx_pos : 0 < x := Complex.abs.pos hx_ne
     have hd_pos : 0 < d := Complex.abs.pos hdet_ne
-    
+
     have ho_eq : o = d / x := by
-      calc o 
+      calc o
           = Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) := hmod
         _ = d / x := by simp [abs_div, hd_def, hx_def]
-    
+
     calc Complex.abs (J_CR O (boundary t))
         = Complex.abs (det2 (boundary t) / (O.outer (boundary t) * riemannXi_ext (boundary t))) := by
             simp only [J_CR]
@@ -161,7 +161,7 @@ theorem J_CR_boundary_abs_one (O : OuterOnOmega) :
             field_simp [ne_of_gt hx_pos]
       _ = 1 := by
             exact div_self (ne_of_gt hd_pos)
-  
+
   · -- Case: ξ_ext(boundary t) = 0 (measure-zero)
     push_neg at hx_ne
     have hxi_zero : riemannXi_ext (boundary t) = 0 := hx_ne
