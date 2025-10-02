@@ -32,7 +32,9 @@ open RH.Cert (WhitneyInterval)
 /-- Standard numerical bound: arctan(2) > 1.1 (verifiable computationally). -/
 axiom arctan_two_gt_one_point_one : (1.1 : ℝ) < arctan 2
 
-/-- Standard: arctan is bounded by π/2. -/
+/-- Standard: arctan is bounded by π/2. 
+BLOCKER: Need to find the exact mathlib lemma name (Real.arctan_le_pi_div_two doesn't exist).
+-/
 axiom arctan_le_pi_div_two : ∀ x : ℝ, arctan x ≤ Real.pi / 2
 
 /-- Standard numerical bound: π > 3.14 (verifiable). -/
