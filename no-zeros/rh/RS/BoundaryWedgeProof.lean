@@ -4,6 +4,7 @@ import rh.RS.PoissonPlateauCore
 import rh.Cert.KxiPPlus
 import rh.academic_framework.HalfPlaneOuterV2
 import Mathlib.Tactic
+import Mathlib.Data.Real.Pi.Bounds
 
 /-!
 # Boundary Wedge (P+) Proof from Constants
@@ -37,10 +38,8 @@ theorem arctan_le_pi_div_two : ∀ x : ℝ, arctan x ≤ Real.pi / 2 := by
   intro x
   exact le_of_lt (Real.arctan_lt_pi_div_two x)
 
-/-- Standard numerical bound: π > 3.14 (verifiable).
-BLOCKER: norm_num can't evaluate Real.pi symbolically.
--/
-axiom pi_gt_314 : (3.14 : ℝ) < Real.pi
+/-- Standard numerical bound: π > 3.14. -/
+theorem pi_gt_314 : (3.14 : ℝ) < Real.pi := Real.pi_gt_d2
 
 /-! ## Section 1: Boundary Wedge Predicate -/
 
