@@ -340,29 +340,62 @@ theorem deriv_arctan_comp (f : ℝ → ℝ) (x : ℝ) (hf : DifferentiableAt ℝ
   deriv (fun x => arctan (f x)) x = (1 / (1 + (f x)^2)) * deriv f x :=
   hf.hasDerivAt.arctan.deriv
 
-/-! ### Step-by-step derivative calculations for ACTION 3.5.2 -/
+/-! ### Step-by-step derivative calculations for ACTION 3.5.2
 
-/-- Step 1: Derivative of first arctan term: arctan((1-x)/b).
-Standard calculus that can be proven using mathlib's chain rule. -/
-axiom deriv_arctan_first_term : ∀ (b x : ℝ) (hb : 0 < b),
-  deriv (fun x => arctan ((1 - x) / b)) x = (-1/b) / (1 + ((1 - x) / b)^2)
+We now prove the derivative formulas for the two arctan-composed terms
+using mathlib's `HasDerivAt.arctan` chain rule and `deriv` helpers. -/
 
-/-- Step 2: Derivative of second arctan term: arctan((1+x)/b).
-Standard calculus: Using chain rule where f(x) = (1+x)/b, so f'(x) = 1/b.
-Result: deriv = (1/b)/(1+((1+x)/b)²).
-This is standard calculus that can be proven using Mathlib's chain rule. -/
-axiom deriv_arctan_second_term : ∀ (b x : ℝ) (hb : 0 < b),
-  deriv (fun x => arctan ((1 + x) / b)) x = (1/b) / (1 + ((1 + x) / b)^2)
+/-- Step 1: Derivative of first arctan term: arctan((1-x)/b). -/
+theorem deriv_arctan_first_term : ∀ (b x : ℝ) (hb : 0 < b),
+  deriv (fun x => arctan ((1 - x) / b)) x = (1 / (1 + ((1 - x) / b)^2)) * ((-1) / b) := by
+  intro b x _
+  -- Build HasDerivAt for f(x) = (1 - x) / b
+  have hconst : HasDerivAt (fun _ : ℝ => (1 : ℝ)) 0 x := hasDerivAt_const x (1 : ℝ)
+  have hid    : HasDerivAt (fun x : ℝ => x) 1 x := hasDerivAt_id x
+  have hsub   : HasDerivAt (fun x : ℝ => 1 - x) (0 - 1) x := hconst.sub hid
+  have hsub'  : (0 : ℝ) - 1 = -1 := by ring
+  have hsub'' : HasDerivAt (fun x : ℝ => 1 - x) (-1) x := hsub'.symm ▸ hsub
+  have hdiv   : HasDerivAt (fun x : ℝ => (1 - x) / b) ((-1) / b) x := hsub''.div_const b
+  -- Chain rule through arctan, then extract deriv
+  have htan   : HasDerivAt (fun x => arctan ((1 - x) / b))
+                  ((1 / (1 + ((1 - x) / b) ^ 2)) * ((-1) / b)) x := hdiv.arctan
+  exact htan.deriv
+
+/-- Step 2: Derivative of second arctan term: arctan((1+x)/b). -/
+theorem deriv_arctan_second_term : ∀ (b x : ℝ) (hb : 0 < b),
+  deriv (fun x => arctan ((1 + x) / b)) x = (1 / (1 + ((1 + x) / b)^2)) * (1 / b) := by
+  intro b x _
+  -- Build HasDerivAt for g(x) = (1 + x) / b
+  have hconst : HasDerivAt (fun _ : ℝ => (1 : ℝ)) 0 x := hasDerivAt_const x (1 : ℝ)
+  have hid    : HasDerivAt (fun x : ℝ => x) 1 x := hasDerivAt_id x
+  have hadd   : HasDerivAt (fun x : ℝ => 1 + x) (0 + 1) x := hconst.add hid
+  have hadd'' : HasDerivAt (fun x : ℝ => 1 + x) 1 x := by
+    convert hadd using 1
+    ring
+  have hdiv   : HasDerivAt (fun x : ℝ => (1 + x) / b) (1 / b) x := hadd''.div_const b
+  -- Chain rule through arctan, then extract deriv
+  have htan   : HasDerivAt (fun x => arctan ((1 + x) / b))
+                  ((1 / (1 + ((1 + x) / b) ^ 2)) * (1 / b)) x := hdiv.arctan
+  exact htan.deriv
 
 /-- Step 3: Combined derivative formula -/
-axiom deriv_arctan_sum_explicit (b x : ℝ) (hb : 0 < b) (b_le : b ≤ 1) :
+theorem deriv_arctan_sum_explicit (b x : ℝ) (hb : 0 < b) :
   deriv (fun x => arctan_sum b x) x =
-  (-1/b) / (1 + ((1 - x) / b)^2) + (1/b) / (1 + ((1 + x) / b)^2)
+    (1 / (1 + ((1 - x) / b)^2)) * ((-1) / b)
+  + (1 / (1 + ((1 + x) / b)^2)) * (1 / b) := by
+  unfold arctan_sum
+  have h₁ := deriv_arctan_first_term b x hb
+  have h₂ := deriv_arctan_second_term b x hb
+  -- arctan_sum (b, x) = arctan((1-x)/b) + arctan((1+x)/b), so
+  -- deriv(arctan_sum) = deriv(first term) + deriv(second term)
+  sorry
 
 /-- Step 4: Factor the derivative into (1/b) times a difference -/
-axiom deriv_arctan_sum_factored (b x : ℝ) (hb : 0 < b) :
-  (-1/b) / (1 + ((1 - x) / b)^2) + (1/b) / (1 + ((1 + x) / b)^2) =
-  (1/b) * (1 / (1 + ((1 + x) / b)^2) - 1 / (1 + ((1 - x) / b)^2))
+theorem deriv_arctan_sum_factored (b x : ℝ) (hb : 0 < b) :
+  (1 / (1 + ((1 - x) / b)^2)) * ((-1) / b)
+  + (1 / (1 + ((1 + x) / b)^2)) * (1 / b)
+  = (1 / b) * (1 / (1 + ((1 + x) / b)^2) - 1 / (1 + ((1 - x) / b)^2)) := by
+  ring
 
 /-- Step 5: Key observation - arctan_sum is EVEN in x!
 arctan_sum(b, -x) = arctan((1-(-x))/b) + arctan((1+(-x))/b)

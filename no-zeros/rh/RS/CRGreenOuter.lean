@@ -105,13 +105,45 @@ structure OuterOnOmega where
 -- Removed outer_nonzero_from_boundary_modulus axiom (depended on pointwise nonvanishing)
 
 /-- Outer existence from the Det2Outer construction.
-Reference: Implemented in rh/RS/Det2Outer.lean via OuterHalfPlane witness.
+Reference: Implemented in `rh/RS/Det2Outer.lean` via `OuterHalfPlane` witness.
 
-BLOCKER: Det2Outer.BoundaryModulusEq has type (∀ t, |O| = |F|) but
-OuterOnOmega.boundary_modulus needs (∀ᵐ t, ξ ≠ 0 → |O| = |det2/ξ|).
-Need to prove the implication or refactor one of the structures.
+We bridge the pointwise boundary modulus equality used in `Det2Outer`
+to the `∀ᵐ t, ξ ≠ 0 → ...` form required here by upgrading `∀` to `∀ᵐ`
+and weakening the goal with the implication.
 -/
-axiom outer_exists : OuterOnOmega
+def outer_exists : OuterOnOmega := by
+  classical
+  -- Obtain the existence witness and its properties
+  let h := RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext_proved
+  let O : ℂ → ℂ := RH.RS.OuterHalfPlane.choose_outer h
+  let spec := RH.RS.OuterHalfPlane.choose_outer_spec h
+  -- spec.1 : OuterHalfPlane O
+  -- spec.2 : BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s)
+  -- Bridge the boundary parameterization (both definitions are definitionally equal)
+  have h_pointwise : ∀ t : ℝ,
+      Complex.abs (O (boundary t)) =
+      Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) := by
+    intro t
+    -- Both modules use the same boundary parameterization `(1/2) + i t`
+    -- so we can reuse the pointwise equality directly.
+    simpa using (spec.2 t)
+
+  -- Strengthen to an a.e. statement and add the guard (ξ ≠ 0 → ...)
+  have h_ae' : ∀ᵐ t : ℝ,
+      Complex.abs (O (boundary t)) =
+      Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) :=
+    Filter.Eventually.of_forall h_pointwise
+
+  refine {
+    outer := O
+  , analytic := spec.1.analytic
+  , nonzero := fun z hz => spec.1.nonzero hz
+  , boundary_modulus :=
+      h_ae'.mono (by
+        intro t ht hxi
+        -- The equality does not use the guard; weaken by implication
+        exact ht)
+  }
 
 /-- CR-Green outer J (outer-normalized ratio): J := det₂ / (O · ξ_ext).
 This is the paper's construction from Section "Standing setup". -/
