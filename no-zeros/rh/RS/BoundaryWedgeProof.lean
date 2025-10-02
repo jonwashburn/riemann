@@ -37,7 +37,9 @@ BLOCKER: Need to find the exact mathlib lemma name (Real.arctan_le_pi_div_two do
 -/
 axiom arctan_le_pi_div_two : ∀ x : ℝ, arctan x ≤ Real.pi / 2
 
-/-- Standard numerical bound: π > 3.14 (verifiable). -/
+/-- Standard numerical bound: π > 3.14 (verifiable). 
+BLOCKER: norm_num can't evaluate Real.pi symbolically.
+-/
 axiom pi_gt_314 : (3.14 : ℝ) < Real.pi
 
 /-! ## Section 1: Boundary Wedge Predicate -/
