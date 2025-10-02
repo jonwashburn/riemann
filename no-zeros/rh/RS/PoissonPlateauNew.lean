@@ -335,9 +335,10 @@ These are YOUR RH-specific derivative calculations.
 lemma arctan_strictMono : StrictMono arctan := by
   simpa using Real.arctan_strictMono
 
--- Standard derivative chain rule for arctan composition
-axiom deriv_arctan_comp (f : ℝ → ℝ) (x : ℝ) (hf : DifferentiableAt ℝ f x) :
-  deriv (fun x => arctan (f x)) x = (1 / (1 + (f x)^2)) * deriv f x
+-- Standard derivative chain rule for arctan composition (from mathlib)
+theorem deriv_arctan_comp (f : ℝ → ℝ) (x : ℝ) (hf : DifferentiableAt ℝ f x) :
+  deriv (fun x => arctan (f x)) x = (1 / (1 + (f x)^2)) * deriv f x :=
+  hf.hasDerivAt.arctan.deriv
 
 /-! ### Step-by-step derivative calculations for ACTION 3.5.2 -/
 
