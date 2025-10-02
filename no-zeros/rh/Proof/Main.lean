@@ -639,13 +639,26 @@ theorem RH_from_assign
   refine RH.Proof.Final.RiemannHypothesis_mathlib_from_pinch_ext_assign
     (Θ := RH.RS.Θ_of RH.RS.CRGreenOuterData)
     (by
-      intro z _
-      have hconst : RH.RS.Θ_of RH.RS.CRGreenOuterData z = (-1 : ℂ) := by
-        simpa [RH.RS.Θ_CR] using (RH.RS.Θ_CR_eq_neg_one z)
-      have habs : Complex.abs (RH.RS.Θ_of RH.RS.CRGreenOuterData z) ≤ 1 := by
-        have : Complex.abs (-1 : ℂ) ≤ 1 := by norm_num
-        simpa [hconst] using this
-      exact habs)
+      intro z hz
+      have hSchur : RH.RS.IsSchurOn (RH.RS.Θ_of RH.RS.CRGreenOuterData)
+                      (RH.RS.Ω \ {w | riemannZeta w = 0}) :=
+        RH.RS.Θ_Schur_of RH.RS.CRGreenOuterData
+      have hzΩ : z ∈ RH.RS.Ω := hz.1
+      have hzXi_ne : riemannXi_ext z ≠ 0 := by
+        simpa [Set.mem_setOf_eq] using hz.2
+      have hzZeta_ne : riemannZeta z ≠ 0 := by
+        intro hζ
+        have hXi : riemannXi_ext z = 0 :=
+          (RH.AcademicFramework.CompletedXi.xi_ext_zeros_eq_zeta_zeros_on_Ω z hzΩ).mpr hζ
+        exact hzXi_ne hXi
+      have hzMem : z ∈ RH.RS.Ω \ {w | riemannZeta w = 0} := by
+        refine ⟨hzΩ, ?_⟩
+        intro hzSet
+        have hζ : riemannZeta z = 0 := by
+          simpa [Set.mem_setOf_eq] using hzSet
+        exact hzZeta_ne hζ
+      exact hSchur z hzMem
+      )
     assign
 
 /-- Final theorem using a concrete pinch certificate: build the Ξ-assign from
