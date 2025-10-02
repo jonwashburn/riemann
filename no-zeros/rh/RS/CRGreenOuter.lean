@@ -104,9 +104,13 @@ structure OuterOnOmega where
 
 -- Removed outer_nonzero_from_boundary_modulus axiom (depended on pointwise nonvanishing)
 
-/-- Admit outer existence (standard Hardy space outer factorization).
-Reference: Garnett "Bounded Analytic Functions" Ch. II (outer from boundary modulus).
-This is standard complex analysis, not RH-specific. -/
+/-- Outer existence from the Det2Outer construction.
+Reference: Implemented in rh/RS/Det2Outer.lean via OuterHalfPlane witness.
+
+BLOCKER: Det2Outer.BoundaryModulusEq has type (∀ t, |O| = |F|) but
+OuterOnOmega.boundary_modulus needs (∀ᵐ t, ξ ≠ 0 → |O| = |det2/ξ|).
+Need to prove the implication or refactor one of the structures.
+-/
 axiom outer_exists : OuterOnOmega
 
 /-- CR-Green outer J (outer-normalized ratio): J := det₂ / (O · ξ_ext).
