@@ -343,10 +343,7 @@ theorem deriv_arctan_comp (f : ℝ → ℝ) (x : ℝ) (hf : DifferentiableAt ℝ
 /-! ### Step-by-step derivative calculations for ACTION 3.5.2 -/
 
 /-- Step 1: Derivative of first arctan term: arctan((1-x)/b).
-Standard calculus: Using chain rule d/dx arctan(f(x)) = f'(x)/(1+f(x)²)
-where f(x) = (1-x)/b, so f'(x) = -1/b.
-Result: deriv = (-1/b)/(1+((1-x)/b)²).
-This is standard calculus that can be proven using Mathlib's chain rule. -/
+Standard calculus that can be proven using mathlib's chain rule. -/
 axiom deriv_arctan_first_term : ∀ (b x : ℝ) (hb : 0 < b),
   deriv (fun x => arctan ((1 - x) / b)) x = (-1/b) / (1 + ((1 - x) / b)^2)
 
