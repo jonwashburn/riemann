@@ -386,9 +386,13 @@ theorem deriv_arctan_sum_explicit (b x : ℝ) (hb : 0 < b) :
   unfold arctan_sum
   have h₁ := deriv_arctan_first_term b x hb
   have h₂ := deriv_arctan_second_term b x hb
-  -- arctan_sum (b, x) = arctan((1-x)/b) + arctan((1+x)/b), so
-  -- deriv(arctan_sum) = deriv(first term) + deriv(second term)
-  sorry
+  -- Prove differentiability of each component
+  have hdiff₁ : DifferentiableAt ℝ (fun x => arctan ((1 - x) / b)) x := by
+    sorry -- TODO: prove from chain of DifferentiableAt lemmas
+  have hdiff₂ : DifferentiableAt ℝ (fun x => arctan ((1 + x) / b)) x := by
+    sorry -- TODO: prove from chain of DifferentiableAt lemmas
+  -- Apply deriv_add
+  rw [deriv_add hdiff₁ hdiff₂, h₁, h₂]
 
 /-- Step 4: Factor the derivative into (1/b) times a difference -/
 theorem deriv_arctan_sum_factored (b x : ℝ) (hb : 0 < b) :
