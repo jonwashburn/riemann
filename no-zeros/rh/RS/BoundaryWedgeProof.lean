@@ -154,7 +154,16 @@ axiom carleson_energy_bound :
   ∀ I : WhitneyInterval,
     carleson_energy I ≤ Kxi_paper * (2 * I.len)
 
-/-- Windowed phase integral (placeholder). -/
+/-- Windowed phase integral (placeholder).
+TODO(Step 4b): Replace with concrete CRGreen pairing:
+  windowed_phase I := ∫_I ψ(t)·(-W'(t)) dt
+where W' is the boundary phase derivative of J and ψ is from PoissonPlateauNew.
+This requires:
+  - Defining U := Re log J_canonical
+  - Computing gradU on Whitney boxes  
+  - Applying pairing_whitney_analytic_bound from CRGreenOuter
+  - Providing the Green identity decomposition
+-/
 def windowed_phase : WhitneyInterval → ℝ := fun _ => 0
 
 /-- CR-Green upper bound (placeholder). -/
