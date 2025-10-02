@@ -32,12 +32,12 @@ open RH.Cert (WhitneyInterval)
 /-- Standard numerical bound: arctan(2) > 1.1 (verifiable computationally). -/
 axiom arctan_two_gt_one_point_one : (1.1 : ℝ) < arctan 2
 
-/-- Standard: arctan is bounded by π/2. 
-BLOCKER: Need to find the exact mathlib lemma name (Real.arctan_le_pi_div_two doesn't exist).
--/
-axiom arctan_le_pi_div_two : ∀ x : ℝ, arctan x ≤ Real.pi / 2
+/-- Standard: arctan is bounded by π/2. -/
+theorem arctan_le_pi_div_two : ∀ x : ℝ, arctan x ≤ Real.pi / 2 := by
+  intro x
+  exact le_of_lt (Real.arctan_lt_pi_div_two x)
 
-/-- Standard numerical bound: π > 3.14 (verifiable). 
+/-- Standard numerical bound: π > 3.14 (verifiable).
 BLOCKER: norm_num can't evaluate Real.pi symbolically.
 -/
 axiom pi_gt_314 : (3.14 : ℝ) < Real.pi
@@ -158,7 +158,7 @@ axiom carleson_energy_bound :
 
 /-- The potential field U := Re log J_canonical on the upper half-plane.
 This is the harmonic function whose gradient appears in the CR-Green pairing. -/
-noncomputable def U_field : (ℝ × ℝ) → ℝ := fun p => 
+noncomputable def U_field : (ℝ × ℝ) → ℝ := fun p =>
   let s := (p.1 : ℂ) + Complex.I * (p.2 : ℂ)
   (Complex.log (J_canonical s)).re
 
