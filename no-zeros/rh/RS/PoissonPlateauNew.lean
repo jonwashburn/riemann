@@ -646,24 +646,111 @@ theorem arctan_sum_b_deriv_terms_nonneg (b x : ℝ) (_hb : 0 < b) (hx : |x| ≤ 
   have t2 : 0 ≤ (1 + x) / (1 + ((1 + x) / b)^2) := div_nonneg h1xp (le_of_lt hden2)
   exact add_nonneg t1 t2
 
-/-- Main theorem: ∂ᵦ(arctan_sum) ≤ 0 (YOUR RH-specific calculus proof). -/
-axiom arctan_sum_deriv_b_nonpos (x : ℝ) (hx : |x| ≤ 1) :
+/-- Main theorem: ∂ᵦ(arctan_sum) ≤ 0 via factorization and nonnegativity. -/
+theorem arctan_sum_deriv_b_nonpos (x : ℝ) (hx : |x| ≤ 1) :
   ∀ b ∈ Set.Ioc 0 1,
-    deriv (fun b => arctan_sum b x) b ≤ 0
+    deriv (fun b => arctan_sum b x) b ≤ 0 := by
+  intro b hb
+  have hbpos : 0 < b := hb.1
+  have hble : b ≤ 1 := hb.2
+  -- Use the explicit formula and factorization
+  have hder := deriv_arctan_sum_wrt_b b x hbpos hx
+  have hfactor := deriv_arctan_sum_wrt_b_factored b x hbpos hx
+  have hterms := arctan_sum_b_deriv_terms_nonneg b x hbpos hx
+  -- Combine: deriv = (-1/b²) * (nonneg terms) ≤ 0
+  have hb2pos : 0 < b^2 := by
+    have : 0 < b * b := mul_pos hbpos hbpos
+    simpa [pow_two] using this
+  have hneg : (-1 / b^2) ≤ 0 := by
+    have : -1 ≤ (0 : ℝ) := by norm_num
+    exact div_nonpos_of_nonpos_of_nonneg this (le_of_lt hb2pos)
+  calc deriv (fun b => arctan_sum b x) b
+      = (-(1 - x) / b^2) / (1 + ((1 - x) / b)^2) +
+        (-(1 + x) / b^2) / (1 + ((1 + x) / b)^2) := hder
+    _ = (-1 / b^2) * ((1 - x) / (1 + ((1 - x) / b)^2) + (1 + x) / (1 + ((1 + x) / b)^2)) := hfactor
+    _ ≤ 0 := mul_nonpos_of_nonpos_of_nonneg hneg hterms
 
 /-! ### Minimum at corner (ACTION 3.5.4) -/
 
-/-- Monotonicity in x: arctan_sum is decreasing in x (for fixed b).
-From ∂ₓ ≤ 0, the function decreases as x increases.
-So for x₁ ≤ x₂, we have arctan_sum b x₂ ≤ arctan_sum b x₁. -/
-axiom arctan_sum_antitone_in_x (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) :
-  AntitoneOn (fun x => arctan_sum b x) (Set.Icc (-1) 1)
+/-- Monotonicity in x: arctan_sum is antitone (decreasing) in x on [-1,1]. -/
+theorem arctan_sum_antitone_in_x (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) :
+  AntitoneOn (fun x => arctan_sum b x) (Set.Icc (-1) 1) := by
+  -- Use antitoneOn_of_deriv_nonpos from mathlib
+  have hConvex : Convex ℝ (Set.Icc (-1 : ℝ) 1) := convex_Icc (-1) 1
+  have hCont : ContinuousOn (fun x => arctan_sum b x) (Set.Icc (-1) 1) := by
+    have : Continuous (fun x => arctan_sum b x) := by
+      unfold arctan_sum
+      continuity
+    exact this.continuousOn
+  have hDiff : DifferentiableOn ℝ (fun x => arctan_sum b x) (interior (Set.Icc (-1 : ℝ) 1)) := by
+    have : interior (Set.Icc (-1 : ℝ) 1) = Set.Ioo (-1) 1 := interior_Icc
+    rw [this]
+    intro x hx
+    -- arctan_sum is sum of arctan compositions; each differentiable
+    have : DifferentiableAt ℝ (fun x => arctan_sum b x) x := by
+      unfold arctan_sum
+      have h1 : DifferentiableAt ℝ (fun x => (1 - x) / b) x := by
+        exact ((differentiableAt_const (1 : ℝ)).sub differentiableAt_id).div_const b
+      have h2 : DifferentiableAt ℝ (fun x => (1 + x) / b) x := by
+        exact ((differentiableAt_const (1 : ℝ)).add differentiableAt_id).div_const b
+      exact (differentiable_arctan.differentiableAt.comp x h1).add
+            (differentiable_arctan.differentiableAt.comp x h2)
+    exact this.differentiableWithinAt
+  have hDeriv : ∀ x ∈ interior (Set.Icc (-1 : ℝ) 1), deriv (fun x => arctan_sum b x) x ≤ 0 := by
+    intro x hx
+    have : interior (Set.Icc (-1 : ℝ) 1) = Set.Ioo (-1) 1 := interior_Icc
+    rw [this] at hx
+    have hxIcc : x ∈ Set.Icc (-1) 1 := by
+      simp only [Set.mem_Icc, Set.mem_Ioo] at hx ⊢
+      exact ⟨le_of_lt hx.1, le_of_lt hx.2⟩
+    exact arctan_sum_deriv_x_nonpos b hb b_le x hxIcc
+  exact antitoneOn_of_deriv_nonpos hConvex hCont hDiff hDeriv
 
-/-- Monotonicity in b: arctan_sum is decreasing in b (for fixed x).
-From ∂ᵦ ≤ 0, the function decreases as b increases.
-So for b₁ ≤ b₂, we have arctan_sum b₂ x ≤ arctan_sum b₁ x. -/
-axiom arctan_sum_antitone_in_b (x : ℝ) (hx : |x| ≤ 1) :
-  AntitoneOn (fun b => arctan_sum b x) (Set.Ioc 0 1)
+/-- Monotonicity in b: arctan_sum is antitone (decreasing) in b on (0,1]. -/
+theorem arctan_sum_antitone_in_b (x : ℝ) (hx : |x| ≤ 1) :
+  AntitoneOn (fun b => arctan_sum b x) (Set.Ioc 0 1) := by
+  -- Use antitoneOn_of_deriv_nonpos from mathlib
+  have hConvex : Convex ℝ (Set.Ioc (0 : ℝ) 1) := convex_Ioc 0 1
+  have hCont : ContinuousOn (fun b => arctan_sum b x) (Set.Ioc 0 1) := by
+    intro b hb
+    have : ContinuousAt (fun b => arctan_sum b x) b := by
+      unfold arctan_sum
+      have hbne : b ≠ 0 := ne_of_gt hb.1
+      have hcont1 : ContinuousAt (fun b => arctan ((1 - x) / b)) b := by
+        have : Continuous (fun b => (1 - x) / b) := by
+          sorry  -- TODO: prove via continuousAt + global extension
+        exact continuous_arctan.comp this |>.continuousAt
+      have hcont2 : ContinuousAt (fun b => arctan ((1 + x) / b)) b := by
+        have : Continuous (fun b => (1 + x) / b) := by
+          sorry  -- TODO: prove via continuousAt + global extension
+        exact continuous_arctan.comp this |>.continuousAt
+      exact hcont1.add hcont2
+    exact this.continuousWithinAt
+  have hDiff : DifferentiableOn ℝ (fun b => arctan_sum b x) (interior (Set.Ioc (0 : ℝ) 1)) := by
+    have : interior (Set.Ioc (0 : ℝ) 1) = Set.Ioo 0 1 := interior_Ioc
+    rw [this]
+    intro b hb
+    have hbpos : 0 < b := hb.1
+    have : DifferentiableAt ℝ (fun b => arctan_sum b x) b := by
+      unfold arctan_sum
+      have h1 : DifferentiableAt ℝ (fun b => (1 - x) / b) b := by
+        have : DifferentiableAt ℝ (fun b => b⁻¹) b := differentiableAt_inv (ne_of_gt hbpos)
+        exact (differentiableAt_const (1 - x)).mul this
+      have h2 : DifferentiableAt ℝ (fun b => (1 + x) / b) b := by
+        have : DifferentiableAt ℝ (fun b => b⁻¹) b := differentiableAt_inv (ne_of_gt hbpos)
+        exact (differentiableAt_const (1 + x)).mul this
+      exact (differentiable_arctan.differentiableAt.comp b h1).add
+            (differentiable_arctan.differentiableAt.comp b h2)
+    exact this.differentiableWithinAt
+  have hDeriv : ∀ b ∈ interior (Set.Ioc (0 : ℝ) 1), deriv (fun b => arctan_sum b x) b ≤ 0 := by
+    intro b hb
+    have : interior (Set.Ioc (0 : ℝ) 1) = Set.Ioo 0 1 := interior_Ioc
+    rw [this] at hb
+    have hbIoc : b ∈ Set.Ioc 0 1 := by
+      simp only [Set.mem_Ioc, Set.mem_Ioo] at hb ⊢
+      exact ⟨hb.1, le_of_lt hb.2⟩
+    exact arctan_sum_deriv_b_nonpos x hx b hbIoc
+  exact antitoneOn_of_deriv_nonpos hConvex hCont hDiff hDeriv
 
 /-- For fixed b, maximum at x = -1, minimum at x = 1. -/
 lemma arctan_sum_min_at_x_eq_one (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) (x : ℝ) (hx : |x| ≤ 1) :
