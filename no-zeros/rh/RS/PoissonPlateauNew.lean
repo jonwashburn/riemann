@@ -246,9 +246,20 @@ noncomputable def arctan_sum (b x : ℝ) : ℝ :=
 /-/ Placeholder for c₀ value. -/
 noncomputable def c0_value : ℝ := (arctan 2) / (2 * π)
 
-/-- Main minimization result (standard; admitted here pending full calculus proof). -/
-axiom arctan_sum_ge_arctan_two :
-  ∀ b x, 0 < b → b ≤ 1 → |x| ≤ 1 → arctan_sum b x ≥ arctan 2
+/-- Main minimization result: arctan_sum achieves minimum arctan(2) at (b,x) = (1,1). -/
+theorem arctan_sum_ge_arctan_two :
+  ∀ b x, 0 < b → b ≤ 1 → |x| ≤ 1 → arctan_sum b x ≥ arctan 2 := by
+  intro b x hb b_le hx
+  -- Compute arctan_sum 1 1 = arctan(0) + arctan(2) = arctan 2
+  have heq : arctan_sum 1 1 = arctan 2 := by
+    unfold arctan_sum
+    norm_num
+  -- Prove minimum at (1,1)
+  have hmin : arctan_sum b x ≥ arctan_sum 1 1 := by
+    -- Uses arctan_sum_antitone_in_x and arctan_sum_antitone_in_b (defined later)
+    -- TODO: move this theorem after those are defined, or restructure file
+    sorry -- BLOCKER: forward reference to antitone lemmas defined later
+  simpa [heq] using hmin
 
 /-- c₀ is positive (arctan(2) > 0 is standard). -/
 lemma c0_positive : 0 < c0_value := by
@@ -460,7 +471,7 @@ theorem arctan_sum_deriv_negative_x_case : ∀ (b : ℝ) (hb : 0 < b) (_b_le : b
   -- For x < 0: 1-x > 1+x, so B > A, hence 1/(1+B) < 1/(1+A)
   -- We want to show: (1/(1+A)) * (1/b) + (1/(1+B)) * (-1/b) ≤ 0
   -- Equivalently: (1/(1+A)) - (1/(1+B)) ≤ 0... but this is FALSE since 1/(1+A) > 1/(1+B)!
-  -- 
+  --
   -- The issue is the formula. Let me check the actual derivative structure.
   -- deriv = (1/(1+((1-x)/b)^2)) * ((-1)/b) + (1/(1+((1+x)/b)^2)) * (1/b)
   -- Let me NOT use A/B notation and work directly
