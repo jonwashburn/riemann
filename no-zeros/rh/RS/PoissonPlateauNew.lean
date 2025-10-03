@@ -549,18 +549,51 @@ theorem arctan_sum_deriv_x_nonpos (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) :
 
 /-! ### Derivative with respect to b (ACTION 3.5.3) -/
 
-/-- Derivative of arctan((1-x)/b) with respect to b.
-Standard calculus: d/db arctan((1-x)/b) = (-(1-x)/b²)/(1+((1-x)/b)²).
-This is standard calculus using chain rule. -/
-axiom deriv_arctan_first_wrt_b : ∀ (b x : ℝ) (hb : 0 < b) (hx : |x| ≤ 1),
-  deriv (fun b => arctan ((1 - x) / b)) b = (-(1 - x) / b^2) / (1 + ((1 - x) / b)^2)
+/-- Derivative of arctan((1-x)/b) with respect to b via hasDerivAt chain rule. -/
+theorem deriv_arctan_first_wrt_b : ∀ (b x : ℝ) (hb : 0 < b) (_hx : |x| ≤ 1),
+  deriv (fun b => arctan ((1 - x) / b)) b = (-(1 - x) / b^2) / (1 + ((1 - x) / b)^2) := by
+  intro b x hb _
+  -- Build hasDerivAt for f(b) = (1-x)/b
+  have hinv : HasDerivAt (fun b : ℝ => b⁻¹) (-(b^2)⁻¹) b := hasDerivAt_inv (ne_of_gt hb)
+  have hmul : HasDerivAt (fun b => (1 - x) * b⁻¹) (0 * b⁻¹ + (1 - x) * (-(b^2)⁻¹)) b := by
+    exact (hasDerivAt_const b (1 - x : ℝ)).mul hinv
+  have hsimp : (0 : ℝ) * b⁻¹ + (1 - x) * (-(b^2)⁻¹) = (1 - x) * (-(b^2)⁻¹) := by ring
+  have hmul' : HasDerivAt (fun b => (1 - x) * b⁻¹) ((1 - x) * (-(b^2)⁻¹)) b := by
+    convert hmul using 1; exact hsimp.symm
+  -- Chain through arctan
+  have htan : HasDerivAt (fun b => arctan ((1 - x) * b⁻¹))
+      ((1 / (1 + ((1 - x) * b⁻¹)^2)) * ((1 - x) * (-(b^2)⁻¹))) b := hmul'.arctan
+  -- Rewrite to match target form
+  have heq2 : (1 - x) * b⁻¹ = (1 - x) / b := by rw [div_eq_mul_inv]
+  have hder := htan.deriv
+  have heq_fun : (fun b => arctan ((1 - x) / b)) = (fun b => arctan ((1 - x) * b⁻¹)) := by
+        ext b'; rw [div_eq_mul_inv]
+  rw [heq_fun, hder, heq2]
+  field_simp [ne_of_gt hb]
+  ring
 
-/-- Derivative of arctan((1+x)/b) with respect to b.
-Standard calculus: f(b) = (1+x)/b, so f'(b) = -(1+x)/b², giving
-deriv = (-(1+x)/b²)/(1+((1+x)/b)²).
-This is standard calculus using chain rule. -/
-axiom deriv_arctan_second_wrt_b : ∀ (b x : ℝ) (hb : 0 < b) (hx : |x| ≤ 1),
-  deriv (fun b => arctan ((1 + x) / b)) b = (-(1 + x) / b^2) / (1 + ((1 + x) / b)^2)
+/-- Derivative of arctan((1+x)/b) with respect to b via hasDerivAt chain rule. -/
+theorem deriv_arctan_second_wrt_b : ∀ (b x : ℝ) (hb : 0 < b) (_hx : |x| ≤ 1),
+  deriv (fun b => arctan ((1 + x) / b)) b = (-(1 + x) / b^2) / (1 + ((1 + x) / b)^2) := by
+  intro b x hb _
+  -- Build hasDerivAt for g(b) = (1+x)/b
+  have hinv : HasDerivAt (fun b : ℝ => b⁻¹) (-(b^2)⁻¹) b := hasDerivAt_inv (ne_of_gt hb)
+  have hmul : HasDerivAt (fun b => (1 + x) * b⁻¹) (0 * b⁻¹ + (1 + x) * (-(b^2)⁻¹)) b := by
+    exact (hasDerivAt_const b (1 + x : ℝ)).mul hinv
+  have hsimp : (0 : ℝ) * b⁻¹ + (1 + x) * (-(b^2)⁻¹) = (1 + x) * (-(b^2)⁻¹) := by ring
+  have hmul' : HasDerivAt (fun b => (1 + x) * b⁻¹) ((1 + x) * (-(b^2)⁻¹)) b := by
+    convert hmul using 1; exact hsimp.symm
+  -- Chain through arctan
+  have htan : HasDerivAt (fun b => arctan ((1 + x) * b⁻¹))
+      ((1 / (1 + ((1 + x) * b⁻¹)^2)) * ((1 + x) * (-(b^2)⁻¹))) b := hmul'.arctan
+  -- Rewrite to match target form
+  have heq2 : (1 + x) * b⁻¹ = (1 + x) / b := by rw [div_eq_mul_inv]
+  have hder := htan.deriv
+  have heq_fun : (fun b => arctan ((1 + x) / b)) = (fun b => arctan ((1 + x) * b⁻¹)) := by
+        ext b'; rw [div_eq_mul_inv]
+  rw [heq_fun, hder, heq2]
+  field_simp [ne_of_gt hb]
+  ring
 
 /-- Combined derivative formula for ∂ᵦ(arctan_sum) -/
 axiom deriv_arctan_sum_wrt_b (b x : ℝ) (hb : 0 < b) (hx : |x| ≤ 1) :
