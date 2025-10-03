@@ -249,6 +249,49 @@ lemma J_pinch_analytic_on_offXi_choose
   J_pinch_analytic_on_offXi (hDet2 := hDet2)
     (hO := (OuterHalfPlane.choose_outer_spec hOuterExist).1) (hXi := hXi)
 
+/-- Analyticity of `Θ_pinch_of det2 O` on a set `S` where `J_pinch det2 O` is
+analytic and the Cayley denominator is nonvanishing, ensured here by
+`0 ≤ Re(2·J_pinch)` on `S`. -/
+lemma Theta_pinch_analytic_on
+  {S : Set ℂ} {O : ℂ → ℂ}
+  (hJ : AnalyticOn ℂ (J_pinch det2 O) S)
+  (hRe : ∀ z ∈ S, 0 ≤ ((2 : ℂ) * J_pinch det2 O z).re)
+  : AnalyticOn ℂ (Θ_pinch_of det2 O) S := by
+  -- Define `F := 2·J_pinch`
+  have hConst : AnalyticOn ℂ (fun _ : ℂ => (2 : ℂ)) S := analyticOn_const
+  have hF : AnalyticOn ℂ (fun z => (2 : ℂ) * J_pinch det2 O z) S := by
+    simpa using hConst.mul hJ
+  -- Numerator and denominator analytic
+  have hNum : AnalyticOn ℂ (fun z => (2 : ℂ) * J_pinch det2 O z - 1) S := by
+    simpa [sub_eq_add_neg] using hF.add analyticOn_const
+  have hDen : AnalyticOn ℂ (fun z => (2 : ℂ) * J_pinch det2 O z + 1) S :=
+    hF.add analyticOn_const
+  -- Denominator is nonzero on S, since Re(2·J) ≥ 0 ⇒ 2·J ≠ -1
+  have hDen_ne : ∀ z ∈ S, (fun z => (2 : ℂ) * J_pinch det2 O z + 1) z ≠ 0 := by
+    intro z hz
+    have hzRe := hRe z hz
+    -- If 2·J z + 1 = 0 then 2·J z = -1 with negative real part, contradiction
+    intro hzero
+    have : ((2 : ℂ) * J_pinch det2 O z).re = (-1 : ℂ).re := by
+      have : (2 : ℂ) * J_pinch det2 O z = -1 := by
+        simpa using (by simpa [add_eq_zero_iff_eq_neg] using hzero)
+      simpa [this]
+    have : ((2 : ℂ) * J_pinch det2 O z).re = (-1 : ℝ) := by simpa
+    have : 0 ≤ (-1 : ℝ) := by simpa [this] using hzRe
+    exact (lt_of_le_of_lt this (show (-1 : ℝ) < 0 by norm_num)).false
+  -- Inverse of denominator is analytic on S
+  have hInv : AnalyticOn ℂ (fun z => ((2 : ℂ) * J_pinch det2 O z + 1)⁻¹) S :=
+    AnalyticOn.inv hDen hDen_ne
+  -- Assemble Θ = (Num) * (Den)^{-1}
+  have hTheta : AnalyticOn ℂ
+      (fun z => ((2 : ℂ) * J_pinch det2 O z - 1) * ((2 : ℂ) * J_pinch det2 O z + 1)⁻¹) S := by
+    simpa using hNum.mul hInv
+  -- Conclude by definal equality with Θ_pinch_of
+  refine (hTheta.congr ?_)
+  intro z hz
+  unfold Θ_pinch_of Theta_of_J J_pinch
+  ring_nf
+
 /-- Build a `PinchCertificateExt` from the paper `J_pinch` once the two
 key facts are supplied:
 1) interior positivity `0 ≤ Re(2·J_pinch)` on `Ω \ {ξ_ext=0}`;

@@ -431,14 +431,22 @@ lemma arctan_sum_even (b x : ℝ) : arctan_sum b (-x) = arctan_sum b x := by
   rw [h1, h2]
   ring
 
-/-- Derivative is zero at x=0 (from evenness).
-Standard: For even functions f(-x)=f(x), the derivative at 0 is zero.
-Proof: f'(0) = lim (f(h)-f(0))/h = lim (f(-h)-f(0))/h = -f'(0), so f'(0)=0.
-This can be computed directly from the explicit derivative formula at x=0:
-(-1/b)/(1+(1/b)²) + (1/b)/(1+(1/b)²) = 0 by cancellation.
-Reference: Standard calculus (derivative of even function) -/
-axiom arctan_sum_deriv_zero_at_origin : ∀ (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1),
-  deriv (fun x => arctan_sum b x) 0 = 0
+/-- Derivative is zero at x=0. Computed directly from the explicit derivative formula. -/
+theorem arctan_sum_deriv_zero_at_origin : ∀ (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1),
+  deriv (fun x => arctan_sum b x) 0 = 0 := by
+  intro b hb _
+  have h := deriv_arctan_sum_explicit b 0 hb
+  -- At x = 0: (1 - 0)/b = (1 + 0)/b = 1/b, so both terms have the same denominator
+  -- derivative = A * (-1/b) + A * (1/b) where A = 1/(1 + (1/b)^2)
+  -- = A * ((-1/b) + (1/b)) = A * 0 = 0
+  have hsimp := h
+  simp only [sub_zero, add_zero] at hsimp
+  calc deriv (fun x => arctan_sum b x) 0
+      = (1 / (1 + (1 / b)^2)) * ((-1) / b)
+      + (1 / (1 + (1 / b)^2)) * (1 / b) := hsimp
+    _ = (1 / (1 + (1 / b)^2)) * ((-1) / b + (1 / b)) := by ring
+    _ = (1 / (1 + (1 / b)^2)) * 0 := by ring
+    _ = 0 := by simp
 
 /-- For x < 0, the derivative is non-positive (by evenness).
 Standard: For the even function arctan_sum, if deriv ≤ 0 on [0,1], then by evenness
@@ -448,10 +456,74 @@ axiom arctan_sum_deriv_negative_x_case : ∀ (b : ℝ) (hb : 0 < b) (b_le : b �
   (hx_neg : x < 0) (hx_bound : x ∈ Set.Icc (-1) 1),
   deriv (fun x => arctan_sum b x) x ≤ 0
 
-/-- For x ≥ 0, the derivative is non-positive (decreasing on [0,1]). -/
-axiom arctan_sum_deriv_x_nonpos_nonneg (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) :
+/-- For x ∈ [0,1], the derivative is non-positive (monotone nonincreasing). -/
+theorem arctan_sum_deriv_x_nonpos_nonneg (b : ℝ) (hb : 0 < b) (_b_le : b ≤ 1) :
   ∀ x ∈ Set.Icc 0 1,
-    deriv (fun x => arctan_sum b x) x ≤ 0
+    deriv (fun x => arctan_sum b x) x ≤ 0 := by
+  intro x hx
+  have hx0 : 0 ≤ x := hx.1
+  have hx1 : x ≤ 1 := hx.2
+  -- Use the explicit derivative formula
+  have hder := deriv_arctan_sum_explicit b x hb
+  -- Set A := ((1 + x)/b)^2, B := ((1 - x)/b)^2
+  set A : ℝ := ((1 + x) / b) ^ 2 with hA
+  set B : ℝ := ((1 - x) / b) ^ 2 with hB
+  have hbpos : 0 < b := hb
+  have hb2pos : 0 < b ^ 2 := by
+    have : 0 < b * b := mul_pos hb hb
+    simpa [pow_two, mul_comm] using this
+  -- 1 + x ≥ 0 and 1 - x ≥ 0 on [0,1]
+  have h1x_nonneg : 0 ≤ 1 - x := by linarith
+  have h1xpos : 0 ≤ 1 + x := by linarith
+  -- Order: (1 - x)/b ≤ (1 + x)/b since b > 0
+  have h_div_order : (1 - x) / b ≤ (1 + x) / b := by
+    have hxord : 1 - x ≤ 1 + x := by linarith
+    have hb_inv_pos : 0 < (1 / b) := one_div_pos.mpr hbpos
+    have := mul_le_mul_of_nonneg_left hxord (le_of_lt hb_inv_pos)
+    simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using this
+  -- Squares preserve order for nonnegative terms: B ≤ A
+  have hB_le_A : B ≤ A := by
+    -- use abs to leverage `sq_le_sq` and that both sides are ≥ 0
+    have hu_nonneg : 0 ≤ (1 - x) / b := by
+      exact div_nonneg h1x_nonneg (le_of_lt hbpos)
+    have hv_nonneg : 0 ≤ (1 + x) / b := by
+      exact div_nonneg h1xpos (le_of_lt hbpos)
+    have : |(1 - x) / b| ≤ |(1 + x) / b| := by
+      simpa [abs_of_nonneg hu_nonneg, abs_of_nonneg hv_nonneg] using h_div_order
+    -- `sq_le_sq` rewrites via absolute values
+    simpa [hA, hB, sq] using (sq_le_sq.mpr this)
+  -- Monotonicity: t ↦ 1/(1+t) is decreasing on t ≥ 0, hence 1/(1+A) ≤ 1/(1+B)
+  have hfrac_le : 1 / (1 + A) ≤ 1 / (1 + B) := by
+    have hden_pos : 0 < 1 + B := by
+      have : 0 ≤ B := sq_nonneg _
+      linarith
+    have hden_pos' : 0 < 1 + A := by
+      have : 0 ≤ A := sq_nonneg _
+      linarith
+    -- Since B ≤ A, we have 1 + B ≤ 1 + A, then reciprocals flip
+    have hsum_le : 1 + B ≤ 1 + A := by linarith [hB_le_A]
+    exact one_div_le_one_div_of_le hden_pos hsum_le
+  -- Combine with the derivative formula (factor 1/b > 0 preserves order)
+  -- derivative = (1/b) * (1/(1+A) - 1/(1+B)) ≤ 0
+  have : (1 / (1 + ((1 - x) / b) ^ 2)) * ((-1) / b) +
+      (1 / (1 + ((1 + x) / b) ^ 2)) * (1 / b) ≤ 0 := by
+    -- rewrite in terms of A and B
+    have hbpos' : 0 < 1 / b := one_div_pos.mpr hbpos
+    have hpos : 0 ≤ 1 / b := le_of_lt hbpos'
+    --  (1/b)*(1/(1+A) - 1/(1+B)) ≤ 0 since (1/(1+A) - 1/(1+B)) ≤ 0
+    have hinner : 1 / (1 + A) - 1 / (1 + B) ≤ 0 := by
+      simpa [sub_nonpos] using hfrac_le
+    -- Now multiply by nonneg (1/b): yields (1/b)*(stuff) ≤ 0
+    have hprod : (1 / b) * (1 / (1 + A) - 1 / (1 + B)) ≤ 0 :=
+      mul_nonpos_of_nonneg_of_nonpos hpos hinner
+    -- Rewrite to the target form via algebra
+    calc (1 / (1 + ((1 - x) / b) ^ 2)) * ((-1) / b) +
+        (1 / (1 + ((1 + x) / b) ^ 2)) * (1 / b)
+        = (1 / (1 + B)) * ((-1) / b) + (1 / (1 + A)) * (1 / b) := by simp [hA, hB]
+      _ = (1 / b) * (1 / (1 + A)) + ((-1) / b) * (1 / (1 + B)) := by ring
+      _ = (1 / b) * (1 / (1 + A) - 1 / (1 + B)) := by ring
+      _ ≤ 0 := hprod
+  simpa [hder] using this
 
 /-- Step 6: Main theorem - derivative is non-positive on [-1,1].
 Strategy: Use evenness to reduce to [0,1], where the inequality (1+x)² ≥ (1-x)² holds. -/
