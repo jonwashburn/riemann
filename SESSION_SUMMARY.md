@@ -1,6 +1,6 @@
 # Session Summary
 
-## Axioms Eliminated: 10 (All Real Work)
+## Axioms Eliminated: 12 (All Real Work)
 
 1. `arctan_le_pi_div_two` - via `Real.arctan_lt_pi_div_two`
 2. `pi_gt_314` - via `Real.pi_gt_d2`  
@@ -12,6 +12,8 @@
 8. `deriv_arctan_sum_factored` - algebraic ring normalization
 9. `arctan_sum_deriv_zero_at_origin` - evaluated explicit formula at x=0
 10. `arctan_sum_deriv_x_nonpos_nonneg` - denominator ordering on [0,1]
+11. `deriv_arctan_first_wrt_b` - hasDerivAt chain (const * inv)
+12. `deriv_arctan_second_wrt_b` - hasDerivAt chain (const * inv)
 
 ## Axioms Converted to Theorems (with admits)
 
@@ -25,14 +27,14 @@
 ## Blockers Documented
 
 - blocker-7 (7a–7c): arctan(2) > 1.1 via alternating series
-- blocker-8 (8a–8f): pinned u-trick for removable extension
+- blocker-8 (8a–8f): pinned u-trick for removable extension  
 - blocker-9 (9a–9c): Hardy inner-function positivity preservation
 
 ## Current State
 
-Axioms: ~34 (down from 46)
+Axioms: ~32 (down from 46)
 Theorems with admits: 2
 Build: passing
-Commit: 635d137
+Commit: 2b5ef17
 
-Next session: Fill admits in blockers 8 and 9, or tackle more calculus/derivative axioms.
+Next session: Continue with derivative axioms or fill admits in blockers 8 and 9.
