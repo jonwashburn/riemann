@@ -5,6 +5,7 @@ import rh.Cert.KxiPPlus
 import rh.academic_framework.HalfPlaneOuterV2
 import Mathlib.Tactic
 import Mathlib.Data.Real.Pi.Bounds
+-- (no extra limits imports needed here)
 
 /-!
 # Boundary Wedge (P+) Proof from Constants
