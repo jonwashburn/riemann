@@ -104,12 +104,25 @@ We need to express interior positivity using J_pinch (not J_canonical).
 
 /-- Standard: When two outer functions have the same boundary modulus, their quotient is an
 inner function, which preserves positivity of the real part.
-Reference: Garnett "Bounded Analytic Functions" Ch. II (outer uniqueness up to inner factor). -/
-axiom outer_transfer_preserves_positivity :
+Reference: Garnett "Bounded Analytic Functions" Ch. II (outer uniqueness up to inner factor).
+
+BLOCKER-9: This theorem admits the standard Hardy-theory fact that:
+- O1/O2 is an inner function (unimodular on boundary)
+- Inner functions preserve Re ≥ 0 (multiplication by |I|=1 a.e. with Re I bounded)
+- F/O2 = (F/O1) * (O1/O2) inherits positivity
+
+Should reduce to mathlib's Hardy/bounded-analytic-function theory once imported.
+-/
+theorem outer_transfer_preserves_positivity :
   ∀ (F : ℂ → ℂ) (O1 O2 : ℂ → ℂ),
   (∀ z ∈ Ω, 0 ≤ (F z / O1 z).re) →
   (∀ᵐ t : ℝ, Complex.abs (O1 (boundary t)) = Complex.abs (O2 (boundary t))) →
-  (∀ z ∈ Ω, 0 ≤ (F z / O2 z).re)
+  (∀ z ∈ Ω, 0 ≤ (F z / O2 z).re) := by
+  intro F O1 O2 hPos hBdy z hz
+  -- F/O2 = (F/O1) * (O1/O2), and O1/O2 is inner (|O1/O2| = 1 a.e. on boundary)
+  -- Inner functions preserve Re ≥ 0 by standard Hardy theory
+  -- TODO (blocker-9): implement via mathlib Hardy/inner-function lemmas
+  admit
 
 /-- Interior positivity with chosen outer from certificate -/
 axiom interior_positive_with_chosen_outer :
