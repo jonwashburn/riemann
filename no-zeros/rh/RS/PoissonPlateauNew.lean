@@ -717,13 +717,15 @@ theorem arctan_sum_antitone_in_b (x : ℝ) (hx : |x| ≤ 1) :
       unfold arctan_sum
       have hbne : b ≠ 0 := ne_of_gt hb.1
       have hcont1 : ContinuousAt (fun b => arctan ((1 - x) / b)) b := by
-        have : Continuous (fun b => (1 - x) / b) := by
-          sorry  -- TODO: prove via continuousAt + global extension
-        exact continuous_arctan.comp this |>.continuousAt
+        apply ContinuousAt.comp (g := fun t => arctan t) (f := fun b => (1 - x) / b)
+        · exact continuous_arctan.continuousAt
+        · refine ContinuousAt.div ?_ continuousAt_id hbne
+          exact continuousAt_const
       have hcont2 : ContinuousAt (fun b => arctan ((1 + x) / b)) b := by
-        have : Continuous (fun b => (1 + x) / b) := by
-          sorry  -- TODO: prove via continuousAt + global extension
-        exact continuous_arctan.comp this |>.continuousAt
+        apply ContinuousAt.comp (g := fun t => arctan t) (f := fun b => (1 + x) / b)
+        · exact continuous_arctan.continuousAt
+        · refine ContinuousAt.div ?_ continuousAt_id hbne
+          exact continuousAt_const
       exact hcont1.add hcont2
     exact this.continuousWithinAt
   have hDiff : DifferentiableOn ℝ (fun b => arctan_sum b x) (interior (Set.Ioc (0 : ℝ) 1)) := by
