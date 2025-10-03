@@ -595,22 +595,56 @@ theorem deriv_arctan_second_wrt_b : ∀ (b x : ℝ) (hb : 0 < b) (_hx : |x| ≤ 
   field_simp [ne_of_gt hb]
   ring
 
-/-- Combined derivative formula for ∂ᵦ(arctan_sum) -/
-axiom deriv_arctan_sum_wrt_b (b x : ℝ) (hb : 0 < b) (hx : |x| ≤ 1) :
+/-- Combined derivative formula for ∂ᵦ(arctan_sum) via deriv_add -/
+theorem deriv_arctan_sum_wrt_b (b x : ℝ) (hb : 0 < b) (hx : |x| ≤ 1) :
   deriv (fun b => arctan_sum b x) b =
   (-(1 - x) / b^2) / (1 + ((1 - x) / b)^2) +
-  (-(1 + x) / b^2) / (1 + ((1 + x) / b)^2)
+  (-(1 + x) / b^2) / (1 + ((1 + x) / b)^2) := by
+  unfold arctan_sum
+  have h₁ := deriv_arctan_first_wrt_b b x hb hx
+  have h₂ := deriv_arctan_second_wrt_b b x hb hx
+  -- Prove differentiability of each component wrt b
+  have hdiff₁ : DifferentiableAt ℝ (fun b => arctan ((1 - x) / b)) b := by
+    have h1 : DifferentiableAt ℝ (fun b => (1 - x) / b) b := by
+      have : DifferentiableAt ℝ (fun b => b⁻¹) b := differentiableAt_inv (ne_of_gt hb)
+      exact (differentiableAt_const (1 - x)).mul this
+    exact differentiable_arctan.differentiableAt.comp b h1
+  have hdiff₂ : DifferentiableAt ℝ (fun b => arctan ((1 + x) / b)) b := by
+    have h2 : DifferentiableAt ℝ (fun b => (1 + x) / b) b := by
+      have : DifferentiableAt ℝ (fun b => b⁻¹) b := differentiableAt_inv (ne_of_gt hb)
+      exact (differentiableAt_const (1 + x)).mul this
+    exact differentiable_arctan.differentiableAt.comp b h2
+  -- Apply deriv_add
+  rw [deriv_add hdiff₁ hdiff₂, h₁, h₂]
 
 /-- Factor out -1/b² from the derivative -/
-axiom deriv_arctan_sum_wrt_b_factored (b x : ℝ) (hb : 0 < b) (hx : |x| ≤ 1) :
+theorem deriv_arctan_sum_wrt_b_factored (b x : ℝ) (_hb : 0 < b) (_hx : |x| ≤ 1) :
   (-(1 - x) / b^2) / (1 + ((1 - x) / b)^2) +
   (-(1 + x) / b^2) / (1 + ((1 + x) / b)^2) =
-  (-1 / b^2) * ((1 - x) / (1 + ((1 - x) / b)^2) + (1 + x) / (1 + ((1 + x) / b)^2))
+  (-1 / b^2) * ((1 - x) / (1 + ((1 - x) / b)^2) + (1 + x) / (1 + ((1 + x) / b)^2)) := by
+  ring
 
-/-- Both terms in the sum are non-negative when |x| ≤ 1.
-Key insight: When |x| ≤ 1, both (1-x) and (1+x) are non-negative. -/
-axiom arctan_sum_b_deriv_terms_nonneg (b x : ℝ) (hb : 0 < b) (hx : |x| ≤ 1) :
-  0 ≤ (1 - x) / (1 + ((1 - x) / b)^2) + (1 + x) / (1 + ((1 + x) / b)^2)
+/-- Both terms in the sum are non-negative when |x| ≤ 1. -/
+theorem arctan_sum_b_deriv_terms_nonneg (b x : ℝ) (_hb : 0 < b) (hx : |x| ≤ 1) :
+  0 ≤ (1 - x) / (1 + ((1 - x) / b)^2) + (1 + x) / (1 + ((1 + x) / b)^2) := by
+  -- |x| ≤ 1 means -1 ≤ x ≤ 1, so both (1-x) and (1+x) are nonnegative
+  have h1x : 0 ≤ 1 - x := by
+    have : x ≤ 1 := (abs_le.mp hx).2
+    linarith
+  have h1xp : 0 ≤ 1 + x := by
+    have : -1 ≤ x := (abs_le.mp hx).1
+    linarith
+  -- Both denominators are positive
+  have hden1 : 0 < 1 + ((1 - x) / b)^2 := by
+    have : 0 ≤ ((1 - x) / b)^2 := sq_nonneg _
+    linarith
+  have hden2 : 0 < 1 + ((1 + x) / b)^2 := by
+    have : 0 ≤ ((1 + x) / b)^2 := sq_nonneg _
+    linarith
+  -- Both terms are nonneg (nonneg numerator / positive denominator)
+  have t1 : 0 ≤ (1 - x) / (1 + ((1 - x) / b)^2) := div_nonneg h1x (le_of_lt hden1)
+  have t2 : 0 ≤ (1 + x) / (1 + ((1 + x) / b)^2) := div_nonneg h1xp (le_of_lt hden2)
+  exact add_nonneg t1 t2
 
 /-- Main theorem: ∂ᵦ(arctan_sum) ≤ 0 (YOUR RH-specific calculus proof). -/
 axiom arctan_sum_deriv_b_nonpos (x : ℝ) (hx : |x| ≤ 1) :
