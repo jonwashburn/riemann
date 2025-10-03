@@ -1,6 +1,6 @@
 # Session Summary
 
-## Axioms Eliminated: 12 (All Real Work)
+## Axioms Eliminated: 15 (All Real Work)
 
 1. `arctan_le_pi_div_two` - via `Real.arctan_lt_pi_div_two`
 2. `pi_gt_314` - via `Real.pi_gt_d2`  
@@ -14,6 +14,9 @@
 10. `arctan_sum_deriv_x_nonpos_nonneg` - denominator ordering on [0,1]
 11. `deriv_arctan_first_wrt_b` - hasDerivAt chain (const * inv)
 12. `deriv_arctan_second_wrt_b` - hasDerivAt chain (const * inv)
+13. `deriv_arctan_sum_wrt_b` - deriv_add with DifferentiableAt
+14. `deriv_arctan_sum_wrt_b_factored` - ring normalization
+15. `arctan_sum_b_deriv_terms_nonneg` - nonnegativity via abs_le
 
 ## Axioms Converted to Theorems (with admits)
 
@@ -32,9 +35,9 @@
 
 ## Current State
 
-Axioms: ~32 (down from 46)
+Axioms: ~29 (down from 46)
 Theorems with admits: 2
 Build: passing
-Commit: 2b5ef17
+Commit: a62b656
 
-Next session: Continue with derivative axioms or fill admits in blockers 8 and 9.
+Next session: Continue eliminating derivative/calculus axioms or fill admits in blockers 8/9.
