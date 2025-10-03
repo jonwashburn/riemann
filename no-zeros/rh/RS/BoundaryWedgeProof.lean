@@ -286,7 +286,7 @@ theorem wedge_holds_on_whitney :
   Upsilon_paper < 1/2 →
   (∀ I : WhitneyInterval,
     c0_paper * poisson_balayage I ≤ C_psi_H1 * sqrt (Kxi_paper * (2 * I.len))) := by
-  intro h_upsilon I
+  intro _h_upsilon I
   -- Combine lower and upper bounds
   calc c0_paper * poisson_balayage I
       ≤ |windowed_phase I| := phase_velocity_lower_bound I
