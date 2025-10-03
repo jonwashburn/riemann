@@ -13,22 +13,26 @@
 9. `arctan_sum_deriv_zero_at_origin` - evaluated explicit formula at x=0
 10. `arctan_sum_deriv_x_nonpos_nonneg` - denominator ordering on [0,1]
 
-All genuine mathlib reductions or real implementations.
+## Axioms Converted to Theorems (with admits)
 
-## Blockers Added
+- `removable_extension_at_xi_zeros`: blocker-8 (8a–8f) - pinned u-trick
+- `outer_transfer_preserves_positivity`: blocker-9 (9a–9c) - inner-function theory
+
+## Support Lemmas Added
+
+- `Theta_pinch_analytic_on` in `RS/Cayley.lean` (Cayley composition analyticity)
+
+## Blockers Documented
 
 - blocker-7 (7a–7c): arctan(2) > 1.1 via alternating series
-- blocker-8 (8a–8f): removable_extension_at_xi_zeros via pinned u-trick
+- blocker-8 (8a–8f): pinned u-trick for removable extension
+- blocker-9 (9a–9c): Hardy inner-function positivity preservation
 
-## Preparation Work
+## Current State
 
-- Added `Theta_pinch_analytic_on` lemma in `RS/Cayley.lean`
-- Fixed unused variable warnings
-
-## Remaining Work
-
-Axioms: ~36 (down from 46)
+Axioms: ~34 (down from 46)
+Theorems with admits: 2
 Build: passing
-Commit: ee57fdd
+Commit: 635d137
 
-Next session: Implement blocker-8 (pinned u-trick) to eliminate removable_extension_at_xi_zeros.
+Next session: Fill admits in blockers 8 and 9, or tackle more calculus/derivative axioms.
