@@ -276,9 +276,19 @@ theorem phase_velocity_lower_bound :
     exact le_trans h_main hπpb
   simpa [habs]
 
-/-- Whitney intervals have length L ≍ c/log T (scaling property) -/
-axiom whitney_length_scale :
-  ∀ I : WhitneyInterval, I.len > 0
+/-- Whitney intervals have positive length.
+NOTE: This should be enforced by WhitneyInterval construction, but the current
+structure doesn't include a positivity constraint. We admit it as a well-formedness
+assumption on Whitney intervals.
+
+BLOCKER-13: Add `len_pos : 0 < len` field to WhitneyInterval structure definition.
+-/
+theorem whitney_length_scale :
+  ∀ I : WhitneyInterval, I.len > 0 := by
+  intro I
+  -- This should follow from the WhitneyInterval construction invariant
+  -- TODO: add positivity as a structure field
+  sorry -- BLOCKER-13: needs WhitneyInterval structure update
 
 /-- Whitney covering gives a.e. boundary control.
 Standard: A Whitney decomposition of the boundary together with pointwise bounds
