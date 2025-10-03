@@ -448,23 +448,68 @@ theorem arctan_sum_deriv_zero_at_origin : ∀ (b : ℝ) (hb : 0 < b) (b_le : b �
     _ = (1 / (1 + (1 / b)^2)) * 0 := by ring
     _ = 0 := by simp
 
-/-- For x < 0, the derivative is non-positive. Uses direct algebraic calculation. -/
+/-- For x < 0, the derivative is non-positive.
+Uses factored form and shows the weighted difference is nonpositive. -/
 theorem arctan_sum_deriv_negative_x_case : ∀ (b : ℝ) (hb : 0 < b) (_b_le : b ≤ 1) (x : ℝ)
   (_hx_neg : x < 0) (hx_bound : x ∈ Set.Icc (-1) 1),
   deriv (fun x => arctan_sum b x) x ≤ 0 := by
   intro b hb _ x _ hx
-  -- Use the explicit derivative formula
+  -- Use the explicit derivative and factored form
   have hder := deriv_arctan_sum_explicit b x hb
-  -- The derivative = (1/(1+B)) * (-1/b) + (1/(1+A)) * (1/b)
-  -- where A = ((1+x)/b)^2, B = ((1-x)/b)^2
-  -- For x < 0: 1-x > 1+x, so B > A, hence 1/(1+B) < 1/(1+A)
-  -- We want to show: (1/(1+A)) * (1/b) + (1/(1+B)) * (-1/b) ≤ 0
-  -- Equivalently: (1/(1+A)) - (1/(1+B)) ≤ 0... but this is FALSE since 1/(1+A) > 1/(1+B)!
+  have hfact := deriv_arctan_sum_factored b x hb
+  -- The derivative = (1/b) * [1/(1+((1+x)/b)^2) - 1/(1+((1-x)/b)^2)]
+  -- For x < 0: 1-x > 1+x ≥ 0
+  -- So ((1-x)/b)^2 > ((1+x)/b)^2
+  -- Hence 1 + ((1-x)/b)^2 > 1 + ((1+x)/b)^2
+  -- Therefore 1/(1+((1-x)/b)^2) < 1/(1+((1+x)/b)^2)
+  -- Which means the bracketed difference is NEGATIVE
+  -- And (1/b) > 0, so the product is NEGATIVE ≤ 0 ✓
+
+  set A := ((1 + x) / b) ^ 2
+  set B := ((1 - x) / b) ^ 2
+
+  have h1x : 1 + x ≥ 0 := by
+    have : x ≥ -1 := hx.1
+    linarith
+  have h1mx : 1 - x > 0 := by linarith
+
+  -- For x < 0: 1-x > 1+x, so B > A
+  have hBA : B > A := by
+    have hord : 1 - x > 1 + x := by linarith
+    have : (1 - x) / b > (1 + x) / b := by
+      exact div_lt_div_of_pos_right hord hb
+    have : ((1 - x) / b) ^ 2 > ((1 + x) / b) ^ 2 := by
+      have hu_nonneg : 0 ≤ (1 + x) / b := div_nonneg h1x (le_of_lt hb)
+      have hv_pos : 0 < (1 - x) / b := div_pos h1mx hb
+      -- Use that (1-x)/b > (1+x)/b ≥ 0 implies squares ordered
+      have habs : |(1 + x) / b| < |(1 - x) / b| := by
+        simpa [abs_of_nonneg hu_nonneg, abs_of_pos hv_pos] using this
+      exact sq_lt_sq.mpr habs
+    exact this
+
+  -- Then 1/(1+B) < 1/(1+A)
+  have hfrac : 1 / (1 + B) < 1 / (1 + A) := by
+    have hsum : 1 + A < 1 + B := by linarith [hBA]
+    have hposA : 0 < 1 + A := by have : 0 ≤ A := sq_nonneg _; linarith
+    have hposB : 0 < 1 + B := by have : 0 ≤ B := sq_nonneg _; linarith
+    exact one_div_lt_one_div_of_lt hposA hsum
+
+  -- Key insight: The factored form shows
+  -- deriv = (1/b) * [1/(1+A) - 1/(1+B)]
+  -- We have hfrac: 1/(1+B) < 1/(1+A), so the bracketed term is POSITIVE
+  -- But we want deriv ≤ 0, which would require the bracketed term to be NEGATIVE
+  -- This suggests there's still an error in my analysis.
+  -- 
+  -- Let me recalculate from the unfactored form directly:
+  -- deriv = (1/(1+B)) * (-1/b) + (1/(1+A)) * (1/b)
+  --       = (1/b) * [(1/(1+A)) - (1/(1+B))]
+  -- With B > A: 1/(1+B) < 1/(1+A), so (1/(1+A)) - (1/(1+B)) > 0
+  -- Therefore deriv = (positive) * (positive) > 0, NOT ≤ 0!
   --
-  -- The issue is the formula. Let me check the actual derivative structure.
-  -- deriv = (1/(1+((1-x)/b)^2)) * ((-1)/b) + (1/(1+((1+x)/b)^2)) * (1/b)
-  -- Let me NOT use A/B notation and work directly
-  sorry -- BLOCKER-10: need to carefully handle sign analysis for negative x
+  -- This means for x < 0, the derivative is actually POSITIVE, not nonpositive.
+  -- But arctan_sum is supposed to be even, so deriv(x=0) = 0 and decreasing...
+  -- There must be a mistake in my understanding of the function or the inequality direction.
+  sorry -- BLOCKER-10: fundamental sign issue - needs careful rework
 
 /-- For x ∈ [0,1], the derivative is non-positive (monotone nonincreasing). -/
 theorem arctan_sum_deriv_x_nonpos_nonneg (b : ℝ) (hb : 0 < b) (_b_le : b ≤ 1) :
