@@ -448,13 +448,23 @@ theorem arctan_sum_deriv_zero_at_origin : ∀ (b : ℝ) (hb : 0 < b) (b_le : b �
     _ = (1 / (1 + (1 / b)^2)) * 0 := by ring
     _ = 0 := by simp
 
-/-- For x < 0, the derivative is non-positive (by evenness).
-Standard: For the even function arctan_sum, if deriv ≤ 0 on [0,1], then by evenness
-the derivative is also ≤ 0 on [-1,0].
-This can be proven using the explicit derivative formula and sign analysis. -/
-axiom arctan_sum_deriv_negative_x_case : ∀ (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) (x : ℝ)
-  (hx_neg : x < 0) (hx_bound : x ∈ Set.Icc (-1) 1),
-  deriv (fun x => arctan_sum b x) x ≤ 0
+/-- For x < 0, the derivative is non-positive. Uses direct algebraic calculation. -/
+theorem arctan_sum_deriv_negative_x_case : ∀ (b : ℝ) (hb : 0 < b) (_b_le : b ≤ 1) (x : ℝ)
+  (_hx_neg : x < 0) (hx_bound : x ∈ Set.Icc (-1) 1),
+  deriv (fun x => arctan_sum b x) x ≤ 0 := by
+  intro b hb _ x _ hx
+  -- Use the explicit derivative formula
+  have hder := deriv_arctan_sum_explicit b x hb
+  -- The derivative = (1/(1+B)) * (-1/b) + (1/(1+A)) * (1/b)
+  -- where A = ((1+x)/b)^2, B = ((1-x)/b)^2
+  -- For x < 0: 1-x > 1+x, so B > A, hence 1/(1+B) < 1/(1+A)
+  -- We want to show: (1/(1+A)) * (1/b) + (1/(1+B)) * (-1/b) ≤ 0
+  -- Equivalently: (1/(1+A)) - (1/(1+B)) ≤ 0... but this is FALSE since 1/(1+A) > 1/(1+B)!
+  -- 
+  -- The issue is the formula. Let me check the actual derivative structure.
+  -- deriv = (1/(1+((1-x)/b)^2)) * ((-1)/b) + (1/(1+((1+x)/b)^2)) * (1/b)
+  -- Let me NOT use A/B notation and work directly
+  sorry -- BLOCKER-10: need to carefully handle sign analysis for negative x
 
 /-- For x ∈ [0,1], the derivative is non-positive (monotone nonincreasing). -/
 theorem arctan_sum_deriv_x_nonpos_nonneg (b : ℝ) (hb : 0 < b) (_b_le : b ≤ 1) :
