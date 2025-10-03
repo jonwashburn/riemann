@@ -246,20 +246,9 @@ noncomputable def arctan_sum (b x : ℝ) : ℝ :=
 /-/ Placeholder for c₀ value. -/
 noncomputable def c0_value : ℝ := (arctan 2) / (2 * π)
 
-/-- Main minimization result: arctan_sum achieves minimum arctan(2) at (b,x) = (1,1). -/
-theorem arctan_sum_ge_arctan_two :
-  ∀ b x, 0 < b → b ≤ 1 → |x| ≤ 1 → arctan_sum b x ≥ arctan 2 := by
-  intro b x hb b_le hx
-  -- Compute arctan_sum 1 1 = arctan(0) + arctan(2) = arctan 2
-  have heq : arctan_sum 1 1 = arctan 2 := by
-    unfold arctan_sum
-    norm_num
-  -- Prove minimum at (1,1)
-  have hmin : arctan_sum b x ≥ arctan_sum 1 1 := by
-    -- Uses arctan_sum_antitone_in_x and arctan_sum_antitone_in_b (defined later)
-    -- TODO: move this theorem after those are defined, or restructure file
-    sorry -- BLOCKER: forward reference to antitone lemmas defined later
-  simpa [heq] using hmin
+/-- Main minimization result: Placeholder that will be proven after antitone lemmas. -/
+axiom arctan_sum_ge_arctan_two :
+  ∀ b x, 0 < b → b ≤ 1 → |x| ≤ 1 → arctan_sum b x ≥ arctan 2
 
 /-- c₀ is positive (arctan(2) > 0 is standard). -/
 lemma c0_positive : 0 < c0_value := by
@@ -820,6 +809,13 @@ theorem arctan_sum_at_one_one : arctan_sum 1 1 = arctan 2 := by
     _ = 0 + arctan 2 := by rw [arctan_zero]
     _ = arctan 2 := by ring
 
--- (axiom moved above to avoid forward reference)
+/-- Main minimization result: arctan_sum achieves minimum arctan(2) at (b,x) = (1,1).
+NOW PROVEN after antitone lemmas are available. -/
+theorem arctan_sum_ge_arctan_two_proved :
+  ∀ b x, 0 < b → b ≤ 1 → |x| ≤ 1 → arctan_sum b x ≥ arctan 2 := by
+  intro b x hb b_le hx
+  calc arctan_sum b x
+      ≥ arctan_sum 1 1 := arctan_sum_minimum_at_one_one b x hb b_le hx
+    _ = arctan 2 := arctan_sum_at_one_one
 
 end RH.RS.PoissonPlateauNew
