@@ -2,6 +2,7 @@ import rh.RS.CRGreenOuter
 import rh.RS.BoundaryWedgeProof
 import rh.RS.PinchCertificate
 import rh.RS.Det2Outer
+import rh.RS.OffZerosBridge
 import rh.academic_framework.CompletedXi
 import rh.Proof.Main
 
@@ -64,9 +65,20 @@ This is standard removable singularity theory with the u-trick.
 -/
 
 /-- Removable extension exists at each ξ_ext zero (standard complex analysis).
-This packages the removable singularity with analytic extension g.
+This packages the removable singularity with analytic extension g via the pinned u-trick.
+
+BLOCKER-8: This theorem currently admits the pinned local data (isolating neighborhood,
+Θ analyticity, u-function, u→0, nontriviality). These are standard complex-analytic
+facts that should follow from:
+- ξ_ext zeros are isolated (standard for meromorphic functions)
+- Θ := Cayley(2·J_pinch) is analytic off zeros (we have Theta_pinch_analytic_on)
+- Bounded Schur near zero → Cayley limit to 1 → u-trick with u→0
+- Nontriviality from interior positivity preventing Θ ≡ 1
+
+The proof skeleton is in place; the `admit` will be replaced with explicit
+constructions in blocker-8a–8f.
 -/
-axiom removable_extension_at_xi_zeros :
+theorem removable_extension_at_xi_zeros :
   ∀ (O_witness : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
       BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s)),
   ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
@@ -75,7 +87,15 @@ axiom removable_extension_at_xi_zeros :
       ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧
         AnalyticOn ℂ (Θ_pinch_of det2 (Classical.choose O_witness)) (U \ {ρ}) ∧
         Set.EqOn (Θ_pinch_of det2 (Classical.choose O_witness)) g (U \ {ρ}) ∧
-        g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1
+        g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1 := by
+  intro O_witness ρ hΩ hXi
+  -- Define Θ := Θ_pinch_of det2 (Classical.choose O_witness)
+  let O := Classical.choose O_witness
+  let Θ := Θ_pinch_of det2 O
+  -- We need to provide pinned local data: isolating U, Θ analytic off ρ, u-function, etc.
+  -- TODO (blocker-8a–8f): construct explicit U, u, proofs
+  -- For now, admit the existence of such data
+  admit
 
 /-! ## Section 4: Interior Positivity in J_pinch Terms
 
