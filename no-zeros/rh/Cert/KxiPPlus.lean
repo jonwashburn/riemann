@@ -29,6 +29,7 @@ structure BoxEnergy where
 structure WhitneyInterval where
   t0 : ℝ
   len : ℝ
+  len_pos : 0 < len
 
 /-- Concrete half–plane Carleson constructor for a Whitney interval: builds a
 `BoxEnergy` whose bound is the linear budget `K·|I| = K·(2L)`. -/
