@@ -88,9 +88,22 @@ noncomputable def M_psi_paper : ℝ :=
 noncomputable def Upsilon_paper : ℝ :=
   (2 / π) * M_psi_paper / c0_paper
 
-/-- Standard numerical computation: Υ < 1/2 where Υ = (2/π)·(4/π)·0.24·√0.195/((arctan 2)/(2π)).
-This is pure arithmetic verifiable by computation: Υ ≈ 0.478 < 0.5. -/
-axiom upsilon_paper_lt_half : Upsilon_paper < 1 / 2
+/-- Standard numerical computation: Υ < 1/2.
+Expands to: (2/π) * ((4/π) * 0.24 * √0.19486808) / ((arctan 2)/(2π)) < 0.5
+Simplifies to: (2/π)² * 0.24 * √0.19486808 / arctan(2) < 0.5
+
+This is pure numerical arithmetic. We admit it pending rigorous bounds on arctan(2) and sqrt.
+BLOCKER-12: Needs lower bound on arctan(2) (we have arctan(2) > 1.1 pending) and
+numeric sqrt evaluation.
+-/
+theorem upsilon_paper_lt_half : Upsilon_paper < 1 / 2 := by
+  unfold Upsilon_paper M_psi_paper c0_paper C_box_paper K0_paper Kxi_paper C_psi_H1 c0_value
+  -- Υ = (2/π) * ((4/π) * 0.24 * √(0.03486808 + 0.16)) / ((arctan 2) / (2π))
+  --   = (2/π) * (4/π) * 0.24 * √0.19486808 * (2π) / (arctan 2)
+  --   = 4 * 0.24 * √0.19486808 / (arctan 2)
+  -- Need: 4 * 0.24 * √0.19486808 < 0.5 * arctan(2)
+  -- Numerically: LHS ≈ 0.424, RHS ≈ 0.554 with arctan(2) ≈ 1.107
+  sorry -- BLOCKER-12: needs rigorous arctan(2) lower bound + sqrt evaluation
 
 /-- Main computation: Υ < 1/2 (YOUR RH-specific result).
 
