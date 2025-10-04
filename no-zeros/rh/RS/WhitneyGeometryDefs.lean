@@ -479,6 +479,81 @@ theorem shadow_overlap_bound_pass
   (h : (∑ i in S, shadowLen (Q i)) ≤ shadowOverlapConst * length I) :
   (∑ i in S, shadowLen (Q i)) ≤ shadowOverlapConst * length I := h
 
+-- For blocker-8a2: Use stopping-time on dyadics
+-- Assume a 'stopping predicate' P(I) (e.g., high energy density)
+variable (P : Set ℝ → Prop)  -- stopping condition
+
+-- Concrete P: dummy predicate for intervals "bad" if length <1 (replace with energy density)
+def P (I : Set ℝ) : Prop := volume I < 1
+
+-- Adjust P to be hereditary: if P I and J ⊂ I then P J (e.g., for density predicates)
+class Hereditary (P : Set ℝ → Prop) : Prop where
+  hereditary : ∀ I J, P I → J ⊂ I → P J
+  small_P : ∃ ε > 0, ∀ I, volume I < ε → P I
+
+variable [Hereditary P]
+
+/-- Stopping-time collection: maximal dyadics not satisfying P, with subintervals that do. -/
+def stopping_time (n : ℕ) (Ds : Set (Set ℝ)) : Set (Set ℝ) :=
+  { I ∈ Ds | ¬ P I ∧ ∀ J ⊂ I, J ∈ dyadic_subintervals I → P J }
+
+/-- Whitney property: length comparable to distance to complement. -/
+def Whitney_property (I : Set ℝ) (compl : Set ℝ) : Prop :=
+  let len := volume I
+  let d := infDist I compl
+  (1/2) * len ≤ d ∧ d ≤ 2 * len
+
+theorem whitney_decomposition_exists :
+  ∃ (Is : Set (Set ℝ)), Countable Is ∧
+  (∀ I ∈ Is, IsClosed I ∧ 0 < volume I ∧ (volume I ≥ 1)) ∧
+  (∀ I J ∈ Is, I ≠ J → Disjoint I J) ∧
+  volume (⋃ I ∈ Is, I)ᶜ = 0 ∧
+  (∀ I ∈ Is, Whitney_property I (⋃ J ∈ Is, J)ᶜ) := by  -- added property and complement
+  let Is := ⋃ n, stopping_time n (h_dyadic n)
+  have h_count : Countable Is := countable_iUnion (fun n => (h_dyadic n).1)
+  have h_disj : ∀ I J ∈ Is, I ≠ J → Disjoint I J := by
+    intro I J hI hJ h_ne
+    obtain ⟨n, hn⟩ := Set.mem_iUnion.mp hI
+    obtain ⟨m, hm⟩ := Set.mem_iUnion.mp hJ
+    by_cases h_eq_nm : n = m
+    · rw [h_eq_nm] at hm
+      have h_max_I : ¬ P I ∧ (∀ K ⊂ I, K ∈ dyadic_subintervals I → P K) := stopping_time ... hn
+      by_contra h_overlap
+      let K := I ∩ J
+      have hK_nonempty : K.Nonempty := Set.nonempty_of_inter_nonempty h_overlap
+      have hK_subset_I : K ⊂ I := Set.inter_subset_left.ssubset (Set.ssubset_of_inter_ne h_ne h_overlap)
+      have hK_dyadic : K ∈ dyadic_subintervals I := sorry  -- assume intersections dyadic
+      -- Now, since maximal, P K (as proper sub)
+      have hP_K : P K := h_max_I.2 K hK_subset_I hK_dyadic
+      -- But to contradict, need ¬P K - perhaps from both maximal implying something
+      -- Actually, for hereditary P, if overlap large, K may not have P if I doesn't, but since P on subs, contradiction if ¬P K but all smaller have P
+      -- Wait, better: since ¬P I but P on all proper, if K proper with ¬P K, direct contrad
+      -- So prove ¬P K from ¬P I and ¬P J or something
+      have h_not_P_K : ¬ P K := by
+        -- If P K, then since K ⊂ J and hereditary, but ¬P J contrad
+        intro hP_K
+        exact h_max_J.1 (Hereditary.hereditary J K hP_K (Set.inter_subset_right.ssubset ...))
+      exact h_not_P_K hP_K
+    · -- Different levels as before
+      sorry
+  have h_full : volume (⋃ I ∈ Is, I)ᶜ = 0 := by
+    set covered := ⋃ I ∈ Is, I
+    set compl := coveredᶜ
+    -- Show compl has measure zero: points in compl are not in any stopped, meaning they are in infinite nesting of bad (P) intervals getting smaller
+    -- Since P covers all small intervals (small_P), and ℝ sigma-compact, compl is countable or null
+    have h_null : ∀ x ∈ compl, ∃ seq : ℕ → Set ℝ, (∀ k, x ∈ seq k ∧ P (seq k) ∧ volume (seq k) < 2^{-k}) ∧ (∀ k, seq (k+1) ⊂ seq k) := sorry  -- nesting bad intervals around x
+    -- Then compl subset union of small balls with total measure ∑ 2^{-k} =1, but actually use Borel-Cantelli or something for measure zero
+    sorry  -- blocker-8a2e: prove measure zero from nesting
+  have h_prop : ∀ I ∈ Is, Whitney_property I compl := by
+    intro I hI
+    obtain ⟨n, hn⟩ := Set.mem_iUnion.mp hI
+    let len := volume I
+    have h_len_ge : len ≥ 1 := h_prop I hI  -- from earlier
+    -- dist to compl ≈ len from maximality: if dist much larger, could extend I without hitting stopped
+    -- if dist much smaller, then subinterval near boundary would not have P, contradicting maximal
+    sorry  -- details using hereditary
+  exact ⟨Is, h_count, ⟨λ I hI => ⟨isClosed_Icc, by positivity, h_len_ge hI⟩, h_disj, h_full, h_prop⟩
+
 end Whitney
 
 -- Make boxEnergy available at RS level

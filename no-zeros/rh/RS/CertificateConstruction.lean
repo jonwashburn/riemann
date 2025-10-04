@@ -5,6 +5,7 @@ import rh.RS.Det2Outer
 import rh.RS.OffZerosBridge
 import rh.academic_framework.CompletedXi
 import rh.Proof.Main
+import rh.AnalyticOn.isolatedZeros
 
 /-!
 # Certificate Construction - Final Wiring
@@ -94,7 +95,28 @@ theorem removable_extension_at_xi_zeros :
   let Θ := Θ_pinch_of det2 O
   -- blocker-8a: Construct isolating U (small disk avoiding other zeros)
   -- Assume isolated zeros for now (standard; sorry to be replaced)
-  have h_isolated : ∃ r > 0, ∀ z ∈ Metric.ball ρ r \ {ρ}, riemannXi_ext z ≠ 0 := sorry  -- blocker-8g: prove from meromorphic isolation
+  have h_isolated : ∃ r > 0, ∀ z ∈ Metric.ball ρ r \ {ρ}, riemannXi_ext z ≠ 0 := by
+    -- riemannXi_ext analytic on ℂ (entire)
+    have h_analytic : AnalyticOn ℂ riemannXi_ext univ := by
+      -- completedRiemannZeta is entire
+      rw [riemannXi_ext]
+      exact completedRiemannZeta_entire
+    -- Not identically zero (e.g., at s=2 >0)
+    have h_not_zero : ¬ (∀ z, riemannXi_ext z = 0) := by
+      have h_at2 : riemannXi_ext 2 ≠ 0 := by
+        -- zeta(2) = π²/6 ≠0, G_ext(2) ≠0
+        simp [riemannXi_ext, completedRiemannZeta, riemannZeta_two_eq]
+        positivity
+      push_neg
+      exact ⟨2, h_at2⟩
+    -- Zeros isolated
+    have h_isol : IsIsolatedZero riemannXi_ext ρ hXi := by
+      apply AnalyticOn.isolatedZeros h_analytic (Metric.mem_ball_self (by norm_num)) h_not_zero
+    -- Extract positive radius
+    obtain ⟨r, hr_pos, h_ball⟩ := h_isol.exists_ball_eq_zero
+    refine ⟨r, hr_pos, ?_⟩
+    intro z hz h_zero
+    exact h_ball z hz h_zero
   obtain ⟨r, hr_pos, h_isol⟩ := h_isolated
   let U := Metric.ball ρ r ∩ Ω
   have hU_open : IsOpen U := Metric.isOpen_ball.inter (isOpen_discrete)  -- Ω open?

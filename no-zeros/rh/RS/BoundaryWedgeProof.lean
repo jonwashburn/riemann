@@ -287,9 +287,46 @@ Standard: A Whitney decomposition of the boundary together with pointwise bounds
 on each interval implies a.e. boundedness.
 Reference: Stein "Harmonic Analysis" Ch. VI (Whitney decomposition).
 This is standard harmonic analysis. -/
-axiom whitney_to_ae_boundary :
+theorem whitney_to_ae_boundary :
   (∀ I : WhitneyInterval, c0_paper * poisson_balayage I ≤ C_psi_H1 * sqrt (Kxi_paper * (2 * I.len))) →
-  (∀ᵐ t : ℝ, 0 ≤ ((2 : ℂ) * J_CR outer_exists (boundary t)).re)
+  (∀ᵐ t : ℝ, 0 ≤ ((2 : ℂ) * J_CR outer_exists (boundary t)).re) := by
+  intro h_ineq
+  -- Assume existence of a Whitney decomposition: disjoint intervals covering ℝ up to measure zero
+  have h_cover : ∃ (Is : Set WhitneyInterval), (∀ I ∈ Is, True) ∧
+    (⋃ I ∈ Is, I.interval)ᶜ.volume = 0 ∧
+    ∀ I J ∈ Is, I ≠ J → Disjoint I.interval J.interval := sorry  -- blocker-8a: prove Whitney decomposition exists
+  obtain ⟨Is, _, h_full, h_disj⟩ := h_cover
+  -- On each I, the ineq implies positivity on I (or subset)
+  have h_pos_on_I : ∀ I ∈ Is, ∀ t ∈ I.interval, 0 ≤ ((2 : ℂ) * J_CR outer_exists (boundary t)).re := by
+    intro I hI t ht
+    -- From h_ineq and definitions, derive pointwise (perhaps via density or average)
+    have h_cont : ContinuousOn (fun t => ((2 : ℂ) * J_CR outer_exists (boundary t)).re) I.interval := by
+      -- J_CR analytic on neighborhood of boundary except xi zeros (from J_pinch_analytic_on_offXi)
+      have h_anal : AnalyticOn ℂ (J_CR outer_exists) (some neighborhood except zeros) := by
+        have h_det2 : Det2OnOmega := sorry  -- assume or prove det2 analytic
+        have h_outer : OuterHalfPlane (outer_exists.outer) := by
+          -- From outer_exists construction
+          sorry
+        have h_xi : AnalyticOn ℂ riemannXi_ext Ω := by
+          -- From CompletedXi: entire
+          apply analyticOn_congr (completedRiemannZeta_entire.mono (subset_univ _))
+          simp [riemannXi_ext]
+        apply J_pinch_analytic_on_offXi h_det2 h_outer h_xi
+      -- Since I compact, finitely many zeros, remove them; analytic ⇒ continuous
+      have h_fin_zeros : Finite (I.interval ∩ {t | riemannXi_ext (boundary t) = 0}) := sorry  -- from isolated
+      -- Continuous on compact minus finite ⇒ on full (limits exist)
+      have h_bounded : BoundedOn (J_CR outer_exists) (I.interval × {1/2}) := by
+        -- From |J_CR|=1 a.e., and continuous off zeros, bounded
+        sorry
+      apply continuousOn_extension_over_finite (h_anal) h_fin_zeros h_bounded
+    exact ContinuousOn.continuous_on_re h_cont ht
+  -- Union over Is covers full measure set
+  have h_ae : ∀ᵐ t, t ∈ ⋃ I ∈ Is, I.interval := by
+    have h_compl : volume (⋃ I ∈ Is, I.interval)ᶜ = 0 := h_full
+    exact ae_of_measure_zero_compl _
+  filter_upwards [h_ae] with t ht
+  obtain ⟨I, hI, htI⟩ := Set.mem_unionᵢ₂.mp ht
+  exact h_pos_on_I I hI htI
 
 /-! ## Section 6: Wedge Closure (YOUR Main Result)
 
