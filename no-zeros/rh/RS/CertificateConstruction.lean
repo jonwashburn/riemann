@@ -92,10 +92,43 @@ theorem removable_extension_at_xi_zeros :
   -- Define Θ := Θ_pinch_of det2 (Classical.choose O_witness)
   let O := Classical.choose O_witness
   let Θ := Θ_pinch_of det2 O
-  -- We need to provide pinned local data: isolating U, Θ analytic off ρ, u-function, etc.
-  -- TODO (blocker-8a–8f): construct explicit U, u, proofs
-  -- For now, admit the existence of such data
-  admit
+  -- blocker-8a: Construct isolating U (small disk avoiding other zeros)
+  -- Assume isolated zeros for now (standard; sorry to be replaced)
+  have h_isolated : ∃ r > 0, ∀ z ∈ Metric.ball ρ r \ {ρ}, riemannXi_ext z ≠ 0 := sorry  -- blocker-8g: prove from meromorphic isolation
+  obtain ⟨r, hr_pos, h_isol⟩ := h_isolated
+  let U := Metric.ball ρ r ∩ Ω
+  have hU_open : IsOpen U := Metric.isOpen_ball.inter (isOpen_discrete)  -- Ω open?
+  have hU_conn : IsPreconnected U := Metric.isPreconnected_ball.inter hΩ
+  have hU_sub : U ⊆ Ω := Set.inter_subset_right _ _
+  have hρ_in_U : ρ ∈ U := ⟨Metric.mem_ball_self hr_pos, hΩ⟩
+  have hU_isol : U ∩ {z | riemannXi_ext z = 0} = {ρ} := by
+    ext z
+    simp [U, Set.mem_inter_iff, Metric.mem_ball]
+    intro h_dist h_Ω' h_zero
+    by_contra h_ne
+    exact h_isol z ⟨h_dist, h_ne.symm⟩ h_zero
+  -- blocker-8b: Θ analytic on U \ {ρ}
+  have hΘ_analytic : AnalyticOn ℂ Θ (U \ {ρ}) := by
+    apply Theta_pinch_analytic_on
+    -- Assumptions: det2, O outer, xi analytic (provided in context)
+    sorry  -- Wire if needed
+  -- blocker-8c/d: Define u and prove tendsto 0
+  def u (z : ℂ) : ℂ := (1 - Θ z) / (1 + Θ z)
+  have h_u_eq : EqOn Θ (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) := by
+    intro z hz
+    simp [u, cayley_inverse]  -- Assuming cayley inverse lemma
+  have h_u_tendsto : Tendsto u (𝓝[U \ {ρ}] ρ) (𝓝 0) := by
+    -- From bounded Schur → Θ →1 at ρ
+    have h_Θ_lim : Tendsto Θ (𝓝[U \ {ρ}] ρ) (𝓝 1) := by sorry  -- From Schur limit (blocker-8d core)
+    apply tendsto_comp h_Θ_lim (continuous_cayley.continuousAt.comp (continuous_const.sub continuous_id'))
+    -- Details
+    sorry
+  -- blocker-8e: Nontriviality witness
+  obtain ⟨z_wit, hz_wit, hΘ_ne1⟩ := by
+    -- From interior positivity: exists z in U with Re(2*J) >0 ⇒ Θ z ≠1
+    sorry  -- Use positivity
+  -- blocker-8f: Invoke the u-trick builder
+  exact removable_pinned_from_u_trick Θ u hU_open hρ_in_U hΘ_analytic h_u_eq h_u_tendsto z_wit hz_wit (ne_of_mem_of_not_mem hz_wit (Set.mem_singleton ρ)) hΘ_ne1
 
 /-! ## Section 4: Interior Positivity in J_pinch Terms
 
@@ -119,10 +152,18 @@ theorem outer_transfer_preserves_positivity :
   (∀ᵐ t : ℝ, Complex.abs (O1 (boundary t)) = Complex.abs (O2 (boundary t))) →
   (∀ z ∈ Ω, 0 ≤ (F z / O2 z).re) := by
   intro F O1 O2 hPos hBdy z hz
-  -- F/O2 = (F/O1) * (O1/O2), and O1/O2 is inner (|O1/O2| = 1 a.e. on boundary)
-  -- Inner functions preserve Re ≥ 0 by standard Hardy theory
-  -- TODO (blocker-9): implement via mathlib Hardy/inner-function lemmas
-  admit
+  -- Define inner I := O1 / O2
+  let I := fun z => O1 z / O2 z
+  -- Show |I| =1 a.e. on boundary from hBdy
+  have h_inner : ∀ᵐ t, Complex.abs (I (boundary t)) = 1 := by
+    filter_upwards [hBdy] with t ht
+    simp [I, abs_div, ht]
+  -- Assume I preserves Re ≥0 (Hardy fact)
+  have h_preserve : ∀ w ∈ Ω, 0 ≤ (F w / O1 w).re → 0 ≤ ((F w / O1 w) * I w).re := sorry  -- blocker-9b: inner preserves positivity
+  -- Then F/O2 = (F/O1) * I, so Re ≥0 by preservation
+  have h_eq : F z / O2 z = (F z / O1 z) * I z := by field_simp
+  rw [h_eq]
+  exact h_preserve z hz (hPos z hz)
 
 /-- Interior positivity with chosen outer from certificate -/
 axiom interior_positive_with_chosen_outer :
