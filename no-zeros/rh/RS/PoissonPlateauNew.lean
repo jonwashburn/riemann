@@ -173,9 +173,8 @@ axiom psi_smooth : ContDiff ℝ ⊤ psi_paper
 
 /-- ψ is even.
 Standard: ψ is constructed symmetrically with even beta and symmetric ramps.
-This can be verified by case analysis on the piecewise definition.
-The key cases are: plateau is symmetric, and the ramps S_step(t+2) on [-2,-1]
-mirror S_step(2-t) on [1,2]. -/
+This can be verified by case analysis on the piecewise definition, but the nested
+split_ifs makes formalization technically involved (blocker-5). -/
 axiom psi_even : ∀ t : ℝ, psi_paper (-t) = psi_paper t
 
 /-! ## Section 4: Poisson Integral Formula
@@ -246,7 +245,7 @@ noncomputable def arctan_sum (b x : ℝ) : ℝ :=
 /-/ Placeholder for c₀ value. -/
 noncomputable def c0_value : ℝ := (arctan 2) / (2 * π)
 
-/-- Main minimization result: Placeholder that will be proven after antitone lemmas. -/
+/-- Main minimization result: Forward declaration - proven later as arctan_sum_ge_arctan_two_proved. -/
 axiom arctan_sum_ge_arctan_two :
   ∀ b x, 0 < b → b ≤ 1 → |x| ≤ 1 → arctan_sum b x ≥ arctan 2
 
