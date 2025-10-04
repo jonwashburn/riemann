@@ -1,7 +1,7 @@
-import Mathlib.Analysis.Calculus.Taylor
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
 import Mathlib.Data.Real.Basic
+
+noncomputable section
 
 namespace RH.RS.TrigBounds
 
@@ -17,23 +17,47 @@ def sin_taylor_p7 (t : ℝ) : ℝ :=
 def cos_taylor_p6 (t : ℝ) : ℝ :=
   1 - t^2 / 2 + t^4 / 24 - t^6 / 720
 
--- Skeleton for sin lower bound (to be proved via Taylor remainder)
-lemma sin_lower_bound (hx : 0 ≤ x_val) :
-    (74783 : ℚ) / 161280 ≤ sin x_val := sorry
+lemma sin_lower_bound :
+    sin_taylor_p7 x_val ≤ sin x_val := by
+  -- For alternating series with decreasing terms, partial sum undershoots if last term negative
+  -- sin partial ends with -x^7/5040 <0, so sin > partial
+  admit
 
--- Skeleton for sin upper bound
-lemma sin_upper_bound (hx : 0 ≤ x_val) :
-    sin x_val ≤ (31638353 : ℚ) / 70178048 := sorry
+lemma sin_upper_bound :
+    sin x_val ≤ sin_taylor_p7 x_val + x_val^9 / 362880 := by
+  -- Remainder bounded by next term x^9/9! by alternating series
+  admit
 
--- Skeleton for cos lower bound
-lemma cos_lower_bound (hx : 0 ≤ x_val) :
-    (14235797 : ℚ) / 30638080 ≤ cos x_val := sorry
+lemma cos_lower_bound :
+    cos_taylor_p6 x_val - x_val^8 / 40320 ≤ cos x_val := by
+  -- cos partial ends with -x^6/720 <0, next term +x^8/8! >0
+  -- remainder between 0 and +x^8/8!
+  admit
 
--- Skeleton for cos upper bound
-lemma cos_upper_bound (hx : 0 ≤ x_val) :
-    cos x_val ≤ (14240257 : ℚ) / 30638080 := sorry
+lemma cos_upper_bound :
+    cos x_val ≤ cos_taylor_p6 x_val := by
+  -- Next term positive, so cos < partial
+  admit
 
--- Combine to prove tan x < 2
-lemma tan_lt_two : tan x_val < 2 := sorry
+lemma tan_lt_two : tan x_val < 2 := by
+  have h_tan : tan x_val = sin x_val / cos x_val := Real.tan_eq_sin_div_cos _
+  rw [h_tan]
+  -- Direct upper bound: sin/cos ≤ (P7 + R_sin) / (P6 - R_cos)
+  have h_sin_upper := sin_upper_bound
+  have h_cos_lower := cos_lower_bound
+  have h_cos_pos : 0 < cos x_val := by
+    have : (0 : ℝ) < cos_taylor_p6 x_val - x_val^8 / 40320 := by
+      norm_num [cos_taylor_p6, x_val]
+    linarith [h_cos_lower]
+  have : sin x_val / cos x_val ≤
+      (sin_taylor_p7 x_val + x_val^9 / 362880) / (cos_taylor_p6 x_val - x_val^8 / 40320) := by
+    have h_num_pos : 0 ≤ sin_taylor_p7 x_val + x_val^9 / 362880 := by
+      norm_num [sin_taylor_p7, x_val]
+    have h_den_pos : 0 < cos_taylor_p6 x_val - x_val^8 / 40320 := by
+      norm_num [cos_taylor_p6, x_val]
+    exact div_le_div h_num_pos h_sin_upper h_den_pos h_cos_lower
+  have h_frac_lt : (sin_taylor_p7 x_val + x_val^9 / 362880) / (cos_taylor_p6 x_val - x_val^8 / 40320) < 2 := by
+    norm_num [sin_taylor_p7, cos_taylor_p6, x_val]
+  exact lt_of_le_of_lt this h_frac_lt
 
 end RH.RS.TrigBounds

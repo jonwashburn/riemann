@@ -31,6 +31,37 @@ structure WhitneyInterval where
   len : ℝ
   len_pos : 0 < len
 
+namespace WhitneyInterval
+
+/-- The closed interval associated to a Whitney interval. -/
+def interval (W : WhitneyInterval) : Set ℝ :=
+  Set.Icc (W.t0 - W.len) (W.t0 + W.len)
+
+@[simp] lemma left_mem_interval (W : WhitneyInterval) :
+    W.t0 - W.len ∈ W.interval := by
+  have hlen : 0 ≤ W.len := W.len_pos.le
+  refine ⟨le_rfl, ?_⟩
+  linarith [hlen]
+
+@[simp] lemma right_mem_interval (W : WhitneyInterval) :
+    W.t0 + W.len ∈ W.interval := by
+  have hlen : 0 ≤ W.len := W.len_pos.le
+  refine ⟨?_, le_rfl⟩
+  linarith [hlen]
+
+@[simp] lemma center_mem_interval (W : WhitneyInterval) :
+    W.t0 ∈ W.interval := by
+  have hlen : 0 ≤ W.len := W.len_pos.le
+  refine ⟨?_, ?_⟩
+  · linarith [hlen]
+  · linarith [hlen]
+
+@[simp] lemma interval_nonempty (W : WhitneyInterval) :
+    (W.interval).Nonempty := by
+  exact ⟨W.t0, center_mem_interval W⟩
+
+end WhitneyInterval
+
 /-- Concrete half–plane Carleson constructor for a Whitney interval: builds a
 `BoxEnergy` whose bound is the linear budget `K·|I| = K·(2L)`. -/
 def mkWhitneyBoxEnergy (W : WhitneyInterval) (K : ℝ) : BoxEnergy :=

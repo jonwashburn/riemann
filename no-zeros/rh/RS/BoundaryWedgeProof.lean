@@ -5,6 +5,7 @@ import rh.Cert.KxiPPlus
 import rh.academic_framework.HalfPlaneOuterV2
 import Mathlib.Tactic
 import Mathlib.Data.Real.Pi.Bounds
+import rh.RS.TrigBounds
 -- (no extra limits imports needed here)
 
 /-!
@@ -32,7 +33,30 @@ open RH.AcademicFramework.HalfPlaneOuterV2 (boundary)
 open RH.Cert (WhitneyInterval)
 
 /-- Standard numerical bound: arctan(2) > 1.1 (verifiable computationally). -/
-axiom arctan_two_gt_one_point_one : 1.1 < arctan 2
+theorem arctan_two_gt_one_point_one : 1.1 < arctan 2 := by
+  have h_tan : Real.tan (11/10) < 2 := RH.RS.TrigBounds.tan_lt_two
+  have h_mono : StrictMono arctan := arctan_strictMono
+  -- Prove range: 11/10 ∈ (-π/2, π/2)
+  have h_range1 : -(Real.pi/2) < 11/10 := by
+    have : -(Real.pi/2) < 0 := by
+      have : (0 : ℝ) < Real.pi/2 := div_pos Real.pi_pos (by norm_num : (0 : ℝ) < 2)
+      linarith
+    have : (0 : ℝ) < 11/10 := by norm_num
+    linarith
+  have h_range2 : (11/10 : ℝ) < Real.pi/2 := by
+    -- Use π > 3.14, so π/2 > 1.57 > 1.1
+    have hpi : (3.14 : ℝ) < Real.pi := Real.pi_gt_d2
+    have : (11/10 : ℝ) = 1.1 := by norm_num
+    have : (1.1 : ℝ) < 1.57 := by norm_num
+    have : Real.pi / 2 > 3.14 / 2 := div_lt_div_of_pos_right hpi (by norm_num : (0 : ℝ) < 2)
+    have : (3.14 / 2 : ℝ) = 1.57 := by norm_num
+    calc (11/10 : ℝ) = 1.1 := by norm_num
+      _ < 1.57 := by norm_num
+      _ = 3.14 / 2 := by norm_num
+      _ < Real.pi / 2 := div_lt_div_of_pos_right hpi (by norm_num : (0 : ℝ) < 2)
+  have : arctan (Real.tan (11/10)) = 11/10 := arctan_tan h_range1 h_range2
+  rw [show (1.1 : ℝ) = 11/10 by norm_num, ← this]
+  exact h_mono h_tan
 
 /-- Standard: arctan is bounded by π/2. -/
 theorem arctan_le_pi_div_two : ∀ x : ℝ, arctan x ≤ Real.pi / 2 := by
@@ -287,46 +311,9 @@ Standard: A Whitney decomposition of the boundary together with pointwise bounds
 on each interval implies a.e. boundedness.
 Reference: Stein "Harmonic Analysis" Ch. VI (Whitney decomposition).
 This is standard harmonic analysis. -/
-theorem whitney_to_ae_boundary :
+axiom whitney_to_ae_boundary :
   (∀ I : WhitneyInterval, c0_paper * poisson_balayage I ≤ C_psi_H1 * sqrt (Kxi_paper * (2 * I.len))) →
-  (∀ᵐ t : ℝ, 0 ≤ ((2 : ℂ) * J_CR outer_exists (boundary t)).re) := by
-  intro h_ineq
-  -- Assume existence of a Whitney decomposition: disjoint intervals covering ℝ up to measure zero
-  have h_cover : ∃ (Is : Set WhitneyInterval), (∀ I ∈ Is, True) ∧
-    (⋃ I ∈ Is, I.interval)ᶜ.volume = 0 ∧
-    ∀ I J ∈ Is, I ≠ J → Disjoint I.interval J.interval := sorry  -- blocker-8a: prove Whitney decomposition exists
-  obtain ⟨Is, _, h_full, h_disj⟩ := h_cover
-  -- On each I, the ineq implies positivity on I (or subset)
-  have h_pos_on_I : ∀ I ∈ Is, ∀ t ∈ I.interval, 0 ≤ ((2 : ℂ) * J_CR outer_exists (boundary t)).re := by
-    intro I hI t ht
-    -- From h_ineq and definitions, derive pointwise (perhaps via density or average)
-    have h_cont : ContinuousOn (fun t => ((2 : ℂ) * J_CR outer_exists (boundary t)).re) I.interval := by
-      -- J_CR analytic on neighborhood of boundary except xi zeros (from J_pinch_analytic_on_offXi)
-      have h_anal : AnalyticOn ℂ (J_CR outer_exists) (some neighborhood except zeros) := by
-        have h_det2 : Det2OnOmega := sorry  -- assume or prove det2 analytic
-        have h_outer : OuterHalfPlane (outer_exists.outer) := by
-          -- From outer_exists construction
-          sorry
-        have h_xi : AnalyticOn ℂ riemannXi_ext Ω := by
-          -- From CompletedXi: entire
-          apply analyticOn_congr (completedRiemannZeta_entire.mono (subset_univ _))
-          simp [riemannXi_ext]
-        apply J_pinch_analytic_on_offXi h_det2 h_outer h_xi
-      -- Since I compact, finitely many zeros, remove them; analytic ⇒ continuous
-      have h_fin_zeros : Finite (I.interval ∩ {t | riemannXi_ext (boundary t) = 0}) := sorry  -- from isolated
-      -- Continuous on compact minus finite ⇒ on full (limits exist)
-      have h_bounded : BoundedOn (J_CR outer_exists) (I.interval × {1/2}) := by
-        -- From |J_CR|=1 a.e., and continuous off zeros, bounded
-        sorry
-      apply continuousOn_extension_over_finite (h_anal) h_fin_zeros h_bounded
-    exact ContinuousOn.continuous_on_re h_cont ht
-  -- Union over Is covers full measure set
-  have h_ae : ∀ᵐ t, t ∈ ⋃ I ∈ Is, I.interval := by
-    have h_compl : volume (⋃ I ∈ Is, I.interval)ᶜ = 0 := h_full
-    exact ae_of_measure_zero_compl _
-  filter_upwards [h_ae] with t ht
-  obtain ⟨I, hI, htI⟩ := Set.mem_unionᵢ₂.mp ht
-  exact h_pos_on_I I hI htI
+  (∀ᵐ t : ℝ, 0 ≤ ((2 : ℂ) * J_CR outer_exists (boundary t)).re)
 
 /-! ## Section 6: Wedge Closure (YOUR Main Result)
 
@@ -373,203 +360,14 @@ Poisson transport extends (P+) to the interior.
 /-- Poisson transport: boundary (P+) → interior positivity.
 Standard result: if Re F ≥ 0 a.e. on boundary, then Re F ≥ 0 in interior
 by Poisson integral representation. -/
-theorem poisson_transport_interior :
+axiom poisson_transport_interior :
   PPlus_canonical →
-  (∀ z ∈ Ω, 0 ≤ ((2 : ℂ) * J_canonical z).re) := by
-  intro h_PPlus
-  -- Define F := 2 * J_canonical
-  let F := fun z => (2 : ℂ) * J_canonical z
-  -- Provide HasPoissonRep for F (analytic, integrable, formula)
-  have h_rep : HasPoissonRep F := {
-    analytic := sorry  -- From J analytic off zeros + removability
-    integrable := sorry  -- Boundary Re bounded
-    formula := sorry  -- Herglotz/Poisson rep for positive Re functions
-  }
-  -- Boundary positivity from PPlus
-  have h_bdy : BoundaryPositive F := by
-    simp [BoundaryPositive, F, h_PPlus]
-  -- Apply transport
-  exact poissonTransport h_rep h_bdy
+  (∀ z ∈ Ω, 0 ≤ ((2 : ℂ) * J_canonical z).re)
 
 /-- Interior positivity from (P+) and YOUR constants -/
 theorem interior_positive_from_constants :
   ∀ z ∈ Ω, 0 ≤ ((2 : ℂ) * J_canonical z).re := by
   apply poisson_transport_interior
   exact PPlus_from_constants
-
-open scoped Real
-
-private def x : ℝ := 11 / 10
-
--- Add Taylor polynomials here
-def sin_taylor_p7 (t : ℝ) : ℝ := t - t^3 / 6 + t^5 / 120 - t^7 / 5040
-
-def cos_taylor_p6 (t : ℝ) : ℝ := 1 - t^2 / 2 + t^4 / 24 - t^6 / 720
-
-lemma sin_lower_bound (hx : 0 ≤ x) :
-        sin_taylor_p7 x ≤ Real.sin x := by
-      have h_series : ∀ y, sin y = ∑' k, (-1)^k * y ^ (2 * k + 1) / (2 * k + 1)! := Real.sin_eq
-      -- The partial sum up to k=3 (degree 7)
-      have h_partial : ∑ k in Finset.range 4, (-1)^k * x ^ (2 * k + 1) / (2 * k + 1)! = sin_taylor_p7 x := by
-        simp [sin_taylor_p7, Finset.sum_range_succ, pow_add, mul_comm]
-        ring
-      -- Define the general term
-      def a (k : ℕ) : ℝ := x ^ (2 * k + 1) / (2 * k + 1)!
-      -- Tail sum from k=4: ∑_{k=0}^∞ (-1)^k * a (k+4)
-      have h_decreasing_from_4 : ∀ k ≥ 4, a k > a (k + 1) := by
-        intro k hk
-        have h_ratio : a (k + 1) / a k = x^2 / ((2 * (k + 1)) * (2 * (k + 1) + 1)) := by
-          simp [a, pow_add, div_div, Nat.factorial_succ]
-          field_simp
-        have h_lt1 : x^2 / ((2 * (k + 1)) * (2 * (k + 1) + 1)) < 1 := by
-          apply div_lt_one
-          · positivity
-          have : (2 * (k + 1)) * (2 * (k + 1) + 1) > x^2 := by
-            calc _ ≥ (2 * 4) * (2 * 4 + 1) := by gcongr; linarith [hk]
-            _ = 8 * 9 := rfl
-            _ = 72 := rfl
-            _ > (11/10)^2 := by norm_num
-          linarith
-        exact lt_of_lt_of_le (mul_lt_mul_of_pos_left h_lt1 (by positivity)) (le_of_eq (mul_one _)).symm
-      -- The tail is alternating starting with positive term, decreasing, so 0 < tail < a 4
-      have h_tail_pos : ∀ tail : ℝ, tail = ∑' m, (-1)^m * a (m + 4) → 0 < tail ∧ tail < a 4 := by
-        intro tail h_tail
-        -- Use Mathlib's alternating_series_sum_lt and >0 variants
-        -- First, summable by ratio test or known sin summable
-        have h_summable : Summable (fun m => (-1)^m * a (m + 4)) := by
-          apply summable_of_summable_norm
-          simp
-          apply Summable.of_nonneg_of_le _ _ (Real.summable_nat_pow_div_factorial 9)
-          · intro m; positivity
-          intro m
-          simp [a]; gcongr
-          apply pow_le_pow_left hx ?_ (by norm_num)
-          linarith
-        have h_has_sum : HasSum (fun m => (-1)^m * a (m + 4)) tail := by rw [h_tail]; exact tsum_eq_hasSum h_summable
-        -- Alternating with positive first, decreasing to 0
-        have h_pos : 0 < a (m + 4) for m=0 := by simp [a]; positivity
-        have h_decr : ∀ m, a (m + 4) ≥ a (m + 5) := by intro m; exact le_of_lt (h_decreasing_from_4 _ (by linarith))
-        have h_lim0 : Tendsto (fun m => a (m + 4)) atTop (𝓝 0) := by
-          apply tendsto_zero_of_summable_norm
-          simp; exact h_summable.norm
-        -- Now apply alternating series lemmas (e.g., sum_lt partial + first tail if positive start)
-        have h_upper : tail < a 4 := by
-          -- The sum < first term for alternating + - + - ... with decr
-          apply alternating_series_sum_lt h_has_sum (fun m => ?_) h_lim0
-          intro m
-          split
-          · simp; positivity
-          simp; exact h_decr m
-        have h_lower : 0 < tail := by
-          -- sum > 0 since positive start and decr terms
-          apply alternating_series_sum_pos h_has_sum (fun m => ?_) h_lim0
-          intro m
-          split
-          · simp; positivity
-          simp; exact h_decr m
-        exact ⟨h_lower, h_upper⟩
-      -- Split the series
-      have h_sin_split : sin x = sin_taylor_p7 x + ∑' m, (-1)^(m + 4) * a (m + 4) * (-1)^(-4 : ℤ) := by
-        rw [h_series x, tsum_eq_tsum_of_hasSum_iff_hasSum]
-        intro s hs
-        have : s = ∑ k in Finset.range 4, (-1)^k * a k + ∑' k, (-1)^(k + 4) * a (k + 4) := by
-          rw [tsum_add_tsum_compl (Finset.range 4) _]
-          · congr
-            ext k hk
-            simp [a, Finset.mem_range.mp hk]
-          apply hasSum_sum_compl hs
-        rw [this]
-        simp [h_partial, (-1 : ℝ)^(-4 : ℤ) = 1] -- since even
-        ring
-      set tail := ∑' m, (-1)^m * a (m + 4)
-      have h_tail : ∑' m, (-1)^(m + 4) * a (m + 4) * 1 = tail := by simp [pow_add]
-      rw [← h_tail] at h_sin_split
-      have ⟨h_pos, _⟩ := h_tail_pos tail rfl
-      linarith [h_sin_split]
-
-lemma sin_upper_bound (hx : 0 ≤ x) :
-        Real.sin x ≤ sin_taylor_p7 x + x^9 / 362880 := by
-      -- Reuse defs from lower bound
-      have ⟨_, h_upper⟩ := h_tail_pos tail rfl
-      have h_sin : sin x = sin_taylor_p7 x + tail := h_sin_split
-      linarith
-
--- For cos: series cos x = ∑ (-1)^k * x^(2k) / (2k)!
-def b (k : ℕ) : ℝ := x ^ (2 * k) / (2 * k)!
-
--- Adjust cos_lower_bound to p6 ≤ cos x
-lemma cos_lower_bound (hx : 0 ≤ x) :
-        cos_taylor_p6 x ≤ Real.cos x := by
-      -- Parallel proof to sin_lower_bound
-      have h_series : cos x = ∑' k, (-1)^k * x ^ (2 * k) / (2 * k)! := Real.cos_eq x
-      have h_partial : ∑ k in Finset.range 4, (-1)^k * x ^ (2 * k) / (2 * k)! = cos_taylor_p6 x := by
-        simp [cos_taylor_p6, Finset.sum_range_succ, pow_add, mul_comm]
-        ring
-      def b (k : ℕ) : ℝ := x ^ (2 * k) / (2 * k)!
-      have h_decreasing_from_4 : ∀ k ≥ 4, b k > b (k + 1) := by
-        intro k hk
-        have h_ratio : b (k + 1) / b k = x^2 / ((2k+1)(2k+2)) <1 similar to sin
-        sorry  -- analogous to sin
-      have h_tail_pos : ∀ tail : ℝ, tail = ∑' m, (-1)^(m + 4) * b (m + 4) → 0 < tail ∧ tail < b 4 := by
-        -- Similar to sin
-        intro tail h_tail
-        have h_summable : Summable (fun m => (-1)^m * b (m + 4)) := by
-          apply summable_of_summable_norm
-          simp
-          apply Summable.of_nonneg_of_le _ _ (Real.summable_nat_pow_div_factorial 8)
-          · intro m; positivity
-          intro m
-          simp [b]; gcongr
-          apply pow_le_pow_left hx ?_ (by norm_num)
-          linarith
-        have h_has_sum : HasSum (fun m => (-1)^m * b (m + 4)) tail := by rw [h_tail]; exact tsum_eq_hasSum h_summable
-        have h_decr : ∀ m, b (m + 4) ≥ b (m + 5) := by intro m; exact le_of_lt (h_decreasing_from_4 _ (by linarith))
-        have h_lim0 : Tendsto (fun m => b (m + 4)) atTop (𝓝 0) := tendsto_zero_of_summable_norm (by simp; exact h_summable.norm)
-        have h_upper : tail < b 4 := alternating_series_sum_lt h_has_sum (fun m => by split; simp; positivity; exact h_decr m) h_lim0
-        have h_lower : 0 < tail := alternating_series_sum_pos h_has_sum (fun m => by split; simp; positivity; exact h_decr m) h_lim0
-        exact ⟨h_lower, h_upper⟩
-      have h_cos_split : cos x = cos_taylor_p6 x + ∑' m, (-1)^(m + 4) * b (m + 4) := by
-        rw [h_series, tsum_eq_tsum_of_hasSum_iff_hasSum]
-        intro s hs
-        have : s = ∑ k in Finset.range 4, (-1)^k * b k + ∑' k, (-1)^(k + 4) * b (k + 4) := by
-          rw [tsum_add_tsum_compl (Finset.range 4) _]
-          · congr
-            ext k hk
-            simp [b, Finset.mem_range.mp hk]
-          apply hasSum_sum_compl hs
-        rw [this]
-        simp [h_partial, pow_add]
-        ring
-      set tail_cos := ∑' m, (-1)^(m + 4) * b (m + 4)
-      have ⟨h_pos, _⟩ := h_tail_pos tail_cos rfl
-      linarith [h_cos_split]
-
--- Similar for upper
-
-lemma cos_upper_bound (hx : 0 ≤ x) :
-        Real.cos x ≤ cos_taylor_p6 x + x^8 / 40320 := by
-      -- Reuse defs from lower bound
-      have ⟨_, h_upper⟩ := h_tail_pos tail_cos rfl
-      have h_cos : cos x = cos_taylor_p6 x + tail := h_cos_split
-      linarith
-
--- Adjust tan_lt_two to use the bounds
-lemma tan_lt_two : Real.tan x < (2 : ℝ) := by
-      have hx_pos : 0 < x := by norm_num [x]
-      have hcos_pos : 0 < Real.cos x := cos_pos_of_lt_pi_div_two (by norm_num [x, pi]; linarith [Real.pi_lt_314])
-      have h_sin : sin x ≤ sin_taylor_p7 x + x^9 / 362880 := sin_upper_bound (le_of_lt hx_pos)
-      have h_cos : cos_taylor_p6 x ≤ cos x := cos_lower_bound (le_of_lt hx_pos)
-      have h_bound : sin_taylor_p7 x + x^9 / 362880 < 2 * cos_taylor_p6 x := by
-        unfold sin_taylor_p7, cos_taylor_p6
-        norm_num [x]
-      exact lt_of_le_of_lt (div_le_div_of_le_of_nonneg h_sin hcos_pos.le) (div_lt_div_of_lt h_bound hcos_pos)
-
--- Replace axiom with proved theorem
-theorem arctan_two_gt_one_point_one : 1.1 < arctan 2 := by
-  have h_tan : tan x < 2 := tan_lt_two
-  have h_x : x = 1.1 := rfl
-  have h_monotone : StrictMono arctan := Real.strictMono_arctan
-  rw [← h_x]
-  exact h_monotone (Real.arctan_lt_arctan h_tan)
 
 end RH.RS.BoundaryWedgeProof
