@@ -811,7 +811,7 @@ theorem arctan_sum_antitone_in_b (x : ℝ) (hx : |x| ≤ 1) :
     exact arctan_sum_deriv_b_nonpos x hx b hbIoc
   exact antitoneOn_of_deriv_nonpos hConvex hCont hDiff hDeriv
 
-/-- For fixed b, minimum occurs at endpoints x = ±1 (by evenness and monotonicity on [0,1]). 
+/-- For fixed b, minimum occurs at endpoints x = ±1 (by evenness and monotonicity on [0,1]).
 CORRECTED: Uses arctan_sum_antitone_on_nonneg (decreasing on [0,1]) + evenness. -/
 lemma arctan_sum_min_at_x_eq_one (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) (x : ℝ) (hx : |x| ≤ 1) :
   arctan_sum b x ≥ arctan_sum b 1 := by
@@ -823,7 +823,24 @@ lemma arctan_sum_min_at_x_eq_one (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) (x : �
     have hle : x ≤ 1 := hx_in.2
     exact arctan_sum_antitone_on_nonneg b hb b_le hx_in hone_in hle
   · -- x ∈ [-1,0): use evenness (arctan_sum b x = arctan_sum b (-x)) + monotonicity
-    sorry -- BLOCKER-14: complete evenness+monotonicity proof for negative x
+    push_neg at hcase
+    have hx_neg : x < 0 := hcase
+    have hx_le_zero : x ≤ 0 := hx_neg.le
+    have hx_ge_neg_one : -1 ≤ x := habs_x.1
+    -- Show -x lies in [0,1]
+    have hneg_x_in : -x ∈ Set.Icc 0 1 := by
+      refine ⟨?_, ?_⟩
+      · exact neg_nonneg.mpr hx_le_zero
+      · have : -x ≤ 1 := by linarith
+        exact this
+    have hone_in : (1 : ℝ) ∈ Set.Icc 0 1 := by simp [Set.mem_Icc]
+    have hle : -x ≤ 1 := hneg_x_in.2
+    -- Apply monotonicity on [0,1]
+    have hmono := arctan_sum_antitone_on_nonneg b hb b_le hneg_x_in hone_in hle
+    -- Re-express arctan_sum b x using evenness
+    have heven : arctan_sum b x = arctan_sum b (-x) := by
+      simpa using (arctan_sum_even b x).symm
+    simpa [heven] using hmono
 
 /-- For fixed x, minimum at b = 1. -/
 lemma arctan_sum_min_at_b_eq_one (x : ℝ) (hx : |x| ≤ 1) (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) :
