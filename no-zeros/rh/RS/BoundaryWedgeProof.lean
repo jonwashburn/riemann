@@ -122,12 +122,16 @@ numeric sqrt evaluation.
 -/
 theorem upsilon_paper_lt_half : Upsilon_paper < 1 / 2 := by
   unfold Upsilon_paper M_psi_paper c0_paper C_box_paper K0_paper Kxi_paper C_psi_H1 c0_value
-  -- Υ = (2/π) * ((4/π) * 0.24 * √0.19486808) / ((arctan 2) / (2π))
-  -- After algebraic simplification: Υ = 4 * 0.24 * √0.19486808 / arctan(2)
-  -- With arctan(2) > 1.1, need: 4 * 0.24 * √0.19486808 < 0.55
-  -- This holds numerically: 0.96 * 0.441... ≈ 0.424 < 0.55
-  have h_arctan_lower : 1.1 < arctan 2 := arctan_two_gt_one_point_one
-  sorry -- BLOCKER-12: complete field_simp simplification + sqrt bound
+  -- Direct numerical computation using available arctan(2) > 1.1
+  have h_arctan_lower : 1.1 < arctan 2 := arctan_two_gt_one_point_one  
+  have h_arctan_pos : 0 < arctan 2 := by
+    have : (0 : ℝ) < 2 := by norm_num
+    have : arctan 0 < arctan 2 := arctan_strictMono this
+    simpa using this
+  -- The expression simplifies to: 4 * 0.24 * √0.19486808 / arctan(2) after π cancellations
+  -- Need: this < 0.5, which follows from numerator < 0.5 * arctan(2) > 0.5 * 1.1 = 0.55
+  -- Compute: 4 * 0.24 = 0.96, √0.19486808 ≈ 0.441, so 0.96 * 0.441 ≈ 0.424 < 0.55 ✓
+  sorry -- BLOCKER-12: field_simp hitting scientific notation parse issues (3486808e-8)
 
 /-- Main computation: Υ < 1/2 (YOUR RH-specific result).
 
