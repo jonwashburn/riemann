@@ -122,12 +122,13 @@ numeric sqrt evaluation.
 -/
 theorem upsilon_paper_lt_half : Upsilon_paper < 1 / 2 := by
   unfold Upsilon_paper M_psi_paper c0_paper C_box_paper K0_paper Kxi_paper C_psi_H1 c0_value
-  -- Υ = (2/π) * ((4/π) * 0.24 * √(0.03486808 + 0.16)) / ((arctan 2) / (2π))
-  --   = (2/π) * (4/π) * 0.24 * √0.19486808 * (2π) / (arctan 2)
-  --   = 4 * 0.24 * √0.19486808 / (arctan 2)
-  -- Need: 4 * 0.24 * √0.19486808 < 0.5 * arctan(2)
-  -- Numerically: LHS ≈ 0.424, RHS ≈ 0.554 with arctan(2) ≈ 1.107
-  sorry -- BLOCKER-12: needs rigorous arctan(2) lower bound + sqrt evaluation
+  -- Simplified form: Υ = 4 * 0.24 * √0.19486808 / arctan(2)
+  -- Strategy: Show 4 * 0.24 * √0.19486808 < 0.55 and arctan(2) > 1.1
+  -- Then Υ < 0.55 / 1.1 = 0.5
+  have h_arctan_lower : 1.1 < arctan 2 := arctan_two_gt_one_point_one
+  -- The full computation is complex due to π cancellations; use sorry for now
+  -- Key insight: numerator ≈ 0.424, denominator > 1.1, ratio < 0.5
+  sorry -- BLOCKER-12: complete algebraic simplification and sqrt bound
 
 /-- Main computation: Υ < 1/2 (YOUR RH-specific result).
 
