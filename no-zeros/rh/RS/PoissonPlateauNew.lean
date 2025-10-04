@@ -499,7 +499,7 @@ theorem arctan_sum_deriv_negative_x_case : ∀ (b : ℝ) (hb : 0 < b) (_b_le : b
   -- We have hfrac: 1/(1+B) < 1/(1+A), so the bracketed term is POSITIVE
   -- But we want deriv ≤ 0, which would require the bracketed term to be NEGATIVE
   -- This suggests there's still an error in my analysis.
-  -- 
+  --
   -- Let me recalculate from the unfactored form directly:
   -- deriv = (1/(1+B)) * (-1/b) + (1/(1+A)) * (1/b)
   --       = (1/b) * [(1/(1+A)) - (1/(1+B))]
@@ -727,39 +727,41 @@ theorem arctan_sum_deriv_b_nonpos (x : ℝ) (hx : |x| ≤ 1) :
 
 /-! ### Minimum at corner (ACTION 3.5.4) -/
 
-/-- Monotonicity in x: arctan_sum is antitone (decreasing) in x on [-1,1]. -/
+/-- arctan_sum is antitone (decreasing) on [0,1] for fixed b. -/
+theorem arctan_sum_antitone_on_nonneg (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) :
+  AntitoneOn (fun x => arctan_sum b x) (Set.Icc 0 1) := by
+  have hConvex : Convex ℝ (Set.Icc (0 : ℝ) 1) := convex_Icc 0 1
+  have hCont : ContinuousOn (fun x => arctan_sum b x) (Set.Icc 0 1) := by
+    have : Continuous (fun x => arctan_sum b x) := by unfold arctan_sum; continuity
+    exact this.continuousOn
+  have hDiff : DifferentiableOn ℝ (fun x => arctan_sum b x) (interior (Set.Icc (0 : ℝ) 1)) := by
+    have : interior (Set.Icc (0 : ℝ) 1) = Set.Ioo 0 1 := interior_Icc
+    rw [this]
+    intro y hy
+    have : DifferentiableAt ℝ (fun x => arctan_sum b x) y := by
+      unfold arctan_sum
+      have h1 : DifferentiableAt ℝ (fun x => (1 - x) / b) y := by
+        exact ((differentiableAt_const (1 : ℝ)).sub differentiableAt_id).div_const b
+      have h2 : DifferentiableAt ℝ (fun x => (1 + x) / b) y := by
+        exact ((differentiableAt_const (1 : ℝ)).add differentiableAt_id).div_const b
+      exact (differentiable_arctan.differentiableAt.comp y h1).add
+            (differentiable_arctan.differentiableAt.comp y h2)
+    exact this.differentiableWithinAt
+  have hDeriv : ∀ y ∈ interior (Set.Icc (0 : ℝ) 1), deriv (fun x => arctan_sum b x) y ≤ 0 := by
+    intro y hy
+    have : interior (Set.Icc (0 : ℝ) 1) = Set.Ioo 0 1 := interior_Icc
+    rw [this] at hy
+    have hyIcc : y ∈ Set.Icc 0 1 := by
+      simp only [Set.mem_Icc, Set.mem_Ioo] at hy ⊢
+      exact ⟨le_of_lt hy.1, le_of_lt hy.2⟩
+    exact arctan_sum_deriv_x_nonpos_nonneg b hb b_le y hyIcc
+  exact antitoneOn_of_deriv_nonpos hConvex hCont hDiff hDeriv
+
+/-- CORRECTION: arctan_sum is NOT antitone on full [-1,1]. It's even with max at x=0.
+We keep this for compatibility but mark it as incorrect. Use arctan_sum_min_at_x_eq_one instead. -/
 theorem arctan_sum_antitone_in_x (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) :
   AntitoneOn (fun x => arctan_sum b x) (Set.Icc (-1) 1) := by
-  -- Use antitoneOn_of_deriv_nonpos from mathlib
-  have hConvex : Convex ℝ (Set.Icc (-1 : ℝ) 1) := convex_Icc (-1) 1
-  have hCont : ContinuousOn (fun x => arctan_sum b x) (Set.Icc (-1) 1) := by
-    have : Continuous (fun x => arctan_sum b x) := by
-      unfold arctan_sum
-      continuity
-    exact this.continuousOn
-  have hDiff : DifferentiableOn ℝ (fun x => arctan_sum b x) (interior (Set.Icc (-1 : ℝ) 1)) := by
-    have : interior (Set.Icc (-1 : ℝ) 1) = Set.Ioo (-1) 1 := interior_Icc
-    rw [this]
-    intro x hx
-    -- arctan_sum is sum of arctan compositions; each differentiable
-    have : DifferentiableAt ℝ (fun x => arctan_sum b x) x := by
-      unfold arctan_sum
-      have h1 : DifferentiableAt ℝ (fun x => (1 - x) / b) x := by
-        exact ((differentiableAt_const (1 : ℝ)).sub differentiableAt_id).div_const b
-      have h2 : DifferentiableAt ℝ (fun x => (1 + x) / b) x := by
-        exact ((differentiableAt_const (1 : ℝ)).add differentiableAt_id).div_const b
-      exact (differentiable_arctan.differentiableAt.comp x h1).add
-            (differentiable_arctan.differentiableAt.comp x h2)
-    exact this.differentiableWithinAt
-  have hDeriv : ∀ x ∈ interior (Set.Icc (-1 : ℝ) 1), deriv (fun x => arctan_sum b x) x ≤ 0 := by
-    intro x hx
-    have : interior (Set.Icc (-1 : ℝ) 1) = Set.Ioo (-1) 1 := interior_Icc
-    rw [this] at hx
-    have hxIcc : x ∈ Set.Icc (-1) 1 := by
-      simp only [Set.mem_Icc, Set.mem_Ioo] at hx ⊢
-      exact ⟨le_of_lt hx.1, le_of_lt hx.2⟩
-    exact arctan_sum_deriv_x_nonpos b hb b_le x hxIcc
-  exact antitoneOn_of_deriv_nonpos hConvex hCont hDiff hDeriv
+  sorry -- FALSE: function is even (parabola), not monotone on full interval!
 
 /-- Monotonicity in b: arctan_sum is antitone (decreasing) in b on (0,1]. -/
 theorem arctan_sum_antitone_in_b (x : ℝ) (hx : |x| ≤ 1) :
@@ -809,19 +811,19 @@ theorem arctan_sum_antitone_in_b (x : ℝ) (hx : |x| ≤ 1) :
     exact arctan_sum_deriv_b_nonpos x hx b hbIoc
   exact antitoneOn_of_deriv_nonpos hConvex hCont hDiff hDeriv
 
-/-- For fixed b, maximum at x = -1, minimum at x = 1. -/
+/-- For fixed b, minimum occurs at endpoints x = ±1 (by evenness and monotonicity on [0,1]). 
+CORRECTED: Uses arctan_sum_antitone_on_nonneg (decreasing on [0,1]) + evenness. -/
 lemma arctan_sum_min_at_x_eq_one (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) (x : ℝ) (hx : |x| ≤ 1) :
   arctan_sum b x ≥ arctan_sum b 1 := by
-  -- Since antitone in x, and x ≤ 1, we have arctan_sum b x ≥ arctan_sum b 1
-  have h_in : x ∈ Set.Icc (-1) 1 := abs_le.mp hx
-  have h_one : (1 : ℝ) ∈ Set.Icc (-1) 1 := by
-    simp only [Set.mem_Icc]
-    norm_num
-  have h_le : x ≤ 1 := by
-    have := abs_le.mp hx
-    linarith
-  -- Apply antitone property: x ≤ 1 and both in domain means f(1) ≤ f(x)
-  exact arctan_sum_antitone_in_x b hb b_le h_in h_one h_le
+  have habs_x := abs_le.mp hx
+  by_cases hcase : 0 ≤ x
+  · -- x ∈ [0,1]: use decreasing on [0,1]
+    have hx_in : x ∈ Set.Icc 0 1 := ⟨hcase, habs_x.2⟩
+    have hone_in : (1 : ℝ) ∈ Set.Icc 0 1 := by simp [Set.mem_Icc]
+    have hle : x ≤ 1 := hx_in.2
+    exact arctan_sum_antitone_on_nonneg b hb b_le hx_in hone_in hle
+  · -- x ∈ [-1,0): use evenness (arctan_sum b x = arctan_sum b (-x)) + monotonicity
+    sorry -- BLOCKER-14: complete evenness+monotonicity proof for negative x
 
 /-- For fixed x, minimum at b = 1. -/
 lemma arctan_sum_min_at_b_eq_one (x : ℝ) (hx : |x| ≤ 1) (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) :
