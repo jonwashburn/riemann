@@ -144,6 +144,72 @@ lemma four_Cpsi_mul_sqrt_lt :
     lt_trans h_step h_half
   exact lt_of_le_of_lt h_le h_bound
 
+/-- Algebraic identity used in the Υ bound: rewrite the ratio to expose the
+  `four_Cpsi_mul_sqrt_*` factor. -/
+lemma upsilon_ratio_eq :
+    ((2 / Real.pi) * ((4 / Real.pi) * C_psi_H1 *
+        Real.sqrt (K0_paper + Kxi_paper))) /
+        ((Real.arctan 2) / (2 * Real.pi))
+      = (16 * C_psi_H1 * Real.sqrt (K0_paper + Kxi_paper)) /
+        (Real.pi * Real.arctan 2) := by
+  set S : ℝ := Real.sqrt (K0_paper + Kxi_paper) with hS
+  have h_arctan_pos : 0 < Real.arctan 2 := by
+    have : (0 : ℝ) < 2 := by norm_num
+    have hmono : StrictMono arctan := arctan_strictMono
+    have : arctan 0 < arctan 2 := hmono this
+    simpa using this
+  have h_arctan_ne : Real.arctan 2 ≠ 0 := ne_of_gt h_arctan_pos
+  have h_two_pi_ne : (2 * Real.pi) ≠ 0 := mul_ne_zero (by norm_num) Real.pi_ne_zero
+  have h_four_pi_ne : (4 * Real.pi) ≠ 0 := mul_ne_zero (by norm_num) Real.pi_ne_zero
+  sorry
+
+lemma sixteen_Cpsi_mul_sqrt_le :
+    (16 * C_psi_H1) * Real.sqrt (K0_paper + Kxi_paper)
+      ≤ (42912 : ℝ) / 25000 := by
+  have h_mul := mul_le_mul_of_nonneg_left four_Cpsi_mul_sqrt_le
+      (by norm_num : (0 : ℝ) ≤ (4 : ℝ))
+  convert h_mul using 1
+  · ring
+  · norm_num
+
+lemma sixteen_Cpsi_mul_sqrt_lt :
+    (16 * C_psi_H1) * Real.sqrt (K0_paper + Kxi_paper)
+      < (Real.pi * Real.arctan 2) / 2 := by
+  have h_le := sixteen_Cpsi_mul_sqrt_le
+  have h_bound : (42912 : ℝ) / 25000 < (Real.pi * Real.arctan 2) / 2 := by
+    have h_step : (42912 : ℝ) / 25000 < (1727 : ℝ) / 1000 := by norm_num
+    have h_pi_lower : (157 : ℝ) / 50 < Real.pi := by
+      convert pi_gt_314 using 1 <;> norm_num
+    have h_arctan_lower : (11 : ℝ) / 10 < Real.arctan 2 := by
+      simpa [show (1.1 : ℝ) = (11 : ℝ) / 10 by norm_num]
+        using arctan_two_gt_one_point_one
+    have h_prod : (1727 : ℝ) / 500 < Real.pi * Real.arctan 2 := by
+      have h_prod1 : (157 : ℝ) / 50 * ((11 : ℝ) / 10)
+          < Real.pi * ((11 : ℝ) / 10) :=
+        mul_lt_mul_of_pos_right h_pi_lower (by norm_num : (0 : ℝ) < (11 : ℝ) / 10)
+      have h_prod2 : Real.pi * ((11 : ℝ) / 10)
+          < Real.pi * Real.arctan 2 :=
+        mul_lt_mul_of_pos_left h_arctan_lower Real.pi_pos
+      have h_eq : (157 : ℝ) / 50 * ((11 : ℝ) / 10) = (1727 : ℝ) / 500 := by norm_num
+      exact lt_trans (by simpa [h_eq] using h_prod1)
+        (by simpa [h_eq] using h_prod2)
+    have h_div : (1727 : ℝ) / 1000 < (Real.pi * Real.arctan 2) / 2 := by
+      have h_half_pos : (0 : ℝ) < (1 / 2 : ℝ) := by norm_num
+      have := mul_lt_mul_of_pos_left h_prod h_half_pos
+      have h_left : (1 / 2 : ℝ) * ((1727 : ℝ) / 500) = (1727 : ℝ) / 1000 := by
+        norm_num
+      rw [h_left] at this
+      convert this using 1
+      ring
+    exact lt_trans h_step h_div
+  have h_bound' : (16 * C_psi_H1) * Real.sqrt (K0_paper + Kxi_paper)
+      < (1 / 2 : ℝ) * (Real.pi * Real.arctan 2) :=
+    lt_of_le_of_lt h_le (by
+      simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+        using h_bound)
+  simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+    using h_bound'
+
 /-! ## Section 3: Υ Computation (YOUR RH-Specific Arithmetic)
 
 This section computes Υ < 1/2, which is the key RH-specific arithmetic
@@ -168,16 +234,21 @@ numeric sqrt evaluation.
 -/
 theorem upsilon_paper_lt_half : Upsilon_paper < 1 / 2 := by
   unfold Upsilon_paper M_psi_paper c0_paper C_box_paper K0_paper Kxi_paper C_psi_H1 c0_value
-  -- Direct numerical computation using available arctan(2) > 1.1
-  have h_arctan_lower : 1.1 < arctan 2 := arctan_two_gt_one_point_one
-  have h_arctan_pos : 0 < arctan 2 := by
-    have : (0 : ℝ) < 2 := by norm_num
-    have : arctan 0 < arctan 2 := arctan_strictMono this
-    simpa using this
-  -- The expression simplifies to: 4 * 0.24 * √0.19486808 / arctan(2) after π cancellations
-  -- Need: this < 0.5, which follows from numerator < 0.5 * arctan(2) > 0.5 * 1.1 = 0.55
-  -- Compute: 4 * 0.24 = 0.96, √0.19486808 ≈ 0.441, so 0.96 * 0.441 ≈ 0.424 < 0.55 ✓
-  sorry -- BLOCKER-12: field_simp hitting scientific notation parse issues (3486808e-8)
+  have h_den_pos : 0 < Real.pi * Real.arctan 2 :=
+    mul_pos Real.pi_pos (by
+      have : (0 : ℝ) < 2 := by norm_num
+      have hmono : StrictMono arctan := arctan_strictMono
+      have : arctan 0 < arctan 2 := hmono this
+      simpa using this)
+  have h_bound := sixteen_Cpsi_mul_sqrt_lt
+  have h_ratio := upsilon_ratio_eq
+  have h_div :
+      (16 * C_psi_H1 * Real.sqrt (K0_paper + Kxi_paper)) /
+          (Real.pi * Real.arctan 2) < (1 / 2 : ℝ) :=
+    (div_lt_iff₀ h_den_pos).mpr
+      (by simpa [mul_comm, mul_left_comm, mul_assoc, div_eq_mul_inv]
+        using h_bound)
+  sorry
 
 /-- Main computation: Υ < 1/2 (YOUR RH-specific result).
 
@@ -410,9 +481,17 @@ Poisson transport extends (P+) to the interior.
 /-- Poisson transport: boundary (P+) → interior positivity.
 Standard result: if Re F ≥ 0 a.e. on boundary, then Re F ≥ 0 in interior
 by Poisson integral representation. -/
-axiom poisson_transport_interior :
+theorem poisson_transport_interior :
   PPlus_canonical →
-  (∀ z ∈ Ω, 0 ≤ ((2 : ℂ) * J_canonical z).re)
+  (∀ z ∈ Ω, 0 ≤ ((2 : ℂ) * J_canonical z).re) := by
+  intro hPPlus z hz
+  have hb : ∀ᵐ t : ℝ, 0 ≤ ((2 : ℂ) * J_canonical (boundary t)).re := by
+    -- J_canonical = J_CR outer_exists, and hPPlus gives the boundary positivity
+    sorry
+  -- BLOCKER-PT1: need `HasPoissonRep` instance for `2 * J_canonical` and
+  -- a lemma transporting boundary positivity to interior via Poisson kernel.
+  -- Once available, apply it here with `hb` and the point `z`.
+  sorry
 
 /-- Interior positivity from (P+) and YOUR constants -/
 theorem interior_positive_from_constants :
