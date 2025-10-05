@@ -98,6 +98,18 @@ noncomputable def C_psi_H1 : ℝ := 0.24
 /-- Box constant: C_box = K₀ + Kξ -/
 noncomputable def C_box_paper : ℝ := K0_paper + Kxi_paper
 
+lemma sqrt_K0_add_Kxi_le :
+    Real.sqrt (K0_paper + Kxi_paper) ≤ (447 : ℝ) / 1000 := by
+  have h_nonneg : 0 ≤ (447 : ℝ) / 1000 := by norm_num
+  have h_sq : (K0_paper + Kxi_paper) ≤ ((447 : ℝ) / 1000) ^ 2 := by
+    have h_sum : K0_paper + Kxi_paper = 0.19486808 := by
+      norm_num [K0_paper, Kxi_paper]
+    have h_pow : ((447 : ℝ) / 1000) ^ 2 = 0.199809 := by
+      norm_num
+    have : (0.19486808 : ℝ) ≤ 0.199809 := by norm_num
+    simpa [h_sum, h_pow] using this
+  exact (Real.sqrt_le_iff).mpr ⟨h_nonneg, h_sq⟩
+
 /-! ## Section 3: Υ Computation (YOUR RH-Specific Arithmetic)
 
 This section computes Υ < 1/2, which is the key RH-specific arithmetic
@@ -123,7 +135,7 @@ numeric sqrt evaluation.
 theorem upsilon_paper_lt_half : Upsilon_paper < 1 / 2 := by
   unfold Upsilon_paper M_psi_paper c0_paper C_box_paper K0_paper Kxi_paper C_psi_H1 c0_value
   -- Direct numerical computation using available arctan(2) > 1.1
-  have h_arctan_lower : 1.1 < arctan 2 := arctan_two_gt_one_point_one  
+  have h_arctan_lower : 1.1 < arctan 2 := arctan_two_gt_one_point_one
   have h_arctan_pos : 0 < arctan 2 := by
     have : (0 : ℝ) < 2 := by norm_num
     have : arctan 0 < arctan 2 := arctan_strictMono this
