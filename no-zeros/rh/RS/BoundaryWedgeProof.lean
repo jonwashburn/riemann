@@ -110,6 +110,40 @@ lemma sqrt_K0_add_Kxi_le :
     simpa [h_sum, h_pow] using this
   exact (Real.sqrt_le_iff).mpr ⟨h_nonneg, h_sq⟩
 
+lemma four_Cpsi_mul_sqrt_le :
+    (4 * C_psi_H1) * Real.sqrt (K0_paper + Kxi_paper)
+      ≤ (10728 : ℝ) / 25000 := by
+  have h_nonneg : 0 ≤ (4 : ℝ) * C_psi_H1 := by
+    norm_num [C_psi_H1]
+  have h := mul_le_mul_of_nonneg_left sqrt_K0_add_Kxi_le h_nonneg
+  have h_eval :
+      (4 * C_psi_H1) * ((447 : ℝ) / 1000) = (10728 : ℝ) / 25000 := by
+    norm_num [C_psi_H1]
+  simpa [h_eval]
+    using h
+
+lemma four_Cpsi_mul_sqrt_lt :
+    (4 * C_psi_H1) * Real.sqrt (K0_paper + Kxi_paper)
+      < (2 : ℝ)⁻¹ * arctan 2 := by
+  have h_le := four_Cpsi_mul_sqrt_le
+  have h_step : (10728 : ℝ) / 25000 < (11 : ℝ) / 20 := by
+    norm_num
+  have h_arctan_lower : (11 : ℝ) / 10 < arctan 2 := by
+    simpa [show (1.1 : ℝ) = (11 : ℝ) / 10 by norm_num]
+      using arctan_two_gt_one_point_one
+  have h_half_pos : (0 : ℝ) < (2 : ℝ)⁻¹ := by
+    have : (0 : ℝ) < (2 : ℝ) := by norm_num
+    exact inv_pos.mpr this
+  have h_half : (11 : ℝ) / 20 < (2 : ℝ)⁻¹ * arctan 2 := by
+    have h_mul := mul_lt_mul_of_pos_left h_arctan_lower h_half_pos
+    have h_left : (2 : ℝ)⁻¹ * ((11 : ℝ) / 10) = (11 : ℝ) / 20 := by
+      norm_num
+    simpa [h_left]
+      using h_mul
+  have h_bound : (10728 : ℝ) / 25000 < (2 : ℝ)⁻¹ * arctan 2 :=
+    lt_trans h_step h_half
+  exact lt_of_le_of_lt h_le h_bound
+
 /-! ## Section 3: Υ Computation (YOUR RH-Specific Arithmetic)
 
 This section computes Υ < 1/2, which is the key RH-specific arithmetic
