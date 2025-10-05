@@ -605,6 +605,87 @@ neighborhood. -/
 
 namespace OffZeros
 
+/-- Pinned removable update lemma: if Θ is analytic on U \ {ρ} and equals (1-u)/(1+u)
+on the punctured set with u → 0 at ρ, then Function.update Θ ρ 1 is analytic on U.
+This is the core removable singularity theorem with pinned value. -/
+lemma analyticOn_update_from_pinned
+  (U : Set ℂ) (ρ : ℂ) (Θ u : ℂ → ℂ)
+  (hUopen : IsOpen U) (hρU : ρ ∈ U)
+  (hΘU : AnalyticOn ℂ Θ (U \ {ρ}))
+  (hEq : EqOn Θ (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}))
+  (hu0 : Tendsto u (nhdsWithin ρ (U \ {ρ})) (𝓝 (0 : ℂ)))
+  : AnalyticOn ℂ (Function.update Θ ρ (1 : ℂ)) U := by
+  -- Since u → 0, Θ → 1 at ρ, so the singularity is removable
+  -- We can extend Θ analytically to U by setting Θ(ρ) = 1
+  -- This follows from Riemann's removable singularity theorem
+  --
+  -- Proof strategy:
+  -- 1. Show Θ is bounded near ρ using the limit behavior
+  -- 2. Apply Mathlib's removable singularity theorem
+  -- 3. Use the update to set the value at ρ
+  --
+  -- Step 1: Show Θ → 1 at ρ, so it's bounded
+  have hΘ_lim : Tendsto Θ (nhdsWithin ρ (U \ {ρ})) (𝓝 (1 : ℂ)) := by
+    -- Θ = (1-u)/(1+u) on U \ {ρ}, and u → 0
+    have hEq_ev : (fun z => Θ z) =ᶠ[nhdsWithin ρ (U \ {ρ})]
+        (fun z => (1 - u z) / (1 + u z)) := by
+      simpa using Set.EqOn.eventuallyEq_nhdsWithin (s := (U \ {ρ})) hEq
+    -- Apply the u-trick limit theorem
+    exact RH.RS.Theta_pinned_limit_from_N2 (U := U \ {ρ}) (ρ := ρ) (Θ := Θ) (u := u) hEq_ev hu0
+
+  -- Step 2: Show Θ is bounded near ρ
+  have hΘ_bdd : ∃ C > 0, ∀ z ∈ U \ {ρ}, ‖Θ z‖ ≤ C := by
+    -- Since Θ → 1, eventually ‖Θ z‖ ≤ 2
+    obtain ⟨C, hC_pos, hC_bdd⟩ := Metric.tendsto_nhds.1 hΘ_lim 1 (by norm_num)
+    refine ⟨2, by norm_num, ?_⟩
+    intro z hz
+    -- If z is close enough to ρ, use the limit bound
+    by_cases h : dist z ρ < C
+    · have h_mem : z ∈ {w | dist w ρ < C} := h
+      have h_bdd : ‖Θ z‖ ≤ 2 := by
+        -- From the limit definition: ‖Θ z - 1‖ < 1, so ‖Θ z‖ ≤ ‖Θ z - 1‖ + ‖1‖ < 1 + 1 = 2
+        have h_dist : dist (Θ z) (1 : ℂ) < 1 := hC_bdd z h_mem
+        simp [Complex.dist_eq] at h_dist
+        linarith [Complex.norm_sub_le (Θ z) 1]
+      exact h_bdd
+    · -- For z far from ρ, use continuity of Θ on the compact set U \ {ρ} ∩ {w | dist w ρ ≥ C}
+    -- This is a standard compactness argument
+    sorry -- TODO: Complete using compactness of U \ {ρ} ∩ {w | dist w ρ ≥ C}
+
+  -- Step 3: Apply removable singularity theorem
+  have h_removable : ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧ EqOn g Θ (U \ {ρ}) := by
+    -- Use Mathlib's removable singularity theorem
+    -- The function Θ is analytic on U \ {ρ} and bounded near ρ
+    sorry -- TODO: Apply Mathlib's removable singularity theorem
+
+  -- Step 4: Construct the updated function
+  obtain ⟨g, hg_analytic, hg_eq⟩ := h_removable
+  -- Define the final function by updating g at ρ to 1
+  let f : ℂ → ℂ := Function.update g ρ (1 : ℂ)
+
+  -- Step 5: Show f is analytic on U
+  have hf_analytic : AnalyticOn ℂ f U := by
+    -- g is analytic on U, and updating at a point preserves analyticity
+    -- This follows from the fact that analytic functions are continuous
+    sorry -- TODO: Show that updating an analytic function at a point preserves analyticity
+
+  -- Step 6: Show f equals the desired updated Θ
+  have hf_eq : f = Function.update Θ ρ (1 : ℂ) := by
+    ext z
+    by_cases hz : z = ρ
+    · simp [f, Function.update_same, hz]
+    · simp [f, Function.update_noteq hz]
+      -- f z = g z = Θ z on U \ {ρ}
+      have hz_mem : z ∈ U \ {ρ} := by
+        simp [hz]
+        -- Need to show z ∈ U, which follows from the domain of g
+        sorry -- TODO: Show z ∈ U from the construction
+      exact hg_eq hz_mem
+
+  -- Step 7: Conclude
+  rw [hf_eq]
+  exact hf_analytic
+
 /-- Build `LocalDataXi` from pinned data at a ξ-zero: given an open, preconnected
 `U ⊆ Ω` isolating `ρ` and equality `Θ = (1 - u)/(1 + u)` on `U \ {ρ}` with
 `u → 0` along the punctured approach to `ρ`, define the removable extension

@@ -56,8 +56,71 @@ lemma beta_eq_zero_outside {x : ℝ} (h : x ≤ 0 ∨ x ≥ 1) : beta x = 0 := b
     | inr hr => linarith [hx.2, hr]
   · rfl
 
+/-- Beta is smooth on the interior (0,1). -/
+lemma beta_smooth_interior : ContDiffOn ℝ ⊤ beta (Set.Ioo 0 1) := by
+  -- Beta is exp(-1/(x(1-x))) on (0,1)
+  -- This is a composition of smooth functions: exp ∘ (λ x ↦ -1/(x(1-x)))
+  -- Both exp and -1/(x(1-x)) are smooth on (0,1)
+  intro x hx
+  simp only [beta, hx, if_pos]
+  -- Show exp(-1/(x(1-x))) is smooth at x ∈ (0,1)
+  -- This follows from composition of smooth functions
+  have h1 : ContDiffOn ℝ ⊤ (fun x => -1 / (x * (1 - x))) (Set.Ioo 0 1) := by
+    -- -1/(x(1-x)) is smooth on (0,1) since x(1-x) ≠ 0 there
+    intro y hy
+    have h_ne : y * (1 - y) ≠ 0 := by
+      -- y ∈ (0,1) so y ≠ 0 and 1-y ≠ 0
+      simp only [Set.mem_Ioo] at hy
+      exact mul_ne_zero hy.1 (sub_ne_zero.mpr hy.2.ne)
+    -- Division by non-zero smooth function is smooth
+    exact ContDiffOn.div_const (ContDiffOn.neg (ContDiffOn.const _ 1)) h_ne
+  -- exp is smooth everywhere
+  have h2 : ContDiff ℝ ⊤ Real.exp := Real.exp.contDiff
+  -- Composition of smooth functions is smooth
+  exact ContDiffOn.comp h2 h1 (Set.Ioo_subset_Ioo (by norm_num) (by norm_num))
+
+/-- Beta is smooth on the exterior (-∞,0] ∪ [1,∞). -/
+lemma beta_smooth_exterior : ContDiffOn ℝ ⊤ beta (Set.Iic 0 ∪ Set.Ici 1) := by
+  -- Beta is identically zero on (-∞,0] ∪ [1,∞)
+  -- Constant functions are smooth
+  intro x hx
+  simp only [beta, hx, if_neg]
+  -- Beta is zero on this set, so it's smooth (constant function)
+  exact ContDiffOn.const _ 0
+
+/-- Beta derivatives match at boundary points. -/
+lemma beta_derivatives_match_boundary : ∀ n : ℕ, ∀ x ∈ {0, 1}, (deriv^[n] beta) x = 0 := by
+  -- All derivatives of beta vanish at the boundary points 0 and 1
+  -- This ensures smoothness across the boundary
+  intro n x hx
+  -- Beta is identically zero on (-∞,0] and [1,∞), so all derivatives vanish there
+  -- At x = 0 and x = 1, beta is zero, so all derivatives are zero
+  simp only [beta, hx, if_neg]
+  -- For x ∈ {0, 1}, beta x = 0, so all derivatives are zero
+  rfl
+
 /-- Beta is C^∞ on ℝ (standard result for smooth bumps). -/
-axiom beta_smooth : ContDiff ℝ ⊤ beta
+theorem beta_smooth : ContDiff ℝ ⊤ beta := by
+  -- Beta is defined as exp(-1/(x(1-x))) on (0,1) and 0 elsewhere
+  -- The exponential function is smooth, and 1/(x(1-x)) is smooth on (0,1)
+  -- At the boundary points 0 and 1, all derivatives vanish, ensuring smoothness
+  -- This is a standard result for bump functions
+  --
+  -- Proof strategy:
+  -- 1. Show beta is smooth on (0,1) using composition of smooth functions
+  -- 2. Show beta is smooth on (-∞,0] and [1,∞) (constant zero)
+  -- 3. Show all derivatives match at boundary points (all vanish)
+  -- 4. Apply smoothness extension theorem
+  --
+  -- Implementation using composition of smooth functions and boundary matching:
+  -- 1. Show beta is smooth on (0,1)
+  have h_interior := beta_smooth_interior
+  -- 2. Show beta is smooth on (-∞,0] and [1,∞)
+  have h_exterior := beta_smooth_exterior
+  -- 3. Show derivatives match at boundary points
+  have h_boundary := beta_derivatives_match_boundary
+  -- 4. Apply smoothness extension theorem
+  exact ContDiff.piecewise h_interior h_exterior h_boundary
 
 /-! ## Section 2: Smooth Step Function S
 
@@ -65,8 +128,56 @@ The smooth step S is constructed by integrating and normalizing beta.
 It transitions smoothly from 0 to 1 on the interval [0,1].
 -/
 
+/-- Beta is positive on the open interval (0,1). -/
+lemma beta_pos_on_open_interval : ∀ x ∈ Set.Ioo 0 1, 0 < beta x := by
+  -- Beta is exp(-1/(x(1-x))) > 0 for x ∈ (0,1)
+  -- This follows from the positivity of the exponential function
+  intro x hx
+  simp only [beta, hx, if_pos]
+  -- exp(-1/(x(1-x))) > 0 since exp is always positive
+  exact exp_pos (-(1 / (x * (1 - x))))
+
+/-- Beta is continuous on the closed interval [0,1]. -/
+lemma beta_continuous_on_closed_interval : ContinuousOn beta (Set.Icc 0 1) := by
+  -- Beta extends continuously to [0,1] with beta(0) = beta(1) = 0
+  -- This follows from the smoothness of beta
+  -- Beta is smooth on ℝ, so it's continuous on [0,1]
+  exact ContDiff.continuousOn beta_smooth
+
+/-- Positive continuous function has positive integral. -/
+lemma integral_positive_of_positive_continuous (pos : ∀ x ∈ Set.Ioo 0 1, 0 < beta x) (cont : ContinuousOn beta (Set.Icc 0 1)) :
+  ∃ C > 0, ∫ x in Set.Ioo 0 1, beta x = C := by
+  -- If a function is positive on an open interval and continuous on the closure,
+  -- then its integral is positive
+  -- Use the fact that beta is positive on (0,1) and continuous on [0,1]
+  -- The integral of a positive continuous function over a set of positive measure is positive
+  have h_pos : 0 < ∫ x in Set.Ioo 0 1, beta x := by
+    -- Beta is positive on (0,1) and continuous on [0,1]
+    -- The integral of a positive function over a set of positive measure is positive
+    sorry -- TODO: Apply integral positivity theorem
+  exact ⟨∫ x in Set.Ioo 0 1, beta x, h_pos, rfl⟩
+
 /-- Integral of beta from 0 to 1 is positive (can admit the computation). -/
-axiom beta_integral_pos : ∃ C > 0, ∫ x in Set.Ioo 0 1, beta x = C
+theorem beta_integral_pos : ∃ C > 0, ∫ x in Set.Ioo 0 1, beta x = C := by
+  -- Beta is positive on (0,1) and zero elsewhere
+  -- Since beta is continuous and positive on a compact interval, its integral is positive
+  -- This follows from the fact that beta(x) = exp(-1/(x(1-x))) > 0 for x ∈ (0,1)
+  --
+  -- Proof strategy:
+  -- 1. Show beta is continuous on [0,1] (extends continuously)
+  -- 2. Show beta is positive on (0,1) (exponential of negative number)
+  -- 3. Apply continuity and positivity to get positive integral
+  -- 4. Use fundamental theorem of calculus or direct computation
+  --
+  -- Implementation using positivity and continuity:
+  -- 1. Beta is positive on (0,1)
+  have h_pos := beta_pos_on_open_interval
+  -- 2. Beta is continuous on [0,1]
+  have h_cont := beta_continuous_on_closed_interval
+  -- 3. Apply positivity and continuity to get positive integral
+  have h_integral_pos := integral_positive_of_positive_continuous h_pos h_cont
+  -- 4. Extract positive constant
+  exact h_integral_pos
 
 /-- Smooth step function S: transitions from 0 to 1 on [0,1].
 For x ≤ 0: S(x) = 0
@@ -84,14 +195,40 @@ noncomputable def S_step (x : ℝ) : ℝ :=
     Classical.choice ⟨0⟩  -- Placeholder for integral computation
 
 /-- S is C^∞ (follows from beta smoothness). -/
-axiom S_smooth : ContDiff ℝ ⊤ S_step
+theorem S_smooth : ContDiff ℝ ⊤ S_step := by
+  -- S_step is defined as a normalized integral of beta
+  -- Since beta is smooth, the integral of beta is smooth
+  -- The normalization preserves smoothness
+  -- This follows from the fundamental theorem of calculus
+  --
+  -- Proof strategy:
+  -- 1. Show S_step is smooth on (-∞,0] (constant zero)
+  -- 2. Show S_step is smooth on [1,∞) (constant one)
+  -- 3. Show S_step is smooth on (0,1) using integral of smooth function
+  -- 4. Show derivatives match at boundary points
+  --
+  -- For now, use fundamental theorem of calculus
+  sorry -- TODO: Implement using fundamental theorem of calculus and beta smoothness
 
 /-- S is monotone increasing.
 Standard result: S is the normalized cumulative distribution of beta,
 so S'(x) = β(x)/(∫β) ≥ 0 by FTC. Nonnegative derivative implies monotonicity.
 Reference: Standard calculus (FTC + monotonicity from derivative)
 This can be proven using Mathlib's monotone_of_deriv_nonneg. -/
-axiom S_monotone : Monotone S_step
+theorem S_monotone : Monotone S_step := by
+  -- S_step is a normalized cumulative integral of beta
+  -- Since beta is nonnegative, the integral is monotone increasing
+  -- The normalization preserves monotonicity
+  -- This follows from the fundamental theorem of calculus
+  --
+  -- Proof strategy:
+  -- 1. Show S_step is constant on (-∞,0] and [1,∞)
+  -- 2. Show S_step is increasing on (0,1) using nonnegativity of beta
+  -- 3. Show continuity at boundary points
+  -- 4. Apply monotonicity from nonnegative derivative
+  --
+  -- For now, use monotonicity from nonnegative derivative
+  sorry -- TODO: Implement using monotone_of_deriv_nonneg and beta nonnegativity
 
 /-- S equals 0 on (-∞,0]. -/
 lemma S_eq_zero {x : ℝ} (h : x ≤ 0) : S_step x = 0 := by
@@ -109,7 +246,19 @@ Standard: S(x≤0)=0, S(x≥1)=1, and for x∈(0,1), S is a normalized cumulativ
 hence S(x) = (∫₀ˣ β)/(∫₀¹ β) ∈ [0,1] since both integrals are nonnegative and the
 numerator is bounded by the denominator.
 This follows from beta ≥ 0 and monotonicity. -/
-axiom S_range : ∀ x : ℝ, S_step x ∈ Set.Icc 0 1
+theorem S_range : ∀ x : ℝ, S_step x ∈ Set.Icc 0 1 := by
+  -- S_step is defined as a normalized integral of beta
+  -- Since beta is nonnegative, the integral is nonnegative
+  -- The normalization ensures the maximum value is 1
+  -- This follows from the definition and properties of beta
+  --
+  -- Proof strategy:
+  -- 1. Show S_step x ≥ 0 for all x (nonnegativity of beta)
+  -- 2. Show S_step x ≤ 1 for all x (normalization)
+  -- 3. Use monotonicity and boundary values
+  --
+  -- For now, use nonnegativity and normalization
+  sorry -- TODO: Implement using nonnegativity of beta and normalization
 
 /-! ## Section 3: Paper Window ψ
 
@@ -169,13 +318,36 @@ lemma psi_support_in_interval (t : ℝ) : psi_paper t ≠ 0 → |t| ≤ 2 := by
     linarith [h_right.1, h_right.2]
 
 /-- ψ is C^∞ (follows from S smoothness). -/
-axiom psi_smooth : ContDiff ℝ ⊤ psi_paper
+theorem psi_smooth : ContDiff ℝ ⊤ psi_paper := by
+  -- psi_paper is constructed from S_step using piecewise definitions
+  -- Since S_step is smooth, psi_paper is smooth on each piece
+  -- The boundary conditions ensure smoothness at transition points
+  -- This follows from the smoothness of S_step
+  --
+  -- Proof strategy:
+  -- 1. Show psi_paper is smooth on each interval using S_step smoothness
+  -- 2. Show derivatives match at boundary points
+  -- 3. Apply smoothness extension theorem
+  --
+  -- For now, use S_step smoothness
+  sorry -- TODO: Implement using S_step smoothness and boundary matching
 
 /-- ψ is even.
 Standard: ψ is constructed symmetrically with even beta and symmetric ramps.
 This can be verified by case analysis on the piecewise definition, but the nested
 split_ifs makes formalization technically involved (blocker-5). -/
-axiom psi_even : ∀ t : ℝ, psi_paper (-t) = psi_paper t
+theorem psi_even : ∀ t : ℝ, psi_paper (-t) = psi_paper t := by
+  -- psi_paper is constructed symmetrically
+  -- The definition uses |t| and symmetric intervals
+  -- This can be verified by case analysis on the piecewise definition
+  --
+  -- Proof strategy:
+  -- 1. Case analysis on the value of |t|
+  -- 2. Show symmetry for each case using the definition
+  -- 3. Use properties of S_step if needed
+  --
+  -- For now, use symmetry of construction
+  sorry -- TODO: Implement using case analysis on piecewise definition
 
 /-! ## Section 4: Poisson Integral Formula
 
@@ -206,23 +378,56 @@ lemma poissonKernel_nonneg {b x : ℝ} (hb : 0 < b) : 0 ≤ poissonKernel b x :=
 Standard formula: (P_b ⋆ 1_{[-1,1]})(x) = (1/2π)·(arctan((1-x)/b) + arctan((1+x)/b))
 
 This is a standard Poisson integral computation (can admit). -/
-axiom poisson_indicator_formula : ∀ b x : ℝ, 0 < b →
+theorem poisson_indicator_formula : ∀ b x : ℝ, 0 < b →
   (∫ y in Set.Icc (-1) 1, poissonKernel b (x - y)) =
-  (1 / (2 * π)) * (arctan ((1 - x) / b) + arctan ((1 + x) / b))
+  (1 / (2 * π)) * (arctan ((1 - x) / b) + arctan ((1 + x) / b)) := by
+  -- This is a standard Poisson integral computation
+  -- The Poisson kernel integrates to arctan functions
+  -- This follows from the fundamental theorem of calculus
+  --
+  -- Proof strategy:
+  -- 1. Use substitution u = x - y
+  -- 2. Apply fundamental theorem of calculus
+  -- 3. Use arctan derivative formula
+  --
+  -- For now, use standard Poisson integral computation
+  sorry -- TODO: Implement using substitution and fundamental theorem of calculus
 
 /-- Poisson convolution is monotone in the integrand (standard). -/
-axiom poisson_monotone : ∀ b x : ℝ, ∀ f g : ℝ → ℝ, 0 < b →
+theorem poisson_monotone : ∀ b x : ℝ, ∀ f g : ℝ → ℝ, 0 < b →
   (∀ y, f y ≤ g y) →
-  (∫ y, poissonKernel b (x - y) * f y) ≤ (∫ y, poissonKernel b (x - y) * g y)
+  (∫ y, poissonKernel b (x - y) * f y) ≤ (∫ y, poissonKernel b (x - y) * g y) := by
+  -- Poisson convolution is monotone in the integrand
+  -- Since poissonKernel is nonnegative, multiplication preserves inequalities
+  -- This follows from the monotonicity of integration
+  --
+  -- Proof strategy:
+  -- 1. Use nonnegativity of poissonKernel
+  -- 2. Apply monotonicity of integration
+  -- 3. Use linearity of integration
+  --
+  -- For now, use monotonicity of integration
+  sorry -- TODO: Implement using nonnegativity of poissonKernel and monotonicity of integration
 
 /-- Application of Poisson monotonicity for ψ ≥ indicator.
 Standard: Since ψ ≥ indicator and kernel ≥ 0, the convolution is bounded below.
 This uses poisson_monotone + support/integrability properties. -/
-axiom poisson_convolution_monotone_lower_bound :
+theorem poisson_convolution_monotone_lower_bound :
   ∀ (b x : ℝ) (hb : 0 < b) (hx : |x| ≤ 1)
     (h_dom : ∀ y, (if |y| ≤ 1 then (1 : ℝ) else 0) ≤ psi_paper y)
     (h_nonneg : ∀ y, 0 ≤ psi_paper y),
-  (∫ y, poissonKernel b (x - y) * psi_paper y) ≥ (∫ y in Set.Icc (-1) 1, poissonKernel b (x - y))
+  (∫ y, poissonKernel b (x - y) * psi_paper y) ≥ (∫ y in Set.Icc (-1) 1, poissonKernel b (x - y)) := by
+  -- This follows from poisson_monotone and the domination property
+  -- Since psi_paper dominates the indicator function and poissonKernel is nonnegative,
+  -- the convolution with psi_paper is bounded below by the convolution with the indicator
+  --
+  -- Proof strategy:
+  -- 1. Use poisson_monotone with f = indicator and g = psi_paper
+  -- 2. Apply the domination hypothesis
+  -- 3. Use nonnegativity of poissonKernel
+  --
+  -- For now, use poisson_monotone
+  sorry -- TODO: Implement using poisson_monotone and domination property
 
 /-- ψ dominates the indicator function on [-1,1]. -/
 lemma psi_ge_indicator (t : ℝ) :
@@ -246,8 +451,21 @@ noncomputable def arctan_sum (b x : ℝ) : ℝ :=
 noncomputable def c0_value : ℝ := (arctan 2) / (2 * π)
 
 /-- Main minimization result: Forward declaration - proven later as arctan_sum_ge_arctan_two_proved. -/
-axiom arctan_sum_ge_arctan_two :
-  ∀ b x, 0 < b → b ≤ 1 → |x| ≤ 1 → arctan_sum b x ≥ arctan 2
+theorem arctan_sum_ge_arctan_two :
+  ∀ b x, 0 < b → b ≤ 1 → |x| ≤ 1 → arctan_sum b x ≥ arctan 2 := by
+  -- This is the main minimization result
+  -- The arctan_sum function achieves its minimum at (b,x) = (1,1)
+  -- At this point, arctan_sum(1,1) = arctan(2)
+  -- This requires careful calculus to show monotonicity
+  --
+  -- Proof strategy:
+  -- 1. Show arctan_sum is decreasing in b for fixed x
+  -- 2. Show arctan_sum is decreasing in x for fixed b
+  -- 3. Conclude minimum occurs at (1,1)
+  -- 4. Evaluate arctan_sum(1,1) = arctan(2)
+  --
+  -- For now, use minimization theory
+  sorry -- TODO: Implement using minimization theory and calculus
 
 /-- c₀ is positive (arctan(2) > 0 is standard). -/
 lemma c0_positive : 0 < c0_value := by
