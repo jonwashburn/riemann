@@ -52,16 +52,27 @@ private def boundaryPositive_of_PPlus
   RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive F :=
   -- Coerce the certificate-level boundary positivity to the AF predicate.
   by
-    -- `BoundaryPositive` uses `boundary`; Cert's `(P+)` uses `Complex.mk (1/2) t`.
+    -- `BoundaryPositive` uses `boundary t = (1/2 : ℝ) + I * (t : ℂ)`
+    -- Cert's `(P+)` uses `Complex.mk (1/2) t`
     have hcert : ∀ᵐ t : ℝ, 0 ≤ (F (Complex.mk (1/2) t)).re := hP
-    -- Helper equality: boundary equals Complex.mk form
-    have boundary_eq_mk' : ∀ t, RH.AcademicFramework.HalfPlaneOuterV2.boundary t = Complex.mk (1/2) t := by
-      intro t; change RH.AcademicFramework.HalfPlaneOuterV2.boundary t = { re := (1/2 : ℝ), im := t }
-      simpa using RH.AcademicFramework.HalfPlaneOuterV2.boundary_mk_eq t
-    -- Transport the a.e. statement along equality
+    -- Prove pointwise equality: Complex.mk (1/2) t = (1/2 : ℝ) + I * (t : ℂ)
+    have mk_eq : ∀ t, Complex.mk (1/2) t = (1/2 : ℝ) + I * (t : ℂ) := by
+      intro t
+      apply Complex.ext
+      · simp [Complex.add_re, Complex.mul_re, Complex.I_re, Complex.ofReal_re]
+      · simp [Complex.add_im, Complex.mul_im, Complex.I_im, Complex.ofReal_im]
+    -- Transport the a.e. statement
     have hbd : ∀ᵐ t : ℝ, 0 ≤ (F (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
-      -- rewrite mk to boundary
-      simpa [boundary_eq_mk'] using hcert
+      refine hcert.mono ?_
+      intro t ht
+      -- boundary t is definitionally (1/2 : ℝ) + I * (t : ℂ)
+      have hb : RH.AcademicFramework.HalfPlaneOuterV2.boundary t = (1/2 : ℝ) + I * (t : ℂ) := rfl
+      -- Rewrite ht using mk_eq
+      have ht' : 0 ≤ (F ((1/2 : ℝ) + I * (t : ℂ))).re := by
+        rw [← mk_eq t]
+        exact ht
+      rw [← hb] at ht'
+      exact ht'
     simpa [RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive] using hbd
 
 /-- From (P+) and a Poisson representation on the off-zeros set, deduce
