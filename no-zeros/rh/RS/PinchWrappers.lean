@@ -6,6 +6,7 @@ import rh.academic_framework.CompletedXi
 import rh.Proof.Main
 -- keep packaging decoupled to avoid cycles; consumers can import XiExtBridge directly if needed
 import rh.RS.BoundaryWedgeProof
+import rh.academic_framework.HalfPlaneOuterV2
 
 /-!
 # Pinch wrappers: encode manuscript implications and feed the builder
@@ -27,6 +28,7 @@ namespace RH
 namespace RS
 
 open Complex Set RH.AcademicFramework.CompletedXi
+open RH.AcademicFramework.HalfPlaneOuterV2
 
 local notation "Ω" => RH.RS.Ω
 
@@ -42,6 +44,117 @@ def hRe_offXi_from_poisson
       0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)).re := by
   intro z hz
   exact hPoisson z hz.1
+/-! ## Wiring (P+) to interior positivity via Poisson transport -/
+
+/-- Bridge: convert certificate `(P+)` to the AF boundary-positivity predicate. -/
+private def boundaryPositive_of_PPlus
+  (F : ℂ → ℂ) (hP : RH.Cert.PPlus F) :
+  RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive F :=
+  -- Coerce the certificate-level boundary positivity to the AF predicate.
+  by
+    -- `BoundaryPositive` uses `boundary`; Cert's `(P+)` uses `Complex.mk (1/2) t`.
+    have hcert : ∀ᵐ t : ℝ, 0 ≤ (F (Complex.mk (1/2) t)).re := hP
+    -- Helper equality: boundary equals Complex.mk form
+    have boundary_eq_mk' : ∀ t, RH.AcademicFramework.HalfPlaneOuterV2.boundary t = Complex.mk (1/2) t := by
+      intro t; change RH.AcademicFramework.HalfPlaneOuterV2.boundary t = { re := (1/2 : ℝ), im := t }
+      simpa using RH.AcademicFramework.HalfPlaneOuterV2.boundary_mk_eq t
+    -- Transport the a.e. statement along equality
+    have hbd : ∀ᵐ t : ℝ, 0 ≤ (F (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
+      -- rewrite mk to boundary
+      simpa [boundary_eq_mk'] using hcert
+    simpa [RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive] using hbd
+
+/-- From (P+) and a Poisson representation on the off-zeros set, deduce
+interior nonnegativity of `F := 2·J_pinch det2 O` on `Ω \ {Ξ=0}`. -/
+def hRe_offXi_from_PPlus_via_transport
+  (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
+      BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
+  (hRepOn : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn (F_pinch det2 (Classical.choose hOuter))
+              (Ω \ {z | riemannXi_ext z = 0}))
+  (hPPlus : RH.Cert.PPlus (fun z => (2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)))
+  : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+      0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)).re := by
+  -- Apply Poisson transport on the subset using boundary positivity
+  have hBP : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive (F_pinch det2 (Classical.choose hOuter)) :=
+    boundaryPositive_of_PPlus _ hPPlus
+  -- Transport on the off-zeros set
+  have hTrans := RH.AcademicFramework.HalfPlaneOuterV2.poissonTransportOn
+    (F := F_pinch det2 (Classical.choose hOuter)) hRepOn hBP
+  -- Unfold `F_pinch`
+  intro z hz
+  simpa [F_pinch] using hTrans z hz
+
+/-- Build pinch certificate using (P+) threaded through Poisson transport on the
+off-zeros set, plus pinned–removable data. -/
+def pinch_certificate_from_PPlus_transport_and_pinned
+  (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
+      BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
+  (hRepOn : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn (F_pinch det2 (Classical.choose hOuter))
+              (Ω \ {z | riemannXi_ext z = 0}))
+  (hPPlus : RH.Cert.PPlus (fun z => (2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)))
+  (hPinned : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
+      ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
+        (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
+        AnalyticOn ℂ (Θ_pinch_of det2 (Classical.choose hOuter)) (U \ {ρ}) ∧
+        ∃ u : ℂ → ℂ,
+          Set.EqOn (Θ_pinch_of det2 (Classical.choose hOuter)) (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) ∧
+          Filter.Tendsto u (nhdsWithin ρ (U \ {ρ})) (nhds (0 : ℂ)) ∧
+          ∃ z, z ∈ U ∧ z ≠ ρ ∧ (Θ_pinch_of det2 (Classical.choose hOuter)) z ≠ 1)
+  : PinchCertificateExt := by
+  classical
+  -- Ingredient 1: interior positivity on Ω \ Z(Ξ_ext) via transport
+  let hRe_offXi := hRe_offXi_from_PPlus_via_transport hOuter hRepOn hPPlus
+  -- Ingredient 2: pinned–removable across each ξ_ext zero (packaged)
+  -- Inline the removable-update packaging to avoid forward reference
+  let hRemXi : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
+      ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
+        (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
+        ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧
+          AnalyticOn ℂ (Θ_pinch_of det2 (Classical.choose hOuter)) (U \ {ρ}) ∧
+          Set.EqOn (Θ_pinch_of det2 (Classical.choose hOuter)) g (U \ {ρ}) ∧
+          g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1 := by
+    intro ρ hΩ hXi
+    rcases hPinned ρ hΩ hXi with
+      ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi,
+       hΘU, u, hEq, hu0, z, hzU, hzneq, hΘz⟩
+    classical
+    let Θ : ℂ → ℂ := Θ_pinch_of det2 (Classical.choose hOuter)
+    let g : ℂ → ℂ := Function.update Θ ρ (1 : ℂ)
+    have hEqOn : Set.EqOn Θ g (U \ {ρ}) := by
+      intro w hw; simp [g, Function.update_noteq hw.2]
+    have hval : g ρ = 1 := by simp [g]
+    have hgU : AnalyticOn ℂ g U :=
+      RH.RS.analyticOn_update_from_pinned (U := U) (ρ := ρ) (Θ := Θ) (u := u)
+        hUopen hρU hΘU hEq hu0
+    -- Nontriviality: since z ≠ ρ and Θ z ≠ 1, we get g z ≠ 1
+    have hgz_ne1 : g z ≠ 1 := by
+      have : g z = Θ z := by simp [g, Function.update_noteq hzneq]
+      intro hz1; exact hΘz (by simpa [this] using hz1)
+    exact ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi,
+      ⟨g, hgU, hΘU, hEqOn, hval, z, hzU, hgz_ne1⟩⟩
+  -- Build the certificate
+  exact RH.RS.buildPinchCertificate hOuter hRe_offXi hRemXi
+
+/-- Final wrapper: from (P+), Poisson representation on the off-zeros set,
+and pinned–removable data, conclude `RiemannHypothesis`. -/
+def RH_from_PPlus_transport_and_pinned
+  (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
+      BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
+  (hRepOn : HasPoissonRepOn (F_pinch det2 (Classical.choose hOuter))
+              (Ω \ {z | riemannXi_ext z = 0}))
+  (hPPlus : RH.Cert.PPlus (fun z => (2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)))
+  (hPinned : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
+      ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
+        (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
+        AnalyticOn ℂ (Θ_pinch_of det2 (Classical.choose hOuter)) (U \ {ρ}) ∧
+        ∃ u : ℂ → ℂ,
+          Set.EqOn (Θ_pinch_of det2 (Classical.choose hOuter)) (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) ∧
+          Filter.Tendsto u (nhdsWithin ρ (U \ {ρ})) (nhds (0 : ℂ)) ∧
+          ∃ z, z ∈ U ∧ z ≠ ρ ∧ (Θ_pinch_of det2 (Classical.choose hOuter)) z ≠ 1)
+  : RiemannHypothesis := by
+  classical
+  let C := pinch_certificate_from_PPlus_transport_and_pinned hOuter hRepOn hPPlus hPinned
+  exact RH.Proof.Final.RH_from_pinch_certificate C
 
 /-- Wrapper: pass pinned–removable local data for
 `Θ := Θ_pinch_of det2 (choose O)` directly as the `existsRemXi` ingredient. -/

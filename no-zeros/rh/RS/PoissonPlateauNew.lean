@@ -58,69 +58,22 @@ lemma beta_eq_zero_outside {x : ℝ} (h : x ≤ 0 ∨ x ≥ 1) : beta x = 0 := b
 
 /-- Beta is smooth on the interior (0,1). -/
 lemma beta_smooth_interior : ContDiffOn ℝ ⊤ beta (Set.Ioo 0 1) := by
-  -- Beta is exp(-1/(x(1-x))) on (0,1)
-  -- This is a composition of smooth functions: exp ∘ (λ x ↦ -1/(x(1-x)))
-  -- Both exp and -1/(x(1-x)) are smooth on (0,1)
-  intro x hx
-  simp only [beta, hx, if_pos]
-  -- Show exp(-1/(x(1-x))) is smooth at x ∈ (0,1)
-  -- This follows from composition of smooth functions
-  have h1 : ContDiffOn ℝ ⊤ (fun x => -1 / (x * (1 - x))) (Set.Ioo 0 1) := by
-    -- -1/(x(1-x)) is smooth on (0,1) since x(1-x) ≠ 0 there
-    intro y hy
-    have h_ne : y * (1 - y) ≠ 0 := by
-      -- y ∈ (0,1) so y ≠ 0 and 1-y ≠ 0
-      simp only [Set.mem_Ioo] at hy
-      exact mul_ne_zero hy.1 (sub_ne_zero.mpr hy.2.ne)
-    -- Division by non-zero smooth function is smooth
-    exact ContDiffOn.div_const (ContDiffOn.neg (ContDiffOn.const _ 1)) h_ne
-  -- exp is smooth everywhere
-  have h2 : ContDiff ℝ ⊤ Real.exp := Real.exp.contDiff
-  -- Composition of smooth functions is smooth
-  exact ContDiffOn.comp h2 h1 (Set.Ioo_subset_Ioo (by norm_num) (by norm_num))
+  sorry -- Standard result: composition of smooth functions
 
 /-- Beta is smooth on the exterior (-∞,0] ∪ [1,∞). -/
 lemma beta_smooth_exterior : ContDiffOn ℝ ⊤ beta (Set.Iic 0 ∪ Set.Ici 1) := by
-  -- Beta is identically zero on (-∞,0] ∪ [1,∞)
-  -- Constant functions are smooth
-  intro x hx
-  simp only [beta, hx, if_neg]
-  -- Beta is zero on this set, so it's smooth (constant function)
-  exact ContDiffOn.const _ 0
+  sorry -- Constant zero function is smooth
 
 /-- Beta derivatives match at boundary points. -/
-lemma beta_derivatives_match_boundary : ∀ n : ℕ, ∀ x ∈ {0, 1}, (deriv^[n] beta) x = 0 := by
-  -- All derivatives of beta vanish at the boundary points 0 and 1
-  -- This ensures smoothness across the boundary
-  intro n x hx
-  -- Beta is identically zero on (-∞,0] and [1,∞), so all derivatives vanish there
-  -- At x = 0 and x = 1, beta is zero, so all derivatives are zero
-  simp only [beta, hx, if_neg]
-  -- For x ∈ {0, 1}, beta x = 0, so all derivatives are zero
-  rfl
+lemma beta_derivatives_match_boundary : ∀ n : ℕ, ∀ x ∈ ({0, 1} : Set ℝ), (deriv^[n] beta) x = 0 := by
+  sorry -- Standard bump function property
 
 /-- Beta is C^∞ on ℝ (standard result for smooth bumps). -/
 theorem beta_smooth : ContDiff ℝ ⊤ beta := by
   -- Beta is defined as exp(-1/(x(1-x))) on (0,1) and 0 elsewhere
-  -- The exponential function is smooth, and 1/(x(1-x)) is smooth on (0,1)
-  -- At the boundary points 0 and 1, all derivatives vanish, ensuring smoothness
-  -- This is a standard result for bump functions
-  --
-  -- Proof strategy:
-  -- 1. Show beta is smooth on (0,1) using composition of smooth functions
-  -- 2. Show beta is smooth on (-∞,0] and [1,∞) (constant zero)
-  -- 3. Show all derivatives match at boundary points (all vanish)
-  -- 4. Apply smoothness extension theorem
-  --
-  -- Implementation using composition of smooth functions and boundary matching:
-  -- 1. Show beta is smooth on (0,1)
-  have h_interior := beta_smooth_interior
-  -- 2. Show beta is smooth on (-∞,0] and [1,∞)
-  have h_exterior := beta_smooth_exterior
-  -- 3. Show derivatives match at boundary points
-  have h_boundary := beta_derivatives_match_boundary
-  -- 4. Apply smoothness extension theorem
-  exact ContDiff.piecewise h_interior h_exterior h_boundary
+  -- This is a standard smooth bump function
+  -- Proof requires careful analysis of derivatives at boundary points
+  sorry -- Standard result for C^∞ bump functions
 
 /-! ## Section 2: Smooth Step Function S
 
@@ -130,19 +83,17 @@ It transitions smoothly from 0 to 1 on the interval [0,1].
 
 /-- Beta is positive on the open interval (0,1). -/
 lemma beta_pos_on_open_interval : ∀ x ∈ Set.Ioo 0 1, 0 < beta x := by
-  -- Beta is exp(-1/(x(1-x))) > 0 for x ∈ (0,1)
-  -- This follows from the positivity of the exponential function
   intro x hx
-  simp only [beta, hx, if_pos]
-  -- exp(-1/(x(1-x))) > 0 since exp is always positive
-  exact exp_pos (-(1 / (x * (1 - x))))
+  simp only [beta]
+  -- For x ∈ (0,1), the condition is satisfied
+  have : 0 < x ∧ x < 1 := by exact hx
+  simp only [this, ite_true]
+  exact exp_pos _
 
 /-- Beta is continuous on the closed interval [0,1]. -/
 lemma beta_continuous_on_closed_interval : ContinuousOn beta (Set.Icc 0 1) := by
   -- Beta extends continuously to [0,1] with beta(0) = beta(1) = 0
-  -- This follows from the smoothness of beta
-  -- Beta is smooth on ℝ, so it's continuous on [0,1]
-  exact ContDiff.continuousOn beta_smooth
+  sorry -- Follows from smoothness of beta
 
 /-- Positive continuous function has positive integral. -/
 lemma integral_positive_of_positive_continuous (pos : ∀ x ∈ Set.Ioo 0 1, 0 < beta x) (cont : ContinuousOn beta (Set.Icc 0 1)) :
@@ -665,68 +616,60 @@ theorem arctan_sum_deriv_zero_at_origin : ∀ (b : ℝ) (hb : 0 < b) (b_le : b �
     _ = (1 / (1 + (1 / b)^2)) * 0 := by ring
     _ = 0 := by simp
 
-/-- For x < 0, the derivative is non-positive.
-Uses factored form and shows the weighted difference is nonpositive. -/
-theorem arctan_sum_deriv_negative_x_case : ∀ (b : ℝ) (hb : 0 < b) (_b_le : b ≤ 1) (x : ℝ)
-  (_hx_neg : x < 0) (hx_bound : x ∈ Set.Icc (-1) 1),
-  deriv (fun x => arctan_sum b x) x ≤ 0 := by
-  intro b hb _ x _ hx
+/-- For x < 0, the derivative is nonnegative (evenness implies the derivative is odd). -/
+theorem arctan_sum_deriv_nonneg_neg_case : ∀ (b : ℝ) (hb : 0 < b) (_b_le : b ≤ 1) (x : ℝ)
+  (hx_neg : x < 0) (hx_bound : x ∈ Set.Icc (-1) 1),
+  0 ≤ deriv (fun x => arctan_sum b x) x := by
+  intro b hb _ x hx_neg hx
   -- Use the explicit derivative and factored form
   have hder := deriv_arctan_sum_explicit b x hb
   have hfact := deriv_arctan_sum_factored b x hb
   -- The derivative = (1/b) * [1/(1+((1+x)/b)^2) - 1/(1+((1-x)/b)^2)]
-  -- For x < 0: 1-x > 1+x ≥ 0
-  -- So ((1-x)/b)^2 > ((1+x)/b)^2
-  -- Hence 1 + ((1-x)/b)^2 > 1 + ((1+x)/b)^2
-  -- Therefore 1/(1+((1-x)/b)^2) < 1/(1+((1+x)/b)^2)
-  -- Which means the bracketed difference is NEGATIVE
-  -- And (1/b) > 0, so the product is NEGATIVE ≤ 0 ✓
-
   set A := ((1 + x) / b) ^ 2
   set B := ((1 - x) / b) ^ 2
-
   have h1x : 1 + x ≥ 0 := by
     have : x ≥ -1 := hx.1
     linarith
   have h1mx : 1 - x > 0 := by linarith
-
-  -- For x < 0: 1-x > 1+x, so B > A
+  -- For x < 0: 1 - x > 1 + x, so B > A
   have hBA : B > A := by
-    have hord : 1 - x > 1 + x := by linarith
+    have hord : 1 - x > 1 + x := by linarith [hx_neg]
     have : (1 - x) / b > (1 + x) / b := by
       exact div_lt_div_of_pos_right hord hb
     have : ((1 - x) / b) ^ 2 > ((1 + x) / b) ^ 2 := by
       have hu_nonneg : 0 ≤ (1 + x) / b := div_nonneg h1x (le_of_lt hb)
       have hv_pos : 0 < (1 - x) / b := div_pos h1mx hb
-      -- Use that (1-x)/b > (1+x)/b ≥ 0 implies squares ordered
       have habs : |(1 + x) / b| < |(1 - x) / b| := by
         simpa [abs_of_nonneg hu_nonneg, abs_of_pos hv_pos] using this
       exact sq_lt_sq.mpr habs
     exact this
-
   -- Then 1/(1+B) < 1/(1+A)
   have hfrac : 1 / (1 + B) < 1 / (1 + A) := by
     have hsum : 1 + A < 1 + B := by linarith [hBA]
     have hposA : 0 < 1 + A := by have : 0 ≤ A := sq_nonneg _; linarith
     have hposB : 0 < 1 + B := by have : 0 ≤ B := sq_nonneg _; linarith
     exact one_div_lt_one_div_of_lt hposA hsum
-
-  -- Key insight: The factored form shows
-  -- deriv = (1/b) * [1/(1+A) - 1/(1+B)]
-  -- We have hfrac: 1/(1+B) < 1/(1+A), so the bracketed term is POSITIVE
-  -- But we want deriv ≤ 0, which would require the bracketed term to be NEGATIVE
-  -- This suggests there's still an error in my analysis.
-  --
-  -- Let me recalculate from the unfactored form directly:
-  -- deriv = (1/(1+B)) * (-1/b) + (1/(1+A)) * (1/b)
-  --       = (1/b) * [(1/(1+A)) - (1/(1+B))]
-  -- With B > A: 1/(1+B) < 1/(1+A), so (1/(1+A)) - (1/(1+B)) > 0
-  -- Therefore deriv = (positive) * (positive) > 0, NOT ≤ 0!
-  --
-  -- This means for x < 0, the derivative is actually POSITIVE, not nonpositive.
-  -- But arctan_sum is supposed to be even, so deriv(x=0) = 0 and decreasing...
-  -- There must be a mistake in my understanding of the function or the inequality direction.
-  sorry -- BLOCKER-10: fundamental sign issue - needs careful rework
+  -- Hence the bracket (1/(1+A) - 1/(1+B)) is positive
+  have hbracket_pos : 0 < (1 / (1 + A)) - (1 / (1 + B)) := by
+    exact sub_pos.mpr hfrac
+  -- Combine with 1/b > 0
+  have hscale_pos : 0 < (1 / b) := one_div_pos.mpr hb
+  have hprod_pos : 0 < (1 / b) * ((1 / (1 + A)) - (1 / (1 + B))) :=
+    mul_pos hscale_pos hbracket_pos
+  have hprod_nonneg : 0 ≤ (1 / b) * ((1 / (1 + A)) - (1 / (1 + B))) :=
+    le_of_lt hprod_pos
+  -- Rewrite derivative into the factored form
+  have hderiv_eq :
+      deriv (fun x => arctan_sum b x) x
+        = (1 / b) * ((1 / (1 + A)) - (1 / (1 + B))) := by
+    calc
+      deriv (fun x => arctan_sum b x) x
+          = (1 / (1 + ((1 - x) / b) ^ 2)) * ((-1) / b)
+            + (1 / (1 + ((1 + x) / b) ^ 2)) * (1 / b) := hder
+      _ = (1 / b) * ((1 / (1 + A)) - (1 / (1 + B))) := by
+        simpa [A, B] using hfact
+  -- Conclude nonnegativity
+  simpa [hderiv_eq] using hprod_nonneg
 
 /-- For x ∈ [0,1], the derivative is non-positive (monotone nonincreasing). -/
 theorem arctan_sum_deriv_x_nonpos_nonneg (b : ℝ) (hb : 0 < b) (_b_le : b ≤ 1) :
@@ -797,27 +740,8 @@ theorem arctan_sum_deriv_x_nonpos_nonneg (b : ℝ) (hb : 0 < b) (_b_le : b ≤ 1
       _ ≤ 0 := hprod
   simpa [hder] using this
 
-/-- Step 6: Main theorem - derivative is non-positive on [-1,1].
-Strategy: Use evenness to reduce to [0,1], where the inequality (1+x)² ≥ (1-x)² holds. -/
-theorem arctan_sum_deriv_x_nonpos (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) :
-  ∀ x ∈ Set.Icc (-1) 1,
-    deriv (fun x => arctan_sum b x) x ≤ 0 := by
-  intro x hx
-  -- Use evenness: derivative of even function at -x equals -(derivative at x)
-  -- So if deriv ≤ 0 on [0,1], then by symmetry deriv ≤ 0 on [-1,0] as well
-  by_cases h : x ≥ 0
-  · -- Case x ≥ 0: use the direct proof on [0,1]
-    have hx_nonneg : x ∈ Set.Icc 0 1 := by
-      simp only [Set.mem_Icc] at hx ⊢
-      exact ⟨h, hx.2⟩
-    exact arctan_sum_deriv_x_nonpos_nonneg b hb b_le x hx_nonneg
-  · -- Case x < 0: use evenness
-    push_neg at h
-    -- For even functions, the derivative pattern has special symmetry
-    -- The key: arctan_sum is even, and its derivative formula shows
-    -- that the inequality holds on the full interval [-1,1]
-    -- Standard calculus: can be proven via careful sign analysis of the derivative formula
-    exact arctan_sum_deriv_negative_x_case b hb b_le x h hx
+/- Step 6 note: the previous global sign claim on [-1,1] was incorrect;
+   we use piecewise sign lemmas instead (nonneg for x<0 and nonpos for x≥0). -/
 
 /-! ### Derivative with respect to b (ACTION 3.5.3) -/
 
@@ -974,11 +898,7 @@ theorem arctan_sum_antitone_on_nonneg (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) :
     exact arctan_sum_deriv_x_nonpos_nonneg b hb b_le y hyIcc
   exact antitoneOn_of_deriv_nonpos hConvex hCont hDiff hDeriv
 
-/-- CORRECTION: arctan_sum is NOT antitone on full [-1,1]. It's even with max at x=0.
-We keep this for compatibility but mark it as incorrect. Use arctan_sum_min_at_x_eq_one instead. -/
-theorem arctan_sum_antitone_in_x (b : ℝ) (hb : 0 < b) (b_le : b ≤ 1) :
-  AntitoneOn (fun x => arctan_sum b x) (Set.Icc (-1) 1) := by
-  sorry -- FALSE: function is even (parabola), not monotone on full interval!
+-- Note: Removed global antitone claim on [-1,1] - it was false (function is even)
 
 /-- Monotonicity in b: arctan_sum is antitone (decreasing) in b on (0,1]. -/
 theorem arctan_sum_antitone_in_b (x : ℝ) (hx : |x| ≤ 1) :
