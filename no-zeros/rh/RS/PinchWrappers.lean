@@ -151,7 +151,7 @@ and pinned–removable data, conclude `RiemannHypothesis`. -/
 def RH_from_PPlus_transport_and_pinned
   (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
       BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
-  (hRepOn : HasPoissonRepOn (F_pinch det2 (Classical.choose hOuter))
+  (hRepOn : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn (F_pinch det2 (Classical.choose hOuter))
               (Ω \ {z | riemannXi_ext z = 0}))
   (hPPlus : RH.Cert.PPlus (fun z => (2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)))
   (hPinned : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →

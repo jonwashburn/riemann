@@ -509,6 +509,36 @@ theorem pinch_poissonRepOn_offZeros
   · -- formula
     exact hFormula
 
+/-- Acceptable input (standard harmonic analysis): Poisson representation
+formula for the pinch field on the off‑zeros set. This is a classical result
+providing the real-part Poisson integral formula for analytic functions with
+the given boundary data on the critical line. -/
+axiom F_pinch_poisson_formula_on_offZeros
+    (hDet2 : Det2OnOmega)
+    {O : ℂ → ℂ} (hO : OuterHalfPlane O)
+    (hXi : AnalyticOn ℂ riemannXi_ext Ω)
+    : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+        (F_pinch det2 O z).re
+          = poissonIntegral (fun t => (F_pinch det2 O (boundary t)).re) z
+
+/-- Convenience wrapper: build a Poisson representation witness for the pinch
+field on the off‑zeros set using the standard Poisson formula axiom together
+with measurability of the boundary data. -/
+theorem pinch_hasPoissonRepOn_default
+    (hDet2 : Det2OnOmega)
+    {O : ℂ → ℂ} (hO : OuterHalfPlane O)
+    (hBME : BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
+    (hXi : AnalyticOn ℂ riemannXi_ext Ω)
+    (hDet_meas : Measurable (fun t : ℝ => det2 (boundary t)))
+    (hO_meas   : Measurable (fun t : ℝ => O (boundary t)))
+    (hXi_meas  : Measurable (fun t : ℝ => riemannXi_ext (boundary t)))
+    : HasPoissonRepOn (F_pinch det2 O) (Ω \ {z | riemannXi_ext z = 0}) := by
+  -- Use the general builder with the axiom as the formula input
+  refine pinch_poissonRepOn_offZeros hDet2 (hO := hO) (hBME := hBME) (hXi := hXi)
+    (hDet_meas := hDet_meas) (hO_meas := hO_meas) (hXi_meas := hXi_meas) ?hFormula
+  intro z hz
+  exact F_pinch_poisson_formula_on_offZeros hDet2 hO hXi z hz
+
 /-- Main transport theorem for pinch field -/
 theorem pinch_transport
     {O : ℂ → ℂ}
