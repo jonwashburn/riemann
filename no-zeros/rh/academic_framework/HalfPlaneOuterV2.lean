@@ -107,6 +107,12 @@ lemma rs_boundary_eq_af (t : ℝ) : RH.RS.boundary t = boundary t := by
   · simp [RH.RS.boundary, boundary]
   · simp [RH.RS.boundary, boundary]
 
+/-- Adapter: record-form boundary equals AF boundary. -/
+lemma mk_boundary_eq_af (t : ℝ) : ({ re := (1/2 : ℝ), im := t } : ℂ) = boundary t := by
+  apply Complex.ext
+  · simp [boundary]
+  · simp [boundary]
+
 lemma measurable_boundary_F_pinch
     {O : ℂ → ℂ}
     (hDet_meas : Measurable (fun t : ℝ => det2 (boundary t)))

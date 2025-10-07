@@ -156,6 +156,11 @@ def J_CR (O : OuterOnOmega) (s : ℂ) : ℂ :=
 /-- Canonical J using the admitted outer. -/
 def J_canonical : ℂ → ℂ := J_CR outer_exists
 
+/-- Equality between the RS canonical J and the pinch J with the chosen outer. -/
+lemma J_CR_eq_J_pinch :
+  ∀ z, J_CR outer_exists z = J_pinch det2 (OuterOnOmega.outer outer_exists) z := by
+  intro z; rfl
+
 -- AXIOM: Removable extension of J_canonical across ξ_ext zeros
 -- Reference: Ahlfors "Complex Analysis" Ch. 4, Theorem 14
 --
