@@ -80,7 +80,7 @@ def ExistsOuterWithModulus (F : ℂ → ℂ) : Prop :=
   (1 / Real.pi) * (a / (a^2 + (t - b)^2))
 
 /-- Non-negativity of the Poisson kernel for z ∈ Ω -/
-lemma poissonKernel_nonneg {z : ℂ} (hz : z ∈ Ω) (t : ℝ) : 
+lemma poissonKernel_nonneg {z : ℂ} (hz : z ∈ Ω) (t : ℝ) :
     0 ≤ poissonKernel z t := by
   unfold poissonKernel Ω at *
   simp only [Set.mem_setOf_eq] at hz
@@ -89,7 +89,7 @@ lemma poissonKernel_nonneg {z : ℂ} (hz : z ∈ Ω) (t : ℝ) :
     apply add_pos_of_pos_of_nonneg
     · exact sq_pos_of_ne_zero (ne_of_gt ha)
     · exact sq_nonneg _
-  exact mul_nonneg (one_div_nonneg.mpr Real.pi_pos.le) 
+  exact mul_nonneg (one_div_nonneg.mpr Real.pi_pos.le)
     (div_nonneg ha.le hdenom.le)
 
 /-! ### Measurability helpers (placed early to be available downstream) -/
@@ -100,6 +100,12 @@ lemma measurable_boundary_affine : Measurable (boundary : ℝ → ℂ) := by
   · exact measurable_const
   · apply Measurable.const_mul
     exact Complex.continuous_ofReal.measurable
+
+/-- Adapter: the RS boundary parametrization equals the AF boundary parametrization. -/
+lemma rs_boundary_eq_af (t : ℝ) : RH.RS.boundary t = boundary t := by
+  apply Complex.ext
+  · simp [RH.RS.boundary, boundary]
+  · simp [RH.RS.boundary, boundary]
 
 lemma measurable_boundary_F_pinch
     {O : ℂ → ℂ}
@@ -188,7 +194,7 @@ lemma J_pinch_analyticOn_offZeros
   -- Restrict all functions to the off-zeros set
   have h1' : AnalyticOn ℂ det2 (Ω \ {z | riemannXi_ext z = 0}) := by
     apply h1.mono; intro z hz; exact hz.1
-  have h2' : AnalyticOn ℂ O (Ω \ {z | riemannXi_ext z = 0}) := by  
+  have h2' : AnalyticOn ℂ O (Ω \ {z | riemannXi_ext z = 0}) := by
     apply h2.mono; intro z hz; exact hz.1
   have h3' : AnalyticOn ℂ riemannXi_ext (Ω \ {z | riemannXi_ext z = 0}) := by
     apply h3.mono; intro z hz; exact hz.1
@@ -199,7 +205,7 @@ lemma J_pinch_analyticOn_offZeros
 /-- Analyticity of F_pinch on the off-zeros set -/
 lemma F_pinch_analyticOn_offZeros
     (hDet2 : Det2OnOmega)
-    {O : ℂ → ℂ} (hO : OuterHalfPlane O) 
+    {O : ℂ → ℂ} (hO : OuterHalfPlane O)
     (hXi : AnalyticOn ℂ riemannXi_ext Ω) :
     AnalyticOn ℂ (F_pinch det2 O) (Ω \ {z | riemannXi_ext z = 0}) := by
   unfold F_pinch
@@ -225,7 +231,7 @@ lemma F_pinch_boundary_bound
         norm_cast
         simp
       -- Create the BoundaryModulusEq for the RS module
-      have hBME' : ∀ u, Complex.abs (O (RH.RS.boundary u)) = 
+      have hBME' : ∀ u, Complex.abs (O (RH.RS.boundary u)) =
                          Complex.abs ((det2 (RH.RS.boundary u)) / (riemannXi_ext (RH.RS.boundary u))) := by
         intro u
         rw [boundary_eq]
@@ -243,7 +249,7 @@ lemma F_pinch_boundary_bound
         rw [boundary_eq]
     · -- ξ_ext = 0 at boundary: J_pinch = det2/(O·ξ_ext) = det2/0 = 0
       push_neg at hXi_ne
-      simp only [F_pinch, J_pinch, hXi_ne, mul_zero, div_zero, zero_mul, 
+      simp only [F_pinch, J_pinch, hXi_ne, mul_zero, div_zero, zero_mul,
                  Complex.zero_re, abs_zero]
       norm_num
   · -- O = 0 at boundary: J_pinch = det2/(O·ξ_ext) = det2/0 = 0
@@ -345,12 +351,12 @@ private lemma poissonKernel_bound (z : ℂ) (hz : z ∈ Ω) :
           mul_pos hposL hposR
         have := div_le_div_of_nonneg_right hcore (le_of_lt hdenom_pos)
         -- Simplify: LHS = a*(1+X)/((a^2+X)*(1+X)) = a/(a^2+X)
-        have lhs_simp : a * (1 + (t - z.im) ^ 2) / ((a ^ 2 + (t - z.im) ^ 2) * (1 + (t - z.im) ^ 2)) = 
+        have lhs_simp : a * (1 + (t - z.im) ^ 2) / ((a ^ 2 + (t - z.im) ^ 2) * (1 + (t - z.im) ^ 2)) =
                         a / (a ^ 2 + (t - z.im) ^ 2) := by
           field_simp
           ring
         -- Simplify: RHS = C0*(a^2+X)/((a^2+X)*(1+X)) = C0/(1+X)
-        have rhs_simp : (max a (1 / a)) * (a ^ 2 + (t - z.im) ^ 2) / ((a ^ 2 + (t - z.im) ^ 2) * (1 + (t - z.im) ^ 2)) = 
+        have rhs_simp : (max a (1 / a)) * (a ^ 2 + (t - z.im) ^ 2) / ((a ^ 2 + (t - z.im) ^ 2) * (1 + (t - z.im) ^ 2)) =
                         (max a (1 / a)) / (1 + (t - z.im) ^ 2) := by
           field_simp
           ring
@@ -367,7 +373,7 @@ lemma poissonKernel_integrable {z : ℂ} (hz : z ∈ Ω) :
     Integrable (fun t : ℝ => poissonKernel z t) := by
   -- Get the bound
   obtain ⟨C, hC_pos, hbound⟩ := poissonKernel_bound z hz
-  -- The dominating function is integrable  
+  -- The dominating function is integrable
   have h_dom : Integrable (fun t => C / (1 + (t - z.im)^2)) := by
     -- integrable_inv_one_add_sq gives integrability of 1/(1+t²)
     -- Translation and scaling preserve integrability
@@ -406,14 +412,14 @@ lemma poissonKernel_integrable {z : ℂ} (hz : z ∈ Ω) :
       apply add_pos_of_pos_of_nonneg
       · norm_num
       · exact sq_nonneg _
-    have hquot_nonneg : 0 ≤ C / (1 + (t - z.im) ^ 2) := 
+    have hquot_nonneg : 0 ≤ C / (1 + (t - z.im) ^ 2) :=
       div_nonneg hC_nonneg (le_of_lt hden_pos)
     have hC_norm : ‖C / (1 + (t - z.im) ^ 2)‖ = C / (1 + (t - z.im) ^ 2) := by
       rw [Real.norm_eq_abs, _root_.abs_of_nonneg hquot_nonneg]
     rw [hC_norm]
     exact hbound t
 
-/-- Integrability with bounded boundary data 
+/-- Integrability with bounded boundary data
     Note: The measurability assumption `hMeas` is needed since F may not be continuous.
     For analytic functions, this follows from continuity. -/
 lemma integrable_boundedBoundary
@@ -424,17 +430,17 @@ lemma integrable_boundedBoundary
     Integrable (fun t => (F (boundary t)).re * poissonKernel z t) := by
   -- The kernel is integrable
   have hker := poissonKernel_integrable hz
-  
+
   -- M must be nonnegative since |F.re| ≥ 0
   have hM_nonneg : 0 ≤ M := by
     trans |(F (boundary 0)).re|
     · exact abs_nonneg _
     · exact hBound 0
-  
+
   -- The dominating function M * poissonKernel is integrable
   have h_dom : Integrable (fun t => M * poissonKernel z t) := by
     exact Integrable.const_mul hker M
-  
+
   -- Apply comparison test
   refine h_dom.mono ?_ ?_
   · -- Measurability
@@ -527,13 +533,19 @@ with measurability of the boundary data. -/
 theorem pinch_hasPoissonRepOn_default
     (hDet2 : Det2OnOmega)
     {O : ℂ → ℂ} (hO : OuterHalfPlane O)
-    (hBME : BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
+    (hBME_rs : RH.RS.BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
     (hXi : AnalyticOn ℂ riemannXi_ext Ω)
     (hDet_meas : Measurable (fun t : ℝ => det2 (boundary t)))
     (hO_meas   : Measurable (fun t : ℝ => O (boundary t)))
     (hXi_meas  : Measurable (fun t : ℝ => riemannXi_ext (boundary t)))
     : HasPoissonRepOn (F_pinch det2 O) (Ω \ {z | riemannXi_ext z = 0}) := by
   -- Use the general builder with the axiom as the formula input
+  -- Convert RS boundary modulus equality to AF variant via boundary equality
+  have hBME : BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s) := by
+    intro t
+    -- Rewrite RS boundary to AF boundary
+    have hEq : RH.RS.boundary t = boundary t := rs_boundary_eq_af t
+    simpa [hEq] using (hBME_rs t)
   refine pinch_poissonRepOn_offZeros hDet2 (hO := hO) (hBME := hBME) (hXi := hXi)
     (hDet_meas := hDet_meas) (hO_meas := hO_meas) (hXi_meas := hXi_meas) ?hFormula
   intro z hz
@@ -560,4 +572,3 @@ def BoundaryAI (F : ℂ → ℂ) : Prop :=
 /-- AI property follows from Poisson representation (statement) -/
 def boundaryAI_from_poissonRep (F : ℂ → ℂ) : Prop :=
   HasPoissonRep F → BoundaryAI F
-
