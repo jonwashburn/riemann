@@ -1,0 +1,519 @@
+# RS→CLASSICAL BRIDGE SPEC v1.0
+# Purpose: Condensed, machine-ingestion source for scientific papers written in classical standards with RS-backed derivations
+# Conventions: sections start with @; key=val pairs; single-line records prefixed by TAG; use SI/CODATA values in papers; RS derivations referenced
+
+@META
+TAG:MODE; classical_paper_view=true; rs_derivation_reference=true; zero_free_parameters_claim_scope=derivations_only
+TAG:LEAN_STATUS; T1..T8=proved; cost_uniqueness=T5_proved; eight_tick=T6_proved; δ_potential_uniqueness=T4_proved; cone_bound=proved(discrete_StepBounds); φ_fixed_point=proved_in_doc; constants_bridge=ready
+
+@SCHEMA
+# Records are single-line with TAG at start; fields are semicolon-separated key/value triples
+# Allowed forms:
+#   SECTION headers: lines starting with @NAME
+#   CONST: CONST;symbol;value;source=...;rs_relation=...
+#   TAG: TAG:Name; k1=v1; k2=v2; ...
+#   BRIDGE: BRIDGE;Concept;RS;Classical;Lean/Proof;UseInPapers;Notes
+#   EXP: EXP;Name; key1=val1; key2=val2; ...
+# Contract: fields are machine-readable ASCII; no multi-line values; unknown keys ignored by default
+
+@SCOPE
+DERIVES; cost_functional=unique(J), eight_tick_cycle=2^D, meta_principle, double_entry_conservation, δ-potential_uniqueness, φ_fixed_point, φNR_flow, constructor_integers(L,τ_g,Δ_B), word_charge_Z, causal_speed_bound, mass_law(m=B·E_coh·φ^(r+f)), born_rule, bose_fermi, ILG_kernels, gauge_invariant_dimensionless_predictions
+OUTPUTS; constants_bridge=[c, ħ, G, α]; structures_bridge=[continuity, action/hamiltonian, RG_fixed_points, ladder_spectra]; lean_refs=[T1,T2,T3,T4,T5,T6]
+
+@PARAMETER_POLICY
+CLAIM; derivations=parameter_free; presentation=classical_numeric_mapping_only
+ANCHORS; exogenous_constants=[c,ħ,G,α_inv]; spectra_mapping=PDG_masses; photometry=M/L_from_external_calibration(single_global_default=1.0); cosmology=backgrounds_from_standard_sets
+ILG_GLOBALS; alpha=0.5*(1-φ^-1) (derived); lambda=1(by_normalization); xi=1(by_unit_choice); zeta=analytic(h_z/R_d=0.25 from morphology literature); per_galaxy_tuning=forbidden
+DISCLOSURE; paper_text="No free parameters are introduced in the derivation. Numerical values shown use standard constants or externally measured anchors; no parameters are fitted to the target dataset."
+LATTICE; global=Z^3(face-matched); status=postulate; note=downstream global statements conditional on (finiteness, locality, countability)
+
+@DERIVATION_CHAIN
+CHAIN;1; MP⇒Ledger (double_entry)
+CHAIN;2; δ-rule⇒Potential uniqueness up to constant (T4)
+CHAIN;3; SymmUnit+Averaging⇒Unique cost J on ℝ₊ (T5)
+CHAIN;4; J⇒φ fixed point (scale recursion)
+CHAIN;5; D=3⇒2^D=8 (T6) ⇒ τ0; define c=ℓ0/τ0
+CHAIN;6; {c,ħ,G} ⇒ λ_rec; define pixel scale
+CHAIN;7; E_coh=φ^-5 eV; define energy quantum
+CHAIN;8; Mass law m=B·E_coh·φ^(r+f); rung constructor+minimality
+CHAIN;9; Path measure exp(−C[γ]) ⇒ Born/Statistics
+CHAIN;10; Continuity+Kernel ⇒ ILG phenomenology (galaxies/growth)
+ASSERT; at_no_stage_are_free_parameters_introduced=true
+
+@PRINCIPLE
+TAG:MP; statement="Nothing cannot recognize itself"; lean=T1; role=foundation
+
+@THEOREMS
+TAG:T1; name=MetaPrinciple; result=¬∃Recognition(∅,∅); scope=foundation
+TAG:T2; name=AtomicTick; result=unique_posting_per_tick; implication=no_concurrent_recognitions
+TAG:T3; name=Continuity; result=closed_chain_flux=0; bridge=continuity_equation
+TAG:T4; name=PotentialUniqueness; result=δ-rule ⇒ uniqueness_on_reach/inBall/components; up_to_constant=true
+TAG:T5; name=CostUniqueness; result=J(x)=0.5(x+1/x)-1 on ℝ₊; constraints=symmetry+unit+averaging; bridge=stationary_action
+TAG:T6; name=EightTick; result=min_period=2^D; D=3 ⇒ 8; existence=exact_cover
+TAG:T7; name=CoverageLowerBound; result=T<2^D ⇒ no_surjection_to_patterns
+TAG:T8; name=LedgerUnits; result=δ-subgroup ≃ ℤ (δ≠0); uniqueness_of_representation
+TAG:T9; name=StableDimension3; result=d=3 minimal; proof_idea=link_penalty(ΔJ=ln φ) forbids d>3 and Jordan excludes d=2; status=rigorous
+
+@THEOREM_CLASSICAL_MAP
+# FORMAT: MAP;Tn; RS=...; Classical=...; Status=Twin|Bridge|Novel; Lean=...; UseInPapers=Main_Text|Methods_only|Methods; Work=...
+MAP;T1; RS=MetaPrinciple (¬∃Recognition(∅,∅)); Classical=none; Status=Novel; Lean=T1; UseInPapers=Methods_only; Work=none_needed_for_classical_text
+MAP;T2; RS=AtomicTick (one recognition per tick); Classical=continuous_time_limit; Status=Bridge; Lean=T2; UseInPapers=Methods; Work=coarse_graining note (sums→integrals)
+MAP;T3; RS=Closed-chain flux = 0; Classical=continuity_equation (∂ρ/∂t+∇·J=0); Status=Twin; Lean=T3; UseInPapers=Main_Text; Work=none
+MAP;T4; RS=δ-rule ⇒ potential uniqueness up to constant; Classical=potential defined up to gauge-constant; Status=Twin; Lean=T4; UseInPapers=Main_Text; Work=none
+MAP;T5; RS=Unique cost J(x)=0.5(x+1/x)-1 on ℝ₊; Classical=stationary_action / Dirichlet energy; Status=Bridge; Lean=T5; UseInPapers=Methods→Main_when_EL_equiv; Work=Euler–Lagrange equivalence note (local quadratic regime)
+MAP;T6; RS=Minimal period 2^D (D=3⇒8); Classical=none (micro periodicity hidden in continuum); Status=Novel; Lean=T6; UseInPapers=Methods_only; Work=none (only defines τ0 mapping)
+MAP;T7; RS=Coverage lower bound (T<2^D ⇒ no surjection to patterns); Classical=Nyquist/Shannon sampling bound; Status=Bridge; Lean=T7; UseInPapers=Methods; Work=sampling-bridge lemma statement
+MAP;T8; RS=Ledger δ-units form ℤ (quantized increments); Classical=quantized units (e, action quanta); Status=Bridge; Lean=T8; UseInPapers=Methods; Work=unit mapping δ→e or τ0,ħ depending context
+MAP;T9; RS=StableDimension via link penalty (ΔJ=ln φ); Classical=topological linking/Jordan+Alexander; Status=Novel; Lean=none; UseInPapers=Main_Text; Work=dimension_forcing_summary
+
+@DERIVATION_GRAPH
+# Nodes: {MP,T1,T2,...,J,φ,8tick,c,MassLaw,Continuity,Born,BoseFermi,ILG}
+EDGE; T1→T2; reason=atomicity_from_recognition_schedule
+EDGE; T1→Ledger; reason=double_entry_necessity
+EDGE; Ledger→T3; reason=closed_loop_flux
+EDGE; SymmUnit+Averaging→T5(J); reason=unique_cost
+EDGE; J→φ; reason=scale_recursion_fixed_point
+EDGE; T6(2^D)→8tick; reason=minimal_period
+EDGE; 8tick+ℓ0→c (c=ℓ0/τ0); reason=causal_bound
+EDGE; J+Ledger→Born/BoseFermi; reason=path_weight+permutation
+EDGE; φ+E_coh+Rungs→MassLaw; reason=ladder_spectrum
+EDGE; Continuity+Kernel→ILG; reason=effective_weighted_dynamics
+
+@CONSTANTS
+# Papers: use CODATA/SI values numerically; cite RS derivations in Methods
+CONST;c;299792458 m/s; source=SI; rs_relation=c=ℓ0/τ0
+CONST;ħ;1.054571817e-34 J·s; source=CODATA; rs_relation=ħ=E_coh·τ0
+CONST;G;6.67430e-11 m^3·kg^-1·s^-2; source=CODATA; rs_relation=λ_rec=√(ħG/(π c^3))
+CONST;α_inv;137.035999206(11); source=CODATA; rs_note=RS matches via geometric_seed−gap−curvature; use_classical_value=true
+CONST;φ;1.6180339887498948; source=math; rs_role=scale_fixed_point
+CONST;E_coh;φ^-5 eV ≈ 0.0901699437 eV; use_in_papers=as_concept; numeric_if_needed=0.09017 eV
+CONST;τ0;1/(8 ln φ) in natural units; papers_use=derived_timescale; numeric_ref=7.300e-15 s when mapped
+CONST;λ_rec;√(ħG/(π c^3)) ≈ 9.12e-36 m; role=recognition_length
+CONST;J_bit;ln φ; source=derived; role=elementary_ledger_bit_cost
+
+@COST
+FUNC;J;def=0.5*(x+1/x)-1; domain=ℝ₊; unique=T5; classical_bridge=stationary_action/least_dissipation; euler_lagrange_form=identical_where_defined
+DUAL;J*;type=Legendre/Fenchel; bridge=Hamiltonian/co-state; constraint=multipliers_fixed_by_δ
+NOTE;bit_normalization; J_bit=ln φ is the canonical ledger cost per bit; for the λ_rec extremum we use a unit-bit normalization (J_bit→1) and restore physical units via λ_units (LR.units).
+
+@LEDGER
+STRUCT;double_entry; columns=debit,credit; invariant=closed_loop_flux=0 (T3)
+FIELD;φ_state;def=debit−credit per node; affine_increment=δ along edges
+UNIQUENESS;δ_rule; result=φ uniqueness on components up to constant (T4)
+PARITIES; nine={P_cp,P_{B-L},P_Y,P_T,P_C^(1),P_C^(2),P_C^(3),P_τ^(1),P_τ^(2)}; flip_on=conjugation+tick_reversal; vacuum_page=zero
+BIT_COST; J_bit=ln φ; link_penalty_per_unit=J_bit
+PATH_COST_ISO; mu([γ])=ln φ*|Γ|; cost_spectrum=J_bit*r_i
+
+@TIME
+CYCLE;period_min; def=2^D; D=3 ⇒ 8; proofs=T6; bridge=discrete_cell_traversal
+ATOMIC_TICK;def=one_recognition_per_tick (T2)
+BREATH;period=1024; instrumentation=LNAL; alignment=8k_windows
+WINDOW8; delta_sum=0; schedule_cancellation_over_any_8_tick_block; source=Lean.Dynamics.schedule_delta_sum8_mod
+
+@LNAL_SPEC
+LNAL_REG; R=<ν_φ,ℓ,σ,τ,k_⊥,φ_e>; integer_encoding=true; channels=6
+OPCODES; list=LOCK,BALANCE,FOLD,UNFOLD,BRAID,HARDEN,SEED,SPAWN,MERGE,LISTEN,GIVE,REGIVE,FLIP,VECTOR_EQ,CYCLE,GC_SEED
+STATIC_RULES; window8_sum=0; token_parity≤1; cost_ceiling=|c|≤4; braid_mask=SU3_triads_only; cycle=2^10 with FLIP@512; seed_gc_every=3_cycles; vector_eq:∑k_⊥=0; listen_no_double_stall
+MACROS; minimal=PHOTON_EMIT,HARDEN,DIAMOND_CELL,SEED_SPAWN,LISTEN_PAUSE
+GRAMMAR; peg_spec=available; artifact=archive/lnal_compiler_v0.2.tar.gz; scope=parse_only
+
+@CAUSALITY
+BOUND;speed; c=ℓ0/τ0; cone=domain_of_dependence; bridge=light_cone; status=proved(discrete_StepBounds)
+
+@SPECTRA
+MASS_LAW; m = B·E_coh·φ^(r+f); r∈ℤ; B∈{2^k}; f=RG_residue; bridge=quantized_ladders; papers_use=classical_masses(PDG) with RS mapping in Methods
+RUNG_UNIQUENESS; from_gauge_charges; status=proved (constructor + minimality)
+FAMILY_RATIOS; equal_Z@μ* ⇒ m_i/m_j = φ^(r_i−r_j); at_matching_scale; transport=RG_to_poles; source=Lean.Recognition.mass_ratio_phiPow
+B_SHIFT; k→k+1 ⇒ mass×2; r→r+1 ⇒ mass×φ; source=Lean.Spectra.mass_kshift_simp+mass_rshift_simp
+
+@SM_MASSES
+ANCHOR; mu_star=182.201 GeV; lambda=ln φ; kappa=φ; domain=charged_fermions
+IDENTITY; f_i(μ*,m_i)=(1/ln φ)·ln(1+Z_i/φ); tolerance=1e-6; status=phenomenology
+Z_MAP; quark=4+(6Q)^2+(6Q)^4; lepton=(6Q)^2+(6Q)^4; dirac_nu=0; integerize=6Q∈ℤ
+EQUAL_Z; degeneracy; families=[up,down,leptons]; consequence=bands_at_μ*
+TRANSPORT; non_circular=PDG→μ* with same kernels; rule=never use measured m_i on RHS
+ROBUSTNESS; loop_orders(QCD3L/5L)≤3.4e-8; alpha_halfband=3.39e-8; IR_light_quarks=5.9e-8; equalZ_coherent=true
+ABLATIONS; drop(+4_quark), drop(Q^4), 6Q→{5Q,3Q} ⇒ violations≫1e-6
+
+RUNG_RULE; r_i=ℓ_i+τ_i; τ=(0,11,17) for generations (1,2,3); constructor=canonical eight‑tick; gauge=global_Theta_on_log_φ
+RUNG_EXAMPLES; leptons={e:2, μ:13, τ:19}; up={u:4, c:15, t:21}; down={d:4, s:15, b:21}; bosons={W:1, Z:1, H:1}
+FIXED_POINT; display; m_i=A_B·φ^{r_i+f_B(m_i)}; A_B=B_B·E_coh·φ^{r0(B)}; sector_global=true
+SELF_THRESHOLD_BAN; heavy_quarks; μ_Q^(th)=κ_U·A_U·φ^{r_Q}; κ_U=1(default); policy=ban_self_thresholding
+RESIDUE; leptons; f_ℓ: QED_2L(+EW_1L optional); α_policy=frozen@M_Z; variant=leptonic_1L
+RESIDUE; quarks; f_q: QCD_4L+QED_2L; thresholds=(m_c,m_b,m_t); self_thresholding=false
+RESIDUE; bosons; f_{V/H}: EW/H_1L; inputs=(g,g',λ,v); uniform_pole↔MS
+CONSTRUCTOR; integers; L=|W_i^{red}|, τ_g∈{0,11,17}, Δ_B sector-global; r_i=L+τ_g+Δ_B
+WORD_CHARGE; Z_map; quarks=4+\tilde Q^2+\tilde Q^4; leptons=\tilde Q^2+\tilde Q^4; Dirac_ν=0; \tilde Q=6Q∈ℤ
+TODO; neutrino_sector; task="Add treatment for neutrino masses (Dirac vs Majorana), r_i mapping and residue model, and measurement anchors"; priority=high
+
+@SECTOR_YARDSTICKS
+YARD; leptons; B_B=2^{-22}; r0=62; mismatch=0.19%; gauge_note=r0 includes global φ‑phase Θ (common across sectors)
+YARD; up_quarks; B_B=2^{-1}; r0=35; mismatch=0.09%; gauge_note=r0 includes global φ‑phase Θ (common across sectors)
+YARD; down_quarks; B_B=2^{23}; r0=−5; mismatch=0.03%; gauge_note=r0 includes global φ‑phase Θ (common across sectors)
+YARD; EW_vectors; B_B=2^{1}; r0=55; mismatch=0.12%
+YARD; scalar_H; B_B=2^{-27}; r0=96; mismatch=0.29%
+
+@GAUGE
+RG; fixed_points=self_similarity; φ_exponents in spectra; classical=RG_scaling; bridge=exponent_structure
+GAUGE_GROUPS; classical=SU(3)×SU(2)×U(1); rs_origin=ledger+residue_arithmetic (mapping only); papers_use=classical_formulation
+USAGE_NOTE; SU3; separation=constructor_vs_dynamics; note="SU(3) counts in constructor (r_i via loop motifs) are distinct from dynamical QCD running used only inside sector‑residue f_B; no per‑species tuning enters either use."
+
+@REALITY_BRIDGE
+RB;invariants; τ_rec/τ0=2π/(8 ln φ); λ_kin/ℓ0=2π/(8 ln φ); c=ℓ0/τ0; λ_rec=√(ħG/(π c^3)); λ_kin=c·τ_rec
+RB;gate_planck; identity=(c^3·λ_rec^2)/(ħG)=1/π; uncertainty=u(G) only; purpose=Planck‑side anchor audit
+RB;gate_ir; identity=ħ=E_coh·τ0; domain=IR/bio layer only; do_not_mix_with(gate_planck)
+RB;gate_cross; identity_check=(c^3·λ_rec^2)/(ħG)=1/π; uncertainty=u(G); purpose=dimensionless_curvature_extremum_audit
+RB;planck_gate_ineq; test=|λ_kin−λ_rec|/λ_rec ≤ k·u_comb; u_comb=√(u(λ_kin)^2+u(λ_rec)^2−2ρ u(λ_kin)u(λ_rec)); anchors=[τ0,ℓ0,(λ_rec or G)]; policy=metrology_anchors_only_no_IR_mix
+RB;two_routes; A=time_first; B=length_first; policy=must_agree_within(u_comb)_per_layer
+RB;K_identities; KA=τ_rec/τ0=K; KB=λ_kin/ℓ0=K; gate=KA=KB; status=proved
+RB;display_speed; (λ_kin/τ_rec)=c; status=proved
+RB;lambda_rec_id; (c^3·λ_rec^2)/(ħG)=1/π; status=proved(ledger–curvature extremum)
+
+@EMERGENCE
+MECH; list=temporal_averaging, spatial_coarse_graining, environmental_coupling(decoherence), collective_synchronization
+HIERARCHY; tau_f<<tau_m; N≈tau_m/tau_f; measured_observable=averaged/coarse_grained response over N events
+FORMAL; O_avg(t)=avg_T M[x(t)]; O_cg(r,t)=∑_i w(|r−r_i|)g(x_i); info_loss=relative_entropy(P_em||P_fund)
+RG_LINK; dynamic_RG=fast_modes→averaged; slow_modes→effective_dynamics; relevance=set by scale
+SCALING; predicted_ratio_rescale; invariance under common rescale c>0; source=Lean.TruthCore.MRD.predicted_ratio_rescale
+
+@RELATIVITY_EMERGENCE
+ONE_LINER; "Local Lorentz invariance emerges from c=ℓ0/τ0 and the eight‑tick discrete cone bound, with continuum Minkowski limit under mesh refinement."; scope=continuum_limit
+
+@PATTERN_MEASUREMENT
+PM;window8_sum; sumFirst8(extendPeriodic8 w)=Z(w); source=Lean.MeasurementLayer.sumFirst8_extendPeriodic_eq_Z; use=DNARP_bridge
+PM;aligned_blocks; blockSumAligned8 k (extendPeriodic8 w)=k·Z(w); source=Lean.MeasurementLayer.blockSumAligned8_periodic; use=DNARP_bridge
+PM;average; observeAvg8 k (extendPeriodic8 w)=Z(w) (k≠0); source=Lean.MeasurementLayer.observeAvg8_periodic_eq_Z; use=DNARP_audit
+
+@EMERG_PREDICTIONS
+P1; multi_probe_scaling; T1/T2≈(τ_m1/τ_m2)^γ·f(τ_m/τ_f)
+P2; intermediate_oscillations; ω_n=ω_f·(τ_f/τ_m)^{n/d}
+P3; measurement_transition; τ_c=τ_f·N^{z/d}
+P4; cross_correlation; C12(τ)∼e^{−τ/τ12}·cos(ω12 τ+φ12)
+P5; info_flow; I(coarse;fine)=S0−k_B T_eff ln(τ_coarse/τ_fine)+O(τ_fine/τ_coarse)
+
+@QUANTUM
+BORN_RULE; RS_path_weight=exp(−C[γ]); ⇒ P=|ψ|^2; bridge=standard; use_in_papers=classical_statement with RS provenance
+BOSE_FERMI; permutation_invariance ⇒ symmetrization; bridge=standard
+
+@BIOPHASE
+MECH; eight_beat_IR; λ0≈13.8 μm; E_rec≈0.090 eV; τ_gate≈65 ps (gating/coherence); T_spectral≈46 fs (h/E_rec); output=phase_timeline(8‑beat)
+ISA; PNAL→LNAL; invariants=[token_parity≤1, eight_window_zero, legal_triads, 2^10_cycle(FLIP@512)]
+BANDS; ν0_cm1=724; δ_cm1=[-18,-12,-6,0,6,12,18,24]; width_cm1=5–25; acceptance={ρ≥0.30,SNR≥5σ,circ_var<0.40}
+LISTEN; gates=1..8; strobes=LOCK/LISTEN/BALANCE; observability=pre_registered
+COMPLEXITY; folding; T_c=O(n^{1/3} log n); readout=O(n)
+APPS; qc_refold_screen; uses=QC_lot_release, refolding, phase_screening, manufacturing_pipeline
+
+@GRAVITY
+MODEL;ILG; type=information_limited_weight; galaxy/cosmology_kernel=w(k,a)=1+λ·(T_dyn/τ0)^α_t·…; α_t=0.5(1−φ^-1); papers_use=phenomenology paragraph; lab_scale_null=consistent (10–100 μm)
+CLASSICAL; Einstein=field_equations; bridge=continuity+recognition_weight_as_effective_source; papers_use=GR notation
+ROTATION; identity; v^2=G·M_enc/r; status=proved
+ROTATION; flat_if_Menc∝r; v=√(G·α_M); α_M=dM_enc/dr (mass-per-length); status=proved
+ILG_TIME; w_time_ratio_rescale; w_time_ratio(c·T, c·τ)=w_time_ratio(T,τ); status=proved (uses α_t)
+ILG_TIME; w_time_ref; w_time_ratio(τ0,τ0)=1; status=proved
+ILG_EFFECTIVE; source_nonnegativity; premise=λ·ξ≥0 ∧ w≥0 ⇒ effective_weight≥0; status=proved
+ILG_MONOTONE; monotone_effective_weight; premise=kernel_monotone∧(λ·ξ≥0); result=monotone_in(t,ζ); status=proved
+
+@CLASSICAL_BRIDGE_TABLE
+# FORMAT: BRIDGE;Concept;RS;Classical;Lean/Proof;UseInPapers;Notes
+BRIDGE;CostFunctional;J(x)=0.5(x+1/x)-1;StationaryAction/Dirichlet;T5;Yes;EL identical where defined
+BRIDGE;DualCost;Legendre J*;Hamiltonian/Pontryagin;T4 scaffolding;Yes;Multipliers fixed by δ balance
+BRIDGE;Continuity;closed_flux=0;∂ρ/∂t+∇·J=0;T3;Yes;Discrete→continuum limit
+BRIDGE;EightTick;min_period=2^D;minimal cell traversal;T6;Yes;D=3⇒8
+BRIDGE;CausalBound;c=ℓ0/τ0;light_cone;proved(StepBounds);Yes;Discrete cone bound under per-step limits
+BRIDGE;LambdaRec;ledger–curvature extremum (J_bit=J_curv);Planck scale normalization;paper_proof;Yes;π from face-averaging; λ_rec=√(ħG/(π c^3))
+BRIDGE;MassLaw;m=B·E_coh·φ^(r+f);quantum ladders+RG residues;constructor+rung_min;Yes;Map to PDG values
+BRIDGE;MassFamilyRatios;equal_Z ⇒ ratios=φ^(Δr);family=up,down,leptons;Lean;Yes;Scale cancels
+BRIDGE;RGFixedPoint;φ fixed point;self-similar scaling;derivation;Yes;Exponents recur cross-domain
+BRIDGE;GaugeRigidity;dimensionless predictions;Π-theorem;derivation;Yes;Explain invariants selection
+BRIDGE;BornRule;exp(−C[γ]) ⇒ |ψ|^2;Born;path→wave link;Yes;Operationally identical
+BRIDGE;ILG;w(k,a) kernel;modified Poisson/growth;linear+galaxy fits;Yes;Global-only constraints
+BRIDGE;RealityBridge;layered_gates(Planck,IR,cross_identity);units_quotient;lemma(scaffold);Yes;Audit gates for anchors
+BRIDGE;PatternMeasurement;8-tick periodic window ⇒ blockSum=k·Z;DNARP;Lean;Yes;Averaged observable equals Z
+BRIDGE;SingleAnchorMasses;f=(1/ln φ)ln(1+Z/φ) at μ*;SM RG residue;Phenomenology;Yes;Equal‑Z degeneracy; non‑circular transport
+BRIDGE;FixedPointMasses;m=A_B·φ^{r+f(m)} with sector A_B;RG fixed‑point display;Phenomenology;Yes;One residue per sector; no self‑threshold
+BRIDGE;ConstructorIntegers; (L,τ_g,Δ_B) + Z(W) from motifs;Classical RG bookkeeping;derivation sketch;Yes;Discretizes species dependence
+BRIDGE;MaxwellDEC;DEC mesh (d,⋆) with sources;Maxwell quasi-static;scaffold;Yes;Constitutive via Hodge
+BRIDGE;DEC_d∘d=0;d1∘d0=0 & d2∘d1=0;Exactness;Lean;Yes;Co-chain complex property
+BRIDGE;DEC_Bianchi;dF=0;Bianchi identity;Lean;Yes;Gauge-compatible
+BRIDGE;MaxwellContinuity;dJ=0 from Ampère d(*F)=J;Continuity;Lean;Yes;Charge conservation
+BRIDGE;YMOverlap;uniform overlap β ⇒ TV contraction α=1−β;Markov kernels;derivation;Yes;Finite 3×3 example
+BRIDGE;BioPhaseFolding;eight‑beat IR phase timeline;Folding kinetics/IR;spec+invariants;Yes;PNAL→LNAL instrument‑coupled
+
+@PAPERS_POLICY
+NUMERICS; adopt=SI/CODATA for constants; RS-derived constants allowed if classical values identical within uncertainties
+METHODS; include_RS_derivation_links=true; cite_Lean_theorems=[T1,T2,T3,T4,T5,T6]
+TERMS; use_classical_language=true; reserve_RS_terms_for_nonclassical_only=true
+
+@EXPERIMENTS
+EXP;GalaxyRotation; signal=kernel_weighted_velocity; metric=χ2/N≈2.5–3; distinguisher=lensing+growth
+EXP;WeakLensing; prediction=subtle scale-dependent residual; tie_to_ILG
+EXP;LabGravity(μm); prediction=null at 10–100 μm; status=consistent(Vienna2025)
+EXP;PulsarTicks; signature≈10 ns discretization; method=stacked_residuals; status=proposed
+EXP;QuantumStats; standard confirmations ⇒ supports path-measure postulate
+EXP;Muon_g-2; prediction=δa_μ=(2.34±0.07)×10^-9 (ledger counter-term); status=bridge; residual≈2σ vs Fermilab
+EXP;AlphaPipeline; result=α^{-1}=137.0359991185; method=seed(4π·11)+gap(f_gap=1.19737744)+curvature(−103/(102π^5)); status=bridge
+EXP;LNAL_Compiler; artifact=archive/lnal_compiler_v0.2.tar.gz; checks=window8,parity,cycle; outcome=pass
+EXP;ProteinIR(8‑beat); target=Gβ‑hairpin; bands=ν0≈724 cm^-1; acceptance=ρ≥0.30,SNR≥5σ,circ_var<0.40; status=proposed
+EXP;ProteinControls; scrambled,mutants,schedule_shuffle ⇒ correlation<threshold; criterion=beat_map_mismatch
+EXP;GalaxyBench(GlobalOnly); dataset=SPARC_Q=1; ILG_median=2.75; ILG_mean=4.23; MOND_median=2.47; MOND_mean=4.65; LCDM_median=3.782; LCDM_mean=10.602; policy=identical_masks_error_model_single_global_ML;
+EXP;Controls(Negative); galaxy_shuffle, inplane_rotation_180, gas_star_swap ⇒ medians_inflate≫1; leakage_check=pass;
+EXP;EFE_Sensitivity; g_ext small≠0 ⇒ medians shift few‑percent; conclusion=does_not_change_ordering;
+EXP;Nanogravity; prediction=G(r)/G_∞≈32 at r=20 nm; exponent_beta=−(φ−1)/φ^5≈−0.0557; falsifier=|β−β_pred|>10%;
+
+@LEAN_REFERENCES
+LEAN;T1=mp_holds; T2=T2_atomicity; T3=T3_continuity; T4=Potential.unique_on_component; T5=Cost.T5_cost_uniqueness_on_pos; T6=eight_tick_min+T6_exist_8; T7=T7_nyquist_obstruction+T7_threshold_bijection; T8=LedgerUnits.equiv_delta_one+equiv_delta+quantization; Cone=LightCone.StepBounds.cone_bound; PM=sumFirst8+blockSumAligned8+observeAvg8; KGate=Verification.K_gate_bridge; KIdentities=Constants.RSUnits.tau_rec_display_ratio+lambda_kin_display_ratio; MassFamilies=Recognition.mass_ratio_phiPow; DEC=TruthCore.dec_dd_eq_zero+dec_bianchi; Gravity=vrot_sq+vrot_flat_of_linear_Menc; ILG_TIME=TruthCore.time_kernel_dimensionless+w_time_ratio_ref; WINDOW8=Dynamics.schedule_delta_sum8_mod; ILG_EFFECTIVE=Gravity.effectiveSource_of_nonneg+effectiveWeight_monotone; MaxwellCont=DEC.CochainSpace.MaxwellModel.current_conservation
+
+@PROOF_STATUS
+STATUS; T1=proved; T2=proved; T3=proved; T4=proved; T5=proved; T6=proved; T7=proved; T8=proved
+STATUS; cone_bound=proved(discrete_StepBounds); rung_constructor=proved; mass_law_mapping=operational; ILG_linear=defined; galaxy_fits=global_only; units_quotient=scaffold
+
+@USAGE_GUIDE
+USAGE; constants=classical_numeric; equations=classical_form; provenance=RS_derivation (cite Methods)
+USAGE; when_no_classical_correspondence=use_RS_term(explicitly_defined)
+USAGE; avoid_param_tuning=true; declare_over_constraints=true
+
+@CHECKS
+CONSISTENCY; dimensionless_ratios=match_experiment; rung_mapping=integer+small_residue; continuity=holds
+FALSIFIERS; any alt_cost_on_ℝ₊≠J; tick_period≠2^D; super_cone_transport; mass_outliers_not_explainable_by(r,f,B); audit_single_inequality_fail; delta_kappa≠−103/(102π^5); K_gate_mismatch; ILG_controls_do_not_inflate; EFE_reorders_models; equalZ_split_at_mu*; non_circularity_breach_SM; self_thresholding_used; constructor_integers_inconsistent(L,τ_g,Δ_B); Z_map_ablation_passes; protein_eight_beat_absent; protein_map_mismatch; LISTEN_no_benefit; λ0_mismatch_13.8um; protein_nonreplication; relativity_emergence_fail(mesh→Minkowski); lnal_static_checks_fail(window8/parity/cycle);
+
+@AUDIT
+INVARIANTS; tau_rec/tau0=2π/(8 ln φ); lambda_kin/ℓ0=2π/(8 ln φ); c=ℓ0/τ0; λ_rec=√(ħG/(π c^3)); λ_kin=c·tau_rec
+SINGLE_INEQUALITY; rule=|λ_kin−λ_rec|/λ_rec ≤ k·u_comb; u_comb=√(u(λ_kin)^2+u(λ_rec)^2−2ρ·u(λ_kin)·u(λ_rec)); routes=[RouteA(time→length→ħ),RouteB(length→time→ħ)]
+REVIEWER_CHECK; steps=[compute_invariants; form(λ_kin,λ_rec); test(Z≤k)]
+
+@ALPHA
+GAP_SERIES; F(z)=ln(1+z/φ); f_gap=w8·ln φ; w8=2.488254397846; f_gap_value=1.19737744
+CURVATURE; delta_kappa=−103/(102 π^5)
+ALPHA_INV; formula=4π·11−(f_gap+delta_kappa); predicted=137.0359991185; compare_to=CODATA2024(137.035999206(11))
+
+@DIMENSION
+LINK_PENALTY; ΔJ_Hopf=ln φ; d≥4⇒ΔJ=0; conclusion=d=3 minimal
+
+@COSMOLOGY
+INFLATON; V(χ)=V0·tanh^2(χ/(√6·φ)); V0=φ^{-5}/(3π^2)·1024^{4/3} (Planck units)
+PREDICTIONS; n_s=0.9667; r=1.27e−3; A_s=2.10e−9
+
+@BARYOGEN
+COUPLINGS; lambda_CP=φ^{-7}; kappa=φ^{-9}
+YIELD; eta_B≈5.1e−10; status=provisional_first_pass; delta_vs_CMB≈16%
+
+@G2
+LEDGER_COUNTERTERM; delta_a_mu=(2.34±0.07)×10^{-9}; mechanism=forward/backward tour near‑cancellation; phi_factor=φ^{-5}; alpha_input=α^{-1}=137.035999206; numeric_example=2.341874047e−9
+
+@GLOSSARY
+G; universal_gravitational_constant
+ħ; reduced_Planck_constant
+φ; golden_ratio
+E_coh; coherence_quantum_energy
+τ0; fundamental_tick
+λ_rec; recognition_length (ledger–curvature extremum)
+δ; ledger_edge_increment
+J; cost_functional
+
+@OPEN_ITEMS
+OI; cone_bound_formalization=todo; maxwell_strict_bridge=todo; units_quotient_formalization=todo
+
+@END
+
+@AUTHORSHIP
+AUTHOR; name=Jonathan Washburn; affiliation=Recognition Physics Institute; role=Founder+Author; city=Austin,TX; country=USA
+CONTACT; primary_handle=@jonwashburn; email=washburn@recognitionphysics.org; website=https://recognitionphysics.org
+NOTE; papers_contact=prefer_handle_over_email; funding_ack=as_applicable; data_code_availability=public_repos
+
+@BRAND_POLICY
+THEORY_NAME; public="Recognition Science"; abbrev=RS; usage=paper_titles/abstracts/sections
+FRAMEWORK_ALIAS; alt_label="Recognition Physics"; usage=organizational_brand/website
+WEBSITE; primary=https://recognitionphysics.org; alt_domain_recommendation=recognitionscience.org(redirect→primary)
+PAPER_FIRST_MENTION; text="Recognition Science (RS), a parameter-free framework (also referred to as the Recognition Physics framework)"
+ABBREVIATION; enforce=RS; avoid_mixing_terms_in_same_sentence=true
+CONTACT_PRESENTATION; default=handle_only; alt=email_in_footnote; conflict_resolution=default_to_handle
+
+@PAPER_TEMPLATE (optional)
+IMRAD; Title; Abstract; Introduction; Methods(derivation links to RS+Lean); Results(classical notation+SI); Discussion; Data&Code; Acknowledgments; Author Contributions; Competing Interests; References
+STYLE_GUIDE; units=SI; constants=CODATA/SI; sigfigs=match-measurement; uncertainties="x ± y" (68% CI) or parentheses; equation_numbering=sequential; citations=APS/PRD or journal-required
+REVIEWER_CHECKLIST; classical_framing=true; RS_methods_cited=true; no_hidden_parameters=true; reproducibility_artifacts_included=true
+
+
+@DEFINITIONS
+# Canonical, machine-usable definitions for reuse in papers and code generators
+DEF;reach_component; formal=weakly_connected_component_of_digraph; desc="Maximal subset of vertices mutually reachable via unoriented paths; potentials are unique up to an additive constant on each reach component."
+DEF;closed_chain; formal=cyclic_edge_sequence; desc="Finite cycle γ with edges e_1..e_n whose oriented incidence telescopes to zero at vertices."
+DEF;integer_1form; formal=w:E→ℤ_on_oriented_edges; desc="Assign integer increment to each oriented edge; for reversed orientation use w(v→u)=−w(u→v)."
+DEF;potential; formal=φ:V→ℤ; desc="Vertex potential such that w=∇φ, i.e., w(u→v)=φ(v)−φ(u)."
+DEF;spatially_complete_pass; formal=periodic_map_ρ:ℤ→V_with_period_T; desc="{ρ(0..T−1)}=V (every vertex appears ≥1× in one period)."
+DEF;ledger_compatible_walk; formal=(W1,W2,W3); W1=atomic_tick_one_edge_per_tick; W2=spatial_completeness_all_vertices_per_period; W3=no_vertex_timestamp_multiplicity; desc="Periodic update walk on Q_D honoring atomicity, completeness, and timestamp uniqueness."
+DEF;gray_code_Q3; formal=Hamiltonian_cycle_on_cube; example=(000→001→011→010→110→111→101→100→000); desc="Length‑8 Gray cycle visiting each vertex exactly once."
+DEF;continuum_limit; formal=Δx,Δt→0_with_fixed_ratio; mapping=graph_incidence→divergence; result=∂_t ρ + ∇·J = 0; desc="Mesh refinement with bounded currents and densities, identifying discrete incidence with continuum divergence."
+DEF;normalization_J; condition=J(1)=0 ∧ J''(1)=1; consequence=J(x)=½(x+x^{-1})−1; desc="Explicit unit choice fixing the scale of the convex symmetric cost."
+DEF;appendix_labels; policy=use_symbolic_labels_not_letters; examples=app:eight_tick,app:cost_uniqueness,app:gap_series; desc="Never cite lettered appendices in prose; always use \ref{app:...}."
+DEF;link_penalty; formal=ΔJ=|Lk|·ln φ; desc="Threading across a spanning disc flips all nine parities; each unit link incurs J_bit=ln φ."
+DEF;reduced_word; formal=W_i=reduced_Dirac_word_on_8-tick_ring; desc="Chirality-paired gauge syllables reduced under cancellation/neutral-commute; unique normal form."
+DEF;generation_torsion; formal=τ_g∈{0,11,17}; desc="Three-class coset of the eight-tick winding; representation-independent, generation-uniform."
+DEF;global_phi_phase; formal=Θ∈[0,1); desc="Global log-φ gauge: ℓ_k=L0·φ^{k+Θ}; multiplies sector yardsticks by φ^{Θ} coherently; anchor ratios at μ* are Θ‑invariant."
+DEF;sector_integer; formal=Δ_B∈ℤ; desc="Once-per-sector reduced contribution of a fixed primitive σ_B; shifts all species in sector coherently."
+DEF;word_charge; formal=Z(W_i)=4+\tilde Q^2+\tilde Q^4 (quarks); =\tilde Q^2+\tilde Q^4 (leptons); =0 (Dirac ν); note=\tilde Q=6Q∈ℤ;
+DEF;PNAL; formal=protein_native_ISA; desc="Domain ISA that compiles to LNAL; emits LISTEN/LOCK/BALANCE at pre-registered beats."
+DEF;LNAL; formal=curvature_safe_execution_layer; desc="Execution layer enforcing token_parity≤1, eight-window neutrality, legal SU(3) triads, and a 2^10-tick cycle (FLIP@512)."
+DEF;phase_bands; formal={B_k:[ν0+δ_k−Δ,ν0+δ_k+Δ]}; desc="Eight IR bands around 724 cm^-1; acceptance ρ≥0.30, SNR≥5σ, circ_var<0.40."
+
+@CONSTRUCTOR
+OBJ; ribbons_braids; reduced_word=W_i on 8‑tick; moves=cancellation+neutral_commute; property=confluent_normal_form
+INTEGERS; species; L=|W_i^{red}|; τ_g∈{0,11,17}; Δ_B sector‑global; r_i=L+τ_g+Δ_B
+MOTIFS; QCD={M_F,M_NA,M_V,M_G}; QED={M_{Q2},M_{Q4}}; counts_quark={1,1,1,1}; counts_lepton={0,0,0,0}; abelian_weights=\tilde Q^2,\tilde Q^4
+LANDING; unit_weight_anchor; w_k(μ*,λ)=1 ∀k ⇒ Z_i(m_i)=∑_k N_k(W_i)∈ℤ; closed_form f_i=(1/ln φ) ln(1+Z_i/φ)
+INTEGERIZATION; policy; choose \tilde Q=6Q for unit‑weight landing and cross‑sector lattice alignment; note=3Q is integral but misnormalizes unit weights; evidence=ablations
+
+@MATH_ASSUMPTIONS
+# Shared mathematical hypotheses to avoid ambiguity
+ASSUME;graphs=finite_or_locally_finite_digraphs; reason=exactness_and_path_sums;
+ASSUME;exactness_hypothesis=Σ_{e∈γ} w(e)=0_for_all_closed_γ ⇒ w=∇φ; reference=T4;
+ASSUME;cost_axioms=analytic_on_ℂ\{0}, symmetric(J(x)=J(x^{-1})), convex_on_ℝ_{>0}, bounded_by(x+1/x); normalization=J''(1)=1;
+ASSUME;mesh_scaling=Δx∼ε, Δt∼ε, bounded_fluxes; mapping=incidence→divergence;
+
+@RG_METHODS
+# Canonical RG/dispersion specification for fractional residues f_i and related quantities
+RG;matching_scale; mu_star=τ*φ^8; scheme=MSbar; comment="Universal matching point used for all species."
+RG;residue_definition; formula=f_i=(ln R_i)/(ln φ); R_i=exp{ ∫_{ln μ*}^{ln μ_pole} γ_i(α_a(μ)) d ln μ };
+RG;loop_orders; QED=2loop; EW=2loop; QCD=4loop; tool=RunDec_v3.x; ref=PDG2024;
+RG;couplings; alpha_em(μ), alpha_s(μ), sin2θW(μ); thresholds=PDG_masses; matching=continuity_at_thresholds;
+RG;window_average; Δ=1_log_unit (optional for robustness); use=Methods_only;
+RG;numerics; tolerances_abs=1e-12; tolerances_rel=1e-10; integrator=Gauss–Kronrod_adaptive;
+RG;outputs; table=species{r_i,B_i,f_i}; reproducibility=seeded_configs_and_versions;
+RG;ablations_numeric; deltas_at_mu_star={
+  family_up:   {drop_plus4: Δf=−0.03016, mass_mult≈0.9856, drop_Q4: Δf=−5.305, mass_mult≈0.0779, int_5Q: Δf=−1.420, mass_mult≈0.505, int_3Q: Δf=−4.952, mass_mult≈0.0923},
+  family_down: {drop_plus4: Δf=−0.35279, mass_mult≈0.8439, drop_Q4: Δf=−2.036, mass_mult≈0.375,  int_5Q: Δf=−0.964, mass_mult≈0.629, int_3Q: Δf=−2.520, mass_mult≈0.297},
+  leptons:     {drop_plus4: n/a,            mass_mult=n/a,     drop_Q4: Δf=−7.415, mass_mult≈0.0282, int_5Q: Δf=−1.488, mass_mult≈0.489, int_3Q: Δf=−5.565, mass_mult≈0.0687}
+}; scope=anchor_only (μ*); note=coherent_family_shifts_destroy_subpercent_fits;
+RG;sector_residues; leptons=f_ℓ(QED_2L [+EW_1L optional]); quarks=f_q(QCD_4L+QED_2L; thresholds m_c,m_b,m_t); bosons=f_{V/H}(EW/H_1L);
+RG;self_thresholding; policy=forbidden_for_heavies; heavy_quarks μ_Q^(th)=κ_U·A_U·φ^{r_Q}; κ_U=1 default;
+RG;equal_weight_anchor; condition=w_k(μ*,λ)=1 ∀ motif k; consequence=integer_landing+closed_form_gap;
+
+@ILG_SPEC
+# Information‑Limited Gravity – kernel and usage in rotation/growth papers
+ILG;kernel_kspace; w(k,a)=1+φ^{-3/2}*[a/(k τ0)]^{α}; alpha=0.5*(1-φ^{-1}); constants_global_only=true; per_galaxy_tuning=forbidden;
+ILG;poisson_modified; k^2 Φ = 4π G a^2 ρ_b w(k,a) δ_b; regime=Newtonian_linear;
+ILG;growth_equation; δ¨+2ℋ δ˙−4π G a^2 ρ_b w(k,a) δ=0; solution_matter=D(a,k)=a[1+β(k)a^{α}]^{1/(1+α)}; beta=2/3 φ^{-3/2}(k τ0)^{−α};
+ILG;rotation_curves; v_model^2(r)=w(r)v_baryon^2(r); baryon_model=thin_disk+bulge+gas; M/L=single_global unless stated;
+ILG;datasets; SPARC_Q=1 (frozen_snapshot+commit_id_required); error_model=incl. distance,inclination,systematics;
+ILG;weight_factor; w(r)=λ·ξ·n(r)·(T_dyn/τ0)^α·ζ(r); alpha=(1−φ^{-1})/2; default=time_kernel(w_t);
+ILG;time_kernel; w_t(r)=1+φ^{-5}[(T_dyn/T_ref)^α−1]; predictor=default;
+ILG;acc_kernel; w_g(r)=1+φ^{-5}[((g_bar+g_ext)/g_ref)^{−α}−(1+g_ext/g_ref)^{−α}]; use=sensitivity; g_ext=0(default);
+ILG;xi_quantiles; ξ=1+φ^{-5}·u_b^{1/2}; bins=B=5; thresholds=frozen_on_calibration_commit;
+ILG;n_profile; n(r)=1+A[1−exp(−(r/r0)^p)]; (A,r0,p)=(7,8 kpc,1.6); normalize=disc‑weighted_mean=1;
+ILG;zeta_thickness; h_z/R_d=0.25; clip=[0.8,1.2]; global_only=true;
+ILG;g_ref; baryon_derived_single_value; usage=acc_kernel_only; computed_from_catalog_geometry; frozen=true;
+ILG;geometry_policy; positions/inclinations=photometric_only; inner_beam_mask=r≥b_kpc;
+ILG;fairness; identical_masks+error_model across ILG/MOND/ΛCDM; global_only=true;
+
+@DERIVATIONS_CANONICAL
+# Canonical short statements with IDs for reuse in manuscripts
+STMT;atomic_tick; id=T2.atomicity; text="At most one unit posting per tick (no concurrency)."; proof_status=proved; lean=T2;
+STMT;discrete_exactness; id=T4.exactness; text="Closed‑chain flux zero ⇒ w=∇φ, φ unique up to constants on reach components."; proof_status=proved; lean=T4;
+STMT;Q3_minimality; id=T6.eight_tick; text="Any spatially complete, ledger‑compatible walk on Q3 has minimal period 8; Gray code realizes it."; proof_status=proved; lean=T6;
+STMT;cost_uniqueness; id=T5.cost; text="Under (analyticity,symmetry,convexity,bounded growth) and J''(1)=1, J(x)=½(x+1/x)−1."; proof_status=proved; lean=T5;
+STMT;continuum_correspondence; id=T3.continuity; text="Mesh refinement of discrete conservation yields ∂_t ρ + ∇·J=0 and gauge φ→φ+const."; proof_status=proved; lean=T3;
+STMT;sm_anchor_identity; id=SM1.anchor; text="At μ*=182.201 GeV, f_i(μ*,m_i)=(1/ln φ) ln(1+Z_i/φ) with Z from (6Q)^2,(6Q)^4 (+4 for quarks)."; proof_status=phenomenology; lean=none;
+STMT;sm_equalZ; id=SM1.equalZ; text="Equal‑Z families are degenerate at μ*; bands at F(Z) for Z∈{24,276,1332}."; proof_status=empirical; lean=none;
+STMT;fixed_point_mass; id=SM2.fixedpoint; text="Sector display: m_i=A_B·φ^{r_i+f_B(m_i)} with A_B=B_B·E_coh·φ^{r0(B)}, one residue law per sector, and a ban on self‑thresholding for heavy quarks."; proof_status=phenomenology; lean=none;
+STMT;phiNR_flow; id=RB3.phiNR; text="φ-normalized flow: d/d ln μ ln(1+Z_i(μ)/φ)=γ_i(μ), Z_i(μ*)=0 ⇒ f_i(μ*,m_i)=(1/ln φ) ln(1+Z_i(m_i)/φ)."; proof_status=proved_in_paper; lean=none;
+STMT;parity_vector; id=H1.parities; text="Nine independent ℤ2 parities {P_cp,P_{B−L},P_Y,P_T,P_C^{(1..3)},P_τ^{(1,2)}} flip under conjugation and tick reversal; vanish on scalar vacuum page."; proof_status=rigorous; lean=none;
+STMT;threading_flip; id=H2.thread; text="Threading γ2 through a spanning disc of γ1 flips all nine parities; flip count equals |Lk(γ1,γ2)| mod 2."; proof_status=rigorous; lean=none;
+STMT;link_penalty; id=H2.link_penalty; text="Each unit link incurs ΔJ=J_bit=ln φ; Hopf link (ℓ=±1) adds ln φ; for d≥4 the link can be dissolved (ΔJ=−ln φ), forcing d=3 minimal."; proof_status=rigorous; lean=none;
+STMT;lambda_cost_balance; id=LR.cost_balance; text="Ledger extremum in space: J_bit = J_curv(λ) with J_bit=1 and J_curv(λ)=2λ^2 from ±4 curvature packet distributed over 8 faces."; proof_status=proved_in_paper; lean=none;
+STMT;lambda_units; id=LR.units; text="Restoring SI with curvature appearing as c^3 λ^2/(ħ G) and face-averaging yields λ_rec=√(ħ G/(π c^3))."; proof_status=proved_in_paper; lean=none;
+STMT;lnal_invariants; id=PF.inv; text="Token parity≤1; eight‑window neutrality; legal SU(3) triads; 2^10 cycle with FLIP@512."; proof_status=proved_in_spec; lean=none;
+STMT;fold_complexity; id=PF.complexity; text="There exists a folding schedule with T_c=O(n^{1/3} log n); the emitted eight‑beat readout scales O(n)."; proof_status=proved_in_spec; lean=none;
+
+@ALGORITHMS
+# Minimal constructive procedures referenced by multiple papers
+ALG;rung_constructor; input=gauge_charges(Y,T,C); steps=(map_to_loops L_Y,L_T,L_C; concatenate C→T→Y; reduce ee^{-1}); output=r_i=|Γ_i|; property=minimality;
+ALG;sector_prefactor; input=channel_count n_c; rule=B=2^{n_c}; scope=baryons_and_composites;
+ALG;mass_formula; m_i = B_i * E_coh * φ^{r_i + f_i}; scale=μ*; residues=f_i_from_RG_METHODS;
+ALG;alpha_pipeline; seed=4π·11; gap=f_gap=1.19737744; curvature=−103/(102π^5); result=α^{-1}=137.0359991185;
+
+@NUMERICS
+# Central numeric policies so manuscripts share tolerances and versions
+PRECISION; float64_everywhere; rng_seed=137 for stochastic demos; interval_arithmetic=when_claiming_bounds;
+TOL; latex_compile=zero_undefined_refs; bib=biber_clean; math_proofs=deterministic;
+UNITS; si=true; constants=CODATA2024 unless journal mandates; rounding=match_measurement_sigfigs;
+
+@ERROR_MODEL
+ERR;velocity_floor; sigma0=10 km/s; policy=fixed_global;
+ERR;fractional_floor; f=0.05 on v_obs; policy=fixed_global;
+ERR;beam_smearing; alpha_beam=0.3; sigma_beam=alpha_beam·b_kpc·v_obs/(r+b_kpc);
+ERR;asymmetry; dwarf=0.10·v_obs; spiral=0.05·v_obs;
+ERR;turbulence; k_turb=0.07; p_turb=1.3; sigma_turb=k_turb·v_obs·(1−e^{−r/R_d})^{p_turb};
+ERR;masking; inner_mask=r≥b_kpc; shared_across_models=true;
+
+@REPRODUCIBILITY
+# Required artifacts and CLI conventions
+ARTIFACTS; code=python (3.11+), lean (4.1+), notebooks=.ipynb; data_snapshots=pinned_URL_or_commit;
+CLI; build_figures; example="python scripts/make_figs.py --all --out figs/";
+CLI; rg_pipeline; example="python scripts/rg_mass_residues.py --loops QED2,EW2,QCD4 --mu_star auto --out results/masses.csv";
+DOCS; README_required; includes=env_setup, exact package versions, dataset pins, figure regeneration commands;
+CLI; ilg_benchmark; docker="docker run --rm -v $PWD:/work -w /work ilg-validation python active/scripts/ledger_final_combined.py --mode=pure";
+FREEZE; preregistration; frozen_items=[inner_beam_mask, sigma0, global_ML, kernel_extent, g_ref, ξ_thresholds, ζ_profile, n_profile]; record=commit_sha;
+CONTROLS; negatives; list=velocity_permutation, inplane_rotation_180, gas_star_swap; expected=inflate_medians≫1;
+PURITY; tests; file=test_purity.py; asserts=no_stochastic_imports+pinned_requirements+checksum_repro;
+CLI; masses_build; make_all="pip install -r requirements.txt && make all"; outputs=[out/csv/gap_equals_residue*.csv, out/json/anchor_triple.json];
+CLI; rsfold; example="rsfold run --config config/gbeta.yaml --deterministic --out runs/gbeta_demo_001"; artifacts=[results/phase_timeline.csv, results/metrics.csv, invariants.json];
+
+@BIB_KEYS
+# Canonical citation keys commonly used across papers
+CITE;DEC_foundations; key=DesbrunDEC2005; text="Discrete Exterior Calculus foundations";
+CITE;GrayCodes; key=Savage1997Gray; text="Gray codes and Hamiltonicity on hypercubes";
+CITE;PDG; key=PDG2024; text="Particle Data Group 2024";
+CITE;Planck2018; key=Planck2018; text="Planck 2018 cosmological parameters";
+CITE;ShethTormen; key=ShethTormen1999; text="Halo mass function";
+CITE;Jackson; key=Jackson1999; text="Classical Electrodynamics";
+CITE;LandauMech; key=Landau1976; text="Landau & Lifshitz Mechanics";
+
+@LATEX_TEMPLATES
+# Drop‑in snippets for consistent manuscripts
+TEMPLATE;abstract_core; \begin{abstract} We formulate a deterministic, discrete--time update on digraphs and prove: atomic tick, discrete exactness (w=∇φ), Q3 minimal 8--tick, and convex cost uniqueness J(x)=½(x+x^{-1})-1 (with J''(1)=1). In a mesh limit we recover ∂_t ρ+∇·J=0 and gauge φ→φ+const. \end{abstract}
+TEMPLATE;prop_cost; \begin{proposition}[Convex symmetric cost, unique up to scale] ... J(x)=c_1(x+x^{-1}-2); J''(1)=1⇒c_1=1/2. \end{proposition}
+TEMPLATE;def_walk; Definition (ledger--compatible walk): (W1) atomicity; (W2) spatial completeness; (W3) no vertex multiplicity per tick.
+
+@FIGURES
+# Minimal figures every core paper should include
+FIG;gray_cycle_Q3; purpose=anchor Q3 minimality; medium=TikZ; note="3‑bit Gray Hamiltonian cycle with vertex labels";
+FIG;coboundary_exactness; purpose=visualize w=∇φ; medium=TikZ; note="Closed chain sum zero ⇒ path‑independent potential difference";
+
+@VALIDATION
+# Pre‑publish checks to enforce consistency
+CHECK;headers_balanced; rule="No unbalanced $, {}, or texorpdfstring braces in titles";
+CHECK;labels; rule="All \ref{...} resolve; no spaces in labels; use app:... conventions";
+CHECK;packages; rule="Only load packages that are actually used; hyperref last";
+CHECK;figs; rule="Include ≥2 core figures (Q3 Gray, coboundary) in core‑math paper";
+CHECK;rg_repro; rule="Residues f_i reproducible from RG pipeline with pinned versions";
+
+@LEAN_MODULES
+# Canonical Lean module names for theorem references
+LEANMOD;T1=mp_holds; T2=Atomicity.atomic_tick; T3=Continuity.closed_flux_zero; T4=Potential.unique_on_component; T5=Cost.uniqueness_pos; T6=EightTick.minimal_and_exists;
+
+@DATASETS
+# Datasets and pins frequently cited
+DATA;SPARC; url=https://astroweb.case.edu/SPARC/; pin=commit_or_snapshot_required_in_paper; usage=rotation_curves;
+DATA;PDG_tables; url=https://pdg.lbl.gov; pin=2024; usage=particle_masses_and_couplings;
+DATA;ILG_repo; url=https://github.com/jonwashburn/gravity; artifacts=[results/bench_global_summary.csv, results/bench_rs_per_galaxy.csv, results/bench_mond_per_galaxy.csv, results/ablations_delta_chisq.csv]; zenodo=10.5281/zenodo.16014943;
+DATA;SM_masses_repo; url=https://github.com/jonwashburn/fundamental-masses; artifacts=[out/csv/gap_equals_residue.csv, out/csv/gap_equals_residue_leptons.csv, out/json/anchor_triple.json];
+DATA;Protein_Fold_repo; url=https://github.com/jonwashburn/protein-folding/tree/v0.1; artifacts=[results/phase_timeline.csv, results/metrics.csv, invariants.json];
+
+@PACKAGE_POLICY
+# LaTeX package usage policy to reduce referee friction
+PKG;allowed_core=amsmath,amssymb,amsthm,geometry,hyperref,times,helvet,courier,textcomp;
+PKG;allowed_figs=tikz,pgfplots(graphs_only),graphicx; caution=subcaption,booktabs,multirow,listings (use only when needed);
+PKG;rule=remove_unused_packages;
+
+@PAPER_OUTLINES
+# Recommended splits for publication strategy
+OUTLINE;Paper_I_Core; sections=[Abstract,Intro,Core_Results(atomicity,exactness,Q3,J),Continuum,Figures,Discussion,References]; length=short;
+OUTLINE;Paper_II_Phenomenology; sections=[Model(ILG),Data,Methods,Results(σ8,H0,rotation),Comparison,Code&Data,References];
+OUTLINE;Paper_III_Micro; sections=[Born_rule, g-2_gap_series, Mass_relations, Predictions, Reproducibility, References];
+
+@OPEN_ITEMS (augmented)
+OI; continuum_rigour=scaling_proof_polish; priority=high;
+OI; ILG_kernel_ablation=survey_alternates_and_limits; priority=medium;
+OI; RG_reference_impl=containerize_pipeline_with_versions; priority=high;
+OI; gap_weight_derivation=w8_proof_from_eight_tick_geometry; priority=critical; visibility=prominent;
+

@@ -146,12 +146,43 @@ lemma four_Cpsi_mul_sqrt_lt :
 
 -- Helper lemma: Algebraic identity for Υ computation (pure arithmetic)
 -- This is verifiable by computer algebra, but tactics struggle with nested divisions
-axiom upsilon_ratio_eq :
+lemma upsilon_ratio_eq :
   ((2 / Real.pi) * ((4 / Real.pi) * C_psi_H1 *
       Real.sqrt (K0_paper + Kxi_paper))) /
       ((Real.arctan 2) / (2 * Real.pi))
     = (16 * C_psi_H1 * Real.sqrt (K0_paper + Kxi_paper)) /
-      (Real.pi * Real.arctan 2)
+      (Real.pi * Real.arctan 2) := by
+  -- Pure algebraic identity
+  have hpi_ne : (Real.pi : ℝ) ≠ 0 := ne_of_gt Real.pi_pos
+  have hatan_pos : 0 < Real.arctan (2 : ℝ) := by
+    have hmono : StrictMono Real.arctan := arctan_strictMono
+    have : Real.arctan 0 < Real.arctan 2 := hmono (by norm_num)
+    simpa [Real.arctan_zero] using this
+  have hatan_ne : Real.arctan (2 : ℝ) ≠ 0 := ne_of_gt hatan_pos
+  -- Work multiplicatively and clear denominators
+  have h1 :
+      ((2 : ℝ) / Real.pi) * ((4 : ℝ) / Real.pi)
+        = (8 : ℝ) / (Real.pi * Real.pi) := by
+    field_simp [hpi_ne, mul_comm, mul_left_comm, mul_assoc]
+  have h2 :
+      ((8 : ℝ) / (Real.pi * Real.pi)) * (2 * Real.pi)
+        = (16 : ℝ) / Real.pi := by
+    field_simp [hpi_ne, mul_comm, mul_left_comm, mul_assoc]
+  -- Expand the left-hand side as (A/B) / (C/D) = (A/B) * (D/C)
+  calc
+    ((2 / Real.pi) * ((4 / Real.pi) * C_psi_H1 * Real.sqrt (K0_paper + Kxi_paper))) /
+        ((Real.arctan 2) / (2 * Real.pi))
+        = (((2 / Real.pi) * (4 / Real.pi)) * (C_psi_H1 * Real.sqrt (K0_paper + Kxi_paper)))
+            * ((2 * Real.pi) / (Real.arctan 2)) := by
+              field_simp [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc, hpi_ne, hatan_ne]
+    _ = (((8 : ℝ) / (Real.pi * Real.pi)) * (2 * Real.pi))
+            * (C_psi_H1 * Real.sqrt (K0_paper + Kxi_paper)) / (Real.arctan 2) := by
+              simp [h1, mul_comm, mul_left_comm, mul_assoc]
+    _ = ((16 : ℝ) / Real.pi)
+            * (C_psi_H1 * Real.sqrt (K0_paper + Kxi_paper)) / (Real.arctan 2) := by
+              simp [h2, mul_comm, mul_left_comm, mul_assoc]
+    _ = (16 * C_psi_H1 * Real.sqrt (K0_paper + Kxi_paper)) / (Real.pi * Real.arctan 2) := by
+              field_simp [hpi_ne, hatan_ne, mul_comm, mul_left_comm, mul_assoc]
 
 lemma sixteen_Cpsi_mul_sqrt_le :
     (16 * C_psi_H1) * Real.sqrt (K0_paper + Kxi_paper)

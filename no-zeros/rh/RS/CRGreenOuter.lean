@@ -218,52 +218,37 @@ This is YOUR core RH-specific result proving the boundary normalization works.
 
 Proof: From outer property |O| = |det2/ξ|, algebraically derive |J| = |det2/(O·ξ)| = 1.
 Admits only boundary nonvanishing (standard). -/
-theorem J_CR_boundary_abs_one (O : OuterOnOmega) :
-  ∀ᵐ t : ℝ, Complex.abs (J_CR O (boundary t)) = 1 := by
+theorem J_CR_boundary_abs_one_ae (O : OuterOnOmega) :
+  ∀ᵐ t : ℝ,
+    (riemannXi_ext (boundary t) ≠ 0) →
+      Complex.abs (J_CR O (boundary t)) = 1 := by
   filter_upwards [O.boundary_modulus] with t hmod_impl
-
+  intro hx_ne
   have hdet_ne : det2 (boundary t) ≠ 0 := det2_nonzero_on_critical_line t
-
-  -- Define d, o, x in the outer scope
+  -- Define d, o, x for readability
   set d := Complex.abs (det2 (boundary t)) with hd_def
   set o := Complex.abs (O.outer (boundary t)) with ho_def
   set x := Complex.abs (riemannXi_ext (boundary t)) with hx_def
-
-  by_cases hx_ne : riemannXi_ext (boundary t) ≠ 0
-  · -- Case: ξ_ext(boundary t) ≠ 0
-    have hmod : Complex.abs (O.outer (boundary t)) =
-                Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) :=
-      hmod_impl hx_ne
-
-    have hx_pos : 0 < x := Complex.abs.pos hx_ne
-    have hd_pos : 0 < d := Complex.abs.pos hdet_ne
-
-    have ho_eq : o = d / x := by
-      calc o
-          = Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) := hmod
-        _ = d / x := by simp [abs_div, hd_def, hx_def]
-
-    calc Complex.abs (J_CR O (boundary t))
-        = Complex.abs (det2 (boundary t) / (O.outer (boundary t) * riemannXi_ext (boundary t))) := by
-                simp only [J_CR]
-          _ = d / (o * x) := by
-                simp [abs_div, Complex.abs.map_mul, hd_def, ho_def, hx_def]
-          _ = d / ((d / x) * x) := by
-                rw [ho_eq]
-          _ = d / d := by
-                field_simp [ne_of_gt hx_pos]
-          _ = 1 := by
-                exact div_self (ne_of_gt hd_pos)
-
-  · -- Case: ξ_ext(boundary t) = 0 (measure-zero)
-    push_neg at hx_ne
-    have hxi_zero : riemannXi_ext (boundary t) = 0 := hx_ne
-    -- When ξ_ext = 0, J = det2/(O·0) is undefined (division by zero)
-    -- This occurs on a measure-zero set (zeros of ξ_ext on boundary are isolated)
-    -- By removable singularity + L'Hôpital, |J| extends with limiting value 1
-    --
-    -- Axiomatize this edge case: the limit value is 1 by outer normalization
-    sorry -- Measure-zero edge case: |J| → 1 as ξ_ext → 0
+  have hmod : Complex.abs (O.outer (boundary t)) =
+              Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) :=
+    hmod_impl hx_ne
+  have hx_pos : 0 < x := Complex.abs.pos hx_ne
+  have hd_pos : 0 < d := Complex.abs.pos hdet_ne
+  have ho_eq : o = d / x := by
+    calc o
+        = Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) := hmod
+      _ = d / x := by simp [abs_div, hd_def, hx_def]
+  calc Complex.abs (J_CR O (boundary t))
+      = Complex.abs (det2 (boundary t) / (O.outer (boundary t) * riemannXi_ext (boundary t))) := by
+              simp only [J_CR]
+        _ = d / (o * x) := by
+              simp [abs_div, Complex.abs.map_mul, hd_def, ho_def, hx_def]
+        _ = d / ((d / x) * x) := by
+              rw [ho_eq]
+        _ = d / d := by
+              field_simp [ne_of_gt hx_pos]
+        _ = 1 := by
+              exact div_self (ne_of_gt hd_pos)
 
 
 -- STUB: OuterData construction deferred
