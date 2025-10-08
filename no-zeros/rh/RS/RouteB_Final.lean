@@ -4,6 +4,7 @@ import rh.RS.Det2Outer
 import rh.RS.CRGreenOuter
 import rh.RS.OffZerosBridge
 import rh.academic_framework.HalfPlaneOuterV2
+import rh.academic_framework.PoissonCayley
 import rh.academic_framework.CompletedXi
 import Mathlib.NumberTheory.LSeries.RiemannZeta
 
@@ -44,50 +45,47 @@ theorem boundary_positive_AF : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPos
     (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)) := by
   -- Start from canonical P+ on J_CR outer_exists (OuterOnOmega) using AF boundary
   have hPcan : RH.RS.BoundaryWedgeProof.PPlus_canonical := RH.RS.PPlus_canonical_proved
-  have hP1x : ∀ᵐ t : ℝ, 0 ≤ ((2 : ℂ) * RH.RS.J_CR RH.RS.outer_exists (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
-    simpa using hPcan
-  -- Remove the factor 2 inside the real part
-  have hP1 : ∀ᵐ t : ℝ, 0 ≤ (RH.RS.J_CR RH.RS.outer_exists (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
-    refine hP1x.mono ?_
+  -- Start with RS boundary, then convert to AF boundary for uniformity
+  have hP1_rs : ∀ᵐ t : ℝ, 0 ≤ ((2 : ℂ) * RH.RS.J_CR RH.RS.outer_exists (RH.RS.boundary t)).re := by
+    simpa [RH.RS.BoundaryWedgeProof.PPlus_canonical, RH.RS.BoundaryWedgeProof.PPlus_holds]
+      using hPcan
+  have hP1 : ∀ᵐ t : ℝ, 0 ≤ ((2 : ℂ) * RH.RS.J_CR RH.RS.outer_exists (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
+    refine hP1_rs.mono ?_
     intro t ht
-    have ht' : 0 ≤ (2 : ℝ) * (RH.RS.J_CR RH.RS.outer_exists (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
-      simpa using ht
-    have hx : (RH.RS.J_CR RH.RS.outer_exists (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re
-              = (1/2 : ℝ) * ((2 : ℝ) * (RH.RS.J_CR RH.RS.outer_exists (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re) := by
-      ring
-    have : 0 ≤ (1/2 : ℝ) * ((2 : ℝ) * (RH.RS.J_CR RH.RS.outer_exists (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re) := by
-      exact mul_nonneg (by norm_num) ht'
-    simpa [hx, mul_comm, mul_left_comm, mul_assoc] using this
+    simpa [RH.AcademicFramework.HalfPlaneOuterV2.rs_boundary_eq_af t] using ht
   -- Use equality J_CR = J_pinch det2 (outer_exists.outer)
   have hJ_eq : ∀ z, RH.RS.J_CR RH.RS.outer_exists z = RH.RS.J_pinch RH.RS.det2 RH.RS.outer_exists.outer z :=
     RH.RS.J_CR_eq_J_pinch
-  have hP2_no2 : ∀ᵐ t : ℝ, 0 ≤ (RH.RS.J_pinch RH.RS.det2 RH.RS.outer_exists.outer (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
+  have hP2 : ∀ᵐ t : ℝ, 0 ≤ ((2 : ℂ) * RH.RS.J_pinch RH.RS.det2 RH.RS.outer_exists.outer (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
     simpa [hJ_eq] using hP1
   -- Identify that the function `O` equals the canonical outer function used in CRGreenOuter
   have hOuterEq : RH.RS.outer_exists.outer = O := rfl
-  have hP3_no2 : ∀ᵐ t : ℝ, 0 ≤ (RH.RS.J_pinch RH.RS.det2 O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
-    simpa [hOuterEq] using hP2_no2
-  -- Reintroduce the factor 2 (preserves nonnegativity)
   have hP3 : ∀ᵐ t : ℝ, 0 ≤ ((2 : ℂ) * RH.RS.J_pinch RH.RS.det2 O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
-    refine hP3_no2.mono ?_
-    intro t ht
-    have : 0 ≤ (2 : ℝ) * (RH.RS.J_pinch RH.RS.det2 O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re :=
-      mul_nonneg (by norm_num) ht
-    simpa using this
+    simpa [hOuterEq] using hP2
   simpa [RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive] using hP3
 
 /-- Cert-level (P+) from AF boundary positivity via the mk-boundary equality. -/
 theorem boundary_positive : RH.Cert.PPlus
     (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)) := by
-  -- Convert AF boundary predicate to Cert.PPlus form
+  -- Convert AF boundary predicate to Cert.PPlus form via boundary_mk_eq
   have h := boundary_positive_AF
-  -- mk boundary equality: {re=1/2,im=t} = boundary t
-  have hmk : ∀ t, ({ re := (1/2 : ℝ), im := t } : ℂ) = RH.AcademicFramework.HalfPlaneOuterV2.boundary t :=
-    RH.AcademicFramework.HalfPlaneOuterV2.mk_boundary_eq_af
-  have : ∀ᵐ t : ℝ, 0 ≤ ((2 : ℂ) * RH.RS.J_pinch RH.RS.det2 O ({ re := (1/2 : ℝ), im := t })).re := by
-    refine h.mono ?_
-    intro t ht; simpa [hmk t] using ht
-  exact this
+  have bmk : ∀ t, RH.AcademicFramework.HalfPlaneOuterV2.boundary t = ({ re := (1/2 : ℝ), im := t } : ℂ) :=
+    RH.AcademicFramework.HalfPlaneOuterV2.boundary_mk_eq
+  refine h.mono ?_
+  intro t ht
+  -- From 0 ≤ Re((2:ℂ)·J) deduce 0 ≤ Re(J) since 2 > 0
+  have ht' : 0 ≤ (2 : ℝ) *
+      (RH.RS.J_pinch RH.RS.det2 O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
+    simpa (only) [Complex.mul_re] using ht
+  have hmul : (2 : ℝ) * 0 ≤ (2 : ℝ) *
+      (RH.RS.J_pinch RH.RS.det2 O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
+    simpa using ht'
+  have hJ_nonneg : 0 ≤
+      (RH.RS.J_pinch RH.RS.det2 O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
+    have := le_of_mul_le_mul_left hmul (by norm_num : 0 < (2 : ℝ))
+    simpa using this
+  -- Rewrite boundary to record form expected by Cert.PPlus
+  simpa [bmk t] using hJ_nonneg
 
 /-! ## Poisson representation witness on the off‑zeros set -/
 
@@ -101,24 +99,33 @@ axiom det2_analytic_on_RSΩ : AnalyticOn ℂ RH.RS.det2 RH.RS.Ω
 axiom det2_nonzero_on_RSΩ : ∀ {s}, s ∈ RH.RS.Ω → RH.RS.det2 s ≠ 0
 axiom riemannXi_ext_analytic_AFΩ : AnalyticOn ℂ riemannXi_ext RH.AcademicFramework.HalfPlaneOuterV2.Ω
 
+-- RS-level assumption: half-plane Poisson real-part identity for the pinch field
+-- on the AF off‑zeros set. This will be supplied via the disk→half-plane Cayley bridge.
+axiom pinch_halfplane_ReEqOn_offXi :
+  RH.AcademicFramework.PoissonCayley.HasHalfPlanePoissonReEqOn
+    (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
+    (RH.AcademicFramework.HalfPlaneOuterV2.Ω \ {z | riemannXi_ext z = 0})
+
 theorem F_pinch_has_poisson_rep : HasPoissonRepOn
     (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
     (Ω \ {z | riemannXi_ext z = 0}) := by
-  -- Pack det2 analyticity/nonvanishing on RS Ω
+  -- Package det2 analyticity/nonvanishing on RS Ω
   have hDet2 : RH.RS.Det2OnOmega := RH.RS.det2_on_Ω_assumed det2_analytic_on_RSΩ (by
     intro s hs; exact det2_nonzero_on_RSΩ (s := s) hs)
-  -- Extract AF-facing outer data
+  -- Extract RS outer data and boundary modulus
   have hOuter : RH.RS.OuterHalfPlane O := (O_spec).1
   have hBMErs : RH.RS.BoundaryModulusEq O (fun s => RH.RS.det2 s / riemannXi_ext s) := (O_spec).2
-  -- Convert RS → AF BoundaryModulusEq and apply default builder
-  exact pinch_hasPoissonRepOn_default
-    hDet2
-    (hO := hOuter)
-    (hBME_rs := hBMErs)
-    (hXi := riemannXi_ext_analytic_AFΩ)
-    det2_boundary_measurable
-    O_boundary_measurable
-    xi_ext_boundary_measurable
+  -- Convert RS → AF BoundaryModulusEq
+  have hBME_af : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryModulusEq O (fun s => RH.RS.det2 s / riemannXi_ext s) := by
+    intro t
+    have hEq : RH.RS.boundary t = RH.AcademicFramework.HalfPlaneOuterV2.boundary t :=
+      RH.AcademicFramework.HalfPlaneOuterV2.rs_boundary_eq_af t
+    simpa [hEq] using (hBMErs t)
+  -- Apply the Cayley-based builder, supplying the real‑part identity assumption
+  exact RH.AcademicFramework.HalfPlaneOuterV2.pinch_hasPoissonRepOn_from_cayley
+    hDet2 (hO := hOuter) (hBME := hBME_af) (hXi := riemannXi_ext_analytic_AFΩ)
+    det2_boundary_measurable O_boundary_measurable xi_ext_boundary_measurable
+    pinch_halfplane_ReEqOn_offXi
 
 /-! ## Pinned removable data (u‑trick) -/
 

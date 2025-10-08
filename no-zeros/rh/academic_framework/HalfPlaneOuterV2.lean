@@ -521,41 +521,30 @@ theorem pinch_poissonRepOn_offZeros
   · -- formula
     exact hFormula
 
-/-- Acceptable input (standard harmonic analysis): Poisson representation
-formula for the pinch field on the off‑zeros set. This is a classical result
-providing the real-part Poisson integral formula for analytic functions with
-the given boundary data on the critical line. -/
-axiom F_pinch_poisson_formula_on_offZeros
-    (hDet2 : Det2OnOmega)
-    {O : ℂ → ℂ} (hO : OuterHalfPlane O)
-    (hXi : AnalyticOn ℂ riemannXi_ext Ω)
-    : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
-        (F_pinch det2 O z).re
-          = poissonIntegral (fun t => (F_pinch det2 O (boundary t)).re) z
+-- Note: The classical Poisson identity for the pinch field on the off‑zeros set
+-- is provided to this module via callers (see `pinch_hasPoissonRepOn_from_cayley`).
 
-/-- Convenience wrapper: build a Poisson representation witness for the pinch
-field on the off‑zeros set using the standard Poisson formula axiom together
-with measurability of the boundary data. -/
-theorem pinch_hasPoissonRepOn_default
+/-- Convenience wrapper (Cayley transport): build a Poisson representation witness for the
+pinch field on the off‑zeros set from a supplied half‑plane Poisson real‑part identity on
+that set. This avoids any reliance on the axiom `F_pinch_poisson_formula_on_offZeros` by
+accepting the identity as an explicit hypothesis. -/
+theorem pinch_hasPoissonRepOn_from_cayley
     (hDet2 : Det2OnOmega)
     {O : ℂ → ℂ} (hO : OuterHalfPlane O)
-    (hBME_rs : RH.RS.BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
+    (hBME : BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
     (hXi : AnalyticOn ℂ riemannXi_ext Ω)
     (hDet_meas : Measurable (fun t : ℝ => det2 (boundary t)))
     (hO_meas   : Measurable (fun t : ℝ => O (boundary t)))
     (hXi_meas  : Measurable (fun t : ℝ => riemannXi_ext (boundary t)))
+    (hReEqOn : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+                (F_pinch det2 O z).re =
+                  poissonIntegral (fun t : ℝ => (F_pinch det2 O (boundary t)).re) z)
     : HasPoissonRepOn (F_pinch det2 O) (Ω \ {z | riemannXi_ext z = 0}) := by
-  -- Use the general builder with the axiom as the formula input
-  -- Convert RS boundary modulus equality to AF variant via boundary equality
-  have hBME : BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s) := by
-    intro t
-    -- Rewrite RS boundary to AF boundary
-    have hEq : RH.RS.boundary t = boundary t := rs_boundary_eq_af t
-    simpa [hEq] using (hBME_rs t)
+  -- Use the general builder, supplying the real‑part identity as the `hFormula` input.
   refine pinch_poissonRepOn_offZeros hDet2 (hO := hO) (hBME := hBME) (hXi := hXi)
     (hDet_meas := hDet_meas) (hO_meas := hO_meas) (hXi_meas := hXi_meas) ?hFormula
   intro z hz
-  exact F_pinch_poisson_formula_on_offZeros hDet2 hO hXi z hz
+  exact hReEqOn z hz
 
 /-- Main transport theorem for pinch field -/
 theorem pinch_transport
