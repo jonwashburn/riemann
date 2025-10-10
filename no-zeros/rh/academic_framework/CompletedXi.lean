@@ -5,6 +5,7 @@ import Mathlib.Analysis.SpecialFunctions.Complex.Log
 import Mathlib.NumberTheory.LSeries.RiemannZeta
 import rh.academic_framework.ZetaFunctionalEquation
 import rh.RS.Domain
+import Mathlib.Topology.Basic
 -- Do not import RS here to avoid cycles; keep this module self-contained in AF.
 
 /-!
@@ -147,3 +148,7 @@ theorem xi_ext_zeros_eq_zeta_zeros_on_Ω :
     simpa [hfac, hζ]
 
 -- The ext ξ equals mathlib's completed zeta `
+
+/-! (Continuity/measurability facts for `riemannXi_ext` are used downstream;
+they are provided locally where needed to avoid depending on specific mathlib
+lemma names here.) -/

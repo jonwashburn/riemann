@@ -152,37 +152,47 @@ lemma upsilon_ratio_eq :
       ((Real.arctan 2) / (2 * Real.pi))
     = (16 * C_psi_H1 * Real.sqrt (K0_paper + Kxi_paper)) /
       (Real.pi * Real.arctan 2) := by
-  -- Pure algebraic identity
-  have hpi_ne : (Real.pi : ℝ) ≠ 0 := ne_of_gt Real.pi_pos
+  set B := C_psi_H1 * Real.sqrt (K0_paper + Kxi_paper) with hB
+  have hpi_ne : (Real.pi : ℝ) ≠ 0 := Real.pi_ne_zero
   have hatan_pos : 0 < Real.arctan (2 : ℝ) := by
     have hmono : StrictMono Real.arctan := arctan_strictMono
     have : Real.arctan 0 < Real.arctan 2 := hmono (by norm_num)
     simpa [Real.arctan_zero] using this
   have hatan_ne : Real.arctan (2 : ℝ) ≠ 0 := ne_of_gt hatan_pos
-  -- Work multiplicatively and clear denominators
-  have h1 :
-      ((2 : ℝ) / Real.pi) * ((4 : ℝ) / Real.pi)
-        = (8 : ℝ) / (Real.pi * Real.pi) := by
-    field_simp [hpi_ne, mul_comm, mul_left_comm, mul_assoc]
-  have h2 :
-      ((8 : ℝ) / (Real.pi * Real.pi)) * (2 * Real.pi)
-        = (16 : ℝ) / Real.pi := by
-    field_simp [hpi_ne, mul_comm, mul_left_comm, mul_assoc]
-  -- Expand the left-hand side as (A/B) / (C/D) = (A/B) * (D/C)
-  calc
-    ((2 / Real.pi) * ((4 / Real.pi) * C_psi_H1 * Real.sqrt (K0_paper + Kxi_paper))) /
-        ((Real.arctan 2) / (2 * Real.pi))
-        = (((2 / Real.pi) * (4 / Real.pi)) * (C_psi_H1 * Real.sqrt (K0_paper + Kxi_paper)))
-            * ((2 * Real.pi) / (Real.arctan 2)) := by
-              field_simp [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc, hpi_ne, hatan_ne]
-    _ = (((8 : ℝ) / (Real.pi * Real.pi)) * (2 * Real.pi))
-            * (C_psi_H1 * Real.sqrt (K0_paper + Kxi_paper)) / (Real.arctan 2) := by
-              simp [h1, mul_comm, mul_left_comm, mul_assoc]
-    _ = ((16 : ℝ) / Real.pi)
-            * (C_psi_H1 * Real.sqrt (K0_paper + Kxi_paper)) / (Real.arctan 2) := by
-              simp [h2, mul_comm, mul_left_comm, mul_assoc]
-    _ = (16 * C_psi_H1 * Real.sqrt (K0_paper + Kxi_paper)) / (Real.pi * Real.arctan 2) := by
-              field_simp [hpi_ne, hatan_ne, mul_comm, mul_left_comm, mul_assoc]
+  have hmain :
+      ((2 / Real.pi) * (4 / Real.pi)) /
+          ((Real.arctan 2) / (2 * Real.pi))
+        = (16 : ℝ) / (Real.pi * Real.arctan 2) := by
+    field_simp [hpi_ne, hatan_ne, mul_comm, mul_left_comm, mul_assoc]
+      <;> ring
+  have hden_ne : (Real.arctan 2) / (2 * Real.pi) ≠ 0 := by
+    refine div_ne_zero hatan_ne ?_
+    simpa using mul_ne_zero (by norm_num : (2 : ℝ) ≠ 0) hpi_ne
+  have hEq :
+      ((2 / Real.pi) * ((4 / Real.pi) * B)) /
+          ((Real.arctan 2) / (2 * Real.pi))
+        = (16 * B) / (Real.pi * Real.arctan 2) := by
+    calc
+      ((2 / Real.pi) * ((4 / Real.pi) * B)) /
+            ((Real.arctan 2) / (2 * Real.pi))
+          = (((2 / Real.pi) * (4 / Real.pi)) * B) /
+              ((Real.arctan 2) / (2 * Real.pi)) := by
+                simp [mul_comm, mul_left_comm, mul_assoc]
+      _ = (B * ((2 / Real.pi) * (4 / Real.pi))) /
+              ((Real.arctan 2) / (2 * Real.pi)) := by
+                ring_nf
+      _ = B * (((2 / Real.pi) * (4 / Real.pi)) /
+              ((Real.arctan 2) / (2 * Real.pi))) := by
+                simpa [mul_comm, mul_left_comm, mul_assoc]
+                  using (mul_div_assoc B ((2 / Real.pi) * (4 / Real.pi))
+                      ((Real.arctan 2) / (2 * Real.pi)))
+      _ = B * ((16 : ℝ) / (Real.pi * Real.arctan 2)) := by
+                simpa [hmain]
+      _ = (16 * B) / (Real.pi * Real.arctan 2) := by
+                simpa [mul_comm, mul_left_comm, mul_assoc]
+                  using (mul_div_assoc B (16 : ℝ)
+                      (Real.pi * Real.arctan 2)).symm
+  simpa [B, mul_comm, mul_left_comm, mul_assoc] using hEq
 
 lemma sixteen_Cpsi_mul_sqrt_le :
     (16 * C_psi_H1) * Real.sqrt (K0_paper + Kxi_paper)

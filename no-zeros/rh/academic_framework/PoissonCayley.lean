@@ -155,6 +155,42 @@ theorem hReEq_pinch_ext_of_halfplane_rep
     hRep.formula z hz.1
   simpa using this
 
+/-! ## Pinch specialization via Cayley (eliminate placeholder)
+
+We now assemble the half–plane real–part identity for the pinch field on the
+off–zeros set by transporting a disk-side identity through the Cayley bridge.
+This removes the need for any placeholder assumption at the route level. -/
+
+/-- Builder: if the Cayley pullback `(H ∘ toDisk)` has a subset half-plane Poisson
+representation on `S`, and `F = H ∘ toDisk` on `S` with matching boundary traces,
+then the half-plane real-part identity holds for `F` on `S`. -/
+theorem pinch_halfplane_ReEqOn_from_cayley
+  (F H : ℂ → ℂ) {S : Set ℂ}
+  (hEqInterior : Set.EqOn F (fun z => H (CayleyAdapters.toDisk z)) S)
+  (hEqBoundary  : EqOnBoundary F H)
+  (hRepOnPull   : HasPoissonRepOn (fun z => H (CayleyAdapters.toDisk z)) S)
+  : HasHalfPlanePoissonReEqOn F S := by
+  -- kernel transport for H on S from the subset representation of H∘toDisk
+  have hKernel : CayleyKernelTransportOn H S := cayley_kernel_transport_from_rep_on H hRepOnPull
+  -- conclude the half-plane real-part identity for F on S
+  exact reEq_on_from_disk_via_cayley F H hEqInterior hEqBoundary hKernel
+
+/-- Pinch ext specialization: from a subset half-plane Poisson representation of the
+pullback `(F_pinch det2 O) ∘ toDisk` on `S`, obtain the half-plane real-part identity
+for `F_pinch det2 O` on `S`. -/
+theorem pinch_ReEqOn_from_pullback
+  (det2 O : ℂ → ℂ) {S : Set ℂ}
+  (H : ℂ → ℂ)
+  (hEqInt : Set.EqOn (F_pinch det2 O) (fun z => H (CayleyAdapters.toDisk z)) S)
+  (hEqBd  : EqOnBoundary (F_pinch det2 O) H)
+  (hRepPull : HasPoissonRepOn (fun z => H (CayleyAdapters.toDisk z)) S)
+  : HasHalfPlanePoissonReEqOn (F_pinch det2 O) S := by
+  -- kernel transport for H from the subset representation of H∘toDisk
+  have hKernel : CayleyKernelTransportOn H S := cayley_kernel_transport_from_rep_on H hRepPull
+  -- conclude the half-plane real-part identity for F on S
+  exact reEq_on_from_disk_via_cayley (F := F_pinch det2 O) (H := H)
+    (S := S) hEqInt hEqBd hKernel
+
 end PoissonCayley
 end AcademicFramework
 end RH

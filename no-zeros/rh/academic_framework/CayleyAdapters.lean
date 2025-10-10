@@ -1,6 +1,7 @@
 import rh.academic_framework.DiskHardy
 -- (no additional mathlib imports needed here)
 import rh.academic_framework.HalfPlaneOuterV2
+import Mathlib.Tactic
 
 noncomputable section
 
@@ -16,6 +17,9 @@ open scoped Real
 
 /-- Inverse Cayley map from the unit disk to the right half-plane Ω. -/
 @[simp] def toHalf (w : ℂ) : ℂ := 1 / (1 - w)
+
+/-- Inverse adapter name used by RS routing: identical to `toHalf`. -/
+@[simp] def fromDisk (w : ℂ) : ℂ := toHalf w
 
 /-- Boundary parametrization transport under Cayley: on Re s=1/2, the image lies on ∂𝔻. -/
 @[simp] def boundaryToDisk (t : ℝ) : ℂ := toDisk (HalfPlaneOuterV2.boundary t)
@@ -69,6 +73,45 @@ lemma map_Ω_to_unitDisk {z : ℂ}
     have hzpos : 0 < Complex.abs z := AbsoluteValue.pos Complex.abs hzNe
     exact div_lt_one hzpos |>.mpr hlt
   simpa [DiskHardy.unitDisk, Set.mem_setOf_eq] using hlt'
+
+/-! ## Two‑sided inverse identities for Cayley (domain‑restricted) -/
+
+/-- On the unit disk (|w| < 1), `toDisk ∘ fromDisk = id`. -/
+lemma toDisk_fromDisk_of_mem_unitDisk {w : ℂ}
+  (hw : w ∈ DiskHardy.unitDisk) : toDisk (fromDisk w) = w := by
+  -- Since |w| < 1, we have w ≠ 1, hence 1 - w ≠ 0
+  have hw_lt : Complex.abs w < 1 := by
+    simpa [DiskHardy.unitDisk, Set.mem_setOf_eq] using hw
+  have h1w : 1 - w ≠ 0 := by
+    intro h
+    have hw_eq : w = (1 : ℂ) := (eq_of_sub_eq_zero h).symm
+    have : Complex.abs (1 : ℂ) < 1 := by simpa [hw_eq] using hw_lt
+    have : (1 : ℝ) < 1 := by simpa [abs_one] using this
+    exact (lt_irrefl (1 : ℝ)) this
+  -- Compute directly
+  field_simp [fromDisk, toHalf, toDisk, h1w]
+
+/-- On the right half‑plane Ω (Re z > 1/2), `fromDisk ∘ toDisk = id`. -/
+lemma fromDisk_toDisk_of_ne_zero {z : ℂ}
+  (hz : z ≠ 0) : fromDisk (toDisk z) = z := by
+  field_simp [fromDisk, toHalf, toDisk, hz]
+
+lemma fromDisk_toDisk_of_mem_Ω {z : ℂ}
+  (hz : z ∈ HalfPlaneOuterV2.Ω) : fromDisk (toDisk z) = z := by
+  have hz0 : z ≠ 0 := by
+    intro h; subst h
+    have : (1/2 : ℝ) < (0 : ℂ).re := by
+      simpa [HalfPlaneOuterV2.Ω, Set.mem_setOf_eq] using hz
+    have : (1/2 : ℝ) < 0 := by simpa [Complex.zero_re] using this
+    exact (not_lt_of_ge (by norm_num : (0 : ℝ) ≤ 1/2)) this
+  exact fromDisk_toDisk_of_ne_zero hz0
+
+/-- Boundary compatibility: pulling boundary points back from the disk recovers the boundary. -/
+@[simp] lemma fromDisk_boundaryToDisk (t : ℝ) :
+  fromDisk (boundaryToDisk t) = HalfPlaneOuterV2.boundary t := by
+  have hb0 : HalfPlaneOuterV2.boundary t ≠ 0 := boundary_ne_zero t
+  -- Apply the general inverse identity valid for all nonzero points
+  simpa [boundaryToDisk] using fromDisk_toDisk_of_ne_zero (z := HalfPlaneOuterV2.boundary t) hb0
 
 -- Note: the boundary image lies on the unit circle; not required downstream here.
 -- lemma boundary_maps_to_unitCircle (t : ℝ) : Complex.abs (boundaryToDisk t) = 1 := by
@@ -275,7 +318,7 @@ lemma HalfPlanePoisson_real_from_Disk
         = ∫ θ : ℝ, (Hdisk (DiskHardy.boundary θ)).re * DiskHardy.poissonKernel (toDisk z) θ :=
       hDisk.re_eq (toDisk z) hw
     -- Relate F z and Hdisk (toDisk z)
-    have hRelz : F z = Hdisk (toDisk z) := 
+    have hRelz : F z = Hdisk (toDisk z) :=
       hRel hz
     -- Change variables on the integral side via the supplied identity `hChange`
     have hCoV := hChange z hz

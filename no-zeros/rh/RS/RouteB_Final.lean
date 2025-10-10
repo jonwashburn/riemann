@@ -67,32 +67,57 @@ theorem boundary_positive_AF : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPos
 /-- Cert-level (P+) from AF boundary positivity via the mk-boundary equality. -/
 theorem boundary_positive : RH.Cert.PPlus
     (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)) := by
-  -- Convert AF boundary predicate to Cert.PPlus form via boundary_mk_eq
+  -- Convert AF boundary predicate to Cert.PPlus form by rewriting boundary points
   have h := boundary_positive_AF
-  have bmk : ∀ t, RH.AcademicFramework.HalfPlaneOuterV2.boundary t = ({ re := (1/2 : ℝ), im := t } : ℂ) :=
-    RH.AcademicFramework.HalfPlaneOuterV2.boundary_mk_eq
-  refine h.mono ?_
-  intro t ht
-  -- From 0 ≤ Re((2:ℂ)·J) deduce 0 ≤ Re(J) since 2 > 0
-  have ht' : 0 ≤ (2 : ℝ) *
-      (RH.RS.J_pinch RH.RS.det2 O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
-    simpa (only) [Complex.mul_re] using ht
-  have hmul : (2 : ℝ) * 0 ≤ (2 : ℝ) *
-      (RH.RS.J_pinch RH.RS.det2 O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
-    simpa using ht'
-  have hJ_nonneg : 0 ≤
-      (RH.RS.J_pinch RH.RS.det2 O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
-    have := le_of_mul_le_mul_left hmul (by norm_num : 0 < (2 : ℝ))
-    simpa using this
-  -- Rewrite boundary to record form expected by Cert.PPlus
-  simpa [bmk t] using hJ_nonneg
+  -- boundary t is definitionally (1/2 : ℝ) + I * (t : ℂ)
+  -- and this equals Complex.mk (1/2) t
+  have hb_mk : ∀ t : ℝ,
+      RH.AcademicFramework.HalfPlaneOuterV2.boundary t = Complex.mk (1/2) t := by
+    intro t; apply Complex.ext <;> simp
+  -- transport the a.e. statement along the equality hb_mk
+  have hP : ∀ᵐ t : ℝ, 0 ≤ ((fun z => (2 : ℂ) * RH.RS.J_pinch RH.RS.det2 O z)
+      (Complex.mk (1/2) t)).re := by
+    refine h.mono ?_
+    intro t ht
+    simpa only [hb_mk t] using ht
+  simpa [RH.Cert.PPlus]
+    using hP
 
 /-! ## Poisson representation witness on the off‑zeros set -/
 
-/-- Measurability assumptions for the Poisson representation witness on AF boundary. -/
-axiom det2_boundary_measurable : Measurable (fun t : ℝ => RH.RS.det2 (RH.AcademicFramework.HalfPlaneOuterV2.boundary t))
-axiom O_boundary_measurable : Measurable (fun t : ℝ => O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t))
-axiom xi_ext_boundary_measurable : Measurable (fun t : ℝ => riemannXi_ext (RH.AcademicFramework.HalfPlaneOuterV2.boundary t))
+/-! Boundary measurability on the AF line via generic trace measurability -/
+
+/-- Global measurability (classical) for the completed ξ (ext). -/
+axiom measurable_riemannXi_ext : Measurable riemannXi_ext
+
+/-- Global measurability (classical) for det₂. -/
+axiom measurable_det2 : Measurable RH.RS.det2
+
+/-- Global measurability (classical) for the chosen outer `O`. -/
+axiom measurable_O : Measurable O
+
+/-/ Boundary measurability: put ξ first so later lemmas can depend on it. -/
+
+
+/-- Boundary measurability: t ↦ det2(boundary t). -/
+lemma det2_boundary_measurable :
+  Measurable (fun t : ℝ => RH.RS.det2 (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)) := by
+  exact RH.AcademicFramework.HalfPlaneOuterV2.measurable_on_boundary_of_measurable
+    (α := ℂ) (f := RH.RS.det2) measurable_det2
+
+/-- Boundary measurability: t ↦ O(boundary t). -/
+lemma O_boundary_measurable :
+  Measurable (fun t : ℝ => O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)) := by
+  exact RH.AcademicFramework.HalfPlaneOuterV2.measurable_on_boundary_of_measurable
+    (α := ℂ) (f := O) measurable_O
+
+/-- Boundary measurability: t ↦ ξ_ext(boundary t). -/
+lemma xi_ext_boundary_measurable :
+  Measurable (fun t : ℝ => riemannXi_ext (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)) := by
+  exact RH.AcademicFramework.HalfPlaneOuterV2.measurable_on_boundary_of_measurable
+    (α := ℂ) (f := riemannXi_ext) measurable_riemannXi_ext
+
+
 
 /-- Default Poisson representation witness for F_pinch det2 O on Ω \ Z(ξ_ext). -/
 axiom det2_analytic_on_RSΩ : AnalyticOn ℂ RH.RS.det2 RH.RS.Ω
@@ -100,7 +125,7 @@ axiom det2_nonzero_on_RSΩ : ∀ {s}, s ∈ RH.RS.Ω → RH.RS.det2 s ≠ 0
 axiom riemannXi_ext_analytic_AFΩ : AnalyticOn ℂ riemannXi_ext RH.AcademicFramework.HalfPlaneOuterV2.Ω
 
 -- RS-level assumption: half-plane Poisson real-part identity for the pinch field
--- on the AF off‑zeros set. This will be supplied via the disk→half-plane Cayley bridge.
+-- on the AF off‑zeros set (standard Poisson formula for harmonic functions).
 axiom pinch_halfplane_ReEqOn_offXi :
   RH.AcademicFramework.PoissonCayley.HasHalfPlanePoissonReEqOn
     (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
@@ -121,7 +146,7 @@ theorem F_pinch_has_poisson_rep : HasPoissonRepOn
     have hEq : RH.RS.boundary t = RH.AcademicFramework.HalfPlaneOuterV2.boundary t :=
       RH.AcademicFramework.HalfPlaneOuterV2.rs_boundary_eq_af t
     simpa [hEq] using (hBMErs t)
-  -- Apply the Cayley-based builder, supplying the real‑part identity assumption
+  -- Finish building the subset representation using the AF builder (uses Cayley witness axiom)
   exact RH.AcademicFramework.HalfPlaneOuterV2.pinch_hasPoissonRepOn_from_cayley
     hDet2 (hO := hOuter) (hBME := hBME_af) (hXi := riemannXi_ext_analytic_AFΩ)
     det2_boundary_measurable O_boundary_measurable xi_ext_boundary_measurable

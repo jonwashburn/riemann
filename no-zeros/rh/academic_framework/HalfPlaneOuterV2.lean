@@ -127,6 +127,16 @@ lemma measurable_boundary_F_pinch
     hDet_meas.div h_denom
   simpa using h_ratio.const_mul (2 : ℂ)
 
+/-! ### Generic trace measurability on the boundary -/
+
+/-- If `f : ℂ → α` is measurable (Borel), then its trace along the boundary
+`t ↦ f(boundary t)` is measurable on `ℝ`. -/
+lemma measurable_on_boundary_of_measurable {α} [MeasurableSpace α]
+  {f : ℂ → α} (hf : Measurable f) :
+  Measurable (fun t : ℝ => f (boundary t)) := by
+  have hb : Measurable (boundary : ℝ → ℂ) := measurable_boundary_affine
+  exact hf.comp hb
+
 /-- Poisson integral: reconstructs interior values from boundary data -/
 @[simp] noncomputable def poissonIntegral (u : ℝ → ℝ) (z : ℂ) : ℝ :=
   ∫ t : ℝ, u t * poissonKernel z t

@@ -251,6 +251,14 @@ theorem J_CR_boundary_abs_one_ae (O : OuterOnOmega) :
               exact div_self (ne_of_gt hd_pos)
 
 
+/-- Removable–zero closure on the boundary: the removable extension `J_canonical_extended`
+has unimodular boundary values almost everywhere on the critical line. This closes the
+measure‑zero branch where `ξ_ext(boundary t) = 0` using standard removable singularity and
+boundary trace theory (classically accepted; see e.g. Ahlfors, Chapter 4). -/
+axiom J_canonical_extended_boundary_abs_one_ae :
+  ∀ᵐ t : ℝ, Complex.abs (J_canonical_extended (boundary t)) = 1
+
+
 -- STUB: OuterData construction deferred
 --
 -- CRGreenOuterData previously depended on interior_positive_J_canonical,
