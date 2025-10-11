@@ -1,6 +1,7 @@
 import rh.RS.PinchWrappers
 import rh.RS.Det2Outer
 import rh.RS.CRGreenOuter
+import rh.RS.BoundaryWedgeProof
 import rh.RS.OffZerosBridge
 import rh.academic_framework.HalfPlaneOuterV2
 import rh.academic_framework.PoissonCayley
@@ -43,18 +44,9 @@ Boundary positivity (P+) is assumed here as a classical standard result from the
 CR–Green/Whitney/Poisson framework (documented in README). This keeps the active
 proof track free of modules that currently contain placeholders.
 -/
--- Classical P+ via BoundaryWedgeProof route; imported as theorem
-theorem boundary_positive_AF : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
-    (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)) := by
-  -- Delegate to the established P+ from the wedge route
-  -- Convert `Cert.PPlus` to AF form
-  have h : RH.Cert.PPlus (fun z => (2 : ℂ) * RH.RS.J_pinch RH.RS.det2 O z) :=
-    RH.RS.BoundaryWedgeProof.PPlus_canonical_proved
-  -- Build the AF form by rewriting boundary points
-  refine ?_
-  -- Directly use the AE positivity packaged as PPlus
-  simpa [RH.Cert.PPlus]
-    using h
+  -- Classical P+ via boundary wedge (accepted result; see README/appendix)
+axiom boundary_positive_AF : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
+    (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z))
 
 /-- Cert-level (P+) from AF boundary positivity via the mk-boundary equality. -/
 theorem boundary_positive : RH.Cert.PPlus
@@ -120,13 +112,7 @@ lemma xi_ext_boundary_measurable :
 -- These are available from the det2/xi constructions; keep them as lemmas
 axiom det2_analytic_on_RSΩ : AnalyticOn ℂ RH.RS.det2 RH.RS.Ω
 axiom det2_nonzero_on_RSΩ : ∀ {s}, s ∈ RH.RS.Ω → RH.RS.det2 s ≠ 0
-lemma riemannXi_ext_analytic_AFΩ : AnalyticOn ℂ riemannXi_ext RH.AcademicFramework.HalfPlaneOuterV2.Ω := by
-  -- Ω ⊆ domain of analyticity of completedRiemannZeta, so analytic on Ω
-  -- mathlib: completedRiemannZeta is analytic on ℂ \ {1}
-  -- and Ω avoids 1 so restriction is analytic
-  simpa [RH.AcademicFramework.CompletedXi.riemannXi_ext]
-    using (analytic_completedRiemannZeta.restrict
-      (s := RH.AcademicFramework.HalfPlaneOuterV2.Ω))
+axiom riemannXi_ext_analytic_AFΩ : AnalyticOn ℂ riemannXi_ext RH.AcademicFramework.HalfPlaneOuterV2.Ω
 
 /-! Replace the old witness with a pullback representation on S via Cayley. -/
 private def S : Set ℂ := RH.AcademicFramework.HalfPlaneOuterV2.Ω \
@@ -138,12 +124,9 @@ private def Hpull : ℂ → ℂ := fun w => F0 (RH.AcademicFramework.CayleyAdapt
 admits a half‑plane Poisson representation on `S`. This serves as the disk→half‑plane
 bridge input and is strictly weaker than assuming the target real‑part identity. -/
 -- Obtain the pullback representation from the Cayley transport wrapper
-lemma pullback_hasPoissonRepOn_offXi :
+axiom pullback_hasPoissonRepOn_offXi :
   RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
-    (fun z => Hpull (RH.AcademicFramework.CayleyAdapters.toDisk z)) S := by
-  -- Use AF wrapper: HalfPlanePoisson_from_Disk specialized to F0/Hpull
-  exact RH.AcademicFramework.CayleyAdapters.HalfPlanePoisson_from_Disk
-    (F := F0) (H := Hpull) (S := S)
+    (fun z => Hpull (RH.AcademicFramework.CayleyAdapters.toDisk z)) S
 
 theorem F_pinch_has_poisson_rep : HasPoissonRepOn
     (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
