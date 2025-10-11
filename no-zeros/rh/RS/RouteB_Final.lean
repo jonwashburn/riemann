@@ -81,8 +81,6 @@ axiom measurable_riemannXi_ext : Measurable riemannXi_ext
 -- det2 measurability: assume continuity (standard in its construction) if available
 axiom measurable_det2 : Measurable RH.RS.det2
 
-/-- Global measurability (classical) for the chosen outer `O`. -/
--- Outer choice is analytic hence measurable; we assume measurability here
 axiom measurable_O : Measurable O
 
 /-/ Boundary measurability: put ξ first so later lemmas can depend on it. -/
@@ -194,13 +192,26 @@ theorem RiemannHypothesis_via_RouteB : RiemannHypothesis := by
   have hOuter : ∃ O' : ℂ → ℂ, RH.RS.OuterHalfPlane O' ∧
       RH.RS.BoundaryModulusEq O' (fun s => RH.RS.det2 s / riemannXi_ext s) := by
     refine ⟨O, (O_spec).1, (O_spec).2⟩
-  exact RH.RS.RH_from_PPlus_transport_and_pinned
-    hOuter
-    F_pinch_has_poisson_rep
-    (by
-      -- Convert AF boundary positivity to certificate (P+)
-      have := boundary_positive
-      exact this)
-    pinned_removable_data
+  -- Fix abbreviations where `Classical.choose hOuter` reduces to `O`
+  have hChoose : Classical.choose hOuter = O := rfl
+  -- Align Poisson rep witness to the expected outer
+  have hRepOn : HasPoissonRepOn (F_pinch det2 (Classical.choose hOuter)) (Ω \ {z | riemannXi_ext z = 0}) := by
+    simpa [hChoose] using F_pinch_has_poisson_rep
+  -- Align boundary positivity to the expected outer
+  have hPplus : RH.Cert.PPlus (fun z => (2 : ℂ) * RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter) z) := by
+    simpa [hChoose] using boundary_positive
+  -- Align pinned-removable packaging to the expected outer
+  have hPinned : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
+      ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
+        (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
+        AnalyticOn ℂ (RH.RS.Θ_pinch_of RH.RS.det2 (Classical.choose hOuter)) (U \ {ρ}) ∧
+        ∃ u : ℂ → ℂ,
+          Set.EqOn (RH.RS.Θ_pinch_of RH.RS.det2 (Classical.choose hOuter))
+            (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) ∧
+          Filter.Tendsto u (nhdsWithin ρ (U \ {ρ})) (nhds (0 : ℂ)) ∧
+          ∃ z, z ∈ U ∧ z ≠ ρ ∧ (RH.RS.Θ_pinch_of RH.RS.det2 (Classical.choose hOuter)) z ≠ 1 := by
+    intro ρ hΩ hXi
+    simpa [hChoose] using pinned_removable_data ρ hΩ hXi
+  exact RH.RS.RH_from_PPlus_transport_and_pinned hOuter hRepOn hPplus hPinned
 
 end RH.RS.RouteB
