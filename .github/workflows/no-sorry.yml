@@ -1,0 +1,29 @@
+name: No-Sorry Build Check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lake-no-sorry:
+    name: lake build --no-sorry (informational)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Lean toolchain
+        uses: leanprover-community/lean-action@v1
+        with:
+          toolchain: leanprover/lean4:v4.13.0
+
+      - name: Fetch lake dependencies
+        working-directory: no-zeros
+        run: lake update
+
+      - name: No-sorry build
+        working-directory: no-zeros
+        run: lake build --no-sorry

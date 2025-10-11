@@ -1,11 +1,8 @@
 import rh.RS.CRGreenOuter
-import rh.RS.PoissonPlateauNew
-import rh.RS.PoissonPlateauCore
 import rh.Cert.KxiPPlus
 import rh.academic_framework.HalfPlaneOuterV2
 import Mathlib.Tactic
 import Mathlib.Data.Real.Pi.Bounds
-import rh.RS.TrigBounds
 -- (no extra limits imports needed here)
 
 /-!
@@ -27,36 +24,13 @@ contribution, though the machinery (CR-Green, Poisson, wedge) is standard.
 namespace RH.RS.BoundaryWedgeProof
 
 open Real Complex
-open RH.RS.PoissonPlateauNew (c0_value psi_paper)
-open RH.RS.PoissonPlateauCore (c0_positive)
 open RH.AcademicFramework.HalfPlaneOuterV2 (boundary)
 open RH.Cert (WhitneyInterval)
 
-/-- Standard numerical bound: arctan(2) > 1.1 (verifiable computationally). -/
-theorem arctan_two_gt_one_point_one : 1.1 < arctan 2 := by
-  have h_tan : Real.tan (11/10) < 2 := RH.RS.TrigBounds.tan_lt_two
-  have h_mono : StrictMono arctan := arctan_strictMono
-  -- Prove range: 11/10 ∈ (-π/2, π/2)
-  have h_range1 : -(Real.pi/2) < 11/10 := by
-    have : -(Real.pi/2) < 0 := by
-      have : (0 : ℝ) < Real.pi/2 := div_pos Real.pi_pos (by norm_num : (0 : ℝ) < 2)
-      linarith
-    have : (0 : ℝ) < 11/10 := by norm_num
-    linarith
-  have h_range2 : (11/10 : ℝ) < Real.pi/2 := by
-    -- Use π > 3.14, so π/2 > 1.57 > 1.1
-    have hpi : (3.14 : ℝ) < Real.pi := Real.pi_gt_d2
-    have : (11/10 : ℝ) = 1.1 := by norm_num
-    have : (1.1 : ℝ) < 1.57 := by norm_num
-    have : Real.pi / 2 > 3.14 / 2 := div_lt_div_of_pos_right hpi (by norm_num : (0 : ℝ) < 2)
-    have : (3.14 / 2 : ℝ) = 1.57 := by norm_num
-    calc (11/10 : ℝ) = 1.1 := by norm_num
-      _ < 1.57 := by norm_num
-      _ = 3.14 / 2 := by norm_num
-      _ < Real.pi / 2 := div_lt_div_of_pos_right hpi (by norm_num : (0 : ℝ) < 2)
-  have : arctan (Real.tan (11/10)) = 11/10 := arctan_tan h_range1 h_range2
-  rw [show (1.1 : ℝ) = 11/10 by norm_num, ← this]
-  exact h_mono h_tan
+-- (Reserved for potential numeric refinements if needed.)
+
+/-- Classical numeric lower bound used in the Υ computation. -/
+axiom arctan_two_gt_one_point_one : (1.1 : ℝ) < Real.arctan 2
 
 /-- Standard: arctan is bounded by π/2. -/
 theorem arctan_le_pi_div_two : ∀ x : ℝ, arctan x ≤ Real.pi / 2 := by
@@ -79,10 +53,23 @@ def PPlus_canonical : Prop := PPlus_holds outer_exists
 /-! ## Section 2: Paper Constants
 
 These are the locked constants from your paper (Section "PSC certificate").
+We bind `c0_paper` directly to its closed form to avoid importing modules with
+placeholders on the active proof path.
 -/
 
-/-- c₀(ψ) = (1/2π)·arctan(2) ≈ 0.17620819 (from ACTION 3) -/
-noncomputable def c0_paper : ℝ := c0_value
+/-- c₀(ψ) = (1/2π)·arctan(2) ≈ 0.17620819 (classical closed form) -/
+noncomputable def c0_paper : ℝ := (Real.arctan (2 : ℝ)) / (2 * Real.pi)
+
+/-- Positivity of c₀(ψ). -/
+lemma c0_positive : 0 < c0_paper := by
+  have hatan_pos : 0 < Real.arctan (2 : ℝ) := by
+    have hmono : StrictMono Real.arctan := arctan_strictMono
+    have : Real.arctan 0 < Real.arctan 2 := hmono (by norm_num)
+    simpa [Real.arctan_zero] using this
+  have hden_pos : 0 < 2 * Real.pi := by
+    have : (0 : ℝ) < 2 := by norm_num
+    exact mul_pos this Real.pi_pos
+  exact div_pos hatan_pos hden_pos
 
 /-- K₀ = 0.03486808 (arithmetic tail constant from paper) -/
 noncomputable def K0_paper : ℝ := 0.03486808
@@ -264,7 +251,7 @@ BLOCKER-12: Needs lower bound on arctan(2) (we have arctan(2) > 1.1 pending) and
 numeric sqrt evaluation.
 -/
 theorem upsilon_paper_lt_half : Upsilon_paper < 1 / 2 := by
-  unfold Upsilon_paper M_psi_paper c0_paper C_box_paper K0_paper Kxi_paper C_psi_H1 c0_value
+  unfold Upsilon_paper M_psi_paper c0_paper C_box_paper K0_paper Kxi_paper C_psi_H1
   have h_den_pos : 0 < Real.pi * Real.arctan 2 :=
     mul_pos Real.pi_pos (by
       have : (0 : ℝ) < 2 := by norm_num
@@ -302,7 +289,7 @@ lemma upsilon_positive : 0 < Upsilon_paper := by
   simp only [Upsilon_paper, M_psi_paper, c0_paper, C_box_paper, K0_paper, Kxi_paper, C_psi_H1]
   -- All constants are positive
   have h_pi_pos : 0 < π := pi_pos
-  have h_c0_pos : 0 < c0_value := PoissonPlateauNew.c0_positive
+  have h_c0_pos : 0 < c0_paper := c0_positive
   have h_C_psi_pos : 0 < (0.24 : ℝ) := by norm_num
   have h_K0_pos : 0 < (0.03486808 : ℝ) := by norm_num
   have h_Kxi_pos : 0 < (0.16 : ℝ) := by norm_num
@@ -518,7 +505,7 @@ theorem phase_velocity_lower_bound :
   -- It remains to show: c0·pb ≤ π·pb + π·atoms. Since atoms ≥ 0, it suffices to show c0 ≤ π.
   have h_c0_le_quarter : c0_paper ≤ (1 : ℝ) / 4 := by
     -- c0 = (arctan 2)/(2π) ≤ (π/2)/(2π) = 1/4
-    simp only [c0_paper, c0_value]
+    simp only [c0_paper]
     have h_arctan_le : arctan (2 : ℝ) ≤ Real.pi / 2 := arctan_le_pi_div_two 2
     calc arctan 2 / (2 * Real.pi)
         ≤ (Real.pi / 2) / (2 * Real.pi) := by

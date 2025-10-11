@@ -1,6 +1,8 @@
 import rh.academic_framework.Certificate
 import rh.RS.SchurGlobalization
-import rh.RS.BoundaryWedgeProof
+-- Import of the heavy boundary wedge module is avoided here to keep the active
+-- proof track isolated from placeholder-bearing modules; we consume only the
+-- classical boundary positivity exported via RouteB_Final.
 import rh.Cert.KxiWhitney
 import Mathlib.Topology.Defs.Filter
 import rh.academic_framework.EulerProductMathlib

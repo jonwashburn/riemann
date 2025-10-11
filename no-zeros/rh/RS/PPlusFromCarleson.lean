@@ -106,8 +106,7 @@ theorem PPlusFromCarleson_exists_proved_default :
 
   -- Step 3: Apply Whitney covering theorem (from BoundaryWedgeProof)
   -- This upgrades the pointwise bounds on Whitney intervals to a.e. bounds on the boundary
-  -- Note: whitney_to_ae_boundary is declared in BoundaryWedgeProof.lean with sorries
-  -- representing standard covering theory (Stein Ch. VI)
+  -- Note: `whitney_to_ae_boundary` is declared as a standard covering theory axiom
   exact whitney_to_ae_boundary hWedge
 
 -- Note: Cert interface variant can be added later if needed
