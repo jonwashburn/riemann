@@ -1,9 +1,18 @@
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
 import Mathlib.Data.Real.Basic
+import Mathlib.Tactic
+
+/-!
+WARNING (Sealed Module)
+-----------------------
+
+This file is in the sealed namespace and contains placeholder proofs for
+trigonometric inequalities. It is not imported by the active RH proof track.
+-/
 
 noncomputable section
 
-namespace RH.RS.TrigBounds
+namespace RH.RS.Sealed.TrigBounds
 
 open Real
 
@@ -65,4 +74,4 @@ lemma tan_lt_two : tan x_val < 2 := by
     norm_num [sin_taylor_p7, cos_taylor_p6, x_val]
   exact lt_of_le_of_lt this h_frac_lt
 
-end RH.RS.TrigBounds
+end RH.RS.Sealed.TrigBounds

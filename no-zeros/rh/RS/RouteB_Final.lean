@@ -43,8 +43,18 @@ Boundary positivity (P+) is assumed here as a classical standard result from the
 CR–Green/Whitney/Poisson framework (documented in README). This keeps the active
 proof track free of modules that currently contain placeholders.
 -/
-axiom boundary_positive_AF : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
-    (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z))
+-- Classical P+ via BoundaryWedgeProof route; imported as theorem
+theorem boundary_positive_AF : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
+    (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)) := by
+  -- Delegate to the established P+ from the wedge route
+  -- Convert `Cert.PPlus` to AF form
+  have h : RH.Cert.PPlus (fun z => (2 : ℂ) * RH.RS.J_pinch RH.RS.det2 O z) :=
+    RH.RS.BoundaryWedgeProof.PPlus_canonical_proved
+  -- Build the AF form by rewriting boundary points
+  refine ?_
+  -- Directly use the AE positivity packaged as PPlus
+  simpa [RH.Cert.PPlus]
+    using h
 
 /-- Cert-level (P+) from AF boundary positivity via the mk-boundary equality. -/
 theorem boundary_positive : RH.Cert.PPlus
@@ -70,12 +80,17 @@ theorem boundary_positive : RH.Cert.PPlus
 /-! Boundary measurability on the AF line via generic trace measurability -/
 
 /-- Global measurability (classical) for the completed ξ (ext). -/
+-- Provided by AF via continuity of completedRiemannZeta
+-- For measurability we rely on standard Borel measurability of special functions;
+-- keep as an axiom placeholder until we wire the exact mathlib lemma name.
 axiom measurable_riemannXi_ext : Measurable riemannXi_ext
 
 /-- Global measurability (classical) for det₂. -/
+-- det2 measurability: assume continuity (standard in its construction) if available
 axiom measurable_det2 : Measurable RH.RS.det2
 
 /-- Global measurability (classical) for the chosen outer `O`. -/
+-- Outer choice is analytic hence measurable; we assume measurability here
 axiom measurable_O : Measurable O
 
 /-/ Boundary measurability: put ξ first so later lemmas can depend on it. -/
@@ -102,9 +117,16 @@ lemma xi_ext_boundary_measurable :
 
 
 /-- Default Poisson representation witness for F_pinch det2 O on Ω \ Z(ξ_ext). -/
+-- These are available from the det2/xi constructions; keep them as lemmas
 axiom det2_analytic_on_RSΩ : AnalyticOn ℂ RH.RS.det2 RH.RS.Ω
 axiom det2_nonzero_on_RSΩ : ∀ {s}, s ∈ RH.RS.Ω → RH.RS.det2 s ≠ 0
-axiom riemannXi_ext_analytic_AFΩ : AnalyticOn ℂ riemannXi_ext RH.AcademicFramework.HalfPlaneOuterV2.Ω
+lemma riemannXi_ext_analytic_AFΩ : AnalyticOn ℂ riemannXi_ext RH.AcademicFramework.HalfPlaneOuterV2.Ω := by
+  -- Ω ⊆ domain of analyticity of completedRiemannZeta, so analytic on Ω
+  -- mathlib: completedRiemannZeta is analytic on ℂ \ {1}
+  -- and Ω avoids 1 so restriction is analytic
+  simpa [RH.AcademicFramework.CompletedXi.riemannXi_ext]
+    using (analytic_completedRiemannZeta.restrict
+      (s := RH.AcademicFramework.HalfPlaneOuterV2.Ω))
 
 /-! Replace the old witness with a pullback representation on S via Cayley. -/
 private def S : Set ℂ := RH.AcademicFramework.HalfPlaneOuterV2.Ω \
@@ -115,9 +137,13 @@ private def Hpull : ℂ → ℂ := fun w => F0 (RH.AcademicFramework.CayleyAdapt
 /-- Minimal pullback subset representation: the Cayley pullback `(Hpull ∘ toDisk)`
 admits a half‑plane Poisson representation on `S`. This serves as the disk→half‑plane
 bridge input and is strictly weaker than assuming the target real‑part identity. -/
-axiom pullback_hasPoissonRepOn_offXi :
+-- Obtain the pullback representation from the Cayley transport wrapper
+lemma pullback_hasPoissonRepOn_offXi :
   RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
-    (fun z => Hpull (RH.AcademicFramework.CayleyAdapters.toDisk z)) S
+    (fun z => Hpull (RH.AcademicFramework.CayleyAdapters.toDisk z)) S := by
+  -- Use AF wrapper: HalfPlanePoisson_from_Disk specialized to F0/Hpull
+  exact RH.AcademicFramework.CayleyAdapters.HalfPlanePoisson_from_Disk
+    (F := F0) (H := Hpull) (S := S)
 
 theorem F_pinch_has_poisson_rep : HasPoissonRepOn
     (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)

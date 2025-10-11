@@ -8,6 +8,15 @@ import Mathlib.MeasureTheory.Integral.Bochner
 import Mathlib.Tactic
 
 /-!
+WARNING (Sealed Module)
+-----------------------
+
+This file is part of the "sealed" namespace: its contents rely on classical
+analysis placeholders (`sorry`/`admit`). The active RH proof track does not
+import this module; it is kept for reference and future formalization work.
+-/
+
+/-!
 # Poisson Plateau Bound for Paper Window
 
 This module proves the plateau lower bound c₀(ψ) > 0 for the specific window
@@ -24,7 +33,7 @@ This is a core RH-specific result: the specific window ψ and its plateau bound
 are YOUR construction, though the Poisson integral formulas themselves are standard.
 -/
 
-namespace RH.RS.PoissonPlateauNew
+namespace RH.RS.Sealed.PoissonPlateauNew
 
 open Real
 
@@ -1019,4 +1028,4 @@ theorem arctan_sum_ge_arctan_two_proved :
       ≥ arctan_sum 1 1 := arctan_sum_minimum_at_one_one b x hb b_le hx
     _ = arctan 2 := arctan_sum_at_one_one
 
-end RH.RS.PoissonPlateauNew
+end RH.RS.Sealed.PoissonPlateauNew

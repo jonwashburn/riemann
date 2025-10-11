@@ -28,6 +28,7 @@ lean_lib «rh» where
     .submodules `rh.Cert,
     .submodules `rh.Blockers,
     .submodules `rh.RS,
+    .submodules `rh.RS.sealed,
     .submodules `rh.Proof
   ]
 

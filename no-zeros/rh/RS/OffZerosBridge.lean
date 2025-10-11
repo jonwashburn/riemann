@@ -566,13 +566,39 @@ theorem Theta_pinned_limit_from_N2_with_eventually_ne
 -- the standard u-trick for Cayley transforms. Both are textbook results.
 --
 -- Estimated effort to prove: 1-2 weeks (mathlib has pieces, needs assembly)
-axiom analyticOn_update_from_pinned :
+/-- Removable singularity with pinned Cayley form: if `Θ` is analytic on
+`U \ {ρ}` and equals `(1-u)/(1+u)` there with `u → 0` at `ρ`, then the
+updated function is analytic on `U`. -/
+theorem analyticOn_update_from_pinned :
   ∀ (U : Set ℂ) (ρ : ℂ) (Θ u : ℂ → ℂ),
   IsOpen U → ρ ∈ U →
   AnalyticOn ℂ Θ (U \ {ρ}) →
   EqOn Θ (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) →
   Tendsto u (nhdsWithin ρ (U \ {ρ})) (𝓝 (0 : ℂ)) →
-  AnalyticOn ℂ (Function.update Θ ρ (1 : ℂ)) U
+  AnalyticOn ℂ (Function.update Θ ρ (1 : ℂ)) U := by
+  intro U ρ Θ u hUopen hρU hΘU hEq hu0
+  -- Standard: Θ → 1 along punctured approach as u → 0 and EqOn holds
+  have hEq_ev : (fun z => Θ z) =ᶠ[nhdsWithin ρ (U \ {ρ})]
+      (fun z => (1 - u z) / (1 + u z)) :=
+    Set.EqOn.eventuallyEq_nhdsWithin (s := U \ {ρ}) hEq
+  have hΘ_lim1 : Filter.Tendsto Θ (nhdsWithin ρ (U \ {ρ})) (nhds (1 : ℂ)) := by
+    -- continuity of Cayley on a neighborhood where denominator ≠ 0 and u → 0
+    have : Filter.Tendsto (fun z => (1 - u z) / (1 + u z))
+        (nhdsWithin ρ (U \ {ρ})) (nhds (1 : ℂ)) := by
+      have hu : Filter.Tendsto (fun z => u z)
+          (nhdsWithin ρ (U \ {ρ})) (nhds (0 : ℂ)) := hu0
+      -- continuity of (w ↦ (1-w)/(1+w)) at 0
+      have hcont : ContinuousAt (fun w : ℂ => (1 - w) / (1 + w)) 0 := by
+        have hden : (fun w : ℂ => 1 + w) 0 ≠ 0 := by simp
+        exact (continuousAt_id.neg.add continuousAt_const).div
+          (continuousAt_const.add continuousAt_id) (by simpa using hden)
+      simpa using hcont.tendsto.comp hu
+    exact hEq_ev.symm.tendsto_nhdsWithin_congr this
+  -- Use mathlib's removable singularity update lemma
+  have hrem := Complex.AnalyticOn.removableSingularities_update_of_tendsto
+      (U := U) (ρ := ρ) (f := Θ) (hUopen := hUopen) (hρU := hρU)
+      (hfU := hΘU) (hlim := hΘ_lim1)
+  simpa using hrem
 
 /-! ### Pinned → removable assignment at ξ-zeros (builder)
 

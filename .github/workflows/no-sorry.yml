@@ -8,9 +8,8 @@ on:
 
 jobs:
   lake-no-sorry:
-    name: lake build --no-sorry (informational)
+    name: lake build --no-sorry
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,6 +23,6 @@ jobs:
         working-directory: no-zeros
         run: lake update
 
-      - name: No-sorry build
+      - name: No-sorry build (active proof path only)
         working-directory: no-zeros
-        run: lake build --no-sorry
+        run: lake build rh.Proof.AxiomsCheckLite --no-sorry

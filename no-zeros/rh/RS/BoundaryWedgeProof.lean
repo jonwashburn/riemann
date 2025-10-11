@@ -3,7 +3,6 @@ import rh.Cert.KxiPPlus
 import rh.academic_framework.HalfPlaneOuterV2
 import Mathlib.Tactic
 import Mathlib.Data.Real.Pi.Bounds
--- (no extra limits imports needed here)
 
 /-!
 # Boundary Wedge (P+) Proof from Constants
@@ -581,7 +580,7 @@ This is novel RH-specific work that assembles:
   - CR-Green pairing bound
   - Carleson energy bound
   - Poisson transport
-  - Phase velocity identity (c₀ from PoissonPlateauNew)
+  - Phase velocity identity (c₀ closed form)
 Into the final boundary positivity principle (P+).
 
 CANNOT be admitted - must be proven as it's the core of the boundary-to-interior method.
