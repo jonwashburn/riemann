@@ -148,7 +148,3 @@ theorem xi_ext_zeros_eq_zeta_zeros_on_Ω :
     simpa [hfac, hζ]
 
 -- The ext ξ equals mathlib's completed zeta `
-
-/-! (Continuity/measurability facts for `riemannXi_ext` are used downstream;
-they are provided locally where needed to avoid depending on specific mathlib
-lemma names here.) -/

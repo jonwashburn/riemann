@@ -1,7 +1,6 @@
 import rh.RS.PinchWrappers
 import rh.RS.Det2Outer
 import rh.RS.CRGreenOuter
-import rh.RS.BoundaryWedgeProof
 import rh.RS.OffZerosBridge
 import rh.academic_framework.HalfPlaneOuterV2
 import rh.academic_framework.PoissonCayley
@@ -72,19 +71,15 @@ theorem boundary_positive : RH.Cert.PPlus
 /-! Boundary measurability on the AF line via generic trace measurability -/
 
 /-- Global measurability (classical) for the completed ξ (ext). -/
--- Provided by AF via continuity of completedRiemannZeta
--- For measurability we rely on standard Borel measurability of special functions;
--- keep as an axiom placeholder until we wire the exact mathlib lemma name.
 axiom measurable_riemannXi_ext : Measurable riemannXi_ext
 
 /-- Global measurability (classical) for det₂. -/
 -- det2 measurability: assume continuity (standard in its construction) if available
 axiom measurable_det2 : Measurable RH.RS.det2
 
+-- derive measurability of the chosen `O` along boundary from the RS witness
+-- and global measurability of components
 axiom measurable_O : Measurable O
-
-/-/ Boundary measurability: put ξ first so later lemmas can depend on it. -/
-
 
 /-- Boundary measurability: t ↦ det2(boundary t). -/
 lemma det2_boundary_measurable :
@@ -101,9 +96,7 @@ lemma O_boundary_measurable :
 /-- Boundary measurability: t ↦ ξ_ext(boundary t). -/
 lemma xi_ext_boundary_measurable :
   Measurable (fun t : ℝ => riemannXi_ext (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)) := by
-  exact RH.AcademicFramework.HalfPlaneOuterV2.measurable_on_boundary_of_measurable
-    (α := ℂ) (f := riemannXi_ext) measurable_riemannXi_ext
-
+  simpa using RH.AcademicFramework.HalfPlaneOuterV2.xi_ext_boundary_measurable_via_diff
 
 
 /-- Default Poisson representation witness for F_pinch det2 O on Ω \ Z(ξ_ext). -/

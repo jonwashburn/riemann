@@ -163,6 +163,21 @@ private lemma O_witness_boundary_abs (t : ℝ) :
     simp [boundary]
   simp [O_witness, hcond]
 
+/-- Global measurability of `O_witness` as a piecewise function. -/
+lemma measurable_O_witness
+  (hDet : Measurable det2)
+  (hXi  : Measurable riemannXi_ext) :
+  Measurable O_witness := by
+  classical
+  have hPred : MeasurableSet {s : ℂ | (1/2 : ℝ) < s.re} := by
+    -- {s | 1/2 < re s} is measurable by measurability of re and const
+    simpa using
+      (measurableSet_lt (measurable_const : Measurable (fun _ : ℂ => (1/2 : ℝ))) Complex.continuous_re.measurable)
+  -- piecewise measurable: on Ω use constant 1, else the measurable ratio
+  have hRatio : Measurable (fun s : ℂ => det2 s / riemannXi_ext s) := hDet.div hXi
+  simpa [O_witness] using
+    (Measurable.piecewise hPred (measurable_const) hRatio)
+
 /-! ### A.2 actual outer limit (Montel/Hurwitz via A.1 wrapper)
 
 We derive the A.3 existence on Ω from the A.1 Poisson–outer construction
@@ -219,40 +234,16 @@ limit, Hurwitz to keep zero‑freeness, pass the boundary modulus via the Poisso
 limit, and package as `OuterHalfPlane.ofModulus_det2_over_xi_ext`.
 
 Narrative (hooks available in `riemann-blockers-2.txt`):
-- A.1 family: `A1_outer_family_det2_over_xi_ext`
-- Normality/Montel: `montel_of_locallyBounded`, `extract_locally_uniform_limit_toΩ`
-- Hurwitz: `hurwitz_zeroFree_onΩ`
-- Poisson/boundary passage: `pass_boundary_modulus_to_limit`
-- Packaging: `ofModulus_det2_over_xi_ext_mk`
-
-This alternate theorem currently aliases the proven existence, so callers can
-depend on the name now and later swap in the full argument with no churn.
+ A.1 family: `A1_outer_family_det2_over_xi_ext`
+ Normality/Montel: `montel_of_locallyBounded`, `extract_locally_uniform_limit_toΩ`
+ Hurwitz: `hurwitz_zeroFree_onΩ`
+ Poisson/boundary passage: `pass_boundary_modulus_to_limit`
+ Packaging: `ofModulus_det2_over_xi_ext_mk`
 -/
+
 theorem outer_limit_locally_uniform_alt :
     OuterHalfPlane.ofModulus_det2_over_xi_ext := by
   simpa using outer_limit_locally_uniform
-
-/-! ### A.3 specialization (u := log |det₂/ξ_ext|)
-
-We record the boundary datum used in the outer construction and provide a
-specialized entry theorem that mirrors the A.3 milestone name. The existence
-follows from the A.2 alias above. -/
-
-/-- Boundary datum `u(t) = log |det₂(1/2+it) / ξ_ext(1/2+it)|`. -/
-def u_det2_over_xi_ext (t : ℝ) : ℝ :=
-  Real.log ‖det2 (boundary t) / riemannXi_ext (boundary t)‖
-
-/-- A.3 (RS milestone name): specialize the outer existence on Ω for
-`|det₂/ξ_ext|`. -/
-theorem OuterHalfPlane.ofModulus_det2_over_xi_ext_from_A1A2
-    : OuterHalfPlane.ofModulus_det2_over_xi_ext := by
-  -- A.1 provides outers on shifted lines; A.2 passes ε ↓ 0 to Ω.
-  simpa using outer_limit_locally_uniform
-
-/-- Alternate A.2 (via Poisson A.1), doc-only alias to keep name stable. -/
-theorem outer_limit_locally_uniform_via_poisson
-    : OuterHalfPlane.ofModulus_det2_over_xi_ext :=
-  OuterHalfPlane.ofModulus_det2_over_xi_ext_proved
 
 end RS
 end RH

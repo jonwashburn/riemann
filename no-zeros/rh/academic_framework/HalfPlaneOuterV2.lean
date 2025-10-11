@@ -12,6 +12,7 @@ import rh.academic_framework.DiskHardy
 import rh.RS.Det2Outer
 import rh.RS.PoissonAI
 import rh.RS.Cayley
+import Mathlib.NumberTheory.LSeries.RiemannZeta
 
 /-!
 # Half-plane Outer Functions (Clean Rewrite)
@@ -136,6 +137,34 @@ lemma measurable_on_boundary_of_measurable {α} [MeasurableSpace α]
   Measurable (fun t : ℝ => f (boundary t)) := by
   have hb : Measurable (boundary : ℝ → ℂ) := measurable_boundary_affine
   exact hf.comp hb
+
+/-- Measurability of `t ↦ ξ_ext(boundary t)` using differentiability of `Λ` away from poles. -/
+lemma xi_ext_boundary_measurable_via_diff :
+  Measurable (fun t : ℝ => riemannXi_ext (boundary t)) := by
+  -- continuity of boundary map
+  have hb : Continuous (boundary : ℝ → ℂ) := by
+    unfold boundary
+    have h₂ : Continuous fun t : ℝ => (Complex.I : ℂ) * (t : ℂ) :=
+      continuous_const.mul Complex.continuous_ofReal
+    simpa using (continuous_const.add h₂)
+  -- pointwise continuity of Λ at boundary points (no poles hit)
+  have hb_ne0 : ∀ t : ℝ, boundary t ≠ 0 := by
+    intro t; intro h
+    have hr := congrArg Complex.re h
+    simpa [boundary_re, Complex.zero_re] using hr
+  have hb_ne1 : ∀ t : ℝ, boundary t ≠ 1 := by
+    intro t; intro h
+    have hr := congrArg Complex.re h
+    simpa [boundary_re, Complex.one_re] using hr
+  have hcont : Continuous (fun t : ℝ => completedRiemannZeta (boundary t)) := by
+    refine continuous_iff_continuousAt.mpr ?_
+    intro t
+    have hΛ : DifferentiableAt ℂ completedRiemannZeta (boundary t) :=
+      differentiableAt_completedZeta (s := boundary t) (hb_ne0 t) (hb_ne1 t)
+    exact (hΛ.continuousAt).comp (hb.continuousAt)
+  have hdef : (fun t : ℝ => riemannXi_ext (boundary t))
+      = (fun t : ℝ => completedRiemannZeta (boundary t)) := rfl
+  exact hdef ▸ hcont.measurable
 
 /-- Poisson integral: reconstructs interior values from boundary data -/
 @[simp] noncomputable def poissonIntegral (u : ℝ → ℝ) (z : ℂ) : ℝ :=
@@ -386,7 +415,7 @@ private lemma poissonKernel_bound (z : ℂ) (hz : z ∈ Ω) :
 
 /-- Integrability of the Poisson kernel -/
 lemma poissonKernel_integrable {z : ℂ} (hz : z ∈ Ω) :
-    Integrable (fun t : ℝ => poissonKernel z t) := by
+    Integrable (fun t => poissonKernel z t) := by
   -- Get the bound
   obtain ⟨C, hC_pos, hbound⟩ := poissonKernel_bound z hz
   -- The dominating function is integrable
