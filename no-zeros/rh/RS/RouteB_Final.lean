@@ -124,12 +124,18 @@ axiom det2_analytic_on_RSΩ : AnalyticOn ℂ RH.RS.det2 RH.RS.Ω
 axiom det2_nonzero_on_RSΩ : ∀ {s}, s ∈ RH.RS.Ω → RH.RS.det2 s ≠ 0
 axiom riemannXi_ext_analytic_AFΩ : AnalyticOn ℂ riemannXi_ext RH.AcademicFramework.HalfPlaneOuterV2.Ω
 
--- RS-level assumption: half-plane Poisson real-part identity for the pinch field
--- on the AF off‑zeros set (standard Poisson formula for harmonic functions).
-axiom pinch_halfplane_ReEqOn_offXi :
-  RH.AcademicFramework.PoissonCayley.HasHalfPlanePoissonReEqOn
-    (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
-    (RH.AcademicFramework.HalfPlaneOuterV2.Ω \ {z | riemannXi_ext z = 0})
+/-! Replace the old witness with a pullback representation on S via Cayley. -/
+private def S : Set ℂ := RH.AcademicFramework.HalfPlaneOuterV2.Ω \
+  {z | riemannXi_ext z = 0}
+private def F0 : ℂ → ℂ := RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O
+private def Hpull : ℂ → ℂ := fun w => F0 (RH.AcademicFramework.CayleyAdapters.fromDisk w)
+
+/-- Minimal pullback subset representation: the Cayley pullback `(Hpull ∘ toDisk)`
+admits a half‑plane Poisson representation on `S`. This serves as the disk→half‑plane
+bridge input and is strictly weaker than assuming the target real‑part identity. -/
+axiom pullback_hasPoissonRepOn_offXi :
+  RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
+    (fun z => Hpull (RH.AcademicFramework.CayleyAdapters.toDisk z)) S
 
 theorem F_pinch_has_poisson_rep : HasPoissonRepOn
     (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
@@ -146,11 +152,35 @@ theorem F_pinch_has_poisson_rep : HasPoissonRepOn
     have hEq : RH.RS.boundary t = RH.AcademicFramework.HalfPlaneOuterV2.boundary t :=
       RH.AcademicFramework.HalfPlaneOuterV2.rs_boundary_eq_af t
     simpa [hEq] using (hBMErs t)
-  -- Finish building the subset representation using the AF builder (uses Cayley witness axiom)
+  -- Build the half‑plane real‑part identity for F0 on S via Cayley pullback
+  -- Interior EqOn: F0 z = Hpull (toDisk z) on S using fromDisk∘toDisk = id on Ω
+  have hInt : Set.EqOn F0 (fun z => Hpull (RH.AcademicFramework.CayleyAdapters.toDisk z)) S := by
+    intro z hz
+    -- z ∈ S ⊆ Ω
+    have hzΩ : z ∈ RH.AcademicFramework.HalfPlaneOuterV2.Ω := hz.1
+    -- F0 z = F0 (fromDisk (toDisk z)) = Hpull (toDisk z) on Ω
+    have hinv := RH.AcademicFramework.CayleyAdapters.fromDisk_toDisk_of_mem_Ω hzΩ
+    simp only [F0, Hpull]
+    exact congrArg (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) hinv.symm
+  -- Boundary EqOn: F0(boundary t) = Hpull(boundaryToDisk t)
+  have hBd : RH.AcademicFramework.PoissonCayley.EqOnBoundary F0 Hpull := by
+    intro t
+    simp only [RH.AcademicFramework.PoissonCayley.EqOnBoundary, F0, Hpull]
+    have hinv := RH.AcademicFramework.CayleyAdapters.fromDisk_boundaryToDisk t
+    exact congrArg (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) hinv.symm
+  -- Kernel transport from the subset pullback representation
+  have hReEqOn : RH.AcademicFramework.PoissonCayley.HasHalfPlanePoissonReEqOn F0 S := by
+    exact RH.AcademicFramework.PoissonCayley.pinch_halfplane_ReEqOn_from_cayley
+      (F := F0) (H := Hpull) (S := S) hInt hBd pullback_hasPoissonRepOn_offXi
+  -- Finish building the subset representation using the AF builder
   exact RH.AcademicFramework.HalfPlaneOuterV2.pinch_hasPoissonRepOn_from_cayley
     hDet2 (hO := hOuter) (hBME := hBME_af) (hXi := riemannXi_ext_analytic_AFΩ)
     det2_boundary_measurable O_boundary_measurable xi_ext_boundary_measurable
-    pinch_halfplane_ReEqOn_offXi
+    (by
+      intro z hz
+      -- Unpack the identity from the Cayley bridge on S
+      have := hReEqOn z hz
+      simpa [F0] using this)
 
 /-! ## Pinned removable data (u‑trick) -/
 

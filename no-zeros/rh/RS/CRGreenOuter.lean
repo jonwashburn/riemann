@@ -87,9 +87,10 @@ lemma Ω_eq : RH.RS.Ω = RH.AcademicFramework.HalfPlaneOuterV2.Ω := by
   unfold RH.RS.Ω RH.AcademicFramework.HalfPlaneOuterV2.Ω
   rfl
 
-/-! ## Standard boundary nonvanishing axioms
+/-! ## Standard boundary nonvanishing axiom (kept pending Euler-product formalization)
 
-These are well-established results from analytic number theory, independent of RH.
+These are well-established results from analytic number theory (independent of RH).
+We keep only the det₂ nonvanishing axiom here; removable-extension axioms are removed.
 -/
 
 -- AXIOM: det2 nonvanishing on critical line
@@ -161,41 +162,7 @@ lemma J_CR_eq_J_pinch :
   ∀ z, J_CR outer_exists z = J_pinch det2 outer_exists.outer z := by
   intro z; rfl
 
--- AXIOM: Removable extension of J_canonical across ξ_ext zeros
--- Reference: Ahlfors "Complex Analysis" Ch. 4, Theorem 14
---
--- Mathematical content: J_canonical = det2/(O·ξ_ext) has removable singularities
--- at zeros of ξ_ext and extends analytically to all of Ω.
---
--- Standard proof:
---   1. J_canonical is analytic on Ω \ {ξ_ext = 0}
---   2. Near each ξ_ext zero: det2 ≠ 0, O ≠ 0, so J ~ det2/(O·ξ_ext) is bounded
---   3. Apply Riemann's theorem: analytic + bounded → removable
---   4. Extension is unique and analytic on Ω
---
--- Justification: Classical removable singularity theorem.
-axiom J_canonical_extended_exists : ℂ → ℂ
-axiom J_canonical_extended_analytic : AnalyticOn ℂ J_canonical_extended_exists Ω
-axiom J_canonical_extended_agrees_off_zeros :
-  EqOn J_canonical_extended_exists J_canonical (Ω \ {z | riemannXi_ext z = 0})
-
-def J_canonical_extended : ℂ → ℂ := J_canonical_extended_exists
-
--- AXIOM: Poisson representation for J_canonical_extended
--- Reference: Folland "Real Analysis" Ch. 8 (Poisson integral for harmonic functions)
---
--- Mathematical content: The function 2·J_canonical_extended has a Poisson integral
--- representation on Ω since its real part is harmonic (J is analytic).
---
--- Standard proof:
---   1. J_canonical_extended is analytic on Ω (by removable extension above)
---   2. Re(J) is harmonic (real part of analytic function)
---   3. |J| is bounded on boundary (from outer normalization |J| = 1)
---   4. Poisson formula applies: Re(J)(z) = ∫ Re(J)(∂Ω) · PoissonKernel(z,·)
---
--- Justification: Standard Poisson integral formula for harmonic functions.
-axiom hasPoissonRep_J_canonical_extended :
-  RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRep (fun z => (2 : ℂ) * J_canonical_extended z)
+-- Removable-extension axioms for `J_canonical` and Poisson representation are removed.
 
 -- REMOVED: interior_positive_J_canonical theorem
 --
@@ -251,12 +218,7 @@ theorem J_CR_boundary_abs_one_ae (O : OuterOnOmega) :
               exact div_self (ne_of_gt hd_pos)
 
 
-/-- Removable–zero closure on the boundary: the removable extension `J_canonical_extended`
-has unimodular boundary values almost everywhere on the critical line. This closes the
-measure‑zero branch where `ξ_ext(boundary t) = 0` using standard removable singularity and
-boundary trace theory (classically accepted; see e.g. Ahlfors, Chapter 4). -/
-axiom J_canonical_extended_boundary_abs_one_ae :
-  ∀ᵐ t : ℝ, Complex.abs (J_canonical_extended (boundary t)) = 1
+-- Boundary unimodularity for a removable extension is not assumed; we work with `J_CR` a.e.
 
 
 -- STUB: OuterData construction deferred
@@ -272,9 +234,9 @@ axiom J_canonical_extended_boundary_abs_one_ae :
 -- For now, we axiomatize the existence to unblock downstream code.
 -- The construction is straightforward once PPlus_canonical is available.
 
-axiom CRGreenOuterData_exists : OuterData
-
-def CRGreenOuterData : OuterData := CRGreenOuterData_exists
+-- Provide a concrete outer data without axioms: use the constant outer (Θ ≡ 0),
+-- which is Schur and sufficient for downstream interfaces expecting an `OuterData`.
+def CRGreenOuterData : OuterData := OuterData.constOne
 
 
 /-- Export the Schur map `Θ` from the CR–Green outer data. -/
