@@ -148,3 +148,13 @@ theorem xi_ext_zeros_eq_zeta_zeros_on_Ω :
     simpa [hfac, hζ]
 
 -- The ext ξ equals mathlib's completed zeta `
+
+/-- Differentiability of `riemannXi_ext` away from `0` and `1`. -/
+lemma differentiableAt_riemannXi_ext {s : ℂ} (hs0 : s ≠ 0) (hs1 : s ≠ 1) :
+  DifferentiableAt ℂ riemannXi_ext s := by
+  simpa [riemannXi_ext] using differentiableAt_completedZeta (s := s) hs0 hs1
+
+/-- Continuity of `riemannXi_ext` away from the poles at `0` and `1`. -/
+lemma continuousAt_riemannXi_ext {s : ℂ} (hs0 : s ≠ 0) (hs1 : s ≠ 1) :
+  ContinuousAt riemannXi_ext s :=
+  (differentiableAt_riemannXi_ext hs0 hs1).continuousAt

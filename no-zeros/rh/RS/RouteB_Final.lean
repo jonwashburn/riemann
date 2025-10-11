@@ -96,7 +96,8 @@ lemma O_boundary_measurable :
 /-- Boundary measurability: t ↦ ξ_ext(boundary t). -/
 lemma xi_ext_boundary_measurable :
   Measurable (fun t : ℝ => riemannXi_ext (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)) := by
-  simpa using RH.AcademicFramework.HalfPlaneOuterV2.xi_ext_boundary_measurable_via_diff
+  exact RH.AcademicFramework.HalfPlaneOuterV2.xi_ext_boundary_measurable_of_measurable
+    measurable_riemannXi_ext
 
 
 /-- Default Poisson representation witness for F_pinch det2 O on Ω \ Z(ξ_ext). -/

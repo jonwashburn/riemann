@@ -138,33 +138,12 @@ lemma measurable_on_boundary_of_measurable {α} [MeasurableSpace α]
   have hb : Measurable (boundary : ℝ → ℂ) := measurable_boundary_affine
   exact hf.comp hb
 
-/-- Measurability of `t ↦ ξ_ext(boundary t)` using differentiability of `Λ` away from poles. -/
-lemma xi_ext_boundary_measurable_via_diff :
-  Measurable (fun t : ℝ => riemannXi_ext (boundary t)) := by
-  -- continuity of boundary map
-  have hb : Continuous (boundary : ℝ → ℂ) := by
-    unfold boundary
-    have h₂ : Continuous fun t : ℝ => (Complex.I : ℂ) * (t : ℂ) :=
-      continuous_const.mul Complex.continuous_ofReal
-    simpa using (continuous_const.add h₂)
-  -- pointwise continuity of Λ at boundary points (no poles hit)
-  have hb_ne0 : ∀ t : ℝ, boundary t ≠ 0 := by
-    intro t; intro h
-    have hr := congrArg Complex.re h
-    simpa [boundary_re, Complex.zero_re] using hr
-  have hb_ne1 : ∀ t : ℝ, boundary t ≠ 1 := by
-    intro t; intro h
-    have hr := congrArg Complex.re h
-    simpa [boundary_re, Complex.one_re] using hr
-  have hcont : Continuous (fun t : ℝ => completedRiemannZeta (boundary t)) := by
-    refine continuous_iff_continuousAt.mpr ?_
-    intro t
-    have hΛ : DifferentiableAt ℂ completedRiemannZeta (boundary t) :=
-      differentiableAt_completedZeta (s := boundary t) (hb_ne0 t) (hb_ne1 t)
-    exact (hΛ.continuousAt).comp (hb.continuousAt)
-  have hdef : (fun t : ℝ => riemannXi_ext (boundary t))
-      = (fun t : ℝ => completedRiemannZeta (boundary t)) := rfl
-  exact hdef ▸ hcont.measurable
+/-- Measurability of `t ↦ ξ_ext(boundary t)` assuming global measurability. -/
+lemma xi_ext_boundary_measurable_of_measurable
+    (hMeas : Measurable riemannXi_ext) :
+    Measurable (fun t : ℝ => riemannXi_ext (boundary t)) := by
+  have hb : Measurable (boundary : ℝ → ℂ) := measurable_boundary_affine
+  exact hMeas.comp hb
 
 /-- Poisson integral: reconstructs interior values from boundary data -/
 @[simp] noncomputable def poissonIntegral (u : ℝ → ℝ) (z : ℂ) : ℝ :=
