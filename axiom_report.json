@@ -5,12 +5,12 @@
     {
       "axioms": [
         {
-          "line_no": 773,
+          "line_no": 765,
           "name": "phase_velocity_identity",
           "signature": "axiom phase_velocity_identity :"
         },
         {
-          "line_no": 845,
+          "line_no": 837,
           "name": "whitney_to_ae_boundary",
           "signature": "axiom whitney_to_ae_boundary :"
         }
@@ -21,47 +21,47 @@
     {
       "axioms": [
         {
-          "line_no": 47,
+          "line_no": 49,
           "name": "boundary_positive_AF",
           "signature": "axiom boundary_positive_AF : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive"
         },
         {
-          "line_no": 74,
+          "line_no": 76,
           "name": "measurable_riemannXi_ext",
           "signature": "axiom measurable_riemannXi_ext : Measurable riemannXi_ext"
         },
         {
-          "line_no": 78,
+          "line_no": 80,
           "name": "measurable_det2",
           "signature": "axiom measurable_det2 : Measurable RH.RS.det2"
         },
         {
-          "line_no": 82,
+          "line_no": 84,
           "name": "measurable_O",
           "signature": "axiom measurable_O : Measurable O"
         },
         {
-          "line_no": 105,
+          "line_no": 107,
           "name": "det2_analytic_on_RS",
           "signature": "axiom det2_analytic_on_RS\u03a9 : AnalyticOn \u2102 RH.RS.det2 RH.RS.\u03a9"
         },
         {
-          "line_no": 106,
+          "line_no": 108,
           "name": "det2_nonzero_on_RS",
           "signature": "axiom det2_nonzero_on_RS\u03a9 : \u2200 {s}, s \u2208 RH.RS.\u03a9 \u2192 RH.RS.det2 s \u2260 0"
         },
         {
-          "line_no": 107,
+          "line_no": 109,
           "name": "riemannXi_ext_analytic_AF",
           "signature": "axiom riemannXi_ext_analytic_AF\u03a9 : AnalyticOn \u2102 riemannXi_ext RH.AcademicFramework.HalfPlaneOuterV2.\u03a9"
         },
         {
-          "line_no": 119,
+          "line_no": 121,
           "name": "pullback_hasPoissonRepOn_offXi",
           "signature": "axiom pullback_hasPoissonRepOn_offXi :"
         },
         {
-          "line_no": 171,
+          "line_no": 173,
           "name": "pinned_removable_data",
           "signature": "axiom pinned_removable_data : \u2200 \u03c1, \u03c1 \u2208 \u03a9 \u2192 riemannXi_ext \u03c1 = 0 \u2192"
         }
@@ -70,7 +70,7 @@
       "path": "no-zeros/rh/RS/RouteB_Final.lean"
     }
   ],
-  "generated_at": "2025-10-12T19:00:02.370472+00:00",
+  "generated_at": "2025-10-12T21:40:18.271311+00:00",
   "root": "/Users/jonathanwashburn/Projects/zeros",
   "total_axioms": 11
 }

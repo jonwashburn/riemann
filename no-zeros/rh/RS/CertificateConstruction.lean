@@ -97,9 +97,8 @@ lemma xi_ext_zero_isolated_on_Ω
     (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
   classical
   -- Extract the isolating neighborhood from the Route B pinned data
-  have hPinned := RH.RS.RouteB.pinned_removable_data ρ hΩ hξ
-  rcases hPinned with
-    ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi, _hΘU, u, hEq, hu0, z0, hz0U, hz0ne, hΘz0ne⟩
+  obtain ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi, _, _, _, _, _, _, _⟩ :=
+    RH.RS.RouteB.pinned_removable_data ρ hΩ hξ
   exact ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi⟩
 
 /-- Removable extension across each `ξ_ext` zero for the pinch Θ, built from
@@ -122,21 +121,12 @@ theorem removable_extension_at_xi_zeros
   -- to obtain the analytic extension across ρ with value 1.
   intro ρ hΩ hXi
   -- Pinned data for Θ := Θ_pinch_of det2 O on a neighborhood U of ρ
-  have hPinned : ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
-      (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
-      AnalyticOn ℂ (Θ_pinch_of det2 (Classical.choose O_witness)) (U \ {ρ}) ∧
-      ∃ u : ℂ → ℂ,
-        Set.EqOn (Θ_pinch_of det2 (Classical.choose O_witness))
-          (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) ∧
-        Filter.Tendsto u (nhdsWithin ρ (U \ {ρ})) (nhds (0 : ℂ)) ∧
-        ∃ z, z ∈ U ∧ z ≠ ρ ∧ (Θ_pinch_of det2 (Classical.choose O_witness)) z ≠ 1 := by
-    -- Route B pinned data specialized to the same outer
-    simpa [hChoose] using RH.RS.RouteB.pinned_removable_data ρ hΩ hXi
+  obtain ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi, hΘU, u, hEq, hu0, z0, hz0U,
+      hz0ne, hΘz0ne⟩ :=
+    (RH.RS.RouteB.pinned_removable_data ρ hΩ hXi)
   -- Use the pinned→removable assignment builder to produce the extension `g`
   -- and package into the expected existence shape.
   -- We inline the builder to avoid an extra chooser lambda here.
-  rcases hPinned with
-    ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi, hΘU, u, hEq, hu0, z0, hz0U, hz0ne, hΘz0ne⟩
   -- Invoke the centralized pinned→removable builder
   let data := RH.RS.OffZeros.LocalDataXi.of_pinned
     (riemannXi := riemannXi_ext) (Θ := Θ_pinch_of det2 (Classical.choose O_witness))

@@ -1,26 +1,26 @@
-<!-- 026aed4d-daad-47ce-adf4-57d3b1bf6e45 9cd79fa8-7a96-4980-9bc7-c16576a40a05 -->
-# Axiom Elimination Status (Current)
+# Axiom Elimination Basis (For AI Agents)
 
-- `no-zeros/rh/RS/CertificateConstruction.lean` and `no-zeros/rh/RS/OffZerosBridge.lean` are axiom-free; outer witnesses, removable extensions, and Cayley helpers are fully wired.
-- Numeric lemmas (`arctan_two_gt_one_point_one`, `pi_gt_314`, `upsilon_paper_lt_half`) are proved in `BoundaryWedgeProof.lean`.
-- `whitney_decomposition_exists` now has a constructive witness `{univ}`.
-- Remaining axioms (11 total) live only in:
-  - `no-zeros/rh/RS/RouteB_Final.lean` (9) – boundary positivity, measurability/analyticity, Poisson pullback, pinned data.
-  - `no-zeros/rh/RS/BoundaryWedgeProof.lean` (2) – `phase_velocity_identity`, `whitney_to_ae_boundary`.
+Remaining axioms: 11 (all other modules are axiom-free).
 
-## Next Actions
+- `no-zeros/rh/RS/BoundaryWedgeProof.lean`: `phase_velocity_identity`, `whitney_to_ae_boundary`.
+- `no-zeros/rh/RS/RouteB_Final.lean`: `boundary_positive_AF`, `measurable_riemannXi_ext`, `measurable_det2`, `measurable_O`, `det2_analytic_on_RSΩ`, `det2_nonzero_on_RSΩ`, `riemannXi_ext_analytic_AFΩ`, `pullback_hasPoissonRepOn_offXi`, `pinned_removable_data`.
 
-1. Replace Route B packaging axioms with proofs (measurability, Poisson pullback, pinned removable data, boundary positivity).
-2. Formalize `phase_velocity_identity` and `whitney_to_ae_boundary` inside `BoundaryWedgeProof.lean`.
-3. Run `lake build` from `no-zeros/`, regenerate `scripts/axiom_report.py`, and update status docs.
-4. Prepare final release artifacts once the axiom count hits zero.
+## Mission Outline
 
-## Checklist
+### BoundaryWedgeProof.lean
+- **Prove `phase_velocity_identity`**: use Green’s identity on Whitney rectangles, residue calculus for `critical_atoms`, and the concretely defined `windowed_phase`, `poisson_balayage`, `critical_atoms`.
+- **Prove `whitney_to_ae_boundary`**: combine the constructive Whitney cover (`WhitneyGeometryDefs`) with measure-theoretic arguments to obtain boundary positivity almost everywhere.
 
-- [x] Packaging and numeric axioms eliminated in CertificateConstruction / OffZerosBridge.
-- [x] Removability and Hardy infrastructure wired where needed.
-- [x] Whitney decomposition witness supplied.
-- [ ] Route B transport and measurability axioms discharged.
-- [ ] CR-Green phase/Whitney boundary proofs formalized.
-- [ ] Final documentation refresh and release prep.
+### RouteB_Final.lean
+- **Boundary positivity (`boundary_positive_AF`)**: derive from the proven wedge closure and PPlus machinery.
+- **Measurability**: show ξ_ext, det₂, and the chosen outer function are measurable by leveraging their continuity/analyticity.
+- **Analytic/nonvanishing witnesses**: expose the existing theorems from `Det2Outer` and `CompletedXi` for det₂ and ξ_ext on the RS/AF domains.
+- **Cayley Poisson pullback (`pullback_hasPoissonRepOn_offXi`)**: transport the Poisson representation via `HalfPlaneOuterV2` and Cayley adapters.
+- **Pinned removable data (`pinned_removable_data`)**: package the OffZeros removable builder with the Route B outer witness, ensuring the u-trick conditions.
 
+### Finalization Checklist
+- [ ] Replace all 11 axioms with formal proofs.
+- [ ] Run `lake build` (from `no-zeros/`) and `scripts/axiom_report.py` to confirm zero project-local axioms.
+- [ ] Update documentation (`AXIOM_PUNCHLIST.md`, `AXIOM_CLEANUP_STATUS.md`, `STANDARD_AXIOMS_CATALOG.md`) after the proofs land.
+
+Agents may introduce helper lemmas or files as needed; keep public interfaces stable and document classical references (Koosis, Stein, Iwaniec–Kowalski) in comments for clarity.
