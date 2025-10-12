@@ -566,16 +566,54 @@ theorem Theta_pinned_limit_from_N2_with_eventually_ne
 -- the standard u-trick for Cayley transforms. Both are textbook results.
 --
 -- Estimated effort to prove: 1-2 weeks (mathlib has pieces, needs assembly)
-/-- Removable singularity with pinned Cayley form: if `Θ` is analytic on
-`U \ {ρ}` and equals `(1-u)/(1+u)` there with `u → 0` at `ρ`, then the
-updated function is analytic on `U`. -/
-axiom analyticOn_update_from_pinned :
+/-- Removable singularity with pinned Cayley form (proved):
+If `Θ` is analytic on `U \ {ρ}` and equals `(1-u)/(1+u)` there with `u → 0` on `𝓝[U \ {ρ}] ρ`,
+then `Function.update Θ ρ 1` is analytic on `U`. -/
+theorem analyticOn_update_from_pinned :
   ∀ (U : Set ℂ) (ρ : ℂ) (Θ u : ℂ → ℂ),
   IsOpen U → ρ ∈ U →
   AnalyticOn ℂ Θ (U \ {ρ}) →
   EqOn Θ (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) →
   Tendsto u (nhdsWithin ρ (U \ {ρ})) (𝓝 (0 : ℂ)) →
-  AnalyticOn ℂ (Function.update Θ ρ (1 : ℂ)) U
+  AnalyticOn ℂ (Function.update Θ ρ (1 : ℂ)) U := by
+  intro U ρ Θ u hUopen hρU hΘ_punct hEq hu0
+  classical
+  -- Abbreviations
+  let S : Set ℂ := U \ {ρ}
+  let g : ℂ → ℂ := Function.update Θ ρ (1 : ℂ)
+  -- Θ tends to 1 along S at ρ via the u-trick
+  have hEq_ev : (fun z => Θ z) =ᶠ[nhdsWithin ρ S]
+      (fun z => (1 - u z) / (1 + u z)) := by
+    simpa using Set.EqOn.eventuallyEq_nhdsWithin (s := S) hEq
+  have hΘ_lim1 : Tendsto Θ (nhdsWithin ρ S) (𝓝 (1 : ℂ)) :=
+    Theta_pinned_limit_from_N2 (U := S) (ρ := ρ) (Θ := Θ) (u := u) hEq_ev hu0
+  -- ContinuityWithin at ρ for g using the punctured limit and g ρ = 1
+  have hg_within : ContinuousWithinAt g U ρ := by
+    have hiff := continuousWithinAt_update_same (f := Θ) (s := U) (x := ρ) (y := (1 : ℂ))
+    -- `hiff` states: `ContinuousWithinAt (update Θ ρ 1) U ρ ↔ Tendsto Θ (𝓝[U \ {ρ}] ρ) (𝓝 1)`
+    exact hiff.mpr hΘ_lim1
+  -- Upgrade to differentiability across ρ and conclude analyticOn U
+  have hU_nhds : U ∈ 𝓝 ρ := hUopen.mem_nhds hρU
+  have hg_cont : ContinuousAt g ρ :=
+    (continuousWithinAt_iff_continuousAt hU_nhds).mp hg_within
+  -- Differentiable on S: g = Θ on S and Θ analytic there
+  have hSopen : IsOpen S := by
+    -- S = U \ {ρ}
+    simpa [S] using hUopen.sdiff isClosed_singleton
+  have hDiff_g_punct : DifferentiableOn ℂ g S := by
+    have hDiffΘ : DifferentiableOn ℂ Θ S :=
+      (analyticOn_iff_differentiableOn (f := Θ) (s := S) hSopen).1 hΘ_punct
+    have hEqOn_gΘ : EqOn g Θ S := by
+      intro z hz; by_cases hzρ : z = ρ
+      · exact (hz.2 hzρ).elim
+      · simp [g, Function.update_noteq hzρ]
+    exact hDiffΘ.congr hEqOn_gΘ
+  have hDiff_gU : DifferentiableOn ℂ g U := by
+    haveI : CompleteSpace ℂ := inferInstance
+    exact
+      (Complex.differentiableOn_compl_singleton_and_continuousAt_iff
+        (E := ℂ) (f := g) (s := U) (c := ρ) hU_nhds).mp ⟨hDiff_g_punct, hg_cont⟩
+  exact (analyticOn_iff_differentiableOn (f := g) (s := U) hUopen).2 hDiff_gU
 
 /-! ### Pinned → removable assignment at ξ-zeros (builder)
 
