@@ -29,6 +29,9 @@ open Complex Set RH.AcademicFramework.CompletedXi
 /-- Right half–plane domain Ω. -/
 local notation "Ω" => RH.RS.Ω
 
+/-- Boundary parameterization of the line Re s = 1/2. -/
+@[simp] def boundary (t : ℝ) : ℂ := (1 / 2 : ℂ) + Complex.I * (t : ℂ)
+
 /-- RS symbol for det₂ on Ω: the 2-modified Euler product over primes.
 
     det₂(s) = ∏ₚ (1 - p^(-s)) * exp(p^(-s))
@@ -135,9 +138,6 @@ structure OuterHalfPlane (O : ℂ → ℂ) : Prop :=
 We make the boundary‑modulus predicate concrete: equality of absolute values
 along the boundary parameterization `s(t) = 1/2 + i t` for all real `t`.
 -/
-
-/-- Boundary parameterization of the line Re s = 1/2. -/
-@[simp] def boundary (t : ℝ) : ℂ := (1 / 2 : ℂ) + Complex.I * (t : ℂ)
 
 /-- Concrete boundary‑modulus equality on Re s = 1/2. -/
 def BoundaryModulusEq (O F : ℂ → ℂ) : Prop :=
@@ -270,25 +270,4 @@ theorem outer_limit_locally_uniform_alt :
 end RS
 end RH
 
-namespace RH
-namespace RS
-
-/-- Analyticity of `det2` on Ω = {Re > 1/2}. -/
-theorem det2_analytic_on_RSΩ : AnalyticOn ℂ det2 Ω := by
-  -- Align Ω definitions and apply AF lemma
-  have hΩ : Ω = {s : ℂ | (1/2 : ℝ) < s.re} := by rfl
-  simpa [det2, hΩ] using
-    (RH.AcademicFramework.DiagonalFredholm.det2_AF_analytic_on_halfPlaneReGtHalf)
-
-/-- Nonvanishing of `det2` on the critical line Re(s) = 1/2. -/
-theorem det2_nonzero_on_critical_line :
-  ∀ t : ℝ, det2 (boundary t) ≠ 0 := by
-  intro t
-  -- boundary t = 1/2 + i t
-  have hb : boundary t = (1 / 2 : ℂ) + Complex.I * (t : ℂ) := by
-    simp [boundary]
-  simpa [det2, hb] using
-    (RH.AcademicFramework.DiagonalFredholm.det2_AF_nonzero_on_critical_line t)
-
-end RS
-end RH
+-- (duplicate aliases removed; the corresponding theorems are declared above)

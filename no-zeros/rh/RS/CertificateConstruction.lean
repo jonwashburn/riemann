@@ -1,10 +1,10 @@
 import rh.RS.CRGreenOuter
-import rh.RS.BoundaryWedgeProof
 import rh.RS.PinchCertificate
 import rh.RS.Det2Outer
 import rh.RS.OffZerosBridge
 import rh.academic_framework.CompletedXi
 import rh.Proof.Main
+import rh.RS.PinchWrappers
 import Mathlib.Analysis.Analytic.IsolatedZeros
 import Mathlib.Analysis.Complex.RemovableSingularity
 import Mathlib.Topology.Basic
@@ -32,7 +32,6 @@ namespace RH.RS.CertificateConstruction
 open Complex Filter Set
 open scoped Topology
 open RH.AcademicFramework.CompletedXi
-open RH.RS.BoundaryWedgeProof
 
 /-! ## Section 1: Connect Interior Positivity
 
@@ -40,31 +39,48 @@ From ACTION 4, we have interior positivity on all of Ω.
 We need to restrict this to Ω \ {ξ_ext = 0} for the certificate.
 -/
 
-/-- Interior positivity off ξ_ext zeros (restriction from ACTION 4).
-This is YOUR logical reasoning - restricting from Ω to Ω \ {ξ_ext = 0}. -/
-theorem interior_positive_off_xi_zeros :
+/-! ## Section 1a: Outer witness (used later) -/
+
+/-- Outer existence witness for the certificate (Route B's chosen outer). -/
+theorem outer_exists_for_certificate :
+  ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
+    BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s) := by
+  refine ⟨RH.RS.RouteB.O, (RH.RS.RouteB.O_spec).1, (RH.RS.RouteB.O_spec).2⟩
+
+-- Interior positivity for the certificate outer via Route B (P+) + Poisson transport.
+-- We avoid depending on the boundary wedge module by using the Route B wiring and
+-- the transport helper from `PinchWrappers`.
+lemma interior_positive_with_certificate_outer :
   ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
-    0 ≤ ((2 : ℂ) * J_canonical z).re := by
+    0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose outer_exists_for_certificate) z)).re := by
+  classical
+  -- Align the chosen outer with Route B's fixed choice
+  have hChoose : Classical.choose outer_exists_for_certificate = RH.RS.RouteB.O := rfl
+  -- Route B provides (P+) and a Poisson representation on the off-zeros set
+  have hP : RH.Cert.PPlus (fun z => (2 : ℂ) * J_pinch det2 (RH.RS.RouteB.O) z) :=
+    RH.RS.RouteB.boundary_positive
+  have hRep : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
+      (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 (RH.RS.RouteB.O))
+      (Ω \ {z | riemannXi_ext z = 0}) := RH.RS.RouteB.F_pinch_has_poisson_rep
+  -- Transport boundary positivity to the interior on the off-zeros set
+  have hTrans := RH.RS.hRe_offXi_from_PPlus_via_transport
+    (hOuter := outer_exists_for_certificate) (hRepOn := by
+      -- specialize to the same outer using definitional equality
+      simpa [RH.AcademicFramework.HalfPlaneOuterV2.F_pinch, hChoose]
+        using hRep)
+    (hPPlus := by
+      -- coerce (P+) to the RS predicate expected by the wrapper
+      simpa [hChoose] using hP)
+  -- Conclude the pointwise interior positivity
   intro z hz
-  -- Apply interior positivity on Ω then restrict to the off-zeros subset
-  have hzΩ : z ∈ Ω := hz.1
-  exact RH.RS.BoundaryWedgeProof.interior_positive_from_constants z hzΩ
+  simpa [hChoose] using hTrans z hz
 
 /-! ## Section 2: Outer Existence Witness
 
 Package the outer from ACTION 2 into the required format.
 -/
 
-/-- Outer existence witness for the certificate.
-Uses the outer from ACTION 2 with boundary modulus |det2/ξ_ext|. -/
-theorem outer_exists_for_certificate :
-  ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
-    BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s) := by
-  -- Use the RS layer existence: Outer on Ω with boundary modulus |det2/ξ_ext|
-  let h := OuterHalfPlane.ofModulus_det2_over_xi_ext_proved
-  refine ⟨OuterHalfPlane.choose_outer h, ?_, ?_⟩
-  · exact (OuterHalfPlane.choose_outer_spec h).1
-  · exact (OuterHalfPlane.choose_outer_spec h).2
+-- (outer_exists_for_certificate theorem defined in Section 1a above)
 
 /-! ## Section 3: Removable Extension Data
 
@@ -86,51 +102,6 @@ lemma xi_ext_zero_isolated_on_Ω
     ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi, _hΘU, u, hEq, hu0, z0, hz0U, hz0ne, hΘz0ne⟩
   exact ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi⟩
 
-/-- Constructive Cayley form near a pinned limit: if `Θ → 1` along the
-punctured neighborhood at `ρ`, then there exists `u` with
-`Θ = (1-u)/(1+u)` on `U \ {ρ}` and `u → 0` there. -/
-lemma exists_cayley_form_near_zero_of_tendsto
-  (Θ : ℂ → ℂ) (ρ : ℂ) (U : Set ℂ)
-  (hUopen : IsOpen U) (hρU : ρ ∈ U)
-  (hΘ_lim : Tendsto Θ (nhdsWithin ρ (U \ {ρ})) (𝓝 (1 : ℂ)))
-  : ∃ (u : ℂ → ℂ),
-      EqOn Θ (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) ∧
-      Tendsto u (nhdsWithin ρ (U \ {ρ})) (𝓝 (0 : ℂ)) := by
-  classical
-  -- Define `u` globally by the Möbius transform of Θ
-  let u : ℂ → ℂ := fun z => (1 - Θ z) / (1 + Θ z)
-  have hEq : EqOn Θ (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) := by
-    intro z hz; simp [u]
-  -- Continuity of w ↦ (1 - w)/(1 + w) at w = 1
-  have hsum : ContinuousAt (fun w : ℂ => (1 : ℂ) + w) (1 : ℂ) :=
-    (continuousAt_const : ContinuousAt (fun _ => (1 : ℂ)) (1 : ℂ)).add continuousAt_id
-  have hsum_ne : (1 : ℂ) + (1 : ℂ) ≠ 0 := by norm_num
-  have hden_inv : ContinuousAt (fun w : ℂ => ((1 : ℂ) + w)⁻¹) (1 : ℂ) :=
-    (continuousAt_inv₀ hsum_ne).comp hsum
-  have hnum : ContinuousAt (fun w : ℂ => (1 : ℂ) - w) (1 : ℂ) :=
-    (continuousAt_const : ContinuousAt (fun _ => (1 : ℂ)) (1 : ℂ)).sub continuousAt_id
-  have hmob : ContinuousAt (fun w : ℂ => (1 - w) / (1 + w)) (1 : ℂ) := by
-    -- division as multiplication by inverse
-    simpa [div_eq_mul_inv] using hnum.mul hden_inv
-  -- Compose the limit Θ → 1 with the continuous Möbius map to get u → 0
-  have hu0 : Tendsto u (nhdsWithin ρ (U \ {ρ})) (𝓝 (0 : ℂ)) := by
-    have : Tendsto (fun z => (1 - Θ z) / (1 + Θ z)) (nhdsWithin ρ (U \ {ρ})) (𝓝 ((1 - (1:ℂ)) / (1 + (1:ℂ)))) :=
-      hmob.comp_tendsto hΘ_lim
-    simpa [u] using this
-  exact ⟨u, hEq, hu0⟩
-
--- AXIOM: Removable extension at ξ_ext zeros
--- Reference: Combines Ahlfors Ch. 4 (removability) + Ch. 5 (isolated zeros)
---
--- Mathematical content: At each ξ_ext zero, the Cayley-transformed pinch function
--- Θ = Cayley(2·J_pinch) has a removable singularity and extends analytically.
---
--- Standard proof combines:
---   1. ξ_ext zeros are isolated (entire function)
---   2. Θ = Cayley(2·J_pinch) is Schur → bounded → removable
---   3. u-trick gives explicit form Θ = (1-u)/(1+u) with u → 0
---   4. Extension g has value 1 at the zero
---   5. Nontriviality from interior positivity
 /-- Removable extension across each `ξ_ext` zero for the pinch Θ, built from
 Route B's pinned u–trick packaging and the standard removable-update builder. -/
 theorem removable_extension_at_xi_zeros
@@ -191,17 +162,8 @@ We need to express interior positivity using J_pinch (not J_canonical).
   -- No additional axioms are needed below; positivity is obtained directly
   -- from the interior positivity already established and the chosen outer.
 
-lemma interior_positive_with_certificate_outer :
-  ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
-    0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose outer_exists_for_certificate) z)).re := by
-  classical
-  intro z hz
-  have := interior_positive_off_xi_zeros z hz
-  simpa [J_pinch, J_canonical, J_CR,
-        outer_exists_for_certificate,
-        outer_exists,
-        OuterHalfPlane.ofModulus_det2_over_xi_ext_proved]
-    using this
+-- Note: the above positivity is expressed directly for the `J_pinch` with the
+-- chosen outer, matching the certificate ingredient.
 
 /-! ## Section 5: Build Concrete Certificate
 

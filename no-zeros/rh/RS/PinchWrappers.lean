@@ -5,7 +5,6 @@ import rh.RS.PinchIngredients
 import rh.academic_framework.CompletedXi
 import rh.Proof.Main
 -- keep packaging decoupled to avoid cycles; consumers can import XiExtBridge directly if needed
-import rh.RS.BoundaryWedgeProof
 import rh.academic_framework.HalfPlaneOuterV2
 
 /-!

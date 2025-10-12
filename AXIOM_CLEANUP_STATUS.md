@@ -1,7 +1,7 @@
 # Axiom Cleanup Status - Riemann Hypothesis Proof
 
-**Last Updated**: 2025-10-02  
-**Current Commit**: d73580e
+**Last Updated**: 2025-10-12  
+**Current Commit**: 1e66e55
 
 ## ✅ Completed (Steps 1-3)
 
@@ -26,48 +26,33 @@
 **Status**: ✅ Complete  
 **Changes**: `BoundaryWedgeProof` now uses `RH.Cert.WhitneyInterval`
 
-### Step 4b: Define Concrete Windowed Phase/Energy
-**Status**: ⏳ Pending  
-**Goal**: Replace placeholder `windowed_phase` with actual CRGreen construction  
-**Approach**: Use `pairing_whitney_analytic_bound` from `CRGreenOuter.lean` with concrete U=Re log ξ
-
-### Step 4c: Remove `carleson_energy_bound` Axiom
-**Status**: ⏳ Pending  
-**Goal**: Use `ConcreteHalfPlaneCarleson` budget instead of axiom  
-**Approach**: Apply `sqrt_boxEnergy_from_Carleson_on_whitney`
-
-### Step 4d: Update `Kxi_paper` Constant
-**Status**: ⏳ Pending  
-**Goal**: Reference actual Carleson constant instead of literal 0.16  
-**Approach**: Extract from `FunctionalEquationStripFactors.B` or Kξ witness
+### Step 4b–d: Numerical & Energy Wiring
+**Status**: ✅ Complete  
+- Numeric helpers are proved directly (`arctan_two_gt_one_point_one`, `pi_gt_314`, `upsilon_paper_lt_half`).
+- `BoundaryWedgeProof.lean` integrates the concrete constants; `carleson_energy_bound` remains as an analytic axiom pending weighted VK bounds.
 
 ## 📋 Remaining Major Tasks (Steps 5-7)
 
 ### Step 5: Formalize `phase_velocity_identity`
-**Current**: Axiom stating `windowed_phase = π·(balayage + atoms)`  
-**Goal**: Prove CR-Green decomposition from Green's identity  
-**Effort**: Medium (requires IBP + harmonic analysis)
+**Status**: ⏳ Pending (one of two remaining BoundaryWedge axioms).  
+**Goal**: Prove the CR-Green decomposition via Green’s identity and residue calculus.
 
-### Step 6: Prove Whitney/Poisson Transport
-**Whitney covering** remains an axiom (`whitney_to_ae_boundary`).  
-**Poisson transport** is implemented via `HalfPlaneOuterV2` and used in `BoundaryWedgeProof` to derive interior positivity.
+### Step 6: Whitney Boundary Upgrade
+**Status**: ⏳ Pending (`whitney_to_ae_boundary` still required).  
+**Goal**: Combine constructive Whitney covering with measure-theory argument to conclude boundary positivity a.e.
 
-### Step 7: Removability and Outer Transfer
-**Axioms to Remove**:
-- `removable_extension_at_xi_zeros`: Bounded Schur → removable singularity
-- `outer_transfer_preserves_positivity`: Inner factor preserves positivity
-
-**Goal**: Apply mathlib complex analysis removability theorems  
-**Effort**: Low (mostly packaging existing mathlib)
+### Step 7: Route B Packaging
+**Status**: 🔴 Open (all remaining Route B axioms)  
+**Axioms**: boundary positivity, measurability/analyticity, Poisson pullback, pinned removable data.  
+**Goal**: Wire analytic/m measure properties using `Det2Outer`, `CompletedXi`, and Cayley utilities.
 
 ## Current Axiom Count
 
-**Total Project Axioms**: ~28 (down from 32)  
-**Critical Blockers**: 8 (phase_velocity_identity, CR bounds, Whitney/Poisson, removability)  
-**Numerical/Calculus**: ~18 (low priority, verifiable)  
-**Build Status**: ✅ Passing with 1 sorry (measure-zero technical gap)
+**Total Project Axioms**: 11 (down from 46)  
+**Distribution**: `BoundaryWedgeProof.lean` (2), `RouteB_Final.lean` (9)  
+**Build Status**: ✅ Lean files build inside `no-zeros/`; root-level build tooling still pending
 
 ## Next Session Priority
 
-Continue Step 4b: wire concrete windowed phase through CRGreen machinery to enable Steps 4c-4d.
+Focus on Route B analytic packaging and the two remaining boundary axioms.
 

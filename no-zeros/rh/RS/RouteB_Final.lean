@@ -1,7 +1,9 @@
-import rh.RS.PinchWrappers
+-- Import only the minimal pieces to avoid cycles. Consumers of Route B should
+-- import PinchWrappers themselves if they need its helpers.
 import rh.RS.Det2Outer
 import rh.RS.CRGreenOuter
 import rh.RS.OffZerosBridge
+import rh.RS.PinchWrappers
 import rh.academic_framework.HalfPlaneOuterV2
 import rh.academic_framework.PoissonCayley
 import rh.academic_framework.CompletedXi

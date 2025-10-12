@@ -84,12 +84,12 @@ theorem det2EulerFactor_ne_zero_of_posRe {s : ℂ}
     simpa [hnorm]
   have h1 : (1 - lam) ≠ 0 := by
     intro h
-    have : ‖lam‖ = 1 := by
-      have : lam = 1 := by
-        -- from 1 - lam = 0 we get lam = 1
-        simpa using sub_eq_zero.mp h
-      simpa [this]
-    exact (ne_of_lt hlt) this
+    -- From 1 - lam = 0, we get 1 = lam
+    have hlam : 1 = lam := sub_eq_zero.mp h
+    -- Hence ‖lam‖ = 1, contradicting ‖lam‖ < 1
+    have hnorm1 : ‖lam‖ = 1 := by
+      simpa [hlam.symm] using (norm_one : ‖(1 : ℂ)‖ = 1)
+    exact (ne_of_lt hlt) hnorm1
   exact mul_ne_zero h1 hexp
 
 /-- Analyticity of the Euler product det₂ on Re(s) > 1/2 (sketched). -/
