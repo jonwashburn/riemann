@@ -8,15 +8,19 @@
 
 ## Tier 1: Critical Blockers (Must Eliminate for "Unconditional" Claim)
 
-### 1.1 Interior Positivity
-**File**: `rh/RS/CRGreenOuter.lean:122`
+### 1.1 Interior Positivity — Resolved
+**Now**: Proven in `rh/RS/BoundaryWedgeProof.lean` (Section 7)
 ```lean
-axiom interior_positive_J_canonical : ∀ z ∈ Ω, 0 ≤ ((2 : ℂ) * J_canonical z).re
+theorem interior_positive_J_canonical : ∀ z ∈ Ω, 0 ≤ ((2 : ℂ) * J_canonical z).re
 ```
-**Status**: 🔴 **Circular** - this IS the conclusion of the boundary→interior pipeline  
-**Real Fix**: Derive from `PPlus_from_constants` + `poisson_transport_interior`  
-**Effort**: 1-2 weeks (need to prove those dependencies first)  
-**Priority**: **CRITICAL**
+is derived by:
+- `PPlus_from_constants` (Whitney → a.e. boundary positivity), and
+- `poisson_transport_interior_off_zeros` (HalfPlaneOuterV2 transport on Ω \ {ξ = 0}),
+closing zeros by direct evaluation of `J_canonical`.
+
+**Status**: ✅ **Derived (no axiom)**  
+**References**: `BoundaryWedgeProof.lean:616–685`  
+**Action**: Remove from axiom list
 
 ---
 
@@ -56,18 +60,15 @@ axiom whitney_to_ae_boundary :
 
 ---
 
-### 1.4 Poisson Transport to Interior
-**File**: `rh/RS/BoundaryWedgeProof.lean:320`
-```lean
-axiom poisson_transport_interior :
-  PPlus_canonical →
-  (∀ z ∈ Ω, 0 ≤ ((2 : ℂ) * J_canonical z).re)
-```
-**Status**: 🟡 **Standard** but axiomatized  
-**Real Fix**: Prove from Poisson integral representation  
-**Approach**: Already have `poissonTransport` in `HalfPlaneOuterV2.lean` - need to connect it  
-**Effort**: 1-2 days  
-**Priority**: **HIGH**
+### 1.4 Poisson Transport to Interior — Resolved
+**Now**: Implemented via `RH.AcademicFramework.HalfPlaneOuterV2.poissonTransport` and `poissonTransportOn`.
+
+`BoundaryWedgeProof.lean` uses the Route B witness
+`RH.RS.RouteB.F_pinch_has_poisson_rep` to obtain subset transport and derive
+interior positivity off zeros, then closes at zeros.
+
+**Status**: ✅ **Implemented (no axiom in project)**  
+**References**: `BoundaryWedgeProof.lean:616–656`
 
 ---
 

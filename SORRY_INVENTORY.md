@@ -156,7 +156,7 @@ The new `RS/PPlusFromCarleson.lean` adapter **bypasses all 11 sorries** in this 
 | 111 | `det2_nonzero` | Euler products | **AXIOMATIZE** | HIGH |
 | 222 | `boundary_integrable` | Measure theory | **AXIOMATIZE** | MEDIUM |
 | 232 | `poisson_formula_holds` | Poisson theory | **AXIOMATIZE** | HIGH |
-| 257 | `interior_positive_J_canonical` | **CIRCULAR!** | **MUST FIX** | **CRITICAL** |
+| 257 | `interior_positive_J_canonical` | Resolved via Poisson transport in `BoundaryWedgeProof.lean` | Removed from critical blockers | ✅ |
 | 264 | `agreement_continuity` | Continuity | **PROVE** or axiomatize | LOW |
 | 269 | `j_canonical_extended_nonzero` | Analyticity | **AXIOMATIZE** | MEDIUM |
 | 286 | `j_cr_extended_nonzero` | Analyticity | **AXIOMATIZE** | MEDIUM |
@@ -309,7 +309,7 @@ After consolidation, you need approximately **12 axioms** total:
 
 **File**: `CRGreenOuter.lean:257`
 
-**Problem**: `interior_positive_J_canonical` calls itself (circular)
+**Resolved**: Interior positivity is derived from `PPlus_from_constants` and `HalfPlaneOuterV2.poissonTransportOn`, with zeros closed by direct evaluation. The circular dependency has been eliminated.
 
 **Solution**: Remove or stub this theorem; interior positivity now comes from:
 - `PPlus_canonical_proved` (boundary positivity)

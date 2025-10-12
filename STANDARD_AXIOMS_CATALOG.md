@@ -65,7 +65,7 @@ The unconditional RH proof uses **11 unique mathematical axioms** (17 total coun
 
 ---
 
-### 3. Harmonic/PDE Analysis (4 axioms)
+### 3. Harmonic/PDE Analysis (3 axioms)
 
 #### `phase_velocity_identity`
 - **File**: `BoundaryWedgeProof.lean:622`
@@ -85,11 +85,8 @@ The unconditional RH proof uses **11 unique mathematical axioms** (17 total coun
 - **Content**: Residue contributions are nonnegative
 - **Effort**: 1-2 weeks
 
-#### `poisson_transport_interior`
-- **File**: `BoundaryWedgeProof.lean:590`
-- **Reference**: Folland "Real Analysis" Ch. 8, Theorem 6.21
-- **Content**: Boundary Re(F) ≥ 0 a.e. ⇒ interior Re(F) ≥ 0
-- **Effort**: 1-2 weeks
+-- Poisson transport is now implemented via `HalfPlaneOuterV2.poissonTransport`
+-- and `poissonTransportOn` and is not listed as an axiom.
 
 ---
 

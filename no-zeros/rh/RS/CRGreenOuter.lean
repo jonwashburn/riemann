@@ -87,28 +87,10 @@ lemma Ω_eq : RH.RS.Ω = RH.AcademicFramework.HalfPlaneOuterV2.Ω := by
   unfold RH.RS.Ω RH.AcademicFramework.HalfPlaneOuterV2.Ω
   rfl
 
-/-! ## Standard boundary nonvanishing axiom (kept pending Euler-product formalization)
+/-! ## det₂ boundary nonvanishing (from academic framework)
 
-These are well-established results from analytic number theory (independent of RH).
-We keep only the det₂ nonvanishing axiom here; removable-extension axioms are removed.
--/
-
--- AXIOM: det2 nonvanishing on critical line
--- Reference: Iwaniec-Kowalski "Analytic Number Theory" Ch. 5
---
--- Mathematical content: The det2 Euler product ∏_p (1 - 1/p^s) · exp(1/p^s)
--- is analytic and nonzero for Re(s) > 0, hence nonzero on Re(s) = 1/2.
---
--- Standard proof:
---   1. Each factor (1 - 1/p^s) · exp(1/p^s) is analytic for Re(s) > 0
---   2. Each factor is nonzero (exp never vanishes, and 1 - 1/p^s ≠ 0 for Re(s) > 0)
---   3. Infinite product converges uniformly on compacts in Re(s) > 0
---   4. Product of nonvanishing analytic functions is nonvanishing
---
--- Justification: Standard Euler product theory from analytic number theory.
---
--- Estimated effort: 2-3 weeks (Euler product formalization)
-axiom det2_nonzero_on_critical_line : ∀ t : ℝ, det2 (boundary t) ≠ 0
+We use `det2_nonzero_on_critical_line` from `rh/RS/Det2Outer.lean`, which is
+proved via the academic framework's infinite-product development. -/
 
 /-! ## Outer function structure and J_CR construction -/
 

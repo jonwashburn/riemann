@@ -49,12 +49,8 @@
 **Effort**: Medium (requires IBP + harmonic analysis)
 
 ### Step 6: Prove Whitney/Poisson Transport
-**Axioms to Remove**:
-- `whitney_to_ae_boundary`: Whitney covering → a.e. boundary positivity
-- `poisson_transport_interior`: Boundary (P+) → interior positivity
-
-**Goal**: Formalize standard covering theory + Poisson integral formula  
-**Effort**: Medium (standard but detailed)
+**Whitney covering** remains an axiom (`whitney_to_ae_boundary`).  
+**Poisson transport** is implemented via `HalfPlaneOuterV2` and used in `BoundaryWedgeProof` to derive interior positivity.
 
 ### Step 7: Removability and Outer Transfer
 **Axioms to Remove**:

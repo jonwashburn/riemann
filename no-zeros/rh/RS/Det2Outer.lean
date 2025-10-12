@@ -38,6 +38,28 @@ local notation "Ω" => RH.RS.Ω
 noncomputable def det2 (s : ℂ) : ℂ :=
   ∏' (p : Nat.Primes), RH.AcademicFramework.DiagonalFredholm.det2EulerFactor s p
 
+/-! ## Bridging lemmas from the academic framework
+
+We expose analyticity of `det2` on Ω and nonvanishing on the boundary line
+using the academic framework's infinite-product development. -/
+
+/-- Analyticity of `det2` on Ω = {Re > 1/2}. -/
+theorem det2_analytic_on_RSΩ : AnalyticOn ℂ det2 Ω := by
+  -- Align Ω definitions and apply AF lemma
+  have hΩ : Ω = {s : ℂ | (1/2 : ℝ) < s.re} := by rfl
+  simpa [det2, hΩ] using
+    (RH.AcademicFramework.DiagonalFredholm.det2_AF_analytic_on_halfPlaneReGtHalf)
+
+/-- Nonvanishing of `det2` on the critical line Re(s) = 1/2. -/
+theorem det2_nonzero_on_critical_line :
+  ∀ t : ℝ, det2 (boundary t) ≠ 0 := by
+  intro t
+  -- boundary t = 1/2 + i t
+  have hb : boundary t = (1 / 2 : ℂ) + Complex.I * (t : ℂ) := by
+    simp [boundary]
+  simpa [det2, hb] using
+    (RH.AcademicFramework.DiagonalFredholm.det2_AF_nonzero_on_critical_line t)
+
 /-- Analytic/nonvanishing facts for `det2` on Ω (interface record). -/
 structure Det2OnOmega where
   analytic : AnalyticOn ℂ det2 Ω
@@ -244,6 +266,29 @@ Narrative (hooks available in `riemann-blockers-2.txt`):
 theorem outer_limit_locally_uniform_alt :
     OuterHalfPlane.ofModulus_det2_over_xi_ext := by
   simpa using outer_limit_locally_uniform
+
+end RS
+end RH
+
+namespace RH
+namespace RS
+
+/-- Analyticity of `det2` on Ω = {Re > 1/2}. -/
+theorem det2_analytic_on_RSΩ : AnalyticOn ℂ det2 Ω := by
+  -- Align Ω definitions and apply AF lemma
+  have hΩ : Ω = {s : ℂ | (1/2 : ℝ) < s.re} := by rfl
+  simpa [det2, hΩ] using
+    (RH.AcademicFramework.DiagonalFredholm.det2_AF_analytic_on_halfPlaneReGtHalf)
+
+/-- Nonvanishing of `det2` on the critical line Re(s) = 1/2. -/
+theorem det2_nonzero_on_critical_line :
+  ∀ t : ℝ, det2 (boundary t) ≠ 0 := by
+  intro t
+  -- boundary t = 1/2 + i t
+  have hb : boundary t = (1 / 2 : ℂ) + Complex.I * (t : ℂ) := by
+    simp [boundary]
+  simpa [det2, hb] using
+    (RH.AcademicFramework.DiagonalFredholm.det2_AF_nonzero_on_critical_line t)
 
 end RS
 end RH
