@@ -1,6 +1,7 @@
 import rh.RS.CRGreenOuter
 import rh.Cert.KxiPPlus
 import rh.academic_framework.HalfPlaneOuterV2
+import rh.RS.RouteB_Final
 import Mathlib.Tactic
 import Mathlib.Data.Real.Pi.Bounds
 
@@ -599,29 +600,51 @@ theorem PPlus_from_constants : PPlus_canonical := by
 Poisson transport extends (P+) to the interior.
 -/
 
--- AXIOM: Poisson transport for harmonic functions
--- Reference: Folland "Real Analysis" Ch. 8, Theorem 6.21 (Poisson Integral Formula)
---
--- Mathematical content: If Re(F) ≥ 0 a.e. on the boundary, then Re(F) ≥ 0 in the interior
--- by the Poisson integral representation. For analytic F on Ω, the real part is harmonic
--- and can be represented as a Poisson integral of its boundary values.
---
--- Standard proof:
---   1. Re(F) is harmonic (since F is analytic)
---   2. Poisson representation: Re(F)(z) = ∫ Re(F)(boundary t) · PoissonKernel(z,t) dt
---   3. If Re(F)(boundary t) ≥ 0 a.e. and PoissonKernel ≥ 0, then integral ≥ 0
---
--- Justification: This is the standard Poisson integral formula for harmonic functions.
---
--- Estimated effort to prove: 1-2 weeks (mathlib likely has pieces)
-axiom poisson_transport_interior :
+/-- Poisson transport for the canonical pinch field on the off-zeros set.
+Derives interior positivity on `Ω \ {ξ_ext = 0}` from boundary positivity (P+)
+using the half-plane Poisson representation on that subset. -/
+theorem poisson_transport_interior_off_zeros :
   PPlus_canonical →
-  (∀ z ∈ Ω, 0 ≤ ((2 : ℂ) * J_canonical z).re)
+  (∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}), 0 ≤ ((2 : ℂ) * J_canonical z).re) := by
+  intro hP
+  -- Poisson representation for F_pinch det2 O on S := Ω \ {ξ_ext = 0}
+  have hRep : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
+      (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 outer_exists.outer)
+      (Ω \ {z | riemannXi_ext z = 0}) := by
+    -- Provided by the Route B bridge
+    simpa using RH.RS.RouteB.F_pinch_has_poisson_rep
+  -- Boundary positivity for F_pinch det2 O follows from PPlus_canonical
+  have hBdry : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
+      (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 outer_exists.outer) := by
+    -- On the boundary, J_canonical = J_CR outer_exists = J_pinch det2 O
+    -- hence F(boundary t) agrees a.e. with the PPlus field
+    refine hP.mono ?_
+    intro t ht
+    -- Rewrite via the pointwise identity J_CR = J_pinch
+    have hEq : J_CR outer_exists (boundary t)
+        = J_pinch det2 outer_exists.outer (boundary t) := by
+      simpa [J_canonical, J_CR] using (J_CR_eq_J_pinch (boundary t))
+    -- Now convert the inequality along the equality
+    simpa [RH.AcademicFramework.HalfPlaneOuterV2.F_pinch, hEq, J_pinch]
+      using ht
+  -- Transport boundary positivity to interior on the subset
+  intro z hz
+  have hz' :=
+    RH.AcademicFramework.HalfPlaneOuterV2.poissonTransportOn
+      (F := RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 outer_exists.outer)
+      hRep hBdry z hz
+  -- Rewrite back to the canonical J
+  -- F_pinch det2 O = 2 * J_pinch det2 O = 2 * J_canonical
+  have hJ : (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 outer_exists.outer) z
+      = (2 : ℂ) * J_canonical z := by
+    simp [RH.AcademicFramework.HalfPlaneOuterV2.F_pinch, J_pinch, J_canonical, J_CR]
+  simpa [hJ]
+    using hz'
 
-/-- Interior positivity from (P+) and YOUR constants -/
+/-- Interior positivity from (P+) and YOUR constants on the off-zeros set. -/
 theorem interior_positive_from_constants :
-  ∀ z ∈ Ω, 0 ≤ ((2 : ℂ) * J_canonical z).re := by
-  apply poisson_transport_interior
+  ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}), 0 ≤ ((2 : ℂ) * J_canonical z).re := by
+  apply poisson_transport_interior_off_zeros
   exact PPlus_from_constants
 
 end RH.RS.BoundaryWedgeProof

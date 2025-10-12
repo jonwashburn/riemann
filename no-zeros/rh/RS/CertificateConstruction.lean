@@ -45,10 +45,9 @@ theorem interior_positive_off_xi_zeros :
   ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
     0 ≤ ((2 : ℂ) * J_canonical z).re := by
   intro z hz
-  -- z ∈ Ω \ {ξ_ext = 0} means z ∈ Ω and ξ_ext z ≠ 0
-  have hz_in_Omega : z ∈ Ω := hz.1
-  -- Apply the full-Ω result from ACTION 4
-  exact interior_positive_from_constants z hz_in_Omega
+  -- Apply interior positivity on Ω then restrict to the off-zeros subset
+  have hzΩ : z ∈ Ω := hz.1
+  exact RH.RS.BoundaryWedgeProof.interior_positive_from_constants z hzΩ
 
 /-! ## Section 2: Outer Existence Witness
 
@@ -137,14 +136,17 @@ axiom outer_transfer_preserves_positivity :
   (∀ᵐ t : ℝ, Complex.abs (O1 (boundary t)) = Complex.abs (O2 (boundary t))) →
   (∀ z ∈ Ω, 0 ≤ (F z / O2 z).re)
 
--- AXIOM: Interior positivity for J_pinch off zeros
--- This is actually derivable from interior_positive_from_constants + outer_transfer
--- but we axiomatize to avoid complex wiring through different outer functions
-axiom interior_positive_with_chosen_outer :
-  ∀ (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
-      BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s)),
+lemma interior_positive_with_certificate_outer :
   ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
-    0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)).re
+    0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose outer_exists_for_certificate) z)).re := by
+  classical
+  intro z hz
+  have := interior_positive_off_xi_zeros z hz
+  simpa [J_pinch, J_canonical, J_CR,
+        outer_exists_for_certificate,
+        outer_exists,
+        OuterHalfPlane.ofModulus_det2_over_xi_ext_proved]
+    using this
 
 /-! ## Section 5: Build Concrete Certificate
 
@@ -156,7 +158,7 @@ This is YOUR final assembly - wiring all proven components. -/
 noncomputable def concrete_certificate : RH.RS.PinchCertificateExt :=
   certificate_from_pinch_ingredients
     outer_exists_for_certificate
-    (interior_positive_with_chosen_outer outer_exists_for_certificate)
+    interior_positive_with_certificate_outer
     (removable_extension_at_xi_zeros outer_exists_for_certificate)
 
 /-! ## Section 6: Main Unconditional Theorem

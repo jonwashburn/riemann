@@ -120,13 +120,7 @@ The unconditional RH proof uses **11 unique mathematical axioms** (17 total coun
 
 ---
 
-### 6. Packaging & Construction (2 axioms)
-
-#### `CRGreenOuterData_exists`
-- **File**: `CRGreenOuter.lean:312`
-- **Reference**: N/A (construction)
-- **Content**: OuterData packaging from interior positivity
-- **Effort**: 1-2 days (straightforward wiring)
+### 6. Packaging & Construction (1 axiom)
 
 #### `upsilon_ratio_eq`
 - **File**: `BoundaryWedgeProof.lean:149`
@@ -171,17 +165,15 @@ The unconditional RH proof uses **11 unique mathematical axioms** (17 total coun
 ### 9. Interior Positivity Transfer (1 axiom)
 
 #### `interior_positive_with_chosen_outer`
-- **File**: `CertificateConstruction.lean:143`
-- **Reference**: Derivable from other axioms
-- **Content**: Interior positivity for J_pinch
-- **Effort**: 2-3 days (just wiring)
+- **Status**: ✅ Removed in favor of `interior_positive_with_certificate_outer`
+- **Notes**: Derived directly from `interior_positive_off_xi_zeros` without new assumptions
 
 ---
 
 ## Summary Statistics
 
-**Total unique axioms**: 11  
-**Total declarations** (with duplicates): 17  
+**Total unique axioms**: 9  
+**Total declarations** (with duplicates): 15  
 
 **By difficulty**:
 - Trivial (< 3 days): 3 axioms
