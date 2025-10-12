@@ -72,46 +72,19 @@ Provide pinned removable extension at each ξ_ext zero.
 This is standard removable singularity theory with the u-trick.
 -/
 
--- AXIOM: Isolated zeros for entire functions
--- Reference: Ahlfors "Complex Analysis" Ch. 5, Theorem 3 (Isolated Zeros)
---
--- Mathematical content: Entire non-constant functions have isolated zeros.
--- For each zero ρ, there exists a neighborhood U containing only that zero.
-axiom exists_neighborhood_single_zero :
-  ∀ (f : ℂ → ℂ) (ρ : ℂ), ρ ∈ Ω → f ρ = 0 →
-  ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
-    (U ∩ {z | f z = 0}) = ({ρ} : Set ℂ)
-
-/-- Specialization: isolated zeros for `riemannXi_ext` on Ω via the Γℝ·ζ
-factorization and nonvanishing of Γℝ on Ω. -/
+/-- Specialization: isolated zeros for `riemannXi_ext` on Ω. We reuse the
+Route B pinned removable packaging, which already supplies an isolating
+neighborhood `U` with `(U ∩ {ξ_ext = 0}) = {ρ}`. -/
 lemma xi_ext_zero_isolated_on_Ω
   (ρ : ℂ) (hΩ : ρ ∈ Ω) (hξ : riemannXi_ext ρ = 0) :
   ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
     (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
   classical
-  -- Use the Ω-level factorization ξ_ext = G_ext · ζ and Γℝ ≠ 0 on Ω
-  have hfac : riemannXi_ext ρ = G_ext ρ * riemannZeta ρ :=
-    xi_ext_factorization_on_Ω ρ hΩ
-  have hΓR_ne : G_ext ρ ≠ 0 := G_ext_nonzero_on_Ω ρ hΩ
-  have hζ : riemannZeta ρ = 0 := by
-    -- G_ext ρ ≠ 0, so ζ ρ = 0
-    have : G_ext ρ * riemannZeta ρ = 0 := by simpa [hfac] using hξ
-    exact (mul_eq_zero.mp this).resolve_left hΓR_ne
-  -- Apply the axiom to f = ξ_ext (entire) on Ω; we restrict the witness to Ω
-  rcases exists_neighborhood_single_zero (f := riemannXi_ext) ρ hΩ hξ with
-    ⟨U, hUopen, hUconn, hUsub, hρU, hIso⟩
-  exact ⟨U, hUopen, hUconn, hUsub, hρU, hIso⟩
-
--- AXIOM: Cayley form near zeros
--- Reference: Standard complex analysis (Cayley transform properties)
---
--- Mathematical content: For Θ = Cayley(F) with F → 1, can write Θ = (1-u)/(1+u) with u → 0
-axiom exists_cayley_form_near_zero :
-  ∀ (Θ : ℂ → ℂ) (ρ : ℂ) (U : Set ℂ),
-  IsOpen U → ρ ∈ U →
-  ∃ (u : ℂ → ℂ),
-    EqOn Θ (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) ∧
-    Tendsto u (nhdsWithin ρ (U \ {ρ})) (𝓝 (0 : ℂ))
+  -- Extract the isolating neighborhood from the Route B pinned data
+  have hPinned := RH.RS.RouteB.pinned_removable_data ρ hΩ hξ
+  rcases hPinned with
+    ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi, _hΘU, u, hEq, hu0, z0, hz0U, hz0ne, hΘz0ne⟩
+  exact ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi⟩
 
 /-- Constructive Cayley form near a pinned limit: if `Θ → 1` along the
 punctured neighborhood at `ρ`, then there exists `u` with
@@ -215,32 +188,8 @@ theorem removable_extension_at_xi_zeros
 We need to express interior positivity using J_pinch (not J_canonical).
 -/
 
--- All helper lemmas axiomatized below as standard results
-
--- AXIOM: Hardy space theory package
--- Reference: Garnett "Bounded Analytic Functions" Ch. II
---
--- Mathematical content: When two outer functions have the same boundary modulus,
--- their quotient is an inner function (|O1/O2| ≤ 1 in interior, |O1/O2| = 1 on boundary).
--- Inner functions preserve positivity: if Re(F/O1) ≥ 0 then Re(F/O2) ≥ 0.
---
--- Standard proof uses outer uniqueness up to inner factors in Hardy space theory.
-axiom outer_transfer_preserves_positivity :
-  ∀ (F : ℂ → ℂ) (O1 O2 : ℂ → ℂ),
-  (∀ z ∈ Ω, 0 ≤ (F z / O1 z).re) →
-  (∀ᵐ t : ℝ, Complex.abs (O1 (boundary t)) = Complex.abs (O2 (boundary t))) →
-  (∀ z ∈ Ω, 0 ≤ (F z / O2 z).re)
-
-/-- Reduction lemma: if two outers `O1,O2` have equal modulus on the boundary,
-then there is an inner factor `I` with `O2 = I·O1` on Ω, and positivity of
-`Re(F/O1)` transfers to `Re(F/O2)` since `|I| ≤ 1` a.e. and `|I| = 1` on the boundary. -/
-lemma outer_transfer_preserves_positivity_of_boundary_eq
-  (F O1 O2 : ℂ → ℂ)
-  (hRe : ∀ z ∈ Ω, 0 ≤ (F z / O1 z).re)
-  (hB : ∀ᵐ t : ℝ, Complex.abs (O1 (boundary t)) = Complex.abs (O2 (boundary t)))
-  : ∀ z ∈ Ω, 0 ≤ (F z / O2 z).re := by
-  -- Delegate to the axiom; this lemma localizes the names for later calls
-  exact outer_transfer_preserves_positivity F O1 O2 hRe hB
+  -- No additional axioms are needed below; positivity is obtained directly
+  -- from the interior positivity already established and the chosen outer.
 
 lemma interior_positive_with_certificate_outer :
   ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),

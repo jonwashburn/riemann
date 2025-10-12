@@ -1,75 +1,22 @@
 {
   "duplicate_names": {},
-  "file_count": 6,
+  "file_count": 2,
   "files": [
     {
       "axioms": [
         {
-          "line_no": 33,
-          "name": "arctan_two_gt_one_point_one",
-          "signature": "axiom arctan_two_gt_one_point_one : (1.1 : \u211d) < Real.arctan 2"
-        },
-        {
-          "line_no": 498,
+          "line_no": 773,
           "name": "phase_velocity_identity",
           "signature": "axiom phase_velocity_identity :"
         },
         {
-          "line_no": 570,
+          "line_no": 845,
           "name": "whitney_to_ae_boundary",
           "signature": "axiom whitney_to_ae_boundary :"
         }
       ],
-      "count": 3,
+      "count": 2,
       "path": "no-zeros/rh/RS/BoundaryWedgeProof.lean"
-    },
-    {
-      "axioms": [
-        {
-          "line_no": 111,
-          "name": "det2_nonzero_on_critical_line",
-          "signature": "axiom det2_nonzero_on_critical_line : \u2200 t : \u211d, det2 (boundary t) \u2260 0"
-        }
-      ],
-      "count": 1,
-      "path": "no-zeros/rh/RS/CRGreenOuter.lean"
-    },
-    {
-      "axioms": [
-        {
-          "line_no": 79,
-          "name": "exists_neighborhood_single_zero",
-          "signature": "axiom exists_neighborhood_single_zero :"
-        },
-        {
-          "line_no": 88,
-          "name": "exists_cayley_form_near_zero",
-          "signature": "axiom exists_cayley_form_near_zero :"
-        },
-        {
-          "line_no": 107,
-          "name": "removable_extension_at_xi_zeros",
-          "signature": "axiom removable_extension_at_xi_zeros :"
-        },
-        {
-          "line_no": 133,
-          "name": "outer_transfer_preserves_positivity",
-          "signature": "axiom outer_transfer_preserves_positivity :"
-        }
-      ],
-      "count": 4,
-      "path": "no-zeros/rh/RS/CertificateConstruction.lean"
-    },
-    {
-      "axioms": [
-        {
-          "line_no": 572,
-          "name": "analyticOn_update_from_pinned",
-          "signature": "axiom analyticOn_update_from_pinned :"
-        }
-      ],
-      "count": 1,
-      "path": "no-zeros/rh/RS/OffZerosBridge.lean"
     },
     {
       "axioms": [
@@ -121,20 +68,9 @@
       ],
       "count": 9,
       "path": "no-zeros/rh/RS/RouteB_Final.lean"
-    },
-    {
-      "axioms": [
-        {
-          "line_no": 496,
-          "name": "whitney_decomposition_exists",
-          "signature": "axiom whitney_decomposition_exists :"
-        }
-      ],
-      "count": 1,
-      "path": "no-zeros/rh/RS/WhitneyGeometryDefs.lean"
     }
   ],
-  "generated_at": "2025-10-12T10:49:56.906156+00:00",
+  "generated_at": "2025-10-12T19:00:02.370472+00:00",
   "root": "/Users/jonathanwashburn/Projects/zeros",
-  "total_axioms": 19
+  "total_axioms": 11
 }

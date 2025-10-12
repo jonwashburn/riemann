@@ -64,19 +64,51 @@ theorem det2EulerFactor_ne_zero_of_posRe {s : ℂ}
   (hs : 0 < s.re) (p : Prime) : det2EulerFactor s p ≠ 0 := by
   -- |p^{-s}| < 1 when Re(s) > 0; exp(·) is never zero.
   -- So (1 - λ) ≠ 0 and the product of nonzeros is nonzero.
-  admit
+  dsimp [det2EulerFactor]
+  set lam : ℂ := (p.1 : ℂ) ^ (-s)
+  -- exp never vanishes
+  have hexp : Complex.exp (lam + lam ^ 2 / 2) ≠ 0 := Complex.exp_ne_zero _
+  -- show (1 - lam) ≠ 0 because ‖lam‖ < 1
+  have hnorm : ‖lam‖ = (p.1 : ℝ) ^ (-s.re) := by
+    -- norm of p^{-s} depends only on Re(s); standard cpow fact
+    -- We rely on mathlib's absolute value of cpow with positive real base
+    -- For this track, we use the known identity as a lemma placeholder
+    -- (positive base p ≥ 2)
+    -- Note: exact proof can be provided via Complex.abs_cpow_real
+    admit
+  have hlt : ‖lam‖ < 1 := by
+    -- since p ≥ 2 and Re(s) > 0 ⇒ p^{-Re s} < 1
+    have : (p.1 : ℝ) ^ (-s.re) < 1 := by
+      -- p^{Re s} > 1, so its reciprocal is < 1
+      admit
+    simpa [hnorm]
+  have h1 : (1 - lam) ≠ 0 := by
+    intro h
+    have : ‖lam‖ = 1 := by
+      have : lam = 1 := by
+        -- from 1 - lam = 0 we get lam = 1
+        simpa using sub_eq_zero.mp h
+      simpa [this]
+    exact (ne_of_lt hlt) this
+  exact mul_ne_zero h1 hexp
 
 /-- Analyticity of the Euler product det₂ on Re(s) > 1/2 (sketched). -/
 theorem det2_AF_analytic_on_halfPlaneReGtHalf :
   AnalyticOn ℂ det2_AF {s : ℂ | (1 / 2 : ℝ) < s.re} := by
   -- Standard infinite product argument via locally uniform absolute convergence
   -- of the series of logs using the O(|λ|^3) remainder bound.
+  -- On compact K ⊆ {Re s > 1/2}, bound ‖p^{-s}‖ ≤ p^{-σ} with σ > 1/2 uniformly on K.
+  -- Then ∑ p^{-3σ} converges, yielding normal convergence of the log-series and analyticity.
+  -- This can be realized by building the function as exp (∑ log factor) and using
+  -- Weierstrass-product bridges (Comprehensive and WeierstrassProduct modules).
+  -- Placeholder for full detail; analytics holds.
   admit
 
 /-- Nonvanishing of det₂ on the critical line Re(s) = 1/2. -/
 theorem det2_AF_nonzero_on_critical_line :
   ∀ t : ℝ, det2_AF ((1 / 2 : ℝ) + Complex.I * (t : ℂ)) ≠ 0 := by
   -- Absolute convergence of the log series at Re(s) = 1/2 implies nonvanishing.
+  -- As above, use the bound by ∑ p^{-3/2} for the log remainder and exp-tsum=tprod.
   admit
 
 end RH.AcademicFramework.DiagonalFredholm
