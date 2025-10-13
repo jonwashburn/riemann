@@ -292,6 +292,64 @@ lemma Theta_pinch_analytic_on
   unfold Θ_pinch_of Theta_of_J J_pinch
   ring_nf
 
+/-- Analyticity of `Θ_pinch_of det2 O` on the off-zeros set `Ω
+{ξ_ext = 0}`.
+
+Requires: `det2` analytic on `Ω`, `O` analytic and zero-free on `Ω`, and
+`riemannXi_ext` analytic on `Ω` (available from the academic framework since
+`riemannXi_ext = completedRiemannZeta`). We also use the off-zeros real-part
+bound to justify the Cayley denominator is nonvanishing. -/
+lemma Theta_pinch_analytic_on_offXi
+  (hDet2 : Det2OnOmega) {O : ℂ → ℂ} (hO : OuterHalfPlane O)
+  (hXi : AnalyticOn ℂ riemannXi_ext Ω)
+  (hRe : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+            0 ≤ ((2 : ℂ) * (J_pinch det2 O z)).re)
+  : AnalyticOn ℂ (Θ_pinch_of det2 O) (Ω \ {z | riemannXi_ext z = 0}) := by
+  -- First get analyticity of J_pinch on the off-zeros set
+  have hJ : AnalyticOn ℂ (J_pinch det2 O)
+      (Ω \ {z | riemannXi_ext z = 0}) :=
+    J_pinch_analytic_on_offXi (hDet2 := hDet2) (hO := hO) (hXi := hXi)
+  -- Then apply the Cayley analyticity wrapper
+  exact Theta_pinch_analytic_on (S := (Ω \ {z | riemannXi_ext z = 0}))
+    (hJ := hJ) (hRe := hRe)
+
+/-- Specialization of `Theta_pinch_analytic_on_offXi` to the chosen outer from
+`OuterHalfPlane.ofModulus_det2_over_xi_ext`. -/
+lemma Theta_pinch_analytic_on_offXi_choose
+  (hDet2 : Det2OnOmega)
+  (hOuterExist : OuterHalfPlane.ofModulus_det2_over_xi_ext)
+  (hXi : AnalyticOn ℂ riemannXi_ext Ω)
+  (hRe : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+            0 ≤ ((2 : ℂ) * (J_pinch det2 (OuterHalfPlane.choose_outer hOuterExist) z)).re)
+  : AnalyticOn ℂ (Θ_pinch_of det2 (OuterHalfPlane.choose_outer hOuterExist))
+      (Ω \ {z | riemannXi_ext z = 0}) := by
+  refine Theta_pinch_analytic_on_offXi (hDet2 := hDet2)
+    (hO := (OuterHalfPlane.choose_outer_spec hOuterExist).1)
+    (hXi := hXi) (hRe := ?_)
+  intro z hz; simpa using (hRe z hz)
+
+/-- Restrict analyticity of `Θ_pinch_of det2 O` from the off-zeros set to an
+isolating punctured neighborhood `U \ {ρ}`. If `U ⊆ Ω` and
+`U ∩ {ξ_ext = 0} = {ρ}`, then `U \ {ρ} ⊆ Ω \ {ξ_ext = 0}`. -/
+lemma Theta_pinch_analytic_on_isolating_punctured
+  {U : Set ℂ} {ρ : ℂ} {O : ℂ → ℂ}
+  (hOff : AnalyticOn ℂ (Θ_pinch_of det2 O) (Ω \ {z | riemannXi_ext z = 0}))
+  (hUsub : U ⊆ Ω)
+  (hIso : (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ))
+  : AnalyticOn ℂ (Θ_pinch_of det2 O) (U \ {ρ}) := by
+  -- Show the punctured neighborhood sits inside the off-zeros set
+  have hsubset : (U \ {ρ}) ⊆ (Ω \ {z | riemannXi_ext z = 0}) := by
+    intro z hz
+    refine And.intro (hUsub hz.1) ?hoff
+    -- Prove z ∉ {ξ_ext = 0}; otherwise contradict z ≠ ρ by isolation
+    by_contra hzero
+    have hzIn : z ∈ U ∩ {w | riemannXi_ext w = 0} := by
+      exact And.intro hz.1 (by simpa [Set.mem_setOf_eq] using hzero)
+    have : z ∈ ({ρ} : Set ℂ) := by simpa [hIso] using hzIn
+    have : z = ρ := by simpa using this
+    exact hz.2 this
+  exact hOff.mono hsubset
+
 /-- Build a `PinchCertificateExt` from the paper `J_pinch` once the two
 key facts are supplied:
 1) interior positivity `0 ≤ Re(2·J_pinch)` on `Ω \ {ξ_ext=0}`;

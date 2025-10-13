@@ -180,6 +180,23 @@ structure HasPoissonRepOn (F : ℂ → ℂ) (S : Set ℂ) : Prop where
   integrable : ∀ z ∈ S, Integrable (fun t => (F (boundary t)).re * poissonKernel z t)
   formula : ∀ z ∈ S, (F z).re = poissonIntegral (fun t => (F (boundary t)).re) z
 
+/-- Restrict a global half‑plane Poisson representation to any subset `S ⊆ Ω`. -/
+theorem repOn_of_rep_subset {F : ℂ → ℂ} {S : Set ℂ}
+  (hRep : HasPoissonRep F) (hS : S ⊆ Ω) : HasPoissonRepOn F S := by
+  refine {
+    subset := hS
+    , analytic := ?hA
+    , integrable := ?hI
+    , formula := ?hEq }
+  · -- analytic on S by restriction
+    exact hRep.analytic.mono hS
+  · -- integrable on S by restriction
+    intro z hzS
+    exact hRep.integrable z (hS hzS)
+  · -- Poisson real‑part identity on S by restriction
+    intro z hzS
+    exact hRep.formula z (hS hzS)
+
 /-- Transport on subsets -/
 theorem poissonTransportOn {F : ℂ → ℂ} {S : Set ℂ} (hRep : HasPoissonRepOn F S) :
     BoundaryPositive F → ∀ z ∈ S, 0 ≤ (F z).re := by

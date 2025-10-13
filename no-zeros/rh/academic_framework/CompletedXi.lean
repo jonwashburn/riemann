@@ -1,4 +1,5 @@
 import Mathlib.Analysis.SpecialFunctions.Gamma.Deligne
+import Mathlib.Analysis.Analytic.Basic
 import Mathlib.Analysis.SpecialFunctions.Complex.Log
 import Mathlib.Tactic
 import Mathlib.Analysis.SpecialFunctions.Complex.Log
@@ -158,3 +159,25 @@ lemma differentiableAt_riemannXi_ext {s : ℂ} (hs0 : s ≠ 0) (hs1 : s ≠ 1) :
 lemma continuousAt_riemannXi_ext {s : ℂ} (hs0 : s ≠ 0) (hs1 : s ≠ 1) :
   ContinuousAt riemannXi_ext s :=
   (differentiableAt_riemannXi_ext hs0 hs1).continuousAt
+
+-- (no measurability lemma currently supplied; measurability is assumed downstream.)
+
+/-- Analyticity of `riemannXi_ext` on the right half-plane away from the pole at `1`.
+We use that `completedRiemannZeta` is complex differentiable away from `0` and `1`.
+Since `RH.RS.Ω = {s : ℂ | (1/2 : ℝ) < s.re}` excludes `0`, the only obstruction in `Ω`
+is the point `1`. -/
+theorem riemannXi_ext_analytic_on_RSΩ_minus_one :
+  AnalyticOn ℂ riemannXi_ext (RH.RS.Ω \ ({1} : Set ℂ)) := by
+  intro z hz
+  -- z ∈ Ω and z ≠ 1
+  have hzΩ : (1 / 2 : ℝ) < z.re := by
+    simpa [RH.RS.Ω, Set.mem_setOf_eq] using hz.1
+  -- Hence z ≠ 0
+  have hz0 : z ≠ 0 := by
+    intro h0
+    have : (0 : ℝ) < z.re := lt_trans (by norm_num : (0 : ℝ) < 1 / 2) hzΩ
+    simpa [h0, Complex.zero_re] using this
+  have hz1 : z ≠ 1 := by
+    simpa using hz.2
+  -- DifferentiableAt ⇒ AnalyticAt on ℂ
+  exact (differentiableAt_riemannXi_ext (s := z) hz0 hz1).analyticAt

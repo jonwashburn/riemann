@@ -7,6 +7,7 @@ import Mathlib.MeasureTheory.Integral.SetIntegral
 import Mathlib.Analysis.Convex.Basic
 import Mathlib.Topology.MetricSpace.HausdorffDistance
 import Mathlib.Data.Set.Countable
+import Mathlib.Data.Real.Floor
 
 /-!
 # Whitney Geometry Definitions for Half-Plane
@@ -467,6 +468,47 @@ lemma fixed_geometry_width_le_eight_shadowLen {Q : Set (ℝ × ℝ)} (h : fixed_
   have hH_le : h.height ≤ 2 * shadowLen Q := h.height_shadow
   have : 4 * h.height ≤ 8 * shadowLen Q := by nlinarith
   exact le_trans hW_le_4H this
+
+/-- Canonical unit Whitney interval indexed by `m : ℤ`: base `Icc (m, m+1)`. -/
+def unitWhitney (m : ℤ) : RH.Cert.WhitneyInterval :=
+  { t0 := (m : ℝ) + (1 / 2 : ℝ)
+  , len := (1 / 2 : ℝ)
+  , len_pos := by norm_num }
+
+/-- The base interval of `unitWhitney m` is exactly `Icc (m, m+1)`. -/
+@[simp] lemma unitWhitney_interval (m : ℤ) :
+    (unitWhitney m).interval = Set.Icc (m : ℝ) ((m : ℝ) + 1) := by
+  -- interval = Icc (t0−len, t0+len) with t0 = m+1/2 and len = 1/2
+  simp [RH.Cert.WhitneyInterval.interval, unitWhitney, sub_eq_add_neg, add_comm,
+        add_left_comm, add_assoc]
+
+/-- The unit Whitney intervals cover ℝ (exactly, not just a.e.). -/
+theorem unitWhitney_cover_univ :
+    (⋃ m : ℤ, (unitWhitney m).interval) = (Set.univ : Set ℝ) := by
+  ext t; constructor
+  · intro _; trivial
+  · intro _
+    -- Choose m = ⌊t⌋, then t ∈ Icc (m, m+1)
+    set m : ℤ := Int.floor t
+    have hL : (m : ℝ) ≤ t := by
+      simpa [m] using (Int.floor_le (x := t))
+    have hR : t ≤ (m : ℝ) + 1 := by
+      have : t < (m : ℝ) + 1 := by
+        simpa [m] using (Int.lt_floor_add_one (x := t))
+      exact le_of_lt this
+    have ht : t ∈ Set.Icc (m : ℝ) ((m : ℝ) + 1) := ⟨hL, hR⟩
+    have ht' : t ∈ (unitWhitney m).interval := by
+      simpa [unitWhitney_interval] using ht
+    exact Set.mem_iUnion.mpr ⟨m, ht'⟩
+
+/-- As a corollary, the unit Whitney intervals cover ℝ almost everywhere. -/
+theorem unitWhitney_ae_cover :
+    ∀ᵐ t : ℝ, t ∈ (⋃ m : ℤ, (unitWhitney m).interval) := by
+  -- since equality with univ holds, this is immediate
+  have : (⋃ m : ℤ, (unitWhitney m).interval) = (Set.univ : Set ℝ) :=
+    unitWhitney_cover_univ
+  refine Filter.Eventually.of_forall ?h
+  intro t; simpa [this]
 
 /-! ## Overlap/packing interface (pass-through)
 

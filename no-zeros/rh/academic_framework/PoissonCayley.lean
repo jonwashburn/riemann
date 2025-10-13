@@ -1,6 +1,7 @@
 import Mathlib.Analysis.Analytic.Basic
 import rh.academic_framework.HalfPlaneOuterV2
 import rh.academic_framework.CayleyAdapters
+import rh.academic_framework.DiskHardy
 import rh.RS.Cayley
 import rh.RS.Det2Outer
 import Mathlib.MeasureTheory.Integral.Bochner
@@ -190,6 +191,48 @@ theorem pinch_ReEqOn_from_pullback
   -- conclude the half-plane real-part identity for F on S
   exact reEq_on_from_disk_via_cayley (F := F_pinch det2 O) (H := H)
     (S := S) hEqInt hEqBd hKernel
+
+/-- Build Cayley kernel transport on a subset `S ⊆ Ω` directly from a disk-side Poisson
+representation and a change-of-variables identity that converts the disk Poisson integral
+at `toDisk z` to the half‑plane Poisson integral at `z`. -/
+theorem cayley_kernel_transport_from_disk
+  (H : ℂ → ℂ) {S : Set ℂ}
+  (hDisk : RH.AcademicFramework.DiskHardy.HasDiskPoissonRepresentation H)
+  (hS : S ⊆ HalfPlaneOuterV2.Ω)
+  (hChange : ∀ z ∈ S,
+    (∫ θ : ℝ,
+        (H (RH.AcademicFramework.DiskHardy.boundary θ)).re
+          * RH.AcademicFramework.DiskHardy.poissonKernel (CayleyAdapters.toDisk z) θ)
+      = (∫ t : ℝ,
+        (H (CayleyAdapters.boundaryToDisk t)).re
+          * HalfPlaneOuterV2.poissonKernel z t))
+  : CayleyKernelTransportOn H S := by
+  intro z hzS
+  -- Disk Poisson representation at w := toDisk z (using S ⊆ Ω ⇒ toDisk maps into unit disk)
+  have hw : CayleyAdapters.toDisk z ∈ RH.AcademicFramework.DiskHardy.unitDisk := by
+    exact RH.AcademicFramework.CayleyAdapters.map_Ω_to_unitDisk (hS hzS)
+  have hDiskEq : (H (CayleyAdapters.toDisk z)).re
+      = ∫ θ : ℝ,
+          (H (RH.AcademicFramework.DiskHardy.boundary θ)).re
+            * RH.AcademicFramework.DiskHardy.poissonKernel (CayleyAdapters.toDisk z) θ :=
+    hDisk.re_eq (CayleyAdapters.toDisk z) hw
+  -- Convert the disk integral to the half‑plane Poisson integral via the supplied identity
+  have hCoV := hChange z hzS
+  -- Rearrange to the required orientation
+  -- Target: P_Ω[Re(H∘boundaryToDisk)](z) = Re(H(toDisk z))
+  -- Use the two equalities above and symmetry
+  have : HalfPlaneOuterV2.poissonIntegral
+      (fun t : ℝ => (H (CayleyAdapters.boundaryToDisk t)).re) z
+      = (H (CayleyAdapters.toDisk z)).re := by
+    -- unfold poissonIntegral on the half‑plane side
+    have : (∫ t : ℝ,
+              (H (CayleyAdapters.boundaryToDisk t)).re * HalfPlaneOuterV2.poissonKernel z t)
+            = (H (CayleyAdapters.toDisk z)).re := by
+      -- combine hCoV with hDiskEq
+      simpa [hDiskEq] using hCoV.symm
+    -- rewrite to the `poissonIntegral` form
+    simpa [HalfPlaneOuterV2.poissonIntegral] using this
+  simpa [this.symm]
 
 end PoissonCayley
 end AcademicFramework

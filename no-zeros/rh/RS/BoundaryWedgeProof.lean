@@ -518,6 +518,19 @@ boundary and horizontally centered at `I.t0`. -/
 @[simp] noncomputable def zWhitney (I : WhitneyInterval) : ℂ :=
   ({ re := (1 / 2 : ℝ) + I.len, im := I.t0 } : ℂ)
 
+@[simp] lemma zWhitney_re (I : WhitneyInterval) :
+    (zWhitney I).re = (1 / 2 : ℝ) + I.len := rfl
+
+@[simp] lemma zWhitney_im (I : WhitneyInterval) :
+    (zWhitney I).im = I.t0 := rfl
+
+@[simp] lemma poissonKernel_zWhitney
+    (I : WhitneyInterval) (t : ℝ) :
+    RH.AcademicFramework.HalfPlaneOuterV2.poissonKernel (zWhitney I) t
+      = (1 / Real.pi) * (I.len / ((I.len) ^ 2 + (t - I.t0) ^ 2)) := by
+  have hlen_pos : 0 < I.len := I.len_pos
+  simp [RH.AcademicFramework.HalfPlaneOuterV2.poissonKernel, zWhitney, hlen_pos]
+
 /-- Poisson balayage (harmonic measure) of the Whitney base interval as seen from
 the canonical interior point `zWhitney I`. -/
 noncomputable def poisson_balayage (I : WhitneyInterval) : ℝ :=
@@ -594,11 +607,71 @@ noncomputable def psiI (I : WhitneyInterval) (t : ℝ) : ℝ :=
   RH.RS.PaperWindow.psi_paper ((t - I.t0) / I.len)
 
 noncomputable def boundary_phase_integrand (I : WhitneyInterval) (t : ℝ) : ℝ :=
-  deriv (fun σ : ℝ => U_field (t, σ)) 0
+  -- inward normal derivative at the boundary Re = 1/2, i.e. ∂/∂σ (U((1/2+σ), t)) at σ=0
+  deriv (fun σ : ℝ => U_field ((1 / 2 : ℝ) + σ, t)) 0
+
+/-- The boundary phase integrand is the inward normal derivative of `U_field`
+along the boundary `Re = 1/2`. -/
+lemma boundary_phase_is_inward_normal (I : WhitneyInterval) (t : ℝ) :
+  boundary_phase_integrand I t
+    = deriv (fun σ : ℝ => U_field ((1 / 2 : ℝ) + σ, t)) 0 := rfl
 
 /-- Windowed phase integral using the paper window ψ over the Whitney interval. -/
 noncomputable def windowed_phase (I : WhitneyInterval) : ℝ :=
   ∫ t in I.interval, psiI I t * boundary_phase_integrand I t
+
+/-! The paper window `ψ` is identically 1 on the rescaled Whitney base `I.interval`. -/
+lemma psiI_one_on_interval (I : WhitneyInterval) {t : ℝ}
+  (ht : t ∈ I.interval) : psiI I t = 1 := by
+  -- On the base interval: |t - t0| ≤ len ⇒ |(t - t0)/len| ≤ 1 ⇒ ψ = 1
+  have hlen_pos : 0 < I.len := I.len_pos
+  have h_left : I.t0 - I.len ≤ t := by exact ht.left
+  have h_right : t ≤ I.t0 + I.len := by exact ht.right
+  have h_abs_core : |t - I.t0| ≤ I.len := by
+    -- from t ∈ [t0−len, t0+len]
+    have h1 : -I.len ≤ t - I.t0 := by linarith
+    have h2 : t - I.t0 ≤ I.len := by linarith
+    exact abs_le.mpr ⟨h1, h2⟩
+  have h_div_le_one : |(t - I.t0) / I.len| ≤ (1 : ℝ) := by
+    -- |x| ≤ L, L>0 ⇒ |x| / L ≤ 1 ⇒ |x/L| ≤ 1
+    have : |(t - I.t0) / I.len| = |t - I.t0| / I.len := by
+      simp [abs_div, abs_of_pos hlen_pos]
+    have : |t - I.t0| / I.len ≤ (1 : ℝ) := by
+      have := (div_le_iff (show 0 < I.len by simpa using hlen_pos)).mpr (by simpa using h_abs_core)
+      -- rewriting a ≤ L ↔ a/len ≤ 1 when len>0
+      simpa using this
+    simpa [this] using this
+  -- Evaluate ψ at argument with |·|≤1
+  have : RH.RS.PaperWindow.psi_paper ((t - I.t0) / I.len) = 1 := by
+    have hcond : |(t - I.t0) / I.len| ≤ (1 : ℝ) := h_div_le_one
+    simp [RH.RS.PaperWindow.psi_paper, hcond]
+  simpa [psiI] using this
+
+/-- Since `ψ = 1` on `I.interval`, `windowed_phase` reduces to the bare boundary integral. -/
+lemma windowed_phase_eq_boundary_integral (I : WhitneyInterval) :
+  windowed_phase I = ∫ t in I.interval, boundary_phase_integrand I t := by
+  unfold windowed_phase
+  -- Show the integrands agree a.e. on the restricted measure
+  have h_meas : MeasurableSet (I.interval) := isClosed_Icc.measurableSet
+  have h_impl : ∀ᵐ t ∂(volume), t ∈ I.interval →
+      (psiI I t * boundary_phase_integrand I t = boundary_phase_integrand I t) := by
+    -- pointwise on the set, ψ = 1
+    refine Filter.Eventually.of_forall ?_
+    intro t ht
+    have : psiI I t = 1 := psiI_one_on_interval I ht
+    simpa [this, one_mul]
+  have h_ae :
+      (fun t => psiI I t * boundary_phase_integrand I t)
+        =ᵐ[Measure.restrict volume I.interval]
+      (fun t => boundary_phase_integrand I t) := by
+    -- transfer the implication to the restricted measure
+    have := (ae_restrict_iff' (μ := volume) (s := I.interval)
+      (p := fun t =>
+        psiI I t * boundary_phase_integrand I t = boundary_phase_integrand I t)
+      h_meas).mpr h_impl
+    simpa using this
+  -- Conclude equality of set integrals
+  simpa using (integral_congr_ae h_ae)
 
 /-! AE transfer helper: identify the abstract boundary integrand with the CR
 boundary trace `-W'` on the base interval, which allows rewriting the boundary
@@ -646,6 +719,38 @@ lemma windowed_phase_congr_ae
   exact RH.RS.boundary_integral_congr_ae (I := I.interval)
     (ψ := psiI I)
     (B := fun t => boundary_phase_integrand I t) (f := fun t => - (W' t)) h_ae
+
+/-! ### Green → Poisson linkage on the base interval
+
+Using the CR–Green phase–velocity identity and the identification of
+`windowed_phase` with the bare boundary integral (since `ψ≡1` on the base), we
+obtain the Poisson contribution together with the critical atoms term. -/
+
+/-- Boundary phase integral equals `π · (poisson_balayage + critical_atoms)`. -/
+lemma boundary_phase_integral_eq_pi_poisson_plus_atoms (I : WhitneyInterval) :
+  (∫ t in I.interval, boundary_phase_integrand I t)
+    = Real.pi * poisson_balayage I + Real.pi * critical_atoms I := by
+  -- `windowed_phase` equals the bare boundary integral
+  have hW : windowed_phase I
+      = ∫ t in I.interval, boundary_phase_integrand I t :=
+    windowed_phase_eq_boundary_integral I
+  -- Apply the phase–velocity identity and rewrite the LHS via `hW`
+  have h_id := phase_velocity_identity I
+  simpa [hW] using h_id
+
+/-- The boundary phase integral dominates the Poisson term, since atoms ≥ 0. -/
+lemma boundary_phase_integral_ge_pi_poisson (I : WhitneyInterval) :
+  Real.pi * poisson_balayage I
+    ≤ (∫ t in I.interval, boundary_phase_integrand I t) := by
+  have h_eq := boundary_phase_integral_eq_pi_poisson_plus_atoms I
+  have h_atoms_nonneg : 0 ≤ critical_atoms I := critical_atoms_nonneg I
+  have hπpos : 0 ≤ Real.pi := le_of_lt Real.pi_pos
+  have hsum_ge : Real.pi * poisson_balayage I
+      ≤ Real.pi * poisson_balayage I + Real.pi * critical_atoms I := by
+    exact le_add_of_nonneg_right (mul_nonneg hπpos h_atoms_nonneg)
+  -- Rewrite RHS with the boundary integral via `h_eq`
+  simpa [h_eq]
+    using hsum_ge
 
 -- Helper lemmas for Green's identity and Cauchy-Schwarz removed
 -- These are technical details covered by the CR_green_upper_bound axiom below
@@ -816,6 +921,31 @@ theorem whitney_length_scale :
   ∀ I : WhitneyInterval, I.len > 0 := by
   intro I
   exact I.len_pos
+
+/-- Measurability of the boundary P+ field `(t ↦ Re((2:ℂ) * J_CR O (boundary t)))`
+parameterized by measurability of the constituents. This provides the
+"Ensure boundary data measurable" prerequisite for the a.e. transfer. -/
+lemma measurable_boundary_PPlus_field
+  (h_det  : Measurable (fun z : ℂ => det2 z))
+  (h_outer: Measurable (fun z : ℂ => outer_exists.outer z))
+  (h_xi   : Measurable (fun z : ℂ => riemannXi_ext z))
+  : Measurable (fun t : ℝ => ((2 : ℂ) * J_CR outer_exists (boundary t)).re) := by
+  -- boundary map is measurable
+  have hb : Measurable (RH.AcademicFramework.HalfPlaneOuterV2.boundary : ℝ → ℂ) :=
+    RH.AcademicFramework.HalfPlaneOuterV2.measurable_boundary_affine
+  -- pull back constituents along boundary
+  have h_det_b  : Measurable (fun t : ℝ => det2 (boundary t)) := h_det.comp hb
+  have h_out_b  : Measurable (fun t : ℝ => outer_exists.outer (boundary t)) := h_outer.comp hb
+  have h_xi_b   : Measurable (fun t : ℝ => riemannXi_ext (boundary t)) := h_xi.comp hb
+  -- denominator and quotient
+  have h_denom  : Measurable (fun t : ℝ => outer_exists.outer (boundary t) * riemannXi_ext (boundary t)) :=
+    h_out_b.mul h_xi_b
+  have h_J_b    : Measurable (fun t : ℝ => det2 (boundary t) / (outer_exists.outer (boundary t) * riemannXi_ext (boundary t))) :=
+    h_det_b.div h_denom
+  -- scale by 2 and take real part
+  have h_F_b    : Measurable (fun t : ℝ => (2 : ℂ) * (det2 (boundary t) / (outer_exists.outer (boundary t) * riemannXi_ext (boundary t)))) :=
+    h_J_b.const_mul (2 : ℂ)
+  simpa [J_CR] using (Complex.continuous_re.measurable.comp h_F_b)
 
 -- AXIOM: Whitney covering gives a.e. boundary control
 -- Reference: Stein "Harmonic Analysis" Ch. VI, Theorem 3.1 (Whitney decomposition)
