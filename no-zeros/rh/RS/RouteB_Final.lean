@@ -2,6 +2,7 @@
 -- import PinchWrappers themselves if they need its helpers.
 import rh.RS.Det2Outer
 import rh.RS.CRGreenOuter
+import rh.RS.PPlusFromCarleson
 import rh.RS.OffZerosBridge
 import rh.RS.PinchWrappers
 import rh.academic_framework.HalfPlaneOuterV2
@@ -28,26 +29,43 @@ local notation "Ω" => RH.RS.Ω
 
 /-! ## Shared outer witness and chosen outer -/
 
+/-! Align the chosen outer with the canonical `outer_exists.outer`. -/
 /-- Fixed witness for outer existence with boundary modulus |det₂/ξ_ext|. -/
 def hOuterWitness := RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext_proved
 
-/-- The chosen outer function from the fixed witness. -/
-def O : ℂ → ℂ := RH.RS.OuterHalfPlane.choose_outer hOuterWitness
+/-- The chosen outer function is the canonical one used by `J_CR`. -/
+def O : ℂ → ℂ := RH.RS.outer_exists.outer
 
 lemma O_spec : RH.RS.OuterHalfPlane O ∧
-  RH.RS.BoundaryModulusEq O (fun s => RH.RS.det2 s / riemannXi_ext s) :=
-  RH.RS.OuterHalfPlane.choose_outer_spec hOuterWitness
+  RH.RS.BoundaryModulusEq O (fun s => RH.RS.det2 s / riemannXi_ext s) := by
+  -- `outer_exists.outer` is definitionally the chosen outer from the same witness
+  simpa [O] using RH.RS.OuterHalfPlane.choose_outer_spec hOuterWitness
 
 /-! ## Boundary positivity (P+) for F := 2·J_pinch det2 O -/
 
 /-
-Boundary positivity (P+) is assumed here as a classical standard result from the
-CR–Green/Whitney/Poisson framework (documented in README). This keeps the active
-proof track free of modules that currently contain placeholders.
+Boundary positivity (P+) is obtained here by composing the proven
+`PPlus_canonical_proved` with the identity `J_CR = J_pinch` and aligning the
+outer choice `O = outer_exists.outer`.
 -/
-  -- Classical P+ via boundary wedge (accepted result; see README/appendix)
-axiom boundary_positive_AF : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
-    (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z))
+theorem boundary_positive_AF :
+  RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
+    (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)) := by
+  -- Start from canonical PPlus on the AF boundary
+  have hCanon : RH.RS.BoundaryWedgeProof.PPlus_canonical :=
+    RH.RS.PPlus_canonical_proved
+  -- Rewrite the integrand via J_CR = J_pinch and `O = outer_exists.outer`
+  refine hCanon.mono ?_
+  intro t ht
+  have hEq : RH.RS.J_CR RH.RS.outer_exists
+      (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)
+      = RH.RS.J_pinch RH.RS.det2 O
+          (RH.AcademicFramework.HalfPlaneOuterV2.boundary t) := by
+    -- canonical identity and alignment of `O`
+    simpa [O]
+      using RH.RS.J_CR_eq_J_pinch
+        (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)
+  simpa [hEq]
 
 /-- Cert-level (P+) from AF boundary positivity via the mk-boundary equality. -/
 theorem boundary_positive : RH.Cert.PPlus
@@ -68,6 +86,23 @@ theorem boundary_positive : RH.Cert.PPlus
   simpa [RH.Cert.PPlus]
     using hP
 
+/-! A convenient bridge: Cert-level PPlus ⇒ AF boundary positivity. -/
+lemma boundary_positive_AF_of_PPlus :
+  RH.Cert.PPlus
+    (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)) →
+  RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
+    (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)) := by
+  intro hP
+  -- boundary t is definitionally (1/2 : ℝ) + I * (t : ℂ) = Complex.mk (1/2) t
+  have hb_mk : ∀ t : ℝ,
+      RH.AcademicFramework.HalfPlaneOuterV2.boundary t = Complex.mk (1/2) t := by
+    intro t; apply Complex.ext <;> simp
+  -- transport the a.e. statement along the equality hb_mk
+  refine hP.mono ?_
+  intro t ht
+  simpa only [hb_mk t]
+    using ht
+
 /-! ## Poisson representation witness on the off‑zeros set -/
 
 /-! Boundary measurability on the AF line via generic trace measurability -/
@@ -77,11 +112,16 @@ axiom measurable_riemannXi_ext : Measurable riemannXi_ext
 
 /-- Global measurability (classical) for det₂. -/
 -- det2 measurability: assume continuity (standard in its construction) if available
-axiom measurable_det2 : Measurable RH.RS.det2
+lemma measurable_det2 : Measurable RH.RS.det2 := by
+  classical
+  exact RH.RS.Det2Outer.measurable_det2
 
 -- derive measurability of the chosen `O` along boundary from the RS witness
 -- and global measurability of components
-axiom measurable_O : Measurable O
+lemma measurable_O : Measurable O := by
+  classical
+  have hOuter := (O_spec).1
+  exact hOuter.measurable
 
 /-- Boundary measurability: t ↦ det2(boundary t). -/
 lemma det2_boundary_measurable :
@@ -104,7 +144,8 @@ lemma xi_ext_boundary_measurable :
 
 /-- Default Poisson representation witness for F_pinch det2 O on Ω \ Z(ξ_ext). -/
 -- These are available from the det2/xi constructions; keep them as lemmas
-axiom det2_analytic_on_RSΩ : AnalyticOn ℂ RH.RS.det2 RH.RS.Ω
+lemma det2_analytic_on_RSΩ : AnalyticOn ℂ RH.RS.det2 RH.RS.Ω :=
+  RH.RS.det2_analytic_on_RSΩ
 axiom det2_nonzero_on_RSΩ : ∀ {s}, s ∈ RH.RS.Ω → RH.RS.det2 s ≠ 0
 axiom riemannXi_ext_analytic_AFΩ : AnalyticOn ℂ riemannXi_ext RH.AcademicFramework.HalfPlaneOuterV2.Ω
 
@@ -113,6 +154,19 @@ private def S : Set ℂ := RH.AcademicFramework.HalfPlaneOuterV2.Ω \
   {z | riemannXi_ext z = 0}
 private def F0 : ℂ → ℂ := RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O
 private def Hpull : ℂ → ℂ := fun w => F0 (RH.AcademicFramework.CayleyAdapters.fromDisk w)
+
+lemma F0_eq_Hpull_toDisk {z : ℂ}
+    (hz : z ∈ RH.AcademicFramework.HalfPlaneOuterV2.Ω) :
+    F0 z = Hpull (RH.AcademicFramework.CayleyAdapters.toDisk z) := by
+  -- unfold the definitions and use the Cayley inversion identity on Ω
+  simp [F0, Hpull,
+    RH.AcademicFramework.CayleyAdapters.fromDisk_toDisk_of_mem_Ω hz]
+
+lemma F0_boundary_eq_Hpull_boundaryToDisk (t : ℝ) :
+    F0 (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)
+      = Hpull (RH.AcademicFramework.CayleyAdapters.boundaryToDisk t) := by
+  -- unfold and use the explicit boundary inverse identity
+  simp [F0, Hpull]
 
 /-- Minimal pullback subset representation: the Cayley pullback `(Hpull ∘ toDisk)`
 admits a half‑plane Poisson representation on `S`. This serves as the disk→half‑plane
@@ -144,15 +198,12 @@ theorem F_pinch_has_poisson_rep : HasPoissonRepOn
     -- z ∈ S ⊆ Ω
     have hzΩ : z ∈ RH.AcademicFramework.HalfPlaneOuterV2.Ω := hz.1
     -- F0 z = F0 (fromDisk (toDisk z)) = Hpull (toDisk z) on Ω
-    have hinv := RH.AcademicFramework.CayleyAdapters.fromDisk_toDisk_of_mem_Ω hzΩ
-    simp only [F0, Hpull]
-    exact congrArg (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) hinv.symm
+    simpa using F0_eq_Hpull_toDisk (det2 := RH.RS.det2) (O := O) hzΩ
   -- Boundary EqOn: F0(boundary t) = Hpull(boundaryToDisk t)
   have hBd : RH.AcademicFramework.PoissonCayley.EqOnBoundary F0 Hpull := by
     intro t
-    simp only [RH.AcademicFramework.PoissonCayley.EqOnBoundary, F0, Hpull]
-    have hinv := RH.AcademicFramework.CayleyAdapters.fromDisk_boundaryToDisk t
-    exact congrArg (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) hinv.symm
+    simpa [RH.AcademicFramework.PoissonCayley.EqOnBoundary] using
+      F0_boundary_eq_Hpull_boundaryToDisk (det2 := RH.RS.det2) (O := O) t
   -- Kernel transport from the subset pullback representation
   have hReEqOn : RH.AcademicFramework.PoissonCayley.HasHalfPlanePoissonReEqOn F0 S := by
     exact RH.AcademicFramework.PoissonCayley.pinch_halfplane_ReEqOn_from_cayley
