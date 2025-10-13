@@ -1,9 +1,23 @@
-# Ignore Lake build artifacts
-no-zeros/.lake/
+# Build artifacts
+*.olean
+*.ilean
+*.c
+*.o
+*.trace
 
-# macOS
+# Lake build dirs
+.lake/
+**/.lake/
+
+# Sandbox and temporary workspaces
+sandbox_det2/
+
+# Editor / OS
 .DS_Store
-
-# Editor/IDE
 .vscode/
 .idea/
+
+# Python/Node caches (if present)
+__pycache__/
+node_modules/
+
