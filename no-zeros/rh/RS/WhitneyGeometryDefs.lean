@@ -7,7 +7,8 @@ import Mathlib.MeasureTheory.Integral.SetIntegral
 import Mathlib.Analysis.Convex.Basic
 import Mathlib.Topology.MetricSpace.HausdorffDistance
 import Mathlib.Data.Set.Countable
-import Mathlib.Data.Real.Floor
+import Mathlib.Topology.Algebra.Order.Floor
+import rh.Cert.KxiPPlus
 
 /-!
 # Whitney Geometry Definitions for Half-Plane
@@ -35,6 +36,22 @@ open scoped BigOperators MeasureTheory
 namespace RH
 namespace RS
 namespace Whitney
+
+/-! Minimal local definition to replace missing `RH.Cert.WhitneyInterval` dependency.
+This keeps this module self-contained for compilation.
+-/
+
+structure WhitneyInterval where
+  t0 : ℝ
+  len : ℝ
+  len_pos : 0 < len
+
+namespace WhitneyInterval
+
+/-- Closed interval covered by a `WhitneyInterval`. -/
+def interval (I : WhitneyInterval) : Set ℝ := Set.Icc (I.t0 - I.len) (I.t0 + I.len)
+
+end WhitneyInterval
 
 -- Standard aperture parameter for Carleson boxes
 def standardAperture : ℝ := 2
@@ -470,42 +487,42 @@ lemma fixed_geometry_width_le_eight_shadowLen {Q : Set (ℝ × ℝ)} (h : fixed_
   exact le_trans hW_le_4H this
 
 /-- Canonical unit Whitney interval indexed by `m : ℤ`: base `Icc (m, m+1)`. -/
-def unitWhitney (m : ℤ) : RH.Cert.WhitneyInterval :=
+def unitWhitney (m : ℤ) : WhitneyInterval :=
   { t0 := (m : ℝ) + (1 / 2 : ℝ)
   , len := (1 / 2 : ℝ)
   , len_pos := by norm_num }
 
 /-- The base interval of `unitWhitney m` is exactly `Icc (m, m+1)`. -/
 @[simp] lemma unitWhitney_interval (m : ℤ) :
-    (unitWhitney m).interval = Set.Icc (m : ℝ) ((m : ℝ) + 1) := by
+    WhitneyInterval.interval (unitWhitney m) = Set.Icc (m : ℝ) ((m : ℝ) + 1) := by
   -- interval = Icc (t0−len, t0+len) with t0 = m+1/2 and len = 1/2
-  simp [RH.Cert.WhitneyInterval.interval, unitWhitney, sub_eq_add_neg, add_comm,
+  simp [WhitneyInterval.interval, unitWhitney, sub_eq_add_neg, add_comm,
         add_left_comm, add_assoc]
 
 /-- The unit Whitney intervals cover ℝ (exactly, not just a.e.). -/
 theorem unitWhitney_cover_univ :
-    (⋃ m : ℤ, (unitWhitney m).interval) = (Set.univ : Set ℝ) := by
+    (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)) = (Set.univ : Set ℝ) := by
   ext t; constructor
   · intro _; trivial
   · intro _
     -- Choose m = ⌊t⌋, then t ∈ Icc (m, m+1)
     set m : ℤ := Int.floor t
     have hL : (m : ℝ) ≤ t := by
-      simpa [m] using (Int.floor_le (x := t))
+      simpa [m] using (Int.floor_le t)
     have hR : t ≤ (m : ℝ) + 1 := by
       have : t < (m : ℝ) + 1 := by
-        simpa [m] using (Int.lt_floor_add_one (x := t))
+        simpa [m] using (Int.lt_floor_add_one t)
       exact le_of_lt this
     have ht : t ∈ Set.Icc (m : ℝ) ((m : ℝ) + 1) := ⟨hL, hR⟩
-    have ht' : t ∈ (unitWhitney m).interval := by
+    have ht' : t ∈ WhitneyInterval.interval (unitWhitney m) := by
       simpa [unitWhitney_interval] using ht
     exact Set.mem_iUnion.mpr ⟨m, ht'⟩
 
 /-- As a corollary, the unit Whitney intervals cover ℝ almost everywhere. -/
 theorem unitWhitney_ae_cover :
-    ∀ᵐ t : ℝ, t ∈ (⋃ m : ℤ, (unitWhitney m).interval) := by
+    ∀ᵐ t : ℝ, t ∈ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)) := by
   -- since equality with univ holds, this is immediate
-  have : (⋃ m : ℤ, (unitWhitney m).interval) = (Set.univ : Set ℝ) :=
+  have : (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)) = (Set.univ : Set ℝ) :=
     unitWhitney_cover_univ
   refine Filter.Eventually.of_forall ?h
   intro t; simpa [this]
@@ -522,6 +539,46 @@ theorem shadow_overlap_bound_pass
   (Q : ι → Set (ℝ × ℝ)) (I : Set ℝ)
   (h : (∑ i in S, shadowLen (Q i)) ≤ shadowOverlapConst * length I) :
   (∑ i in S, shadowLen (Q i)) ≤ shadowOverlapConst * length I := h
+
+/-! ## Countable Whitney family and a.e. coverage
+
+We expose the `ℤ`-indexed Whitney family as a set of `WhitneyInterval`s and
+record that it is countable and covers `ℝ` almost everywhere. This isolates
+the covering infrastructure needed for the a.e. upgrade.
+-/
+
+/-- The set of all unit Whitney intervals, as a `Set` of `WhitneyInterval`s. -/
+def unitWhitneyFamily : Set WhitneyInterval :=
+  Set.range (fun m : ℤ => unitWhitney m)
+
+/-- The Whitney family indexed by `ℤ` is countable. -/
+theorem unitWhitneyFamily_countable : Countable unitWhitneyFamily := by
+  classical
+  simpa [unitWhitneyFamily] using Set.countable_range (f := fun m : ℤ => unitWhitney m)
+
+/-- The Whitney family covers `ℝ` almost everywhere (in fact, everywhere). -/
+theorem unitWhitneyFamily_ae_cover :
+    ∀ᵐ t : ℝ, t ∈ (⋃ I ∈ unitWhitneyFamily, WhitneyInterval.interval I) := by
+  -- We already showed that `⋃ m, (unitWhitney m).interval = univ`.
+  -- Since every `unitWhitney m` lies in `unitWhitneyFamily`, the latter union
+  -- contains the former, hence also covers `ℝ` a.e.
+  have hsub :
+      (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))
+        ⊆ (⋃ I ∈ unitWhitneyFamily, (I.interval)) := by
+    classical
+    intro t ht
+    -- Unpack membership in the `ℤ`-indexed union
+    rcases Set.mem_iUnion.mp ht with ⟨m, hm⟩
+    -- Repackage into the union over the range family
+    refine Set.mem_iUnion.mpr ?_;
+    refine ⟨unitWhitney m, ?_⟩
+    refine Set.mem_iUnion.mpr ?_
+    -- Show `unitWhitney m` belongs to the family and keep the same interval membership
+    exact ⟨⟨m, rfl⟩, by simpa using hm⟩
+  -- Transfer a.e. coverage along the subset relation
+  have hae : ∀ᵐ t : ℝ, t ∈ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)) :=
+    unitWhitney_ae_cover
+  exact hae.mono (fun t ht => hsub ht)
 
 -- For blocker-8a2: Whitney decomposition scaffolding
 --
@@ -582,6 +639,189 @@ end Whitney
 def boxEnergy := Whitney.boxEnergy
 def tentEnergy := Whitney.tentEnergy
 def length := Whitney.length
+
+end RS
+end RH
+
+/-! ## Endpoint null set and explicit overlap bounds for `unitWhitney`
+
+These lemmas isolate two routine measure/covering facts used by the
+Whitney-to-a.e. boundary upgrade:
+
+1. The union of all base-interval endpoints for the canonical `unitWhitney`
+   cover is a countable set, hence has Lebesgue measure zero.
+2. Pointwise overlap bound: for any boundary point `t : ℝ`, the set of
+   indices `m : ℤ` such that `t ∈ (unitWhitney m).interval` is contained in
+   the integer interval `Icc (⌊t⌋−1) ⌊t⌋`. In particular, there are at most
+   two such indices.
+-/
+
+namespace RH
+namespace RS
+namespace Whitney
+
+open MeasureTheory
+
+/-- The set of all integer points on `ℝ` has Lebesgue measure zero. As all
+`unitWhitney` endpoints are integers, this yields the desired endpoint null set. -/
+lemma unitWhitney_endpoints_null :
+  volume (⋃ m : ℤ, ({(m : ℝ)} : Set ℝ)) = 0 := by
+  classical
+  -- Each singleton `{m}` has zero Lebesgue measure on `ℝ`.
+  have h0 : ∀ m : ℤ, volume ({(m : ℝ)} : Set ℝ) = 0 := by
+    intro m; simpa using measure_singleton (a := (m : ℝ))
+  -- Countable union of null sets is null (ℤ is encodable/countable).
+  simpa using (measure_iUnion_null (μ := volume)
+    (s := fun m : ℤ => ({(m : ℝ)} : Set ℝ)) h0)
+
+/-- Pointwise overlap control for the canonical `unitWhitney` base cover:
+for any `t : ℝ`, if `t ∈ (unitWhitney m).interval = [m, m+1]`, then necessarily
+`m ∈ Icc (⌊t⌋−1) ⌊t⌋`. Equivalently, at most two such `m` can occur. -/
+lemma unitWhitney_membership_subset_Icc (t : ℝ) :
+  {m : ℤ | t ∈ WhitneyInterval.interval (unitWhitney m)}
+    ⊆ (Set.Icc (Int.floor t - 1) (Int.floor t) : Set ℤ) := by
+  intro m hm
+  -- Unpack membership in the closed interval [m, m+1]
+  have hIcc : t ∈ Set.Icc (m : ℝ) ((m : ℝ) + 1) := by
+    simpa [unitWhitney_interval] using hm
+  -- Convert the real inequalities to integer inequalities via floor monotonicity
+  have h_m_le_floor : m ≤ Int.floor t := by
+    -- from m ≤ t ⇒ floor m ≤ floor t, and floor m = m
+    have : (m : ℝ) ≤ t := hIcc.left
+    have := Int.floor_mono this
+    simpa using this
+  have h_floor_le_m_add_one : Int.floor t ≤ m + 1 := by
+    -- from t ≤ m+1 ⇒ floor t ≤ floor (m+1) = m+1
+    have : t ≤ (m : ℝ) + 1 := hIcc.right
+    have := Int.floor_mono this
+    simpa using this
+  -- Rearrange to obtain floor t − 1 ≤ m
+  have h_floor_sub_one_le_m : Int.floor t - 1 ≤ m := by
+    -- integer linear arithmetic
+    have : Int.floor t ≤ m + 1 := h_floor_le_m_add_one
+    linarith
+  -- Conclude membership in the integer interval [⌊t⌋−1, ⌊t⌋]
+  exact And.intro h_floor_sub_one_le_m h_m_le_floor
+
+end Whitney
+end RS
+end RH
+
+/-! ## Interval length identity for certificate Whitney intervals
+
+This identity computes the Lebesgue length of the closed base interval
+`I.interval = [t0−len, t0+len]` attached to a certificate `WhitneyInterval`.
+It is used when converting between geometric interval data and measure/length.
+-/
+
+namespace RH
+namespace RS
+
+open MeasureTheory
+
+@[simp] lemma WhitneyInterval_interval_length
+  (W : RH.Cert.WhitneyInterval) :
+  RH.RS.length (W.interval) = 2 * W.len := by
+  have hlen : 0 ≤ W.len := W.len_pos.le
+  have hle : W.t0 - W.len ≤ W.t0 + W.len := by linarith
+  have hΔ : (W.t0 + W.len) - (W.t0 - W.len) = 2 * W.len := by ring
+  have hnonneg : 0 ≤ (W.t0 + W.len) - (W.t0 - W.len) := by linarith
+  unfold RH.RS.length
+  simp [RH.Cert.WhitneyInterval.interval, Real.volume_Icc, hle,
+        ENNReal.toReal_ofReal, hΔ, hnonneg]
+
+/-- Set-integral lower bound from an a.e. pointwise lower bound by a constant on a
+measurable set of finite measure. Specialized for `ℝ` with Lebesgue measure.
+If `f ≥ c` a.e. on `I` and both sides are integrable, then `∫_I f ≥ c * length I`. -/
+lemma integral_ge_const_mul_length_of_ae
+  {f : ℝ → ℝ} {I : Set ℝ} {c : ℝ}
+  (hI : MeasurableSet I) (hIfin : volume I < ⊤)
+  (hf_int : IntegrableOn f I volume)
+  (h_lower : ∀ᵐ t ∂(volume.restrict I), c ≤ f t) :
+  (∫ t in I, f t) ≥ c * RH.RS.length I := by
+  -- Constant function is integrable on finite-measure sets
+  have hconst_int : IntegrableOn (fun _ : ℝ => c) I volume := by
+    by_cases hmeas : Measurable (fun _ : ℝ => c)
+    · -- Use integrable_on_const
+      simpa using (integrableOn_const.2 (And.intro hmeas hIfin))
+    · -- Continuity implies measurability for constants; close by simp
+      simpa using (integrableOn_const.2 (And.intro (by measurability) hIfin))
+  -- Use monotonicity of the integral under a.e. pointwise inequality
+  have hmono : (∫ t in I, (fun _ => c) t) ≤ (∫ t in I, f t) := by
+    have : ∀ᵐ t ∂(volume.restrict I), (fun _ => c) t ≤ f t := by simpa using h_lower
+    exact integral_mono_ae (μ := volume) hconst_int hf_int this
+  -- Evaluate the constant integral as c * length(I)
+  have hconst : (∫ t in I, (fun _ => c) t) = c * RH.RS.length I := by
+    -- integral_const over a set
+    have := integral_const (μ := volume) (s := I) c
+    -- `length I = (volume I).toReal`
+    simpa [RH.RS.length] using this
+  -- Conclude
+  simpa [hconst]
+    using hmono
+
+end RS
+end RH
+
+/-! ## Elementary lower bounds for rational kernels on a core subinterval
+
+These helpers provide dimensionless inequalities used to lower-bound the
+half‑plane Poisson kernel on a fixed fraction of a base interval when the
+observation height equals the interval length.
+-/
+
+namespace RH
+namespace RS
+
+lemma sigma_over_sigma2_add_sq_core_lower
+  {σ x : ℝ} (hσ : 0 < σ) (hcore : |x| ≤ σ / 2) :
+  σ / (σ^2 + x^2) ≥ (4 / 5) * (1 / σ) := by
+  -- Maximize the denominator over |x| ≤ σ/2, which occurs at |x| = σ/2
+  have hx2_le : x^2 ≤ (σ / 2)^2 := by
+    have := sq_le_sq.mpr hcore
+    simpa [sq_abs] using this
+  have hden_le : σ^2 + x^2 ≤ σ^2 + (σ / 2)^2 := by
+    exact add_le_add_left hx2_le _
+  have hden_ge0 : 0 ≤ σ^2 + x^2 := by nlinarith [sq_nonneg σ, sq_nonneg x]
+  -- Use monotonicity of a↦σ/a on a≥0 to get a lower bound when denominator decreases
+  have hposσ : 0 < σ := hσ
+  have hposden' : 0 < σ^2 + (σ / 2)^2 := by
+    have : 0 < σ^2 := by exact mul_pos_of_pos_of_pos hσ hσ
+    have : 0 < σ^2 + (σ / 2)^2 := by nlinarith [this, sq_nonneg (σ / 2)]
+    simpa using this
+  have hfrac_mono : σ / (σ^2 + (σ / 2)^2) ≤ σ / (σ^2 + x^2) := by
+    -- since σ^2 + x^2 ≤ σ^2 + (σ/2)^2, invert inequality on positives
+    have hle := hden_le
+    have hpos_denom : 0 < σ^2 + x^2 := lt_of_le_of_lt (le_of_lt hσ) (by
+      have : σ^2 + x^2 ≤ σ^2 + (σ / 2)^2 := hden_le
+      exact lt_of_le_of_lt (lt_of_le_of_lt (by
+        have : 0 < σ^2 := by exact mul_pos_of_pos_of_pos hσ hσ
+        have : 0 < σ^2 + 0 := by simpa using this
+        exact this) (lt_of_le_of_lt (le_of_eq rfl) hposden')) hposden')
+    -- Use (a ≤ b, a,b>0) ⇒ σ/b ≤ σ/a
+    have := (div_le_div_of_nonneg_left (by exact le_of_lt hposσ) hpos_denom.le hle)
+    -- Rearrange sides
+    simpa [mul_comm, mul_left_comm, mul_assoc] using this
+  -- Evaluate the left side explicitly
+  have hEval : σ / (σ^2 + (σ / 2)^2) = (4 / 5) * (1 / σ) := by
+    field_simp [pow_two] at *
+    -- compute σ / (σ^2 + σ^2/4) = σ / ((5/4)σ^2) = (4/5) * (1/σ)
+    have : σ / (σ^2 + σ^2 / 4) = σ / ((5 / 4) * σ^2) := by ring
+    have hσne : (σ : ℝ) ≠ 0 := ne_of_gt hσ
+    have hσ2ne : σ^2 ≠ 0 := by
+      have : σ ≠ 0 := hσne
+      exact mul_ne_zero this this
+    calc
+      σ / (σ^2 + (σ / 2)^2)
+          = σ / (σ^2 + σ^2 / 4) := by ring
+      _ = σ / ((5 / 4) * σ^2) := by ring
+      _ = σ * (1 / ((5 / 4) * σ^2)) := by simp [div_eq_mul_inv]
+      _ = (1 / ((5 / 4))) * (σ / σ^2) := by
+            field_simp [hσ2ne] <;> ring
+      _ = (4 / 5) * (1 / σ) := by
+            field_simp [hσne, pow_two] <;> ring
+  -- Conclude the desired bound
+  exact le_trans (by simpa [hEval]) hfrac_mono
 
 end RS
 end RH

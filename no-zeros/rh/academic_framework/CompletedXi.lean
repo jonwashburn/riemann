@@ -148,26 +148,15 @@ theorem xi_ext_zeros_eq_zeta_zeros_on_Ω :
   · intro hζ
     simpa [hfac, hζ]
 
--- The ext ξ equals mathlib's completed zeta `
-
 /-- Differentiability of `riemannXi_ext` away from `0` and `1`. -/
 lemma differentiableAt_riemannXi_ext {s : ℂ} (hs0 : s ≠ 0) (hs1 : s ≠ 1) :
   DifferentiableAt ℂ riemannXi_ext s := by
   simpa [riemannXi_ext] using differentiableAt_completedZeta (s := s) hs0 hs1
 
-/-- Continuity of `riemannXi_ext` away from the poles at `0` and `1`. -/
-lemma continuousAt_riemannXi_ext {s : ℂ} (hs0 : s ≠ 0) (hs1 : s ≠ 1) :
-  ContinuousAt riemannXi_ext s :=
-  (differentiableAt_riemannXi_ext hs0 hs1).continuousAt
-
--- (no measurability lemma currently supplied; measurability is assumed downstream.)
-
-/-- Analyticity of `riemannXi_ext` on the right half-plane away from the pole at `1`.
-We use that `completedRiemannZeta` is complex differentiable away from `0` and `1`.
-Since `RH.RS.Ω = {s : ℂ | (1/2 : ℝ) < s.re}` excludes `0`, the only obstruction in `Ω`
-is the point `1`. -/
-theorem riemannXi_ext_analytic_on_RSΩ_minus_one :
-  AnalyticOn ℂ riemannXi_ext (RH.RS.Ω \ ({1} : Set ℂ)) := by
+/-- Differentiability of `riemannXi_ext` on the right half-plane away from `1`.
+Since `RH.RS.Ω = {s : ℂ | (1/2 : ℝ) < s.re}` excludes `0`, differentiability fails only at `1`. -/
+theorem riemannXi_ext_differentiable_on_RSΩ_minus_one :
+  DifferentiableOn ℂ riemannXi_ext (RH.RS.Ω \ ({1} : Set ℂ)) := by
   intro z hz
   -- z ∈ Ω and z ≠ 1
   have hzΩ : (1 / 2 : ℝ) < z.re := by
@@ -179,5 +168,16 @@ theorem riemannXi_ext_analytic_on_RSΩ_minus_one :
     simpa [h0, Complex.zero_re] using this
   have hz1 : z ≠ 1 := by
     simpa using hz.2
-  -- DifferentiableAt ⇒ AnalyticAt on ℂ
-  exact (differentiableAt_riemannXi_ext (s := z) hz0 hz1).analyticAt
+  -- Turn DifferentiableAt into DifferentiableWithinAt on the set
+  exact (differentiableAt_riemannXi_ext (s := z) hz0 hz1).differentiableWithinAt
+
+-- (omitted: special value/nonvanishing at 1, to avoid depending on specific lemma names)
+
+-- The ext ξ equals mathlib's completed zeta `
+
+/-- Continuity of `riemannXi_ext` away from the poles at `0` and `1`. -/
+lemma continuousAt_riemannXi_ext {s : ℂ} (hs0 : s ≠ 0) (hs1 : s ≠ 1) :
+  ContinuousAt riemannXi_ext s :=
+  (differentiableAt_riemannXi_ext hs0 hs1).continuousAt
+
+-- (no measurability lemma currently supplied; measurability is assumed downstream.)

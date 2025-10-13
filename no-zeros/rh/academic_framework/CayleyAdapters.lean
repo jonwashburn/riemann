@@ -262,6 +262,29 @@ lemma a_pos_of_mem_Ω {z : ℂ} (hz : z ∈ HalfPlaneOuterV2.Ω) : 0 < a z := by
 
 -- (Angle parametrization lemmas omitted here; not needed for algebraic identities above.)
 
+/-- Points of Ω are nonzero: if `Re z > 1/2` then `z ≠ 0`. -/
+lemma memΩ_ne_zero {z : ℂ} (hz : z ∈ HalfPlaneOuterV2.Ω) : z ≠ 0 := by
+  intro h0
+  have : (1/2 : ℝ) < (0 : ℝ) := by
+    simpa [HalfPlaneOuterV2.Ω, Set.mem_setOf_eq, Complex.zero_re] using hz
+  exact (lt_irrefl _) this
+
+/-- `toDisk` is analytic on Ω. -/
+lemma toDisk_analyticOn_Ω : AnalyticOn ℂ toDisk HalfPlaneOuterV2.Ω := by
+  -- toDisk z = (z - 1) / z
+  intro z hz
+  have hz0 : z ≠ 0 := memΩ_ne_zero hz
+  -- AnalyticAt for (· - 1)
+  have h_sub : AnalyticAt ℂ (fun w : ℂ => w - (1 : ℂ)) z :=
+    (AnalyticAt.id.sub analyticAt_const)
+  -- AnalyticAt for inv
+  have h_inv : AnalyticAt ℂ (fun w : ℂ => w⁻¹) z :=
+    AnalyticAt.inv (by simpa using hz0)
+  -- AnalyticAt for division as multiplication by inv
+  have h_div : AnalyticAt ℂ (fun w : ℂ => (w - 1) * w⁻¹) z := h_sub.mul h_inv
+  -- Conclude
+  simpa [toDisk, div_eq_mul_inv] using h_div
+
 
 /-- Bridge (packaging form): Given the Cayley relation between `F` and a disk-side
 transform `Hdisk`, together with half-plane analyticity, boundary integrability,

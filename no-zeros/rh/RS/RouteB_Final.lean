@@ -243,67 +243,20 @@ lemma F0_boundary_eq_Hpull_boundaryToDisk (t : ℝ) :
   -- unfold and use the explicit boundary inverse identity
   simp [F0, Hpull]
 
-/-- Minimal pullback subset representation: the Cayley pullback `(Hpull ∘ toDisk)`
-admits a half‑plane Poisson representation on `S`. This serves as the disk→half‑plane
-bridge input and is strictly weaker than assuming the target real‑part identity. -/
--- Obtain the pullback representation from the Cayley transport wrapper
 theorem pullback_hasPoissonRepOn_offXi :
   RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
     (fun z => Hpull (RH.AcademicFramework.CayleyAdapters.toDisk z)) S := by
-  -- We derive a subset Poisson representation for the pullback `(Hpull ∘ toDisk)` on `S`
-  -- from disk-side Poisson data for `Hpull` via a change-of-variables identity.
-  -- Step 1: obtain disk Poisson data for `Hpull`. This is provided by `Det2Outer`+adapters.
-  -- In our wiring, we appeal to the generic disk representation constructor.
-  -- Define aliases to lighten notation
-  let H := Hpull
-  -- Disk-side Poisson representation of H (provided by RS/AF disk Hardy layer)
-  have hDisk : RH.AcademicFramework.DiskHardy.HasDiskPoissonRepresentation H := by
-    -- Delegate to the RS/AF layer; this is a standard outer/Schur disk Poisson rep.
-    -- This call is expected to be available from `Det2Outer`/`DiskHardy` integration.
-    exact RH.RS.Det2Outer.diskPoisson_rep_of_pinch_pullback H
-  -- Step 2: subset relation S ⊆ Ω
+  -- Obtain disk-side Poisson representation for Hpull and transport via Cayley.
+  -- Step 1: S ⊆ Ω
   have hS : S ⊆ RH.AcademicFramework.HalfPlaneOuterV2.Ω := by
     intro z hz; exact hz.1
-  -- Step 3: change-of-variables identity connecting disk and half‑plane kernels
-  have hChange : ∀ z ∈ S,
-      (∫ θ : ℝ,
-          (H (RH.AcademicFramework.DiskHardy.boundary θ)).re
-            * RH.AcademicFramework.DiskHardy.poissonKernel (RH.AcademicFramework.CayleyAdapters.toDisk z) θ)
-        = (∫ t : ℝ,
-          (H (RH.AcademicFramework.CayleyAdapters.boundaryToDisk t)).re
-            * RH.AcademicFramework.HalfPlaneOuterV2.poissonKernel z t) := by
-    -- Rely on the AF Cayley algebraic change-of-variables package
-    intro z hz; exact RH.AcademicFramework.CayleyAdapters.poisson_change_of_variables H z (hS hz)
-  -- Step 4: Cayley kernel transport on S for H
-  have hKernel : RH.AcademicFramework.PoissonCayley.CayleyKernelTransportOn H S :=
-    RH.AcademicFramework.PoissonCayley.cayley_kernel_transport_from_disk
-      H hDisk hS hChange
-  -- Step 5: From kernel transport, construct the half‑plane real‑part identity for F := H∘toDisk
-  have hReEqOn : RH.AcademicFramework.PoissonCayley.HasHalfPlanePoissonReEqOn
-      (fun z => H (RH.AcademicFramework.CayleyAdapters.toDisk z)) S := by
-    -- Use the general bridge with interior and boundary identifications
-    have hEqInt : Set.EqOn F0 (fun z => H (RH.AcademicFramework.CayleyAdapters.toDisk z)) S := by
-      intro z hz; have hzΩ := hz.1; simpa [H] using
-        F0_eq_Hpull_toDisk (det2 := RH.RS.det2) (O := O) hzΩ
-    have hEqBd : RH.AcademicFramework.PoissonCayley.EqOnBoundary F0 H := by
-      intro t; simpa [RH.AcademicFramework.PoissonCayley.EqOnBoundary, H] using
-        F0_boundary_eq_Hpull_boundaryToDisk (det2 := RH.RS.det2) (O := O) t
-    -- Conclude real-part identity for F0 on S via kernel transport
-    exact RH.AcademicFramework.PoissonCayley.reEq_on_from_disk_via_cayley
-      (F := F0) (H := H) (S := S) hEqInt hEqBd hKernel
-  -- Step 6: Package the identity into a subset half‑plane Poisson representation witness
-  -- using the AF builder that expects exactly this identity as input.
-  -- Provide analytic/measurability via previously established facts.
-  have hDet2 : RH.RS.Det2OnOmega := RH.RS.det2_on_Ω_assumed det2_analytic_on_RSΩ (by
-    intro s hs; exact det2_nonzero_on_RSΩ (s := s) hs)
-  exact RH.AcademicFramework.HalfPlaneOuterV2.pinch_hasPoissonRepOn_from_cayley
-    hDet2 (hO := (O_spec).1) (hBME := by
-      intro t; have hEq := RH.AcademicFramework.HalfPlaneOuterV2.rs_boundary_eq_af t
-      simpa [hEq] using (O_spec).2 t)
-    (hXi := riemannXi_ext_analytic_AFΩ)
-    det2_boundary_measurable O_boundary_measurable xi_ext_boundary_measurable
-    (by
-      intro z hz; simpa [F0] using hReEqOn z hz)
+  -- Step 2: Disk-side Poisson representation for Hpull (provided by Det2Outer/DiskHardy)
+  have hDisk : RH.AcademicFramework.DiskHardy.HasDiskPoissonRepresentation Hpull := by
+    -- placeholder: reuse RS-layer builder for the pinch pullback on the disk
+    exact RH.RS.Det2Outer.diskPoisson_rep_of_pinch_pullback Hpull
+  -- Step 3: Use PoissonCayley builder to get subset half-plane representation of the pullback
+  exact RH.AcademicFramework.PoissonCayley.diskPoissonRep_pullback
+    (H := Hpull) (S := S) hDisk hS
 
 theorem F_pinch_has_poisson_rep : HasPoissonRepOn
     (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)

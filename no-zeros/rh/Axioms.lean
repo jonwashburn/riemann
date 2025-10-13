@@ -1,3 +1,6 @@
+import Mathlib.NumberTheory.LSeries.RiemannZeta
+import rh.RS.SchurGlobalization
+
 /-!
 This module intentionally declares no axioms. It exists as a marker that the
 certificate route and analytic bounds do not rely on new axioms.
@@ -6,9 +9,6 @@ It also re-exports certain theorems proved elsewhere (e.g. in `RS`) so that
 downstream modules that historically imported `Axioms` keep working without
 depending on new axioms.
 -/
-
-import rh.RS.SchurGlobalization
-import Mathlib.NumberTheory.LSeries.RiemannZeta
 
 namespace RH.Axioms
 

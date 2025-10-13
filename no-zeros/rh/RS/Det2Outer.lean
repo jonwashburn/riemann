@@ -271,3 +271,27 @@ end RS
 end RH
 
 -- (duplicate aliases removed; the corresponding theorems are declared above)
+
+-- Measurability of det₂ (global): Euler‑product of measurable factors
+open MeasureTheory
+
+namespace RH
+namespace RS
+
+/-- Global measurability of `det2 : ℂ → ℂ`.
+
+Reason: each Euler factor `s ↦ det2EulerFactor s p` is measurable as a
+composition of measurable functions (`Complex.exp`, `cpow`, algebraic ops);
+the countable Euler product is measurable by the general measurability rule for
+infinite products in a second‑countable Borel space.
+-/
+set_option maxHeartbeats 800000 in
+lemma measurable_det2 : Measurable det2 := by
+  classical
+  -- Discharge via the `measurability` tactic using the definition of `det2`.
+  have h : Measurable (fun s : ℂ => ∏' (p : Nat.Primes), RH.AcademicFramework.DiagonalFredholm.det2EulerFactor s p) := by
+    measurability
+  simpa [det2] using h
+
+end RS
+end RH

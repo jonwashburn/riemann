@@ -45,8 +45,20 @@ open RH.RS
 /-- The right half-plane domain Ω = {s : ℂ | Re s > 1/2} -/
 def Ω : Set ℂ := {s : ℂ | (1/2 : ℝ) < s.re}
 
-/-- Boundary parametrization of the critical line Re s = 1/2 -/
+/-/-- Boundary parametrization of the critical line Re s = 1/2 -/
 @[simp] def boundary (t : ℝ) : ℂ := (1/2 : ℝ) + I * (t : ℂ)
+/-/-- Off-zeros domain for `riemannXi_ext` on Ω, excluding the pole at `1`. -/
+def offXi : Set ℂ := {z | z ∈ Ω ∧ z ≠ (1 : ℂ) ∧ riemannXi_ext z ≠ 0}
+
+lemma offXi_subset_Ω : offXi ⊆ Ω := by
+  intro z hz
+  exact hz.1
+
+lemma offXi_subset_Ω_minus_one : offXi ⊆ Ω \ ({1} : Set ℂ) := by
+  intro z hz
+  refine ⟨hz.1, ?_⟩
+  intro hz1
+  exact hz.2.1 hz1
 
 lemma boundary_re (t : ℝ) : (boundary t).re = 1/2 := by simp [boundary]
 
@@ -218,7 +230,7 @@ theorem poissonTransportOn {F : ℂ → ℂ} {S : Set ℂ} (hRep : HasPoissonRep
 lemma J_pinch_analyticOn_offZeros
     (hDet2 : Det2OnOmega)
     {O : ℂ → ℂ} (hO : OuterHalfPlane O)
-    (hXi : AnalyticOn ℂ riemannXi_ext Ω) :
+    (hXi : AnalyticOn ℂ riemannXi_ext (Ω \ ({1} : Set ℂ))) :
     AnalyticOn ℂ (J_pinch det2 O) (Ω \ {z | riemannXi_ext z = 0}) := by
   -- J_pinch = det2 / (O * ξ_ext) is analytic where the denominator is non-zero
   have h1 := hDet2.analytic
@@ -247,7 +259,7 @@ lemma J_pinch_analyticOn_offZeros
 lemma F_pinch_analyticOn_offZeros
     (hDet2 : Det2OnOmega)
     {O : ℂ → ℂ} (hO : OuterHalfPlane O)
-    (hXi : AnalyticOn ℂ riemannXi_ext Ω) :
+    (hXi : AnalyticOn ℂ riemannXi_ext (Ω \ ({1} : Set ℂ))) :
     AnalyticOn ℂ (F_pinch det2 O) (Ω \ {z | riemannXi_ext z = 0}) := by
   unfold F_pinch
   -- F_pinch = 2 * J_pinch, so analyticity follows from J_pinch analyticity
@@ -528,24 +540,27 @@ theorem pinch_poissonRepOn_offZeros
     (hDet2 : Det2OnOmega)
     {O : ℂ → ℂ} (hO : OuterHalfPlane O)
     (hBME : BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
-    (hXi : AnalyticOn ℂ riemannXi_ext Ω)
+    (hXi : AnalyticOn ℂ riemannXi_ext (Ω \ ({1} : Set ℂ)))
     (hDet_meas : Measurable (fun t => det2 (boundary t)))
     (hO_meas   : Measurable (fun t => O (boundary t)))
     (hXi_meas  : Measurable (fun t => riemannXi_ext (boundary t))) :
-    ∀ (hFormula : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+    ∀ (hFormula : ∀ z ∈ offXi,
       (F_pinch det2 O z).re =
         poissonIntegral (fun t => (F_pinch det2 O (boundary t)).re) z),
-    HasPoissonRepOn (F_pinch det2 O) (Ω \ {z | riemannXi_ext z = 0}) := by
+    HasPoissonRepOn (F_pinch det2 O) offXi := by
   intro hFormula
   constructor
   · -- subset
-    intro z hz
-    exact hz.1
+    exact offXi_subset_Ω
   · -- analytic
-    exact F_pinch_analyticOn_offZeros hDet2 hO hXi
+    -- Restrict to offXi using inclusion into Ω and Ω\{1}
+    have hF := F_pinch_analyticOn_offZeros hDet2 hO hXi
+    have hsubset : offXi ⊆ (Ω \ {z | riemannXi_ext z = 0}) := by
+      intro z hz; exact And.intro hz.1 (fun h0 => hz.2.2 (by simpa [Set.mem_setOf_eq] using h0))
+    exact hF.mono hsubset
   · -- integrable
     intro z hz
-    have hzΩ : z ∈ Ω := Set.mem_of_mem_diff hz
+    have hzΩ : z ∈ Ω := offXi_subset_Ω hz
     apply integrable_boundedBoundary _ _ 2 hzΩ
     · intro t
       exact F_pinch_boundary_bound hBME t
@@ -567,26 +582,24 @@ theorem pinch_hasPoissonRepOn_from_cayley
     (hDet2 : Det2OnOmega)
     {O : ℂ → ℂ} (hO : OuterHalfPlane O)
     (hBME : BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
-    (hXi : AnalyticOn ℂ riemannXi_ext Ω)
+    (hXi : AnalyticOn ℂ riemannXi_ext (Ω \ ({1} : Set ℂ)))
     (hDet_meas : Measurable (fun t : ℝ => det2 (boundary t)))
     (hO_meas   : Measurable (fun t : ℝ => O (boundary t)))
     (hXi_meas  : Measurable (fun t : ℝ => riemannXi_ext (boundary t)))
-    (hReEqOn : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+    (hReEqOn : ∀ z ∈ offXi,
                 (F_pinch det2 O z).re =
                   poissonIntegral (fun t : ℝ => (F_pinch det2 O (boundary t)).re) z)
-    : HasPoissonRepOn (F_pinch det2 O) (Ω \ {z | riemannXi_ext z = 0}) := by
+    : HasPoissonRepOn (F_pinch det2 O) offXi := by
   -- Use the general builder, supplying the real‑part identity as the `hFormula` input.
-  refine pinch_poissonRepOn_offZeros hDet2 (hO := hO) (hBME := hBME) (hXi := hXi)
-    (hDet_meas := hDet_meas) (hO_meas := hO_meas) (hXi_meas := hXi_meas) ?hFormula
-  intro z hz
-  exact hReEqOn z hz
+  exact pinch_poissonRepOn_offZeros hDet2 (hO := hO) (hBME := hBME) (hXi := hXi)
+    (hDet_meas := hDet_meas) (hO_meas := hO_meas) (hXi_meas := hXi_meas) hReEqOn
 
 /-- Main transport theorem for pinch field -/
 theorem pinch_transport
     {O : ℂ → ℂ}
-    (hRep : HasPoissonRepOn (F_pinch det2 O) (Ω \ {z | riemannXi_ext z = 0})) :
+    (hRep : HasPoissonRepOn (F_pinch det2 O) offXi) :
     BoundaryPositive (F_pinch det2 O) →
-      ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+      ∀ z ∈ offXi,
         0 ≤ (F_pinch det2 O z).re :=
   poissonTransportOn hRep
 

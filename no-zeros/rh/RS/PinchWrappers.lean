@@ -75,22 +75,19 @@ private def boundaryPositive_of_PPlus
     simpa [RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive] using hbd
 
 /-- From (P+) and a Poisson representation on the off-zeros set, deduce
-interior nonnegativity of `F := 2·J_pinch det2 O` on `Ω \ {Ξ=0}`. -/
+interior nonnegativity of `F := 2·J_pinch det2 O` on `offXi`. -/
 def hRe_offXi_from_PPlus_via_transport
   (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
       BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
   (hRepOn : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn (F_pinch det2 (Classical.choose hOuter))
-              (Ω \ {z | riemannXi_ext z = 0}))
+              RH.AcademicFramework.HalfPlaneOuterV2.offXi)
   (hPPlus : RH.Cert.PPlus (fun z => (2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)))
-  : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+  : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
       0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)).re := by
-  -- Apply Poisson transport on the subset using boundary positivity
   have hBP : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive (F_pinch det2 (Classical.choose hOuter)) :=
     boundaryPositive_of_PPlus _ hPPlus
-  -- Transport on the off-zeros set
   have hTrans := RH.AcademicFramework.HalfPlaneOuterV2.poissonTransportOn
     (F := F_pinch det2 (Classical.choose hOuter)) hRepOn hBP
-  -- Unfold `F_pinch`
   intro z hz
   simpa [F_pinch] using hTrans z hz
 
@@ -100,7 +97,7 @@ def pinch_certificate_from_PPlus_transport_and_pinned
   (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
       BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
   (hRepOn : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn (F_pinch det2 (Classical.choose hOuter))
-              (Ω \ {z | riemannXi_ext z = 0}))
+              RH.AcademicFramework.HalfPlaneOuterV2.offXi)
   (hPPlus : RH.Cert.PPlus (fun z => (2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)))
   (hPinned : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
       ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
@@ -112,10 +109,9 @@ def pinch_certificate_from_PPlus_transport_and_pinned
           ∃ z, z ∈ U ∧ z ≠ ρ ∧ (Θ_pinch_of det2 (Classical.choose hOuter)) z ≠ 1)
   : PinchCertificateExt := by
   classical
-  -- Ingredient 1: interior positivity on Ω \ Z(Ξ_ext) via transport
+  -- Ingredient 1: interior positivity on offXi via transport
   let hRe_offXi := hRe_offXi_from_PPlus_via_transport hOuter hRepOn hPPlus
   -- Ingredient 2: pinned–removable across each ξ_ext zero (packaged)
-  -- Inline the removable-update packaging to avoid forward reference
   let hRemXi : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
       ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
         (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
@@ -151,7 +147,7 @@ def RH_from_PPlus_transport_and_pinned
   (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
       BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
   (hRepOn : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn (F_pinch det2 (Classical.choose hOuter))
-              (Ω \ {z | riemannXi_ext z = 0}))
+              RH.AcademicFramework.HalfPlaneOuterV2.offXi)
   (hPPlus : RH.Cert.PPlus (fun z => (2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)))
   (hPinned : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
       ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧

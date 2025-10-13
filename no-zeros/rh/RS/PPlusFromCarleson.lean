@@ -1,7 +1,7 @@
 import Mathlib.Data.Complex.Basic
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 import rh.Cert.KxiPPlus
-import rh.RS.BoundaryWedgeProof
+import rh.RS.WhitneyAeCore
 import rh.RS.CRGreenOuter
 import rh.RS.PoissonPlateau
 -- (avoid importing DirectWedgeProof or heavy modules to prevent cycles)
@@ -40,7 +40,7 @@ Route B is cleaner and requires fewer axioms.
 noncomputable section
 
 open Complex MeasureTheory Real
-open RH.RS.BoundaryWedgeProof
+open RH.RS.WhitneyAeCore
 open RH.Cert
 
 namespace RH.RS

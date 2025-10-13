@@ -43,3 +43,21 @@
 - [x] Plan post-proof updates: axiom reports and `lake build`. (Post-proof tasks: run `lake build` from `no-zeros/`, execute `scripts/axiom_report.py`, refresh `AXIOM_PUNCHLIST.md`, `AXIOM_CLEANUP_STATUS.md`, `STANDARD_AXIOMS_CATALOG.md`, update `boundary.plan.md` log.)
 - [x] Read `PPlus` closure results in `RouteB_Final.lean` to prep for proof skeleton work. (Reviewed `boundary_positive` theorem and related wiring to ensure transport path for AF boundary positivity.)
 
+### Log 2025-10-13 (Bridge + Residues workstream)
+
+- Green→Poisson bridge on Whitney rectangles:
+  - Target: identify the interior term in the strong Green+trace identity with `π · poisson_balayage I` at `z = zWhitney I` when `ψ ≡ 1` on `I.interval` and side/top vanish.
+  - Dependencies: rectangle Green+trace packaging (`CRGreenOuter.rect_green_trace_identity_strong`), Poisson kernel facts in `HalfPlaneOuterV2`, boundary trace adapter, and a smooth cutoff `χ` with vanishing side/top.
+  - Status: BLOCKED pending a clean instantiation of `U, Vψ, χ, grad` objects and a proof that the interior remainder equals the Poisson term. This will require a dedicated lemma in `BoundaryWedgeProof.lean` wiring the AF Poisson kernel to the rectangle identity.
+
+- Residue-based `critical_atoms` bookkeeping:
+  - Target: replace placeholder length-based definition with a residue/winding-number sum over zeros in the Whitney box; re-prove nonnegativity.
+  - Dependencies: zero bookkeeping in Ω for `J_canonical`, residue/winding number interface (Ahlfors, Koosis), localized contour decomposition around zeros.
+  - Status: BLOCKED pending introduction of a minimal residue/winding bookkeeping API (finite zero set within Whitney box and contribution map). Analytical assumption: residues contribute nonnegatively (standard in literature) to be formalized.
+
+- Phase–velocity identity `windowed_phase = π · (poisson_balayage + critical_atoms)`:
+  - Plan: (1) reduce `windowed_phase` to bare boundary integral via `ψ ≡ 1`; (2) apply boundary trace AE adapter; (3) use strong rectangle Green+trace identity with side/top vanishing; (4) identify interior remainder with `π · poisson_balayage`; (5) express bottom-edge contour residuals as `π · critical_atoms`.
+  - Status: Will proceed after the two blockers above are discharged.
+
+Notes: We will document any external analytical references (Evans Ch. 2; Koosis Vol. II; Ahlfors Ch. 5) in-line where the bridge and residue lemmas are introduced.
+

@@ -23,14 +23,7 @@ require mathlib from git
 @[default_target]
 lean_lib «rh» where
   -- Build all rh modules
-  globs := #[
-    .submodules `rh.academic_framework,
-    .submodules `rh.Cert,
-    .submodules `rh.Blockers,
-    .submodules `rh.RS,
-    .submodules `rh.RS.sealed,
-    .submodules `rh.Proof
-  ]
+  globs := #[.submodules `rh]
 
 -- Test library for verification and validation
 lean_lib «test» where
