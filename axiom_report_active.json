@@ -1,0 +1,31 @@
+{
+  "duplicate_names": {},
+  "file_count": 2,
+  "files": [
+    {
+      "axioms": [
+        {
+          "line_no": 17,
+          "name": "zeta_nonvanishing_on_Re_eq_one",
+          "signature": "axiom zeta_nonvanishing_on_Re_eq_one (z : \u2102) (hz : z.re = 1) :"
+        }
+      ],
+      "count": 1,
+      "path": "no-zeros/rh/Axioms.lean"
+    },
+    {
+      "axioms": [
+        {
+          "line_no": 679,
+          "name": "carleson_energy_bound",
+          "signature": "axiom carleson_energy_bound :"
+        }
+      ],
+      "count": 1,
+      "path": "no-zeros/rh/RS/BoundaryWedgeProof.lean"
+    }
+  ],
+  "generated_at": "2025-10-14T02:36:55.349833+00:00",
+  "root": "/Users/jonathanwashburn/Projects/zeros",
+  "total_axioms": 2
+}

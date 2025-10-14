@@ -657,6 +657,36 @@ noncomputable def carleson_energy (I : WhitneyInterval) : ℝ :=
   let Q : Set (ℝ × ℝ) := RH.RS.Whitney.tent (WhitneyInterval.interval I)
   RH.RS.boxEnergyCRGreen gradU_whitney volume Q
 
+/-- Definitional rewrite: expand `carleson_energy` as an explicit tent integral
+over the Whitney tent `Q(I)` for the gradient field `gradU_whitney`. -/
+lemma carleson_energy_def_integral (I : WhitneyInterval) :
+  carleson_energy I
+    = ∫ x in RH.RS.Whitney.tent (WhitneyInterval.interval I),
+        RH.RS.sqnormR2 (gradU_whitney x) ∂(volume) := by
+  classical
+  -- Unfold and eliminate the local `let` binding for the tent set
+  let Q : Set (ℝ × ℝ) := RH.RS.Whitney.tent (WhitneyInterval.interval I)
+  have : carleson_energy I = ∫ x in Q, RH.RS.sqnormR2 (gradU_whitney x) ∂(volume) := by
+    unfold carleson_energy
+    simpa [RH.RS.boxEnergyCRGreen, Q]
+  simpa [Q]
+    using this
+
+/-- Packaging lemma: if the CR–Green box energy on the Whitney tent over `I`
+is bounded by a linear budget `Kξ · (2 · I.len)`, then the same bound holds
+for `carleson_energy I`. This reduces the Carleson estimate to a boxed energy
+budget on the geometric tent. -/
+lemma carleson_energy_le_of_budget
+  {Kξ : ℝ} (I : WhitneyInterval)
+  (h : RH.RS.boxEnergyCRGreen gradU_whitney volume
+        (RH.RS.Whitney.tent (WhitneyInterval.interval I))
+        ≤ Kξ * (2 * I.len)) :
+  carleson_energy I ≤ Kξ * (2 * I.len) := by
+  -- Apply the definitional rewrite and the provided bound
+  have h' := h
+  -- Rewrite `carleson_energy` into the same set integral
+  simpa [carleson_energy_def_integral] using h'
+
 -- Helper lemmas for VK zero-density removed - technical details covered by axiom below
 
 -- AXIOM: Carleson energy bound from VK zero-density

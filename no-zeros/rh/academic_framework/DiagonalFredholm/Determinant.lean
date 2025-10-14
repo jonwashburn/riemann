@@ -131,7 +131,7 @@ theorem det2_AF_nonzero_on_halfPlaneReGtHalf :
   -- Standard infinite product argument: each Euler factor is nonzero when Re(s) > 0,
   -- and the Weierstrass product construction with quadratic cancelation yields a
   -- zero‑free product on Re(s) > 1/2.
-  -- 
+  --
   -- Strategy: Write det2EulerFactor(s,p) = exp(∑ -λ^(n+3)/(n+3)) with λ = p^(-s).
   -- Use cubic remainder bound ‖log(1-λ) + λ + λ^2/2‖ ≤ ‖λ‖^3/(1-‖λ‖) and
   -- ‖λ‖ ≤ p^(-σ) with σ = Re s > 1/2 to get summability over primes via
