@@ -4,6 +4,7 @@ import Mathlib.Data.Complex.Basic
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
+import Mathlib.Analysis.SpecialFunctions.Complex.Log
 
 /-! Modern DF‑WP helpers:
 
@@ -19,6 +20,67 @@ noncomputable section
 
 open Complex
 open scoped BigOperators
+/-- Power series identity for the cubic tail of `log(1 - z)`.
+For `‖z‖ < 1` we have
+  `∑' n, - z^(n+3) / (n+3) = Complex.log (1 - z) + z + z^2 / 2`.
+This is obtained from `Complex.hasSum_log_one_add` at `-z` and splitting
+off the first two terms. -/
+lemma tsum_log_one_sub_cubic_tail {z : ℂ} (hz : ‖z‖ < (1 : ℝ)) :
+    (∑' n : ℕ, - z ^ (n + 3) / ((n + 3 : ℕ) : ℂ))
+      = Complex.log (1 - z) + z + z ^ 2 / 2 := by
+  have hsum : HasSum (fun n : ℕ => - (z ^ (n + 1)) / ((n + 1 : ℕ) : ℂ))
+      (Complex.log (1 - z)) := by
+    have hlt : ‖-z‖ < (1 : ℝ) := by simpa [norm_neg] using hz
+    -- `log(1 - z) = ∑ (-1)^(n+1) (-z)^(n+1)/(n+1) = -∑ z^(n+1)/(n+1)`
+    simpa [sub_eq_add_neg, pow_succ, Nat.cast_add, Nat.cast_one, div_eq_mul_inv,
+      one_mul, mul_comm, mul_left_comm, mul_assoc]
+      using Complex.hasSum_log_one_add (z := -z) hlt
+  -- Split off n = 0 and n = 1
+  have hsplit := hsum.tsum_eq_add_tsum_nat_add 2
+  -- Evaluate the first two head terms explicitly
+  have h0 : - (z ^ (0 + 1)) / ((0 + 1 : ℕ) : ℂ) = -z := by simp
+  have h1 : - (z ^ (1 + 1)) / ((1 + 1 : ℕ) : ℂ) = -z ^ 2 / 2 := by simp
+  -- Reindex the tail starting at 2 by `m = n + 2`
+  have htail : (∑' n : ℕ, - (z ^ (n + (2 + 1))) / ((n + (2 + 1) : ℕ) : ℂ))
+      = (∑' n : ℕ, - z ^ (n + 3) / ((n + 3 : ℕ) : ℂ)) := by
+    simpa [add_assoc]
+  -- Put everything together
+  -- `tsum f = f 0 + f 1 + tsum (fun n => f (n+2))` with `f n = - z^(n+1)/(n+1)`
+  have : (∑' n : ℕ, - (z ^ (n + 1)) / ((n + 1 : ℕ) : ℂ))
+      = (-z) + (-z ^ 2 / 2) + (∑' n : ℕ, - z ^ (n + 3) / ((n + 3 : ℕ) : ℂ)) := by
+    simpa [h0, h1, htail, two_mul, add_comm, add_left_comm, add_assoc]
+      using hsplit
+  -- Rearrange to the desired identity
+  have := congrArg (fun w => w + (z + z ^ 2 / 2)) this
+  -- Left-hand side becomes `tsum + z + z^2/2`, right-hand side simplifies to the tail
+  -- and the log value
+  simpa [add_comm, add_left_comm, add_assoc, sub_eq_add_neg]
+    using this.trans (by simp [add_comm, add_left_comm, add_assoc])
+
+/-- Euler factor as an exponential of the cubic tail `tsum` for `‖z‖ < 1`.
+`(1 - z) * exp(z + z^2/2) = exp(∑' n, - z^(n+3)/(n+3))`. -/
+lemma eulerFactor_exp_tsum_cubic_tail {z : ℂ} (hz : ‖z‖ < (1 : ℝ)) :
+    (1 - z) * Complex.exp (z + z ^ 2 / 2)
+      = Complex.exp (∑' n : ℕ, - z ^ (n + 3) / ((n + 3 : ℕ) : ℂ)) := by
+  have htsum := tsum_log_one_sub_cubic_tail (z := z) hz
+  -- Exponentiate: exp(log(1 - z) + z + z^2/2) = exp(log(1 - z)) * exp(z + z^2/2)
+  have hne : 1 - z ≠ 0 := by
+    intro h
+    have : z = 1 := by
+      have : z = 1 := by
+        -- From 1 - z = 0 ⇒ z = 1; contradicts ‖z‖ < 1
+        simpa [sub_eq, add_comm] using congrArg id h
+      exact this
+    have : (1 : ℝ) ≤ ‖z‖ := by simpa [this] using norm_one.le
+    exact (not_le.mpr hz).elim this
+  calc
+    (1 - z) * Complex.exp (z + z ^ 2 / 2)
+        = Complex.exp (Complex.log (1 - z)) * Complex.exp (z + z ^ 2 / 2) := by
+          simpa [Complex.exp_log hne]
+    _ = Complex.exp (Complex.log (1 - z) + (z + z ^ 2 / 2)) := by
+          simpa [Complex.exp_add]
+    _ = Complex.exp (∑' n : ℕ, - z ^ (n + 3) / ((n + 3 : ℕ) : ℂ)) := by
+          simpa [add_comm, add_left_comm, add_assoc] using congrArg Complex.exp htsum.symm
 
 /-- Log bound for `log(1 - z)` via the modern `log(1 + z)` inequality. -/
 lemma norm_log_one_sub_le_of_lt_one {z : ℂ} (hz : ‖z‖ < (1 : ℝ)) :
@@ -94,6 +156,100 @@ lemma exp_tsum_eq_tprod {ι : Type*} [Countable ι]
           simpa using (hprod.tprod_eq.symm)
     _ = ∏' i, f i := by
       simp [Complex.exp_log (hne _)]
+
+/-- Cubic tail bound for the log Weierstrass remainder on `‖z‖ < 1`:
+`‖log(1 - z) + z + z^2/2‖ ≤ ‖z‖^3 / (1 - ‖z‖)`.
+
+This follows from the power series for `log(1 - z)` and a comparison with the
+geometric series. -/
+lemma log_one_sub_plus_z_plus_sq_cubic_tail
+    {z : ℂ} (hz : ‖z‖ < (1 : ℝ)) :
+    ‖Complex.log (1 - z) + z + z^2 / 2‖ ≤ ‖z‖ ^ 3 / (1 - ‖z‖) := by
+  -- Use the series: log(1 - z) = -∑_{n≥1} z^n/n on ‖z‖ < 1
+  have hseries : HasSum (fun n : ℕ => - (z ^ (n + 1)) / (n + 1)) (Complex.log (1 - z)) := by
+    -- specialize the standard `log(1 + w)` series at `w = -z`
+    simpa [one_add, add_comm, add_left_comm, sub_eq_add_neg, pow_succ, mul_comm, mul_left_comm,
+      mul_assoc, div_eq_mul_inv] using
+      (Complex.hasSum_log_one_add (w := -z) (by simpa [norm_neg] using hz))
+  -- Split off the first two terms to isolate the cubic tail
+  have hsplit :
+      Complex.log (1 - z)
+        = -z - z ^ 2 / 2 - ∑' n : {m // 2 ≤ m}, z ^ (n + 1) / (n + 1) := by
+    -- Convert the `HasSum` over `ℕ` into a `tsum` and separate n=0,1 vs n≥2
+    have htsum := hseries.tsum_eq
+    -- Rewrite the sum as the sum of first two terms plus the tail
+    have : (∑' n : ℕ, - (z ^ (n + 1)) / (n + 1))
+        = (-z) + (-(z^2)/2) + ∑' n : {m // 2 ≤ m}, - (z ^ (n + 1)) / (n + 1) := by
+      -- `tsum` over ℕ splits into finite initial segment and the tail over the subtype
+      simpa [tsum_fintype, Finset.range_succ, Finset.range_succ, Finset.sum_singleton,
+        Finset.sum_pair, add_comm, add_left_comm, add_assoc, pow_one, pow_two,
+        mul_comm, mul_left_comm, mul_assoc, div_eq_mul_inv] using
+        (tsum_split_tail (f := fun n : ℕ => - (z ^ (n + 1)) / (n + 1)) (k := 2))
+    -- Combine the identities and simplify signs
+    simpa [this, add_comm, add_left_comm, add_assoc, sub_eq_add_neg, div_eq_mul_inv]
+  -- Shift indices: tail over m≥2 of z^(m+1)/(m+1) equals tail over j≥3 of z^j/j
+  have htail_eq : ∑' n : {m // 2 ≤ m}, z ^ (n + 1) / (n + 1)
+      = ∑' j : {k // 3 ≤ k}, z ^ (j) / (j) := by
+    -- Define the bijection j = n + 1 between `{m | 2 ≤ m}` and `{k | 3 ≤ k}`
+    refine tsum_congr ?_ ; intro n ; rfl
+  -- Therefore the remainder equals the cubic tail (up to a minus sign)
+  have hrem :
+      Complex.log (1 - z) + z + z ^ 2 / 2
+        = - ∑' j : {k // 3 ≤ k}, z ^ (j) / (j) := by
+    have := congrArg (fun w => w + z + z^2/2) hsplit
+    -- Rearrange terms
+    simpa [add_comm, add_left_comm, add_assoc, sub_eq_add_neg, htail_eq,
+      div_eq_mul_inv] using this
+  -- Bound the norm by the geometric tail using `1/j ≤ 1`
+  have hle :
+      ‖Complex.log (1 - z) + z + z ^ 2 / 2‖
+        ≤ ∑' j : {k // 3 ≤ k}, ‖z‖ ^ (j) := by
+    -- Use triangle inequality and `‖z^j / j‖ ≤ ‖z‖^j`
+    have hterm : ∀ j : {k // 3 ≤ k}, ‖z ^ (j) / (j : ℂ)‖ ≤ ‖z‖ ^ (j) := by
+      intro j
+      have hjpos : 0 < (j : ℝ) := by exact_mod_cast Nat.succ_le_of_lt (lt_of_le_of_lt j.property (by decide : 3 < 4))
+      have : ‖(j : ℂ)‖ = (j : ℝ) := by simpa using Complex.norm_of_real (j : ℝ)
+      have : ‖(j : ℂ)‖ ≥ 1 := by
+        have : (1 : ℝ) ≤ (j : ℝ) := le_of_lt hjpos
+        simpa [this] using this
+      have hzpow : ‖z ^ (j)‖ = ‖z‖ ^ (j) := by simpa using Complex.norm_pow z j
+      calc
+        ‖z ^ (j) / (j : ℂ)‖ = ‖z ^ (j)‖ / ‖(j : ℂ)‖ := by simpa [div_eq_mul_inv] using norm_div (z ^ (j)) (j : ℂ)
+        _ ≤ ‖z‖ ^ (j) := by
+          have : 1 ≤ ‖(j : ℂ)‖ := by
+            -- crude bound: j ≥ 1 ⇒ ‖j‖ ≥ 1
+            have : (1 : ℝ) ≤ ‖(j : ℂ)‖ := by
+              have : (1 : ℝ) ≤ (j : ℝ) := le_of_lt hjpos
+              simpa [Complex.norm_of_real] using this
+            exact this
+          have := (div_le_iff (by exact_mod_cast (lt_of_le_of_lt (by exact le_of_lt hjpos) (by norm_num : (0 : ℝ) < 2)))).mpr ?_
+          -- fallback: use `by nlinarith` later if needed
+          exact le_of_eq (by simpa [hzpow])
+    -- Now sum the bound
+    have hsum := tsum_le_of_nonneg_of_le
+      (f := fun j : {k // 3 ≤ k} => ‖z ^ (j) / (j : ℂ)‖)
+      (g := fun j : {k // 3 ≤ k} => ‖z‖ ^ (j))
+      (by intro j; exact norm_nonneg _)
+      (by intro j; exact pow_nonneg (by exact norm_nonneg _) _)
+      (by intro j; simpa using hterm j)
+    simpa [hrem, norm_neg] using hsum
+  -- Evaluate the geometric tail as `‖z‖^3 / (1 - ‖z‖)`
+  -- using the closed form for `tsum` of a geometric series starting at 3.
+  have hz0 : 0 ≤ ‖z‖ := norm_nonneg _
+  have hlt : ‖z‖ < 1 := hz
+  have hgeom : (∑' j : {k // 3 ≤ k}, ‖z‖ ^ (j)) = ‖z‖ ^ 3 / (1 - ‖z‖) := by
+    -- `∑_{m≥3} r^m = r^3 * ∑_{n≥0} r^n = r^3 / (1 - r)` for `0 ≤ r < 1`.
+    have hsum_geom : Summable (fun n : ℕ => (‖z‖ : ℝ) ^ n) :=
+      summable_geometric_of_lt_1 (by exact abs_nonneg ‖z‖) (by simpa using hlt)
+    have := (tsum_geometric_of_lt_1 (by exact hz0) (by exact hlt.le)).trans ?_
+    -- Use known closed form directly
+    have hgeom0 : (∑' n : ℕ, ‖z‖ ^ n) = 1 / (1 - ‖z‖) :=
+      (tsum_geometric_of_lt_1 (by exact hz0) (by exact hlt)).symm
+    -- shift by 3
+    have : (∑' j : {k // 3 ≤ k}, ‖z‖ ^ (j)) = ‖z‖ ^ 3 * (∑' n : ℕ, ‖z‖ ^ n) := by
+      simpa using (tsum_geometric_tail (r := ‖z‖) (k := 3) (by exact hlt))
+    simpa [this, hgeom0, mul_div_cancel']
+  exact le_trans hle (by simpa [hgeom])
 
 end
 

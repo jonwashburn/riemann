@@ -41,6 +41,12 @@ local notation "Ω" => RH.RS.Ω
 noncomputable def det2 (s : ℂ) : ℂ :=
   ∏' (p : Nat.Primes), RH.AcademicFramework.DiagonalFredholm.det2EulerFactor s p
 
+/-! ### Identification with AF det₂ -/
+
+/-- RS `det2` agrees definitionally with the AF Euler‑product `det2_AF`. -/
+@[simp] lemma det2_eq_AF :
+  RH.RS.det2 = RH.AcademicFramework.DiagonalFredholm.det2_AF := rfl
+
 /-! ## Bridging lemmas from the academic framework
 
 We expose analyticity of `det2` on Ω and nonvanishing on the boundary line
@@ -53,6 +59,16 @@ theorem det2_analytic_on_RSΩ : AnalyticOn ℂ det2 Ω := by
   simpa [det2, hΩ] using
     (RH.AcademicFramework.DiagonalFredholm.det2_AF_analytic_on_halfPlaneReGtHalf)
 
+/-- Nonvanishing of `det2` on Ω, via AF's half‑plane nonvanishing. -/
+theorem det2_nonzero_on_RSΩ : ∀ {s}, s ∈ Ω → det2 s ≠ 0 := by
+  intro s hs
+  have hΩ : s ∈ {s : ℂ | (1/2 : ℝ) < s.re} := by
+    simpa [RH.RS.Ω, Set.mem_setOf_eq] using hs
+  -- Use AF theorem and unfold the definitional equality det2 = det2_AF
+  have h := RH.AcademicFramework.DiagonalFredholm.det2_AF_nonzero_on_halfPlaneReGtHalf
+  have h' := h (s := s) hΩ
+  simpa [det2_eq_AF] using h'
+
 /-- Nonvanishing of `det2` on the critical line Re(s) = 1/2. -/
 theorem det2_nonzero_on_critical_line :
   ∀ t : ℝ, det2 (boundary t) ≠ 0 := by
@@ -62,6 +78,16 @@ theorem det2_nonzero_on_critical_line :
     simp [boundary]
   simpa [det2, hb] using
     (RH.AcademicFramework.DiagonalFredholm.det2_AF_nonzero_on_critical_line t)
+
+/-- Nonvanishing of `det2` on Ω = {Re > 1/2}. -/
+theorem det2_nonzero_on_RSΩ : ∀ {s}, s ∈ Ω → det2 s ≠ 0 := by
+  intro s hs
+  -- View membership in the AF half‑plane and transfer via the AF nonvanishing theorem
+  have hAF : s ∈ {z : ℂ | (1 / 2 : ℝ) < z.re} := by
+    simpa [RH.RS.Ω, Set.mem_setOf_eq] using hs
+  simpa [det2] using
+    (RH.AcademicFramework.DiagonalFredholm.det2_AF_nonzero_on_halfPlaneReGtHalf
+      (s := s) hAF)
 
 /-- Analytic/nonvanishing facts for `det2` on Ω (interface record). -/
 structure Det2OnOmega where
@@ -266,32 +292,6 @@ Narrative (hooks available in `riemann-blockers-2.txt`):
 theorem outer_limit_locally_uniform_alt :
     OuterHalfPlane.ofModulus_det2_over_xi_ext := by
   simpa using outer_limit_locally_uniform
-
-end RS
-end RH
-
--- (duplicate aliases removed; the corresponding theorems are declared above)
-
--- Measurability of det₂ (global): Euler‑product of measurable factors
-open MeasureTheory
-
-namespace RH
-namespace RS
-
-/-- Global measurability of `det2 : ℂ → ℂ`.
-
-Reason: each Euler factor `s ↦ det2EulerFactor s p` is measurable as a
-composition of measurable functions (`Complex.exp`, `cpow`, algebraic ops);
-the countable Euler product is measurable by the general measurability rule for
-infinite products in a second‑countable Borel space.
--/
-set_option maxHeartbeats 800000 in
-lemma measurable_det2 : Measurable det2 := by
-  classical
-  -- Discharge via the `measurability` tactic using the definition of `det2`.
-  have h : Measurable (fun s : ℂ => ∏' (p : Nat.Primes), RH.AcademicFramework.DiagonalFredholm.det2EulerFactor s p) := by
-    measurability
-  simpa [det2] using h
 
 end RS
 end RH

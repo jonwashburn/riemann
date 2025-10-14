@@ -80,7 +80,7 @@ def assign_fromXiExtRemovable {Θ : ℂ → ℂ}
         EqOn Θ g (U \ {ρ}) ∧ g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1 := by
   intro ρ hΩ hζ
   -- Convert ζ‑zero to ξ_ext‑zero on Ω
-  have hXi : riemannXi_ext ρ = 0 := (xi_ext_zeros_eq_zeta_zeros_on_Ω ρ hΩ).mpr hζ
+  have hXi : riemannXi_ext ρ = 0 := (RH.AcademicFramework.CompletedXi.xi_ext_zeros_eq_zeta_zeros_on_Ω ρ hΩ).mpr hζ
   rcases assignXi ρ hΩ hXi with
     ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi, g, hg, hΘU, hExt, hval, z, hzU, hgzne⟩
   -- Transport the isolating property across zeros equivalence
@@ -90,7 +90,7 @@ def assign_fromXiExtRemovable {Θ : ℂ → ℂ}
       have hxU : x ∈ U := hx.1
       have hxζ : riemannZeta x = 0 := by simpa [Set.mem_setOf_eq] using hx.2
       have hxΩ : x ∈ Ω := hUsub hxU
-      have hxXi : riemannXi_ext x = 0 := (xi_ext_zeros_eq_zeta_zeros_on_Ω x hxΩ).mpr hxζ
+      have hxXi : riemannXi_ext x = 0 := (RH.AcademicFramework.CompletedXi.xi_ext_zeros_eq_zeta_zeros_on_Ω x hxΩ).mpr hxζ
       have hxInXi : x ∈ (U ∩ {z | riemannXi_ext z = 0}) := ⟨hxU, by simpa [Set.mem_setOf_eq] using hxXi⟩
       have hxSingleton : x ∈ ({ρ} : Set ℂ) := by simpa [hIsoXi] using hxInXi
       simpa using hxSingleton

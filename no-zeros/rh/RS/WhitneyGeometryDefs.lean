@@ -703,6 +703,101 @@ lemma unitWhitney_membership_subset_Icc (t : ℝ) :
   -- Conclude membership in the integer interval [⌊t⌋−1, ⌊t⌋]
   exact And.intro h_floor_sub_one_le_m h_m_le_floor
 
+
+/-! ## Cover assembly: from local a.e. positivity on a countable Whitney cover
+to global a.e. positivity on ℝ. -/
+
+open MeasureTheory
+
+/-- If a real-valued function `f` is a.e. nonnegative on each unit Whitney base
+interval (with respect to Lebesgue measure restricted to that interval), then
+`f ≥ 0` a.e. on `ℝ`.
+
+We use the canonical countable cover `{I_m := [m, m+1]}` and the fact that
+`⋃ₘ I_m = univ` (hence its complement has measure 0). Local a.e. positivity on
+each `I_m` implies the nullity of `I_m ∩ {f<0}`; a countable union argument
+then shows `{f<0}` is null, i.e. `f ≥ 0` a.e. -/
+theorem ae_nonneg_from_unitWhitney_local
+  (f : ℝ → ℝ)
+  (hlocal : ∀ m : ℤ,
+    ∀ᵐ t ∂(Measure.restrict volume (WhitneyInterval.interval (unitWhitney m))),
+      0 ≤ f t) :
+  ∀ᵐ t : ℝ, 0 ≤ f t := by
+  classical
+  -- Define the positivity set S := {t | 0 ≤ f t}
+  let S : Set ℝ := {t | 0 ≤ f t}
+  -- Each local a.e. statement gives a null intersection with Sᶜ
+  have h_piece : ∀ m : ℤ,
+      volume (WhitneyInterval.interval (unitWhitney m) ∩ Sᶜ) = 0 := by
+    intro m
+    have hz :
+        (Measure.restrict volume (WhitneyInterval.interval (unitWhitney m))) Sᶜ = 0 := by
+      -- AE on the restricted measure is null complement
+      simpa [S, Set.compl_setOf] using (ae_iff.1 (hlocal m))
+    -- rewrite restricted-measure nullity as an intersection nullity
+    simpa [Measure.restrict_apply, Set.inter_comm, Set.inter_left_comm, Set.inter_assoc]
+      using hz
+  -- Countable union of the local null intersections is null
+  have h_iUnion_null :
+      volume ((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)) ∩ Sᶜ) = 0 := by
+    -- First prove the nullity on the iUnion of the intersections
+    have h_union :
+        volume (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m) ∩ Sᶜ) = 0 := by
+      simpa using
+        (measure_iUnion_null
+          (s := fun m : ℤ => WhitneyInterval.interval (unitWhitney m) ∩ Sᶜ)
+          (f := fun m => h_piece m))
+    -- Then rewrite as intersection with the iUnion of intervals
+    simpa [Set.iUnion_inter] using h_union
+  -- The complement of the unit-Whitney cover has measure 0 (it is empty)
+  have h_cover_null : volume ((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ) = 0 := by
+    simpa [unitWhitney_cover_univ]
+  -- Control the measure of Sᶜ by splitting along the cover and its complement
+  have h_split :
+      volume (Sᶜ)
+        ≤ volume (((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)) ∩ Sᶜ))
+          + volume (((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ)) := by
+    -- Sᶜ = (Sᶜ ∩ cover) ∪ (Sᶜ ∩ coverᶜ)
+    have hEq : Sᶜ
+        = ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))) ∪
+          ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ) := by
+      ext t; constructor
+      · intro ht
+        by_cases hmem : t ∈ ⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)
+        · exact Or.inl ⟨ht, hmem⟩
+        · exact Or.inr ⟨ht, hmem⟩
+      · intro ht
+        rcases ht with ht | ht
+        · exact ht.left
+        · exact ht.left
+    -- Estimate the measure of the union by the sum of measures
+    have hμ : volume
+        ( ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))) ∪
+          ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ) )
+        ≤ volume ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)))
+          + volume ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ) :=
+      measure_union_le _ _
+    -- Convert the RHS via commutativity of intersections
+    simpa [hEq, Set.inter_comm, Set.inter_left_comm, Set.inter_assoc]
+      using hμ
+  -- Use the two null bounds to conclude Sᶜ is null
+  have hSnull : volume (Sᶜ) = 0 := by
+    -- h_iUnion_null controls the first term, h_cover_null the second
+    have h0 :
+        volume (((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)) ∩ Sᶜ))
+          + volume (((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ)) = 0 := by
+      simp [h_iUnion_null, h_cover_null]
+    -- From `μ(Sᶜ) ≤ 0` and nonnegativity, deduce equality
+    apply le_antisymm_iff.mp
+    constructor
+    · simpa [h0] using h_split
+    · exact bot_le
+  -- Convert back to an a.e. statement
+  have : ∀ᵐ t : ℝ, t ∈ S := by
+    simpa [ae_iff, S, Set.compl_setOf] using hSnull
+  -- unwrap the set membership
+  exact this.mono (by intro t ht; simpa [S] using ht)
+
 end Whitney
 end RS
 end RH

@@ -1,7 +1,10 @@
 import Mathlib.Data.Complex.Basic
+import Mathlib.Analysis.Calculus.Deriv.Basic
+import Mathlib.MeasureTheory.Integral.Bochner
 import rh.RS.SchurGlobalization
 import rh.RS.Det2Outer
 import rh.academic_framework.CompletedXi
+import rh.academic_framework.HalfPlaneOuterV2
 
 /-!
 # Cayley interface for Θ := Cayley(2·J)
@@ -14,9 +17,28 @@ It reuses the general helper `SchurOnRectangles` from `SchurGlobalization`.
 namespace RH
 namespace RS
 
-open Complex Set RH.AcademicFramework.CompletedXi
+open Complex Set RH.AcademicFramework.CompletedXi MeasureTheory
 
 noncomputable section
+
+/--
+Wrapper lemma for change-of-variables steps:
+If `(f ∘ θ) * (deriv θ)` is integrable and is a.e. equal to `-g` (with respect to `volume`),
+then `g` is integrable.
+
+Designed for reuse on the AF side; avoids re-deriving integrability via congruence.
+-/
+lemma integrable_of_comp_mul_deriv_ae_neg_eq
+    {θ : ℝ → ℝ} {f g : ℝ → ℝ}
+    (hInt : Integrable (fun t : ℝ => f (θ t) * deriv θ t))
+    (hAE : (fun t : ℝ => f (θ t) * deriv θ t) =ᵐ[volume] (fun t => - g t)) :
+    Integrable g := by
+  -- First transfer integrability along the a.e. equality
+  have hIntNeg : Integrable (-g) := by
+    -- `-g` is definitionally `fun t => - g t`
+    simpa using hInt.congr hAE
+  -- Then use the symmetry of integrability under negation
+  simpa using (integrable_neg_iff (μ := volume) (f := g)).1 hIntNeg
 
 /-- Cayley(2·J): define `Θ := (2·J − 1) / (2·J + 1)`. -/
 def Theta_of_J (J : ℂ → ℂ) : ℂ → ℂ :=
@@ -33,13 +55,6 @@ lemma Theta_Schur_of_Re_nonneg_on
   simpa [Theta_of_J] using this
 
 /-- Convenience specialization to `Ω \ {ξ_ext = 0}`. -/
-lemma Theta_Schur_of_Re_nonneg_on_Ω_offZeta
-    (J : ℂ → ℂ)
-    (hRe : ∀ z ∈ (Ω \ {z | riemannZeta z = 0}), 0 ≤ ((2 : ℂ) * J z).re) :
-    IsSchurOn (Theta_of_J J) (Ω \ {z | riemannZeta z = 0}) :=
-  Theta_Schur_of_Re_nonneg_on J (S := (Ω \ {z | riemannZeta z = 0})) hRe
-
-/-- Convenience specialization to `Ω \\ {ξ_ext = 0}`. -/
 lemma Theta_Schur_of_Re_nonneg_on_Ω_offXi
     (J : ℂ → ℂ)
     (hRe : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}), 0 ≤ ((2 : ℂ) * J z).re) :
@@ -51,11 +66,8 @@ lemma Theta_Schur_of_Re_nonneg_on_offXi
     (J : ℂ → ℂ)
     (hRe : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
         0 ≤ ((2 : ℂ) * J z).re) :
-    IsSchurOn (Theta_of_J J) RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
-  -- Restrict from Ω \ {z | ξ = 0} using the inclusion offXi ⊆ …
-  have hRe' : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
-      0 ≤ ((2 : ℂ) * J z).re := hRe
-  refine Theta_Schur_of_Re_nonneg_on J _ ?hRe'
+    IsSchurOn (Theta_of_J J) RH.AcademicFramework.HalfPlaneOuterV2.offXi :=
+  Theta_Schur_of_Re_nonneg_on J (S := RH.AcademicFramework.HalfPlaneOuterV2.offXi) hRe
 
 /-! Pinch outer data specialized to the ext ξ. -/
 
@@ -81,11 +93,8 @@ lemma Θ_pinch_Schur_offXi (P : PinchOuterExt) :
       intro hzero
       exact hz.2.2 (by simpa [Set.mem_setOf_eq] using hzero)
     exact P.hRe_offXi z hzOff
-  refine Theta_Schur_of_Re_nonneg_on (J := P.J)
+  exact Theta_Schur_of_Re_nonneg_on (J := P.J)
     (S := RH.AcademicFramework.HalfPlaneOuterV2.offXi) hRe_off
-
-/-! A stronger certificate that also includes the pinned-limit → removable
-construction at each `ξ_ext` zero, for a concrete `J`. -/
 
 /-- Pinch certificate specialized to `riemannXi_ext` on Ω. It records:
 - `J` and the nonnegativity of `Re(2·J)` off `Z(ξ_ext)` (to get Schur)
@@ -107,7 +116,9 @@ lemma Θ_cert_Schur_offXi (C : PinchCertificateExt) :
     IsSchurOn (Θ_cert C) (Ω \ {z | riemannXi_ext z = 0}) := by
   simpa [Θ_cert] using Theta_Schur_of_Re_nonneg_on_Ω_offXi C.J C.hRe_offXi
 
-/-! Concrete pinch choice and certificate builder. -/
+/-! (Further certificate constructions omitted; not needed for current build.) -/
+
+/-- Concrete pinch choice and certificate builder. -/
 
 /-- Paper choice: define `J_pinch := det₂ / (O · ξ_ext)` on Ω. -/
 def J_pinch (det2 O : ℂ → ℂ) : ℂ → ℂ :=

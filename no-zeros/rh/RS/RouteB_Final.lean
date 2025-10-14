@@ -3,6 +3,7 @@
 import rh.RS.Det2Outer
 import rh.RS.CRGreenOuter
 import rh.RS.PPlusFromCarleson
+import rh.RS.WhitneyAeCore
 import rh.RS.OffZerosBridge
 import rh.RS.PinchWrappers
 import rh.academic_framework.HalfPlaneOuterV2
@@ -54,8 +55,8 @@ theorem boundary_positive_AF :
   RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
     (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)) := by
   -- Start from canonical PPlus on the AF boundary
-  have hCanon : RH.RS.BoundaryWedgeProof.PPlus_canonical :=
-    RH.RS.PPlus_canonical_proved
+  have hCanon : RH.RS.WhitneyAeCore.PPlus_canonical :=
+    (RH.RS.PPlus_canonical_proved)
   -- Rewrite the integrand via J_CR = J_pinch and `O = outer_exists.outer`
   refine hCanon.mono ?_
   intro t ht
@@ -212,17 +213,14 @@ lemma xi_ext_boundary_measurable :
 -- These are available from the det2/xi constructions; keep them as lemmas
 lemma det2_analytic_on_RSΩ : AnalyticOn ℂ RH.RS.det2 RH.RS.Ω :=
   RH.RS.det2_analytic_on_RSΩ
-axiom det2_nonzero_on_RSΩ : ∀ {s}, s ∈ RH.RS.Ω → RH.RS.det2 s ≠ 0
--- riemannXi_ext = completedRiemannZeta has a simple pole at 1, so we work on Ω\{1}
-lemma riemannXi_ext_analytic_AFΩ :
-  AnalyticOn ℂ riemannXi_ext (RH.AcademicFramework.HalfPlaneOuterV2.Ω
+-- riemannXi_ext has a simple pole at 1, so we work on Ω\{1}
+lemma riemannXi_ext_differentiable_AFΩ :
+  DifferentiableOn ℂ riemannXi_ext (RH.AcademicFramework.HalfPlaneOuterV2.Ω
     \ ({1} : Set ℂ)) := by
-  -- AF result specialized: Ω in AF equals RS.Ω; use the minus-one variant
-  -- and rewrite domains
+  -- AF Ω = RS.Ω; use DifferentiableOn variant
   have hΩeq : RH.AcademicFramework.HalfPlaneOuterV2.Ω = RH.RS.Ω := rfl
-  -- Use AF lemma providing analyticity on RS.Ω \ {1}
   simpa [hΩeq] using
-    RH.AcademicFramework.CompletedXi.riemannXi_ext_analytic_on_RSΩ_minus_one
+    RH.AcademicFramework.CompletedXi.riemannXi_ext_differentiable_on_RSΩ_minus_one
 
 /-! Replace the old witness with a pullback representation on S via Cayley. -/
 private def S : Set ℂ := RH.AcademicFramework.HalfPlaneOuterV2.Ω \
@@ -261,9 +259,7 @@ theorem pullback_hasPoissonRepOn_offXi :
 theorem F_pinch_has_poisson_rep : HasPoissonRepOn
     (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
     (Ω \ {z | riemannXi_ext z = 0}) := by
-  -- Package det2 analyticity/nonvanishing on RS Ω
-  have hDet2 : RH.RS.Det2OnOmega := RH.RS.det2_on_Ω_assumed det2_analytic_on_RSΩ (by
-    intro s hs; exact det2_nonzero_on_RSΩ (s := s) hs)
+  -- Use analytic-only variant to avoid any det₂ nonvanishing assumption on Ω
   -- Extract RS outer data and boundary modulus
   have hOuter : RH.RS.OuterHalfPlane O := (O_spec).1
   have hBMErs : RH.RS.BoundaryModulusEq O (fun s => RH.RS.det2 s / riemannXi_ext s) := (O_spec).2
@@ -290,13 +286,13 @@ theorem F_pinch_has_poisson_rep : HasPoissonRepOn
   have hReEqOn : RH.AcademicFramework.PoissonCayley.HasHalfPlanePoissonReEqOn F0 S := by
     exact RH.AcademicFramework.PoissonCayley.pinch_halfplane_ReEqOn_from_cayley
       (F := F0) (H := Hpull) (S := S) hInt hBd pullback_hasPoissonRepOn_offXi
-  -- Finish building the subset representation using the AF builder
-  exact RH.AcademicFramework.HalfPlaneOuterV2.pinch_hasPoissonRepOn_from_cayley
-    hDet2 (hO := hOuter) (hBME := hBME_af) (hXi := riemannXi_ext_analytic_AFΩ)
+  -- Finish building the subset representation using the AF analytic-only builder
+  exact RH.AcademicFramework.HalfPlaneOuterV2.pinch_hasPoissonRepOn_from_cayley_analytic
+    (hDet2A := det2_analytic_on_RSΩ) (hO := hOuter) (hBME := hBME_af)
+    (hXi := riemannXi_ext_differentiable_AFΩ)
     det2_boundary_measurable O_boundary_measurable xi_ext_boundary_measurable
     (by
       intro z hz
-      -- Unpack the identity from the Cayley bridge on S
       have := hReEqOn z hz
       simpa [F0] using this)
 

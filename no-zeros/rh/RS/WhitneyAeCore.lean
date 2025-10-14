@@ -31,5 +31,3 @@ theorem PPlus_canonical_ae :
   intro h; simpa [PPlus_canonical, PPlus_holds]
 
 end RH.RS.WhitneyAeCore
-
-

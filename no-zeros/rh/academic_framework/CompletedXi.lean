@@ -2,19 +2,15 @@ import Mathlib.Analysis.SpecialFunctions.Gamma.Deligne
 import Mathlib.Analysis.Analytic.Basic
 import Mathlib.Analysis.SpecialFunctions.Complex.Log
 import Mathlib.Tactic
-import Mathlib.Analysis.SpecialFunctions.Complex.Log
 import Mathlib.NumberTheory.LSeries.RiemannZeta
 import rh.academic_framework.ZetaFunctionalEquation
 import rh.RS.Domain
 import Mathlib.Topology.Basic
--- Do not import RS here to avoid cycles; keep this module self-contained in AF.
+import Mathlib.Analysis.Complex.CauchyIntegral
 
 /-!
-Completed Riemann ξ function: archimedean factor `G` and `riemannXi = G · ζ`.
-
-This module defines the completed ξ used by the proof assembly. Deeper
-properties (functional equation, nonvanishing facts, etc.) are provided by
-callers or other modules.
+Completed Riemann ξ function (ext): we use mathlib's `completedRiemannZeta` and
+expose minimal interface pieces needed by RS.
 -/
 
 noncomputable section
@@ -23,161 +19,87 @@ open Complex
 
 namespace RH.AcademicFramework.CompletedXi
 
-/-- Archimedean factor for the completed Riemann ξ function. -/
-def G (s : ℂ) : ℂ :=
-  ((1 : ℂ) / 2) * s * (1 - s) * (Real.pi : ℂ) ^ (-(s / 2)) * Complex.Gamma (s / 2)
-
-/-- Completed Riemann ξ function, defined by `ξ = G · ζ`. -/
-def riemannXi (s : ℂ) : ℂ := G s * riemannZeta s
-
-/-- Factorization of ξ (definition level). -/
-@[simp] theorem xi_factorization (s : ℂ) : riemannXi s = G s * riemannZeta s := rfl
-
-/-! Auxiliary nonvanishing facts for the archimedean factor `G`. -/
-
-private lemma one_half_ne_zero : ((1 : ℂ) / 2) ≠ 0 := by
-  have h₂ : (2 : ℂ) ≠ 0 := by norm_num
-  have h₁ : (1 : ℂ) ≠ 0 := by norm_num
-  simpa using div_ne_zero h₁ h₂
-
-private lemma pi_ne_zero_ℂ : (Real.pi : ℂ) ≠ 0 := by
-  exact_mod_cast Real.pi_ne_zero
-
-private lemma cpow_pi_ne_zero (s : ℂ) : (Real.pi : ℂ) ^ (-(s / 2)) ≠ 0 := by
-  classical
-  have hπ0 : (Real.pi : ℂ) ≠ 0 := pi_ne_zero_ℂ
-  have hdef : (Real.pi : ℂ) ^ (-(s / 2))
-      = Complex.exp (Complex.log (Real.pi : ℂ) * (-(s / 2))) := by
-    simpa [Complex.cpow_def, hπ0]
-  have : Complex.exp (Complex.log (Real.pi : ℂ) * (-(s / 2))) ≠ 0 :=
-    Complex.exp_ne_zero _
-  simpa [hdef] using this
-
-
-/-! Ext variant without the polynomial factor. -/
-
-/-/ Archimedean factor for the standard completed zeta (no polynomial). -/
-def G_ext (s : ℂ) : ℂ :=
-  (Real.pi : ℂ) ^ (-s / 2) * Complex.Gamma (s / 2)
-
-/-/ Completed Riemann ξ (ext), defined here as mathlib's completed zeta `Λ(s)`. -/
+/-- Completed Riemann ξ (ext), defined as mathlib's completed zeta `Λ(s)`. -/
 def riemannXi_ext (s : ℂ) : ℂ := completedRiemannZeta s
 
-/-/ Factorization of ξ_ext on Ω (where `s ≠ 0`): Λ(s) = Γℝ(s) · ζ(s). -/
-theorem xi_ext_factorization_on_Ω : ∀ ρ ∈ RH.RS.Ω, riemannXi_ext ρ = G_ext ρ * riemannZeta ρ := by
-  intro ρ hΩ
-  -- From Ω: (1/2) < ρ.re ⇒ 0 < ρ.re and thus ρ ≠ 0
-  have hhalf : (1 / 2 : ℝ) < ρ.re := by
-    simpa [RH.RS.Ω, Set.mem_setOf_eq] using hΩ
-  have hReρ_pos : 0 < ρ.re := by
-    have : (1 / 2 : ℝ) < ρ.re := hhalf
-    linarith
-  have hρ_ne : ρ ≠ 0 := by
-    intro h0
-    have : 0 < (0 : ℝ) := by simpa [h0, Complex.zero_re] using hReρ_pos
-    exact (lt_irrefl _) this
-  -- Helper: normalize exponent -(ρ/2) = (-ρ)/2
-  have neg_div_two (z : ℂ) : -(z / 2) = (-z) / 2 := by
-    calc
-      -(z / 2) = -(z * (2 : ℂ)⁻¹) := by simpa [div_eq_mul_inv]
-      _ = (-z) * (2 : ℂ)⁻¹       := by simpa [neg_mul]
-      _ = (-z) / 2               := by simpa [div_eq_mul_inv]
-  -- ζ = Λ / Γℝ at ρ ≠ 0
-  have hζ : riemannZeta ρ = completedRiemannZeta ρ / Complex.Gammaℝ ρ :=
-    riemannZeta_def_of_ne_zero (s := ρ) hρ_ne
-  -- Nonvanishing of Γℝ on Ω
-  have hΓR_ne : Complex.Gammaℝ ρ ≠ 0 := Complex.Gammaℝ_ne_zero_of_re_pos hReρ_pos
-  -- Short calc from ζ = Λ/Γℝ avoiding mul_div lemmas and deep simp
-  have hcalc : G_ext ρ * riemannZeta ρ = riemannXi_ext ρ := by
-    calc
-      G_ext ρ * riemannZeta ρ
-          = ((Real.pi : ℂ) ^ (-ρ / 2) * Complex.Gamma (ρ / 2)) * riemannZeta ρ := by
-                -- align exponent to the normalized form used by Gammaℝ_def
-                have hpow : (Real.pi : ℂ) ^ (-ρ / 2) = (Real.pi : ℂ) ^ (-(ρ / 2)) := by
-                  simpa [neg_div_two ρ]
-                simpa [G_ext, hpow]
-      _   = ρ.Gammaℝ * riemannZeta ρ := by
-                rw [← Complex.Gammaℝ_def (s := ρ)]
-      _   = ρ.Gammaℝ * (completedRiemannZeta ρ / ρ.Gammaℝ) := by
-                rw [hζ]
-      _   = ρ.Gammaℝ * (completedRiemannZeta ρ * (ρ.Gammaℝ)⁻¹) := by
-                rw [div_eq_mul_inv]
-      _   = (ρ.Gammaℝ * completedRiemannZeta ρ) * (ρ.Gammaℝ)⁻¹ := by
-                rw [mul_assoc]
-      _   = (completedRiemannZeta ρ * ρ.Gammaℝ) * (ρ.Gammaℝ)⁻¹ := by
-                rw [mul_comm (ρ.Gammaℝ) (completedRiemannZeta ρ)]
-      _   = completedRiemannZeta ρ * (ρ.Gammaℝ * (ρ.Gammaℝ)⁻¹) := by
-                rw [← mul_assoc]
-      _   = completedRiemannZeta ρ * 1 := by
-                -- use the group_with_zero cancel lemma directly
-                have hcancel : ρ.Gammaℝ * (ρ.Gammaℝ)⁻¹ = (1 : ℂ) :=
-                  mul_inv_cancel₀ hΓR_ne
-                rw [hcancel]
-      _   = completedRiemannZeta ρ := by
-                rw [mul_one]
-      _   = riemannXi_ext ρ := rfl
-  exact hcalc.symm
-
-/-! Nonvanishing for the ext Archimedean factor on Ω. -/
-theorem G_ext_nonzero_on_Ω : ∀ ρ ∈ RH.RS.Ω, G_ext ρ ≠ 0 := by
-  intro ρ hΩ
-  -- Identify with `Gammaℝ ρ` to leverage standard nonvanishing facts
-  have hhalf : (1 / 2 : ℝ) < ρ.re := by
-    simpa [RH.RS.Ω, Set.mem_setOf_eq] using hΩ
-  have hReρ_pos : 0 < ρ.re := lt_trans (by norm_num : (0 : ℝ) < 1 / 2) hhalf
-  -- Rewrite and conclude
-  have : G_ext ρ = Complex.Gammaℝ ρ := by
-    rw [G_ext, ← Complex.Gammaℝ_def (s := ρ)]
-  have hΓR_ne : Complex.Gammaℝ ρ ≠ 0 := Gammaℝ_ne_zero_of_re_pos hReρ_pos
-  simpa [this]
-
-/-- On Ω, zeros of `riemannXi_ext` coincide with zeros of `riemannZeta`. -/
-theorem xi_ext_zeros_eq_zeta_zeros_on_Ω :
-  ∀ z ∈ RH.RS.Ω, riemannXi_ext z = 0 ↔ riemannZeta z = 0 := by
-  intro z hzΩ
-  have hfac : riemannXi_ext z = G_ext z * riemannZeta z :=
-    xi_ext_factorization_on_Ω z hzΩ
-  have hGnz : G_ext z ≠ 0 := G_ext_nonzero_on_Ω z hzΩ
-  constructor
-  · intro hXi
-    have : G_ext z * riemannZeta z = 0 := by simpa [hfac] using hXi
-    have hdisj := mul_eq_zero.mp this
-    cases hdisj with
-    | inl hG0 => exact (hGnz hG0).elim
-    | inr hζ0 => exact hζ0
-  · intro hζ
-    simpa [hfac, hζ]
+/-- Open right half-plane Ω = { s | Re s > 1/2 }. -/
+private lemma isOpen_Ω : IsOpen RH.RS.Ω := by
+  change IsOpen { s : ℂ | (1 / 2 : ℝ) < s.re }
+  exact isOpen_lt continuous_const Complex.continuous_re
 
 /-- Differentiability of `riemannXi_ext` away from `0` and `1`. -/
 lemma differentiableAt_riemannXi_ext {s : ℂ} (hs0 : s ≠ 0) (hs1 : s ≠ 1) :
   DifferentiableAt ℂ riemannXi_ext s := by
   simpa [riemannXi_ext] using differentiableAt_completedZeta (s := s) hs0 hs1
 
-/-- Differentiability of `riemannXi_ext` on the right half-plane away from `1`.
-Since `RH.RS.Ω = {s : ℂ | (1/2 : ℝ) < s.re}` excludes `0`, differentiability fails only at `1`. -/
+/-- Differentiability of `riemannXi_ext` on Ω \ {1}. -/
 theorem riemannXi_ext_differentiable_on_RSΩ_minus_one :
   DifferentiableOn ℂ riemannXi_ext (RH.RS.Ω \ ({1} : Set ℂ)) := by
   intro z hz
   -- z ∈ Ω and z ≠ 1
   have hzΩ : (1 / 2 : ℝ) < z.re := by
     simpa [RH.RS.Ω, Set.mem_setOf_eq] using hz.1
-  -- Hence z ≠ 0
   have hz0 : z ≠ 0 := by
     intro h0
     have : (0 : ℝ) < z.re := lt_trans (by norm_num : (0 : ℝ) < 1 / 2) hzΩ
     simpa [h0, Complex.zero_re] using this
-  have hz1 : z ≠ 1 := by
-    simpa using hz.2
-  -- Turn DifferentiableAt into DifferentiableWithinAt on the set
+  have hz1 : z ≠ 1 := by simpa using hz.2
   exact (differentiableAt_riemannXi_ext (s := z) hz0 hz1).differentiableWithinAt
 
--- (omitted: special value/nonvanishing at 1, to avoid depending on specific lemma names)
+/-- Analyticity of `riemannXi_ext` on Ω \ {1}``, via open-set equivalence. -/
+lemma riemannXi_ext_analytic_on_RSΩ_minus_one :
+  AnalyticOn ℂ riemannXi_ext (RH.RS.Ω \ ({1} : Set ℂ)) := by
+  have hOpen : IsOpen (RH.RS.Ω \ ({1} : Set ℂ)) :=
+    (isOpen_Ω).sdiff isClosed_singleton
+  -- use the equivalence on open sets
+  have h :=
+    (analyticOn_iff_differentiableOn (f := riemannXi_ext)
+      (s := RH.RS.Ω \ ({1} : Set ℂ)) hOpen)
+  exact h.mpr riemannXi_ext_differentiable_on_RSΩ_minus_one
 
--- The ext ξ equals mathlib's completed zeta `
+/-- On Ω, zeros of `riemannXi_ext` coincide with zeros of `riemannZeta`. -/
+lemma xi_ext_zeros_eq_zeta_zeros_on_Ω :
+  ∀ z ∈ RH.RS.Ω, riemannXi_ext z = 0 ↔ riemannZeta z = 0 := by
+  intro z hzΩ
+  -- From Ω: 1/2 < Re z
+  have hhalf : (1 / 2 : ℝ) < z.re := by
+    simpa [RH.RS.Ω, Set.mem_setOf_eq] using hzΩ
+  -- Hence Re z > 0 and Γℝ z ≠ 0
+  have hpos : (0 : ℝ) < z.re := lt_trans (by norm_num : (0 : ℝ) < 1 / 2) hhalf
+  have hΓnz : Complex.Gammaℝ z ≠ 0 := Complex.Gammaℝ_ne_zero_of_re_pos hpos
+  -- Also z ≠ 0, but only Γℝ z ≠ 0 is needed below
+  have hζ : riemannZeta z = completedRiemannZeta z / Complex.Gammaℝ z :=
+    riemannZeta_def_of_ne_zero (s := z) (by
+      intro h0
+      have hnot : ¬ ((1 / 2 : ℝ) < 0) := by norm_num
+      exact hnot (by simpa [h0, Complex.zero_re] using hhalf))
+  constructor
+  · intro hXi
+    -- Λ z = 0 ⇒ ζ z = 0
+    have hΛ0 : completedRiemannZeta z = 0 := by
+      dsimp [riemannXi_ext] at hXi
+      exact hXi
+    -- Rewrite ζ and conclude explicitly
+    calc
+      riemannZeta z = completedRiemannZeta z / Complex.Gammaℝ z := hζ
+      _ = completedRiemannZeta z * (Complex.Gammaℝ z)⁻¹ := by rw [div_eq_mul_inv]
+      _ = 0 * (Complex.Gammaℝ z)⁻¹ := by rw [hΛ0]
+      _ = 0 := by simp
+  · intro hζ0
+    -- ζ z = 0, and Γℝ z ≠ 0 ⇒ Λ z = 0
+    have hdiv0 : completedRiemannZeta z / Complex.Gammaℝ z = 0 := by
+      -- rewrite the ζ-definition into the equality
+      have htmp := hζ0
+      rw [hζ] at htmp
+      exact htmp
+    have hΛ0 : completedRiemannZeta z = 0 := by
+      -- If Λ z ≠ 0 then division by nonzero Γ gives a nonzero value, contradiction
+      by_contra hΛ
+      have : completedRiemannZeta z / Complex.Gammaℝ z ≠ 0 :=
+        div_ne_zero hΛ hΓnz
+      exact this hdiv0
+    -- Conclude ξ_ext z = 0
+    dsimp [riemannXi_ext]
+    exact hΛ0
 
-/-- Continuity of `riemannXi_ext` away from the poles at `0` and `1`. -/
-lemma continuousAt_riemannXi_ext {s : ℂ} (hs0 : s ≠ 0) (hs1 : s ≠ 1) :
-  ContinuousAt riemannXi_ext s :=
-  (differentiableAt_riemannXi_ext hs0 hs1).continuousAt
-
--- (no measurability lemma currently supplied; measurability is assumed downstream.)
+end RH.AcademicFramework.CompletedXi
