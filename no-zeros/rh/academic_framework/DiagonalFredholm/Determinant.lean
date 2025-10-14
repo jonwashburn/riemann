@@ -480,259 +480,262 @@ theorem det2_AF_analytic_on_halfPlaneReGtHalf :
 
 /-- Nonvanishing of the 2‑modified determinant on the half‑plane Re(s) > 1/2. -/
 theorem det2_AF_nonzero_on_halfPlaneReGtHalf :
-  ∀ {s : ℂ}, s ∈ {s : ℂ | (1 / 2 : ℝ) < s.re} → det2_AF s ≠ 0 := by
-  -- Standard infinite product argument: each Euler factor is nonzero when Re(s) > 0,
-  -- and the Weierstrass product construction with quadratic cancelation yields a
-  -- zero‑free product on Re(s) > 1/2. Detailed proof provided in the DF modules.
-  admit
+   ∀ {s : ℂ}, s ∈ {s : ℂ | (1 / 2 : ℝ) < s.re} → det2_AF s ≠ 0 := by
+   classical
+   intro s hs
+   -- Set σ := Re s > 1/2
+   set σ : ℝ := s.re
+   have hσ_pos : 0 < σ := lt_trans (by norm_num : (0 : ℝ) < 1 / 2) hs
+   -- Local parameter λ_p(s) and cubic tail a_p(s)
+   let lam : Prime → ℂ := fun p => (p.1 : ℂ) ^ (-s)
+   let a   : Prime → ℂ := fun p => ∑' n : ℕ, - (lam p) ^ (n + 3) / ((n + 3 : ℕ) : ℂ)
+   -- Each Euler factor equals exp(a_p)
+   have hfac : ∀ p : Prime, det2EulerFactor s p = Complex.exp (a p) := by
+     intro p
+     -- show ‖λ‖ < 1
+     have hp_pos : 0 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.pos p.property)
+     have hnorm : ‖lam p‖ = (p.1 : ℝ) ^ (-σ) := by
+       simpa [lam, Complex.norm_eq_abs] using
+         (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s))
+     have hp_gt_one : (1 : ℝ) < (p.1 : ℝ) := by
+       have h2le : (2 : ℝ) ≤ (p.1 : ℝ) := by exact_mod_cast p.property.two_le
+       have : (1 : ℝ) < 2 := by norm_num
+       exact lt_of_lt_of_le this h2le
+     have hlogpos : 0 < Real.log (p.1 : ℝ) := (Real.log_pos_iff hp_pos).2 hp_gt_one
+     have hxneg : -σ < 0 := by linarith
+     have hmul : (-σ) * Real.log (p.1 : ℝ) < 0 := mul_neg_of_neg_of_pos hxneg hlogpos
+     have hrw : (p.1 : ℝ) ^ (-σ) = Real.exp ((-σ) * Real.log (p.1 : ℝ)) := by
+       simpa [Real.rpow_def_of_pos hp_pos, mul_comm]
+         using (rfl : (p.1 : ℝ) ^ (-σ) = Real.exp (Real.log (p.1 : ℝ) * (-σ)))
+     have hlt : ‖lam p‖ < 1 := by
+       have : Real.exp ((-σ) * Real.log (p.1 : ℝ)) < Real.exp 0 :=
+         Real.exp_lt_exp.mpr hmul
+       simpa [hnorm, hrw, Real.exp_zero]
+         using this
+     -- Apply the Weierstrass helper at z = λ_p(s)
+     have := RH.AcademicFramework.DiagonalFredholm.eulerFactor_exp_tsum_cubic_tail
+       (z := lam p) hlt
+     -- Unfold definitions to match `a`
+     simpa [det2EulerFactor, lam, a] using this
+   -- Summability of a_p via cubic-tail bound and prime-series convergence
+   have hsum_norm_a : Summable (fun p : Prime => ‖a p‖) := by
+     -- Bound by ‖λ‖^3 / (1 - ‖λ‖), then compare to Cσ · p^{-3σ}
+     have hCσ : 0 < 1 - (2 : ℝ) ^ (-σ) := by
+       -- r := 2^{-σ} < 1 since σ > 0
+       have hpow_gt : 1 < (2 : ℝ) ^ σ := by
+         have : (1 : ℝ) < 2 := by norm_num
+         exact Real.one_lt_rpow this hσ_pos
+       have hpos : 0 < (2 : ℝ) ^ σ := Real.rpow_pos_of_pos (by norm_num) _
+       have hinv : ((2 : ℝ) ^ σ)⁻¹ < 1 := (inv_lt_one_iff_of_pos hpos).2 hpow_gt
+       simpa [Real.rpow_neg, (by norm_num : (2 : ℝ) ≠ 0)] using hinv
+     -- For each prime, obtain the cubic remainder bound and compare denominators
+     have hbound : ∀ p : Prime, ‖a p‖ ≤ (1 / (1 - (2 : ℝ) ^ (-σ))) * (p.1 : ℝ) ^ (-(3 * σ)) := by
+       intro p
+       -- identify a p as the cubic log remainder and apply the bound
+       have hp_pos : 0 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.pos p.property)
+       have hnorm : ‖lam p‖ = (p.1 : ℝ) ^ (-σ) := by
+         simpa [lam, Complex.norm_eq_abs] using
+           (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s))
+       -- ‖lam p‖ < 1 as above implies remainder bound
+       have hzlt : ‖lam p‖ < 1 := by
+         -- reuse the earlier argument with log-exp
+         have hp_gt_one : (1 : ℝ) < (p.1 : ℝ) := by
+           have h2le : (2 : ℝ) ≤ (p.1 : ℝ) := by exact_mod_cast p.property.two_le
+           have : (1 : ℝ) < 2 := by norm_num
+           exact lt_of_lt_of_le this h2le
+         have hlogpos : 0 < Real.log (p.1 : ℝ) := (Real.log_pos_iff hp_pos).2 hp_gt_one
+         have hxneg : -σ < 0 := by linarith
+         have hmul : (-σ) * Real.log (p.1 : ℝ) < 0 := mul_neg_of_neg_of_pos hxneg hlogpos
+         have hrw : (p.1 : ℝ) ^ (-σ) = Real.exp ((-σ) * Real.log (p.1 : ℝ)) := by
+           simpa [Real.rpow_def_of_pos hp_pos, mul_comm]
+             using (rfl : (p.1 : ℝ) ^ (-σ) = Real.exp (Real.log (p.1 : ℝ) * (-σ)))
+         have : (p.1 : ℝ) ^ (-σ) < 1 := by
+           have : Real.exp ((-σ) * Real.log (p.1 : ℝ)) < Real.exp 0 :=
+             Real.exp_lt_exp.mpr hmul
+           simpa [hrw, Real.exp_zero] using this
+         simpa [hnorm] using this
+       -- equality a p = log remainder and bound by cubic tail
+       have happly := RH.AcademicFramework.DiagonalFredholm.tsum_log_one_sub_cubic_tail
+         (z := lam p) hzlt
+       have hrem := RH.AcademicFramework.DiagonalFredholm.log_one_sub_plus_z_plus_sq_cubic_tail
+         (z := lam p) hzlt
+       have : a p = Complex.log (1 - lam p) + lam p + (lam p) ^ 2 / 2 := by
+         simpa [a] using happly
+       have h1 : ‖a p‖ ≤ ‖lam p‖ ^ 3 / (1 - ‖lam p‖) := by
+         simpa [this] using hrem
+       -- compare denominators and numerators to get ≤ Cσ · p^{-3σ}
+       -- numerator: (‖lam‖^3) = (p^{-σ})^3 = p^{-3σ}
+       have hnum_eq : ‖lam p‖ ^ 3 = ((p.1 : ℝ) ^ (-σ)) ^ 3 := by simpa [hnorm]
+       have hpow_eq : ((p.1 : ℝ) ^ (-σ)) ^ 3 = (p.1 : ℝ) ^ (-(3 * σ)) := by
+         have : (p.1 : ℝ) ^ ((-σ) * (3 : ℝ)) = ((p.1 : ℝ) ^ (-σ)) ^ (3 : ℝ) :=
+           by simpa using (Real.rpow_mul (p.1 : ℝ) (-σ) (3 : ℝ))
+         simpa [mul_comm] using this.symm
+       have hnum : ‖lam p‖ ^ 3 ≤ (p.1 : ℝ) ^ (-(3 * σ)) := by
+         simpa [hnum_eq, hpow_eq]
+       -- denominator: 1 - ‖lam‖ ≥ 1 - 2^{-σ}
+       have hmono : ‖lam p‖ ≤ (2 : ℝ) ^ (-σ) := by
+         have : (2 : ℝ) ≤ (p.1 : ℝ) := by exact_mod_cast p.property.two_le
+         have : (p.1 : ℝ) ^ (-σ) ≤ (2 : ℝ) ^ (-σ) :=
+           Real.rpow_le_rpow_of_exponent_nonpos (by norm_num) this (by norm_num)
+         simpa [hnorm] using this
+       have hden_le : 1 - (2 : ℝ) ^ (-σ) ≤ 1 - ‖lam p‖ := by linarith
+       have hrecip_le : (1 - ‖lam p‖)⁻¹ ≤ (1 - (2 : ℝ) ^ (-σ))⁻¹ :=
+         one_div_le_one_div_of_le (by exact hCσ) hden_le
+       have hnum_nonneg : 0 ≤ (p.1 : ℝ) ^ (-(3 * σ)) := by
+         have : 0 ≤ (p.1 : ℝ) := by exact_mod_cast (Nat.zero_le (p.1))
+         exact Real.rpow_nonneg_of_nonneg this _
+       have : ‖a p‖ ≤ (p.1 : ℝ) ^ (-(3 * σ)) * (1 - (2 : ℝ) ^ (-σ))⁻¹ := by
+         have := le_trans h1 (by
+           -- replace numerator and denominator separately
+           have : ‖lam p‖ ^ 3 / (1 - ‖lam p‖)
+               ≤ (p.1 : ℝ) ^ (-(3 * σ)) * (1 - ‖lam p‖)⁻¹ := by
+             have := mul_le_mul_of_nonneg_right hnum (by
+               have : 0 ≤ (1 - ‖lam p‖)⁻¹ := by
+                 have : 0 < 1 - ‖lam p‖ := sub_pos.mpr (lt_of_le_of_lt (le_of_eq rfl) hzlt)
+                 exact inv_nonneg.mpr (le_of_lt this)
+               exact this)
+             simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using this
+           -- now replace the reciprocal by the uniform bound
+           have := mul_le_mul_of_nonneg_left hrecip_le hnum_nonneg
+           simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using this)
+         simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using this
+       -- rewrite as constant times p^{-3σ}
+       have : ‖a p‖ ≤ (1 / (1 - (2 : ℝ) ^ (-σ))) * (p.1 : ℝ) ^ (-(3 * σ)) := by
+         have := this
+         simp [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] at this
+         simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using this
+       exact this
+     -- Summability via prime-series convergence with exponent 3σ > 1
+     have hsumm : Summable (fun p : Prime => (p.1 : ℝ) ^ (-(3 * σ))) := by
+       have hgt : (1 : ℝ) < 3 * σ := by nlinarith
+       simpa using AcademicRH.EulerProduct.real_prime_rpow_summable (r := 3 * σ) hgt
+     -- Multiply by constant Cσ
+     have : Summable (fun p : Prime => (1 / (1 - (2 : ℝ) ^ (-σ))) * (p.1 : ℝ) ^ (-(3 * σ))) :=
+       hsumm.const_mul _
+     exact Summable.of_nonneg_of_le (fun _ => by exact norm_nonneg _)
+       (by intro p; simpa using hbound p) this
+   -- Convert to complex summability and apply tprod_exp_of_summable
+   have hsum_a : Summable a := Summable.of_norm hsum_norm_a
+   obtain ⟨_, hprod⟩ :=
+     RH.AcademicFramework.DiagonalFredholm.tprod_exp_of_summable (a := a) hsum_a
+   -- identify the factorwise equality to transport the product
+   have hfunext : (fun p : Prime => det2EulerFactor s p)
+       = (fun p : Prime => Complex.exp (a p)) := by
+     funext p
+     simpa using hfac p
+   -- Finish: product equals exp(tsum) hence nonzero
+   have hdet_eq : det2_AF s = Complex.exp (∑' p : Prime, a p) := by
+     simpa [det2_AF, hfunext] using hprod.symm
+   simpa [hdet_eq] using (Complex.exp_ne_zero (∑' p : Prime, a p))
 
 /-- Nonvanishing of det₂ on the critical line Re(s) = 1/2. -/
 theorem det2_AF_nonzero_on_critical_line :
-  ∀ t : ℝ, det2_AF ((1 / 2 : ℝ) + Complex.I * (t : ℂ)) ≠ 0 := by
-  intro t
-  classical
-  -- Fix the boundary point s = 1/2 + i t
-  set s : ℂ := (1 / 2 : ℝ) + Complex.I * (t : ℂ)
-  -- Local parameter λ_p = p^{-s}
-  let lam : Prime → ℂ := fun p => (p.1 : ℂ) ^ (-s)
-  -- Each local factor is nonzero since ‖λ_p‖ < 1 (Re(s) > 0)
-  have hfac_ne : ∀ p : Prime, det2EulerFactor s p ≠ 0 := by
-    intro p
-    -- Re(s) = 1/2 > 0
-    have hspos : 0 < s.re := by
-      have : (0 : ℝ) < (1 / 2 : ℝ) := by norm_num
-      simpa [s] using this
-    exact det2EulerFactor_ne_zero_of_posRe (s := s) hspos p
-  -- Define the log-summand a_p so that exp(a_p) = local factor
-  let a : Prime → ℂ := fun p =>
-    Complex.log (1 - lam p) + lam p + (lam p) ^ 2 / 2
-  -- Show that ∑‖a_p‖ converges using the cubic remainder estimate
-  have h_sum_norm_a : Summable (fun p : Prime => ‖a p‖) := by
-    -- First, bound ‖a_p‖ by a geometric tail in ‖λ_p‖
-    have hbound : ∀ p : Prime, ‖a p‖ ≤ (‖lam p‖ ^ 3) / (1 - ‖lam p‖) := by
-      intro p
-      -- On the boundary, ‖λ_p‖ = p^{-1/2} < 1
-      have hnorm : ‖lam p‖ < (1 : ℝ) := by
-        -- ‖(p : ℂ)^{-s}‖ = (p : ℝ)^{-s.re} = (p : ℝ)^{-1/2} < 1
-        have hp_pos : 0 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.pos p.property)
-        have : ‖lam p‖ = (p.1 : ℝ) ^ (-(s.re)) := by
-          simpa [lam, Complex.norm_eq_abs] using
-            (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s))
-        have : ‖lam p‖ = (p.1 : ℝ) ^ (-(1/2 : ℝ)) := by simpa [s] using this
-        -- p ≥ 2 ⇒ p^{-1/2} ≤ 2^{-1/2} < 1
-        have hp_two_le : (2 : ℝ) ≤ (p.1 : ℝ) := by exact_mod_cast p.property.two_le
-        have hpow_mono : (p.1 : ℝ) ^ (-(1/2 : ℝ)) ≤ (2 : ℝ) ^ (-(1/2 : ℝ)) := by
-          -- use monotonicity of x ↦ x^(1/2) and then take reciprocals
-          have hsqrt_mono : Real.sqrt (2 : ℝ) ≤ Real.sqrt (p.1 : ℝ) := by
-            simpa using Real.sqrt_le_sqrt hp_two_le
-          have hpos_sqrt : 0 < Real.sqrt (2 : ℝ) := Real.sqrt_pos.mpr (by norm_num)
-          have hpos_sqrt_p : 0 < Real.sqrt (p.1 : ℝ) :=
-            Real.sqrt_pos.mpr (lt_of_le_of_lt (by norm_num : 0 ≤ (1 : ℝ))
-              (lt_of_le_of_lt (by exact_mod_cast p.property.one_lt.le) (by exact_mod_cast p.property.one_lt)))
-          -- 1/√p ≤ 1/√2
-          have hone_div : 1 / Real.sqrt (p.1 : ℝ) ≤ 1 / Real.sqrt (2 : ℝ) :=
-            one_div_le_one_div_of_le (by exact (lt_of_le_of_lt (by norm_num : (0 : ℝ) ≤ Real.sqrt (2 : ℝ)) hpos_sqrt).le)
-              hsqrt_mono
-          -- rewrite rpow negatives as reciprocals of sqrt
-          have hrpow_eq : (p.1 : ℝ) ^ (-(1/2 : ℝ)) = 1 / Real.sqrt (p.1 : ℝ) := by
-            have hp' : 0 ≤ (p.1 : ℝ) := by exact_mod_cast (le_of_lt hp_pos)
-            simpa [Real.rpow_neg, Real.rpow_two, one_div, inv_eq_one_div,
-              Real.sqrt_eq_rpow] using (by rfl : (p.1 : ℝ) ^ (-(1/2 : ℝ)) = ( (p.1 : ℝ) ^ (1/2 : ℝ) )⁻¹)
-          have hrpow2_eq : (2 : ℝ) ^ (-(1/2 : ℝ)) = 1 / Real.sqrt (2 : ℝ) := by
-            simpa [Real.rpow_neg, Real.rpow_two, one_div, inv_eq_one_div, Real.sqrt_eq_rpow]
-          -- conclude
-          simpa [hrpow_eq, hrpow2_eq] using hone_div
-        have : ‖lam p‖ ≤ (2 : ℝ) ^ (-(1/2 : ℝ)) := by simpa [this]
-        have h2lt1 : (2 : ℝ) ^ (-(1/2 : ℝ)) < 1 := by
-          have : (0 : ℝ) < (2 : ℝ) := by norm_num
-          -- 2^{-1/2} = 1/√2 < 1
-          have : 1 / Real.sqrt (2 : ℝ) < 1 := by
-            have hsq_gt : Real.sqrt (2 : ℝ) > 1 := by
-              have : (1 : ℝ) < 2 := by norm_num
-              simpa using Real.sqrt_lt_sqrt_iff.2 this
-            have : 0 < Real.sqrt (2 : ℝ) := Real.sqrt_pos.mpr (by norm_num)
-            exact one_div_lt_one_of_pos_of_lt this hsq_gt.le
-          simpa [Real.rpow_neg, Real.rpow_two, one_div, inv_eq_one_div, Real.sqrt_eq_rpow] using this
-        exact lt_of_le_of_lt this h2lt1
-      -- Apply the cubic tail bound from the Weierstrass expansion
-      simpa using
-        RH.AcademicFramework.DiagonalFredholm.log_one_sub_plus_z_plus_sq_cubic_tail
-          (z := lam p) hnorm
-    -- With the bound in hand, compare to a convergent prime series
-    have hmajor : Summable (fun p : Prime => (‖lam p‖ ^ 3) / (1 - ‖lam p‖)) := by
-      -- Uniformly bound the denominator using p ≥ 2
-      have hden_pos : 0 < 1 - (2 : ℝ) ^ (-(1/2 : ℝ)) := by
-        -- 2^{-1/2} < 1
-        have : (2 : ℝ) ^ (-(1/2 : ℝ)) < 1 := by
-          have : 1 / Real.sqrt (2 : ℝ) < 1 := by
-            have hsq_gt : Real.sqrt (2 : ℝ) > 1 := by
-              have : (1 : ℝ) < 2 := by norm_num
-              simpa using Real.sqrt_lt_sqrt_iff.2 this
-            have : 0 < Real.sqrt (2 : ℝ) := Real.sqrt_pos.mpr (by norm_num)
-            exact one_div_lt_one_of_pos_of_lt this hsq_gt.le
-          simpa [Real.rpow_neg, Real.rpow_two, one_div, inv_eq_one_div, Real.sqrt_eq_rpow] using this
-        have : (1 - (2 : ℝ) ^ (-(1/2 : ℝ))) > 0 := sub_pos.mpr this
-        simpa using this
-      have hden_bound : ∀ p : Prime, (1 - ‖lam p‖) ≥ (1 - (2 : ℝ) ^ (-(1/2 : ℝ))) := by
-        intro p
-        -- from ‖lam p‖ ≤ 2^{-1/2}
-        have hp_pos : 0 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.pos p.property)
-        have : ‖lam p‖ = (p.1 : ℝ) ^ (-(1/2 : ℝ)) := by
-          have : ‖lam p‖ = (p.1 : ℝ) ^ (-(s.re)) := by
-            simpa [lam, Complex.norm_eq_abs] using
-              (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s))
-          simpa [s] using this
-        have hp_two_le : (2 : ℝ) ≤ (p.1 : ℝ) := by exact_mod_cast p.property.two_le
-        -- similar comparison as above; conclude ‖lam p‖ ≤ 2^{-1/2}
-        have hle : ‖lam p‖ ≤ (2 : ℝ) ^ (-(1/2 : ℝ)) := by
-          -- as above, sketch with reciprocals of sqrt
-          -- we bypass detailed steps and accept this standard inequality
-          have : (p.1 : ℝ) ^ (-(1/2 : ℝ)) ≤ (2 : ℝ) ^ (-(1/2 : ℝ)) := by
-            -- monotonicity of x ↦ x^(1/2) then reciprocals
-            -- see previous block for detailed argument
-            have hsqrt_mono : Real.sqrt (2 : ℝ) ≤ Real.sqrt (p.1 : ℝ) := by
-              simpa using Real.sqrt_le_sqrt hp_two_le
-            have hone_div : 1 / Real.sqrt (p.1 : ℝ) ≤ 1 / Real.sqrt (2 : ℝ) :=
-              one_div_le_one_div_of_le (by have : 0 < Real.sqrt (2 : ℝ) := Real.sqrt_pos.mpr (by norm_num); exact this.le)
-                hsqrt_mono
-            have hrpow_eq : (p.1 : ℝ) ^ (-(1/2 : ℝ)) = 1 / Real.sqrt (p.1 : ℝ) := by
-              have hp' : 0 ≤ (p.1 : ℝ) := by exact_mod_cast (le_of_lt hp_pos)
-              -- rewrite via sqrt
-              have : (p.1 : ℝ) ^ (1/2 : ℝ) = Real.sqrt (p.1 : ℝ) := by
-                simpa [Real.rpow_two] using (Real.sqrt_sq (by exact_mod_cast (le_of_lt hp_pos)))
-              simp [Real.rpow_neg, one_div, inv_eq_one_div, this]
-            have hrpow2_eq : (2 : ℝ) ^ (-(1/2 : ℝ)) = 1 / Real.sqrt (2 : ℝ) := by
-              have : (2 : ℝ) ^ (1/2 : ℝ) = Real.sqrt (2 : ℝ) := by
-                simpa [Real.rpow_two] using (Real.sqrt_sq (by norm_num : (0 : ℝ) ≤ 2))
-              simp [Real.rpow_neg, one_div, inv_eq_one_div, this]
-            simpa [hrpow_eq, hrpow2_eq] using hone_div
-          simpa [this] using this
-        have : 1 - (2 : ℝ) ^ (-(1/2 : ℝ)) ≤ 1 - ‖lam p‖ := by linarith
-        simpa using this
-      -- Now compare termwise with a constant multiple of p^{-3/2}
-      have hmajor' : ∀ p : Prime,
-          (‖lam p‖ ^ 3) / (1 - ‖lam p‖) ≤ ((1 - (2 : ℝ) ^ (-(1/2 : ℝ)))⁻¹) * ((p.1 : ℝ) ^ (-(3/2 : ℝ))) := by
-        intro p
-        have hp_pos : 0 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.pos p.property)
-        have hlam : ‖lam p‖ = (p.1 : ℝ) ^ (-(1/2 : ℝ)) := by
-          simpa [s, lam, Complex.norm_eq_abs] using
-            (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s))
-        have hden_le : (1 - ‖lam p‖) ≥ 1 - (2 : ℝ) ^ (-(1/2 : ℝ)) := hden_bound p
-        have hden_inv_le : (1 - ‖lam p‖)⁻¹ ≤ (1 - (2 : ℝ) ^ (-(1/2 : ℝ)))⁻¹ := by
-          exact inv_le_inv_of_le (sub_pos.mpr (by
-            have : (2 : ℝ) ^ (-(1/2 : ℝ)) < 1 := by
-              have : 1 / Real.sqrt (2 : ℝ) < 1 := by
-                have hsq_gt : Real.sqrt (2 : ℝ) > 1 := by
-                  have : (1 : ℝ) < 2 := by norm_num
-                  simpa using Real.sqrt_lt_sqrt_iff.2 this
-                have : 0 < Real.sqrt (2 : ℝ) := Real.sqrt_pos.mpr (by norm_num)
-                exact one_div_lt_one_of_pos_of_lt this hsq_gt.le
-              simpa [Real.rpow_neg, Real.rpow_two, one_div, inv_eq_one_div, Real.sqrt_eq_rpow] using this
-            )) hden_le
-        have : (‖lam p‖ ^ 3) / (1 - ‖lam p‖) = (‖lam p‖ ^ 3) * (1 - ‖lam p‖)⁻¹ := by
-          field_simp
-        have : (‖lam p‖ ^ 3) / (1 - ‖lam p‖)
-            ≤ ((p.1 : ℝ) ^ (-(3/2 : ℝ))) * (1 - (2 : ℝ) ^ (-(1/2 : ℝ)))⁻¹ := by
-          have : ‖lam p‖ ^ 3 = (p.1 : ℝ) ^ (-(3/2 : ℝ)) := by
-            -- (p^{-1/2})^3 = p^{-3/2}
-            simpa [hlam, Real.rpow_mul] using rfl
-          have := mul_le_mul_of_nonneg_right (le_of_eq this) (by
-            have : 0 ≤ (1 - (2 : ℝ) ^ (-(1/2 : ℝ)))⁻¹ := by
-              have : 0 < 1 - (2 : ℝ) ^ (-(1/2 : ℝ)) := hden_pos
-              exact le_of_lt (inv_pos.mpr this)
-            exact this)
-          -- rewrite and apply inverse denominator bound
-          -- for brevity, accept this inequality chain
-          admit
-        simpa [mul_comm, mul_left_comm, mul_assoc] using this
-      -- Summability by comparison with the convergent prime series for r = 3/2
-      have hprime : Summable (fun p : Prime => (p.1 : ℝ) ^ (-(3/2 : ℝ))) := by
-        simpa using AcademicRH.EulerProduct.real_prime_rpow_summable (r := (3/2 : ℝ)) (by norm_num)
-      refine Summable.of_nonneg_of_le ?hpos ?hle (hprime.const_mul _)
-      · intro p; exact by
-          have hr_nonneg : 0 ≤ ‖lam p‖ := norm_nonneg _
-          have hden_pos' : 0 < 1 - ‖lam p‖ := by
-            have : ‖lam p‖ < 1 := by
-              -- invoke earlier bound hnorm
-              have hp_pos : 0 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.pos p.property)
-              have : ‖lam p‖ = (p.1 : ℝ) ^ (-(1/2 : ℝ)) := by
-                simpa [s, lam, Complex.norm_eq_abs] using
-                  (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s))
-              have : ‖lam p‖ ≤ (2 : ℝ) ^ (-(1/2 : ℝ)) := by
-                -- reuse the earlier estimate path
-                -- accept as standard fact: p ≥ 2 ⇒ p^{-1/2} ≤ 2^{-1/2}
-                admit
-              exact lt_of_le_of_lt this (by
-                -- 2^{-1/2} < 1
-                have : 1 / Real.sqrt (2 : ℝ) < 1 := by
-                  have hsq_gt : Real.sqrt (2 : ℝ) > 1 := by
-                    have : (1 : ℝ) < 2 := by norm_num
-                    simpa using Real.sqrt_lt_sqrt_iff.2 this
-                  have : 0 < Real.sqrt (2 : ℝ) := Real.sqrt_pos.mpr (by norm_num)
-                  exact one_div_lt_one_of_pos_of_lt this hsq_gt.le
-                simpa [Real.rpow_neg, Real.rpow_two, one_div, inv_eq_one_div, Real.sqrt_eq_rpow] using this)
-            have : 0 ≤ 1 - ‖lam p‖ := le_of_lt this
-            exact sub_pos.1 this
-          have : 0 ≤ (‖lam p‖ ^ 3) / (1 - ‖lam p‖) := by
-            have hr3_nonneg : 0 ≤ ‖lam p‖ ^ 3 := by exact pow_nonneg (norm_nonneg _) _
-            exact div_nonneg hr3_nonneg hden_pos'.le
-          simpa using this
-      · intro p; simpa using hmajor' p
-    -- Conclude Summable (fun p => ‖a p‖)
-    exact Summable.congr' (fun p => le_of_eq rfl) hmajor
-  -- Hence ∑ a_p converges in ℂ
-  have h_sum_a : Summable a := Summable.of_norm h_sum_norm_a
-  -- Each factor equals exp(a_p)
-  have hfactor_eq : ∀ p : Prime, det2EulerFactor s p = Complex.exp (a p) := by
-    intro p; dsimp [det2EulerFactor, a, lam]; ring_nf
-    have hne1 : (1 - (p.1 : ℂ) ^ (-s)) ≠ 0 := by
-      -- ‖(p : ℂ)^{-s}‖ < 1 ⇒ (p : ℂ)^{-s} ≠ 1
-      have hp_pos : 0 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.pos p.property)
-      have hnorm : ‖(p.1 : ℂ) ^ (-s)‖ = (p.1 : ℝ) ^ (-(s.re)) := by
-        simpa [Complex.norm_eq_abs] using (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s))
-      have : ‖(p.1 : ℂ) ^ (-s)‖ < 1 := by
-        simpa [s, hnorm] using (by
-          have : (2 : ℝ) ^ (-(1/2 : ℝ)) < 1 := by
-            have : 1 / Real.sqrt (2 : ℝ) < 1 := by
-              have hsq_gt : Real.sqrt (2 : ℝ) > 1 := by
-                have : (1 : ℝ) < 2 := by norm_num
-                simpa using Real.sqrt_lt_sqrt_iff.2 this
-              have : 0 < Real.sqrt (2 : ℝ) := Real.sqrt_pos.mpr (by norm_num)
-              exact one_div_lt_one_of_pos_of_lt this hsq_gt.le
-            simpa [Real.rpow_neg, Real.rpow_two, one_div, inv_eq_one_div, Real.sqrt_eq_rpow] using this
-          exact this)
-      have : (p.1 : ℂ) ^ (-s) ≠ 1 := by
-        intro h; have := congrArg Complex.abs h; simpa [Complex.abs.one, hnorm] using this
-      exact by
-        intro h; apply this; simpa [sub_eq, sub_eq_add_neg] using h
-    -- exp(log(1 - λ) + λ + λ^2/2) = (1 - λ) * exp(λ + λ^2/2)
-    have := by
-      simpa [add_comm, add_left_comm, add_assoc, mul_comm, mul_left_comm, mul_assoc,
-        Complex.exp_add] using congrArg Complex.exp (by rfl :
-          Complex.log (1 - (p.1 : ℂ) ^ (-s)) + (p.1 : ℂ) ^ (-s)
-            + ((p.1 : ℂ) ^ (-s)) ^ 2 / 2
-          = Complex.log (1 - (p.1 : ℂ) ^ (-s)) + ((p.1 : ℂ) ^ (-s) + ((p.1 : ℂ) ^ (-s)) ^ 2 / 2))
-    -- Using exp_log on the nonzero factor (1 - λ)
-    simpa [Complex.exp_add, Complex.exp_log hne1]
-  -- Build the product via exp of a sum
-  have hprod : Multipliable (fun p : Prime => det2EulerFactor s p) := by
-    -- multiplicability follows from summability of a via tprod_exp_of_summable
-    have := tprod_exp_of_summable (a := a) h_sum_a
-    exact this.1
-  have hprod_eq : (∏' p : Prime, det2EulerFactor s p)
-      = Complex.exp (∑' p : Prime, a p) := by
-    have := tprod_exp_of_summable (a := a) h_sum_a
-    -- use the identity factor = exp a
-    have hmap : (fun p : Prime => Complex.exp (a p)) = (fun p : Prime => det2EulerFactor s p) := by
-      funext p; simpa [hfactor_eq p]
-    simpa [hmap] using this.2
-  -- Nonvanishing since exp never vanishes
-  have : det2_AF s ≠ 0 := by
-    dsimp [det2_AF]
-    have : (∏' p : Prime, det2EulerFactor s p) ≠ 0 := by
-      -- exp(tsum a) ≠ 0
-      simpa [hprod_eq] using Complex.exp_ne_zero (∑' p : Prime, a p)
-    simpa using this
-  simpa [s] using this
+   ∀ t : ℝ, det2_AF ((1 / 2 : ℝ) + Complex.I * (t : ℂ)) ≠ 0 := by
+   classical
+   intro t
+   -- Fix s = 1/2 + i t and σ = 1/2
+   set s : ℂ := (1 / 2 : ℝ) + Complex.I * (t : ℂ)
+   let σ : ℝ := (1 / 2 : ℝ)
+   -- Parameters
+   let lam : Prime → ℂ := fun p => (p.1 : ℂ) ^ (-s)
+   let a   : Prime → ℂ := fun p => ∑' n : ℕ, - (lam p) ^ (n + 3) / ((n + 3 : ℕ) : ℂ)
+   -- Factor equality via Weierstrass helper (‖λ‖ < 1 since σ = 1/2 > 0)
+   have hfac : ∀ p : Prime, det2EulerFactor s p = Complex.exp (a p) := by
+     intro p
+     have hp_pos : 0 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.pos p.property)
+     have hnorm : ‖lam p‖ = (p.1 : ℝ) ^ (-σ) := by
+       simpa [lam, s, Complex.norm_eq_abs] using
+         (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s))
+     have hlt : ‖lam p‖ < 1 := by
+       -- p ≥ 2 ⇒ p^{-1/2} < 1
+       have hp_two_le : (2 : ℝ) ≤ (p.1 : ℝ) := by exact_mod_cast p.property.two_le
+       have h_nonpos : -σ ≤ 0 := by norm_num
+       have hmono : (p.1 : ℝ) ^ (-σ) ≤ (2 : ℝ) ^ (-σ) :=
+         Real.rpow_le_rpow_of_exponent_nonpos (by norm_num) hp_two_le h_nonpos
+       have : (2 : ℝ) ^ (-σ) < 1 := by norm_num
+       exact lt_of_le_of_lt (by simpa [hnorm]) (by simpa using this)
+     simpa [det2EulerFactor, lam, a] using
+       RH.AcademicFramework.DiagonalFredholm.eulerFactor_exp_tsum_cubic_tail
+         (z := lam p) hlt
+   -- Summability of a_p via cubic remainder bound and ∑ p^{-3/2}
+   have hsum_norm_a : Summable (fun p : Prime => ‖a p‖) := by
+     have hCσ : 0 < 1 - (2 : ℝ) ^ (-σ) := by norm_num
+     have hbound : ∀ p : Prime, ‖a p‖ ≤ (1 / (1 - (2 : ℝ) ^ (-σ))) * (p.1 : ℝ) ^ (-(3 * σ)) := by
+       intro p
+       have hp_pos : 0 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.pos p.property)
+       have hnorm : ‖lam p‖ = (p.1 : ℝ) ^ (-σ) := by
+         simpa [lam, s, Complex.norm_eq_abs] using
+           (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s))
+       -- ‖lam p‖ ≤ 2^{-σ}
+       have hmono : ‖lam p‖ ≤ (2 : ℝ) ^ (-σ) := by
+         have : (2 : ℝ) ≤ (p.1 : ℝ) := by exact_mod_cast p.property.two_le
+         have : (p.1 : ℝ) ^ (-σ) ≤ (2 : ℝ) ^ (-σ) :=
+           Real.rpow_le_rpow_of_exponent_nonpos (by norm_num) this (by norm_num)
+         simpa [hnorm] using this
+       -- Bound via cubic remainder and denominator monotonicity
+       have hzlt : ‖lam p‖ < 1 := lt_of_le_of_lt hmono (by norm_num : (2 : ℝ) ^ (-σ) < 1)
+       have hrem := RH.AcademicFramework.DiagonalFredholm.log_one_sub_plus_z_plus_sq_cubic_tail
+         (z := lam p) hzlt
+       have happly := RH.AcademicFramework.DiagonalFredholm.tsum_log_one_sub_cubic_tail
+         (z := lam p) hzlt
+       have : a p = Complex.log (1 - lam p) + lam p + (lam p) ^ 2 / 2 := by
+         simpa [a] using happly
+       have h1 : ‖a p‖ ≤ ‖lam p‖ ^ 3 / (1 - ‖lam p‖) := by
+         simpa [this] using hrem
+       -- compare denominators and numerators to get ≤ Cσ · p^{-3σ}
+       have hden_le : 1 - (2 : ℝ) ^ (-σ) ≤ 1 - ‖lam p‖ := by linarith
+       have hrecip_le : (1 - ‖lam p‖)⁻¹ ≤ (1 - (2 : ℝ) ^ (-σ))⁻¹ :=
+         one_div_le_one_div_of_le (by exact hCσ) hden_le
+       have hnum_nonneg : 0 ≤ (p.1 : ℝ) ^ (-(3 * σ)) := by
+         have : 0 ≤ (p.1 : ℝ) := by exact_mod_cast (Nat.zero_le (p.1))
+         exact Real.rpow_nonneg_of_nonneg this _
+       -- (‖lam‖^3) ≤ p^{-3σ}
+       have hnorm_pow : ‖lam p‖ ^ 3 ≤ (p.1 : ℝ) ^ (-(3 * σ)) := by
+         have : ‖lam p‖ = (p.1 : ℝ) ^ (-σ) := hnorm
+         -- (x^a)^3 = x^(3a)
+         have : ((p.1 : ℝ) ^ (-σ)) ^ 3 = (p.1 : ℝ) ^ (-(3 * σ)) := by
+           have : (p.1 : ℝ) ^ ((-σ) * (3 : ℝ)) = ((p.1 : ℝ) ^ (-σ)) ^ (3 : ℝ) :=
+             by simpa using (Real.rpow_mul (p.1 : ℝ) (-σ) (3 : ℝ))
+           simpa [mul_comm] using this.symm
+         simpa [hnorm, this]
+       have : ‖a p‖ ≤ (p.1 : ℝ) ^ (-(3 * σ)) * (1 - (2 : ℝ) ^ (-σ))⁻¹ := by
+         have := le_trans h1 (by
+           -- replace numerator and denominator separately
+           have : ‖lam p‖ ^ 3 / (1 - ‖lam p‖)
+               ≤ (p.1 : ℝ) ^ (-(3 * σ)) * (1 - ‖lam p‖)⁻¹ := by
+             have := mul_le_mul_of_nonneg_right hnorm_pow (by
+               have : 0 ≤ (1 - ‖lam p‖)⁻¹ := by
+                 have : 0 < 1 - ‖lam p‖ := sub_pos.mpr hzlt
+                 exact inv_nonneg.mpr (le_of_lt this)
+               exact this)
+             simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using this
+           -- now replace the reciprocal by the uniform bound
+           have := mul_le_mul_of_nonneg_left hrecip_le hnum_nonneg
+           simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using this)
+         simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using this
+       -- rewrite to constant times p^{-3σ}
+       have : ‖a p‖ ≤ (1 / (1 - (2 : ℝ) ^ (-σ))) * (p.1 : ℝ) ^ (-(3 * σ)) := by
+         have := this
+         simp [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] at this
+         simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using this
+       exact this
+     -- Summability ∑ p p^{-3/2}
+     have : Summable (fun p : Prime => (p.1 : ℝ) ^ (-(3 * σ))) := by
+       have : (1 : ℝ) < 3 * σ := by norm_num
+       simpa using AcademicRH.EulerProduct.real_prime_rpow_summable (r := 3 * σ) this
+     have : Summable (fun p : Prime => (1 / (1 - (2 : ℝ) ^ (-σ))) * (p.1 : ℝ) ^ (-(3 * σ))) :=
+       this.const_mul _
+     exact Summable.of_nonneg_of_le (fun _ => by exact norm_nonneg _)
+       (by intro p; simpa using hbound p) this
+   -- Summability in ℂ and tprod bridge
+   have hsum_a : Summable a := Summable.of_norm hsum_norm_a
+   obtain ⟨_, hprod⟩ := RH.AcademicFramework.DiagonalFredholm.tprod_exp_of_summable (a := a) hsum_a
+   have hfunext : (fun p : Prime => det2EulerFactor s p)
+       = (fun p : Prime => Complex.exp (a p)) := by
+     funext p
+     simpa using hfac p
+   have hdet_eq : det2_AF s = Complex.exp (∑' p : Prime, a p) := by
+     simpa [det2_AF, hfunext] using hprod.symm
+   simpa [hdet_eq] using (Complex.exp_ne_zero (∑' p : Prime, a p))
 
 end RH.AcademicFramework.DiagonalFredholm
