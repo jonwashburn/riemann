@@ -59,16 +59,6 @@ theorem det2_analytic_on_RSΩ : AnalyticOn ℂ det2 Ω := by
   simpa [det2, hΩ] using
     (RH.AcademicFramework.DiagonalFredholm.det2_AF_analytic_on_halfPlaneReGtHalf)
 
-/-- Nonvanishing of `det2` on Ω, via AF's half‑plane nonvanishing. -/
-theorem det2_nonzero_on_RSΩ : ∀ {s}, s ∈ Ω → det2 s ≠ 0 := by
-  intro s hs
-  have hΩ : s ∈ {s : ℂ | (1/2 : ℝ) < s.re} := by
-    simpa [RH.RS.Ω, Set.mem_setOf_eq] using hs
-  -- Use AF theorem and unfold the definitional equality det2 = det2_AF
-  have h := RH.AcademicFramework.DiagonalFredholm.det2_AF_nonzero_on_halfPlaneReGtHalf
-  have h' := h (s := s) hΩ
-  simpa [det2_eq_AF] using h'
-
 /-- Nonvanishing of `det2` on the critical line Re(s) = 1/2. -/
 theorem det2_nonzero_on_critical_line :
   ∀ t : ℝ, det2 (boundary t) ≠ 0 := by
@@ -147,11 +137,13 @@ def det2_on_Ω_proved_from_diagonal
     intro s hs
     -- rewrite via hEq and use nonvanishing of each factor at s
     have hEq_s : det2 s = RH.AcademicFramework.DiagonalFredholm.diagDet2 s * E s := by
-      have := hEq hs; simpa using this
+      have := hEq hs; exact this
     have h1 : RH.AcademicFramework.DiagonalFredholm.diagDet2 s ≠ 0 := hDiagNZ (s := s) hs
     have h2 : E s ≠ 0 := hENZ (s := s) hs
     have : RH.AcademicFramework.DiagonalFredholm.diagDet2 s * E s ≠ 0 := mul_ne_zero h1 h2
-    simpa [hEq_s]
+    -- det2 is definitionally det2_AF, so rewrite and finish
+    rw [hEq_s]
+    exact this
   exact { analytic := hAnalytic, nonzero := hNonzero }
 
 /-- Half‑plane outer interface: `O` analytic and zero‑free on Ω. -/

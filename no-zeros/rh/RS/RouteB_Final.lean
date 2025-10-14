@@ -259,7 +259,9 @@ theorem pullback_hasPoissonRepOn_offXi :
 theorem F_pinch_has_poisson_rep : HasPoissonRepOn
     (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
     (Ω \ {z | riemannXi_ext z = 0}) := by
-  -- Use analytic-only variant to avoid any det₂ nonvanishing assumption on Ω
+  -- Package det2 analyticity/nonvanishing on RS Ω
+  have hDet2 : RH.RS.Det2OnOmega := RH.RS.det2_on_Ω_assumed det2_analytic_on_RSΩ (by
+    intro s hs; exact det2_nonzero_on_RSΩ (s := s) hs)
   -- Extract RS outer data and boundary modulus
   have hOuter : RH.RS.OuterHalfPlane O := (O_spec).1
   have hBMErs : RH.RS.BoundaryModulusEq O (fun s => RH.RS.det2 s / riemannXi_ext s) := (O_spec).2
@@ -286,9 +288,10 @@ theorem F_pinch_has_poisson_rep : HasPoissonRepOn
   have hReEqOn : RH.AcademicFramework.PoissonCayley.HasHalfPlanePoissonReEqOn F0 S := by
     exact RH.AcademicFramework.PoissonCayley.pinch_halfplane_ReEqOn_from_cayley
       (F := F0) (H := Hpull) (S := S) hInt hBd pullback_hasPoissonRepOn_offXi
-  -- Finish building the subset representation using the AF analytic-only builder
-  exact RH.AcademicFramework.HalfPlaneOuterV2.pinch_hasPoissonRepOn_from_cayley_analytic
-    (hDet2A := det2_analytic_on_RSΩ) (hO := hOuter) (hBME := hBME_af)
+  -- Finish building the subset representation using the AF builder
+  exact RH.AcademicFramework.HalfPlaneOuterV2.pinch_hasPoissonRepOn_from_cayley
+    hDet2 (hO := hOuter) (hBME := hBME_af)
+    -- Use DifferentiableOn variant where builder accepts Analytic/Differentiable
     (hXi := riemannXi_ext_differentiable_AFΩ)
     det2_boundary_measurable O_boundary_measurable xi_ext_boundary_measurable
     (by
