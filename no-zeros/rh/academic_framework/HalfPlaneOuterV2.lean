@@ -7,6 +7,7 @@ import Mathlib.MeasureTheory.Integral.Lebesgue
 import Mathlib.Analysis.SpecialFunctions.Integrals
 import Mathlib.MeasureTheory.Function.AEEqOfIntegral
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
+import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import rh.academic_framework.CompletedXi
 import rh.academic_framework.DiskHardy
 import rh.RS.Det2Outer

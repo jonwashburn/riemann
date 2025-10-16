@@ -33,6 +33,26 @@ lemma IsSchurOn.mono {Θ : ℂ → ℂ} {S T : Set ℂ}
     (h : IsSchurOn Θ S) (hTS : T ⊆ S) : IsSchurOn Θ T := by
   intro z hz; exact h z (hTS hz)
 
+/-- Default constant Schur function on Ω. -/
+def Theta_schur_default : ℂ → ℂ := fun _ => (1 : ℂ)
+
+/-- The constant function 1 is Schur on Ω. -/
+lemma Theta_schur_default_isSchur : IsSchurOn Theta_schur_default Ω := by
+  intro z hz
+  simp [Theta_schur_default]
+
+/-- Canonical candidate denominator: reciprocal zeta. -/
+noncomputable def N_inv_zeta : ℂ → ℂ := fun z => (riemannZeta z)⁻¹
+
+/-- Instantiate `ZetaSchurDecompositionOffZeros` with `Θ = 1` and `N = 1/ζ`,
+assuming the required analyticity and off-zeros facts for `1/ζ`. -/
+def mkZetaSchurDecompositionOffZeros_invZeta
+    (hNanalytic : AnalyticOn ℂ N_inv_zeta Ω)
+    (hζeq_off : ∀ z ∈ (Ω \ {z | riemannZeta z = 0}), riemannZeta z = Theta_schur_default z / N_inv_zeta z)
+    (hN_nonzero_off : ∀ z ∈ (Ω \ {z | riemannZeta z = 0}), N_inv_zeta z ≠ 0)
+    : ZetaSchurDecompositionOffZeros :=
+  mkZetaSchurDecompositionOffZerosThetaDefault N_inv_zeta hNanalytic hζeq_off hN_nonzero_off
+
 /-- Non-circular, off-zeros ζ→Schur bridge on Ω.
 
 `hζeq_off` only asserts the ζ = Θ / N identity off the zero set of ζ (so division is legal),
@@ -47,7 +67,7 @@ structure ZetaSchurDecompositionOffZeros where
   hN_nonzero_off : ∀ z ∈ (Ω \ {z | riemannZeta z = 0}), N z ≠ 0
 
 /-- Helper constructor for the off-zeros bridge. -/
-def ZetaSchurDecompositionOffZeros.ofEqOffZeros
+def mkZetaSchurDecompositionOffZerosOfEqOffZeros
     {Θ N : ℂ → ℂ}
     (hΘSchur : IsSchurOn Θ Ω)
     (hNanalytic : AnalyticOn ℂ N Ω)
@@ -752,97 +772,35 @@ lemma GlobalizeAcrossRemovable_atPoint
   exact schur_pinches_to_one (U := U) (ρ := ρ) (g := g)
     hUopen hUconn hg hle hρU hval
 
-/-- Builder: package pinned-removable local data at each boundary point into a
-`LocalPinchDataZOff` assignment, under the additional assumption that the chosen
-open set `U` contains no zeros of ζ. This makes the off-zeros identities hold
-on `U \ Z` by restriction from the global off-zeros decomposition.
+/-- From a Schur decomposition and an assignment witness across zeros, conclude ζ has no zeros on Ω. -/
+theorem no_zeros_on_Ω_from_decomp_assign
+    (data : ZetaSchurDecompositionOffZeros)
+    (assign : ∀ ρ, ρ ∈ Ω → riemannZeta ρ = 0 →
+      ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
+        (U ∩ {z | riemannZeta z = 0}) = ({ρ} : Set ℂ) ∧
+        ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧ AnalyticOn ℂ data.Θ (U \ {ρ}) ∧
+          Set.EqOn data.Θ g (U \ {ρ}) ∧ g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1)
+    : ∀ ρ ∈ Ω, riemannZeta ρ ≠ 0 := by
+  -- Restrict Schur predicate to Ω \ Z(ζ)
+  have hSchur' : IsSchurOn data.Θ (Ω \ {z | riemannZeta z = 0}) := by
+    apply IsSchurOn.mono (S := Ω) (T := (Ω \ {z | riemannZeta z = 0}))
+    · exact data.hΘSchur
+    · intro z hz; exact And.left hz
+  -- Apply the globalization theorem
+  exact no_offcritical_zeros_from_schur data.Θ hSchur' assign
 
-Inputs:
-- `w`: an off-zeros ζ→Θ/N decomposition with Schur bound and pinned limits.
-- `choose`: for each boundary point `z` with `Re z = 1`, pick
-  `U ⊆ Ω`, a distinguished `ρ ∈ U` with `(U ∩ Z(ξ)) = {ρ}`, a removable
-  extension `g` of `Θ` across `ρ` with `g ρ = 1`, and the side-condition that
-  `ζ` has no zeros in `U` (so the off-zeros equalities apply throughout `U`). -/
-def OffZerosBoundaryAssignment.ofPinnedRemovable_noZetaZeros
-    {ξf : ℂ → ℂ}
-    (w : RH.RS.OffZeros.ZetaSchurDecompositionOffZeros riemannZeta ξf)
-    (choose : ∀ z, z.re = 1 →
-      ∃ (U : Set ℂ) (ρ : ℂ),
-        IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
-        (U ∩ (RH.RS.OffZeros.Z ξf)) = {ρ} ∧
-        (∀ x ∈ U, riemannZeta x ≠ 0) ∧
-        ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧ EqOn w.Θ g (U \ (RH.RS.OffZeros.Z ξf)) ∧ g ρ = 1 ∧
-        z ∈ (U \ (RH.RS.OffZeros.Z ξf)))
-    : OffZerosBoundaryAssignment :=
-{ Θ := w.Θ,
-  N := w.N,
-  hΘSchur := w.hΘSchur,
-  assign := by
-    intro z hz
-    classical
-    rcases choose z hz with
-      ⟨U, ρ, hUopen, hUconn, hUsub, hρU, hZcap, hNoZeta, g, hgan, hExt, hval, hzUdiff⟩
-    -- Define the local removable set Z := U ∩ Z(ξ)
-    let Z : Set ℂ := U ∩ (RH.RS.OffZeros.Z ξf)
-    have hZsub : Z ⊆ Ω := by
-      intro x hx; exact hUsub hx.1
-    -- z lies in U \ Z since it lies in U and avoids Z(ξ)
-    have hz_not_Z : z ∉ Z := by
-      intro hzZ
-      have hz_inZxi : z ∈ (RH.RS.OffZeros.Z ξf) := hzZ.2
-      have hz_not_inZxi : z ∉ (RH.RS.OffZeros.Z ξf) := by simpa using hzUdiff.2
-      exact hz_not_inZxi hz_inZxi
-    have hz_mem : z ∈ (U \ Z) := ⟨hzUdiff.1, hz_not_Z⟩
-    -- Build LocalPinchDataZOff structure
-    refine ⟨U, Z, ?data, hz_mem⟩
-    refine ⟨hUopen, hUconn, hUsub, hZsub, ?hΘU, g, hgan, ?hExt, ρ, hρU, ?hρZ, hval, ?hZcapU,
-            ?hζeq_off, ?hNnz_off⟩
-    · -- Θ analytic on U \ Z by equality with analytic g on U
-      -- Restrict equality to U \ Z from U \ Z(ξ)
-      have hExt' : EqOn w.Θ g (U \ (RH.RS.OffZeros.Z ξf)) := hExt
-      have hsub : (U \ Z) ⊆ (U \ (RH.RS.OffZeros.Z ξf)) := by
-        intro x hx
-        have hnotin : x ∉ RH.RS.OffZeros.Z ξf := by
-          intro hxZxi; exact hx.2 ⟨hx.1, hxZxi⟩
-        exact And.intro hx.1 hnotin
-      have hExt'' : EqOn w.Θ g (U \ Z) := fun x hx => hExt' (hsub hx)
-      exact (hgan.mono (by intro x hx; exact hx.1)).congr hExt''
-    · -- Θ = g on U \ Z (since Z ⊆ Z(ξ) locally)
-      intro x hx
-      have hx' : x ∈ (U \ (RH.RS.OffZeros.Z ξf)) := by
-        refine And.intro hx.1 ?hnotin
-        intro hxZxi; exact hx.2 ⟨hx.1, hxZxi⟩
-      exact hExt hx'
-    · -- ρ ∈ Z = U ∩ Z(ξ)
-      have : ρ ∈ (U ∩ (RH.RS.OffZeros.Z ξf)) := by
-        have : ρ ∈ ({ρ} : Set ℂ) := by simp
-        simpa [hZcap] using this
-      exact this
-    · -- (U ∩ Z) = {ρ}
-      -- Here Z = U ∩ Z(ξ), so U ∩ Z = U ∩ (U ∩ Z(ξ)) = U ∩ Z(ξ) = {ρ}
-      have : (U ∩ Z) = (U ∩ (RH.RS.OffZeros.Z ξf)) := by
-        ext x; constructor <;> intro hx
-        · exact ⟨hx.1, hx.2.2⟩
-        · exact ⟨hx.1, And.intro hx.1 hx.2⟩
-      simpa [this, hZcap]
-    · -- ζ = Θ / N on U \ Z (since U has no ζ-zeros)
-      intro x hx
-      have hxU : x ∈ U := hx.1
-      have hxΩ : x ∈ Ω := hUsub hxU
-      have hxNotInZeta : x ∉ (RH.RS.OffZeros.Z riemannZeta) := by
-        intro hxZ
-        have hx0 : riemannZeta x = 0 := by simpa [RH.RS.OffZeros.Z, Set.mem_setOf_eq] using hxZ
-        exact (hNoZeta x hxU) hx0
-      have hxOffZeta : x ∈ (Ω \ (RH.RS.OffZeros.Z riemannZeta)) := ⟨hxΩ, hxNotInZeta⟩
-      -- Use w's off-zeros identity at x
-      simpa using (w.hζeq_off (by exact hxOffZeta))
-    · -- N ≠ 0 on U \ Z (since U has no ζ-zeros)
-      intro x hx
-      have hxU : x ∈ U := hx.1
-      have hxΩ : x ∈ Ω := hUsub hxU
-      have hxNotInZeta : x ∉ (RH.RS.OffZeros.Z riemannZeta) := by
-        intro hxZ
-        have hx0 : riemannZeta x = 0 := by simpa [RH.RS.OffZeros.Z, Set.mem_setOf_eq] using hxZ
-        exact (hNoZeta x hxU) hx0
-      have hxOffZeta : x ∈ (Ω \ (RH.RS.OffZeros.Z riemannZeta)) := ⟨hxΩ, hxNotInZeta⟩
-      exact w.hN_ne_off (by exact hxOffZeta) }
+/-- Boundary nonvanishing (Re = 1) from a Schur decomposition and an assignment witness. -/
+theorem zeta_nonzero_on_Re_eq_one_from_decomp_assign
+    (data : ZetaSchurDecompositionOffZeros)
+    (assign : ∀ ρ, ρ ∈ Ω → riemannZeta ρ = 0 →
+      ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
+        (U ∩ {z | riemannZeta z = 0}) = ({ρ} : Set ℂ) ∧
+        ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧ AnalyticOn ℂ data.Θ (U \ {ρ}) ∧
+          Set.EqOn data.Θ g (U \ {ρ}) ∧ g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1)
+    : ∀ z : ℂ, z.re = 1 → riemannZeta z ≠ 0 := by
+  intro z hz
+  have hzΩ : z ∈ Ω := by
+    -- Ω = {Re > 1/2}
+    have : (1 / 2 : ℝ) < z.re := by simpa [hz] using (by norm_num : (1 / 2 : ℝ) < 1)
+    simpa [Ω, Set.mem_setOf_eq] using this
+  exact no_zeros_on_Ω_from_decomp_assign data assign z hzΩ

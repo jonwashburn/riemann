@@ -442,6 +442,77 @@ def ZetaSchurDecompositionOffZeros.ofData
   hΘ_lim1_at_ξzero := by intro ρ hΩρ hξρ; exact hΘ_lim1_at_ξzero hΩρ hξρ }
 
 end OffZeros
+
+namespace OffZeros
+
+/-- Zeros equivalence on Ω from `riemannXi = G * riemannZeta` and nonvanishing of `G` on Ω. -/
+lemma zerosEq_of_Xi_eq_Gζ_nonzeroG
+  (riemannZeta riemannXi : ℂ → ℂ)
+  (G : ℂ → ℂ)
+  (hG_ne : ∀ z ∈ Ω, G z ≠ 0)
+  (hXi_eq : ∀ z ∈ Ω, riemannXi z = G z * riemannZeta z)
+  : ∀ z ∈ Ω, riemannXi z = 0 ↔ riemannZeta z = 0 := by
+  intro z hzΩ
+  constructor
+  · intro hXi0
+    have hEq : riemannXi z = G z * riemannZeta z := hXi_eq z hzΩ
+    have hGnz : G z ≠ 0 := hG_ne z hzΩ
+    have hprod0 : G z * riemannZeta z = 0 := by simpa [hEq, hXi0]
+    by_contra hζ
+    have : G z * riemannZeta z ≠ 0 := mul_ne_zero hGnz hζ
+    exact this hprod0
+  · intro hζ0
+    have hEq : riemannXi z = G z * riemannZeta z := hXi_eq z hzΩ
+    simpa [hEq, hζ0]
+
+/-- Build a ζ-assign witness on Ω from an ξ-removable existence and zeros equivalence on Ω. -/
+def assignZeta_from_XiRemovable_exists
+  (riemannZeta riemannXi : ℂ → ℂ)
+  {Θ : ℂ → ℂ}
+  (hZerosEq : ∀ z ∈ Ω, riemannXi z = 0 ↔ riemannZeta z = 0)
+  (existsRemXi : ∀ ρ, ρ ∈ Ω → riemannXi ρ = 0 →
+    ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
+      (U ∩ {z | riemannXi z = 0}) = ({ρ} : Set ℂ) ∧
+      ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧ AnalyticOn ℂ Θ (U \ {ρ}) ∧
+        EqOn Θ g (U \ {ρ}) ∧ g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1)
+  : AssignShape riemannZeta Θ :=
+  assign_fromXiRemovable_exists (riemannZeta := riemannZeta) (riemannXi := riemannXi)
+    (Θ := Θ) hZerosEq existsRemXi
+
+/-- Assemble a `ZetaSchurDecompositionOffZeros` from Cayley data and analytic inputs. -/
+def buildDecomposition_cayley
+  (riemannZeta riemannXi : ℂ → ℂ)
+  (det2 O G J : ℂ → ℂ)
+  (hdet2A : AnalyticOn ℂ det2 Ω)
+  (hOA : AnalyticOn ℂ O Ω)
+  (hGA : AnalyticOn ℂ G Ω)
+  (hXiA : AnalyticOn ℂ riemannXi Ω)
+  (hO_ne : ∀ ⦃s : ℂ⦄, s ∈ Ω → O s ≠ 0)
+  (hdet2_ne : ∀ ⦃s : ℂ⦄, s ∈ Ω → det2 s ≠ 0)
+  (hG_ne_offζ : ∀ {s}, s ∈ (Ω \ Z riemannZeta) → G s ≠ 0)
+  (hJ_def_offXi : ∀ {s}, s ∈ (Ω \ Z riemannXi) → J s = det2 s / (O s * riemannXi s))
+  (hXi_eq_Gζ : ∀ {s}, s ∈ Ω → riemannXi s = G s * riemannZeta s)
+  (hΘSchur : IsSchurOn (OffZeros.cayley (fun s => (2 : ℂ) * J s)) Ω)
+  (hΘA_offXi : AnalyticOn ℂ (OffZeros.cayley (fun s => (2 : ℂ) * J s)) (Ω \ Z riemannXi))
+  (hΘ_lim1_at_ξzero : ∀ {ρ}, ρ ∈ Ω → riemannXi ρ = 0 →
+      Tendsto (OffZeros.cayley (fun s => (2 : ℂ) * J s)) (nhdsWithin ρ (Ω \ Z riemannXi)) (nhds (1 : ℂ)))
+  (hN_ne_off_assm : ∀ {s}, s ∈ (Ω \ Z riemannZeta) →
+      (((fun s => ( ( (2 : ℂ) * J s) - 1) / ((2 : ℂ) * J s + 1)) s) * G s / riemannXi s) ≠ 0)
+  : ZetaSchurDecompositionOffZeros riemannZeta riemannXi :=
+  OffZeros.ZetaSchurDecompositionOffZeros.ofEqOffZeros
+    (riemannZeta := riemannZeta) (riemannXi := riemannXi)
+    det2 O G J
+    hdet2A hOA hGA hXiA
+    (by intro s hs; exact hO_ne (s := s) hs)
+    (by intro s hs; exact hdet2_ne (s := s) hs)
+    (by intro s hs; exact hG_ne_offζ (s := s) hs)
+    (by intro s hs; exact hJ_def_offXi (s := s) hs)
+    (by intro s hs; exact hXi_eq_Gζ (s := s) hs)
+    hΘSchur hΘA_offXi hΘ_lim1_at_ξzero
+    (by intro s hs; exact hN_ne_off_assm (s := s) hs)
+
+end OffZeros
+
 end RS
 end RH
 
