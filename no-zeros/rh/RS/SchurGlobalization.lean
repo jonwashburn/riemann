@@ -44,14 +44,7 @@ lemma Theta_schur_default_isSchur : IsSchurOn Theta_schur_default Ω := by
 /-- Canonical candidate denominator: reciprocal zeta. -/
 noncomputable def N_inv_zeta : ℂ → ℂ := fun z => (riemannZeta z)⁻¹
 
-/-- Instantiate `ZetaSchurDecompositionOffZeros` with `Θ = 1` and `N = 1/ζ`,
-assuming the required analyticity and off-zeros facts for `1/ζ`. -/
-def mkZetaSchurDecompositionOffZeros_invZeta
-    (hNanalytic : AnalyticOn ℂ N_inv_zeta Ω)
-    (hζeq_off : ∀ z ∈ (Ω \ {z | riemannZeta z = 0}), riemannZeta z = Theta_schur_default z / N_inv_zeta z)
-    (hN_nonzero_off : ∀ z ∈ (Ω \ {z | riemannZeta z = 0}), N_inv_zeta z ≠ 0)
-    : ZetaSchurDecompositionOffZeros :=
-  mkZetaSchurDecompositionOffZerosThetaDefault N_inv_zeta hNanalytic hζeq_off hN_nonzero_off
+-- (helper for Θ ≡ 1 and N ≡ 1/ζ was removed; use the general constructors below instead)
 
 /-- Non-circular, off-zeros ζ→Schur bridge on Ω.
 

@@ -456,11 +456,12 @@ lemma zerosEq_of_Xi_eq_Gζ_nonzeroG
   constructor
   · intro hXi0
     have hEq : riemannXi z = G z * riemannZeta z := hXi_eq z hzΩ
-    have hGnz : G z ≠ 0 := hG_ne z hzΩ
-    have hprod0 : G z * riemannZeta z = 0 := by simpa [hEq, hXi0]
-    by_contra hζ
-    have : G z * riemannZeta z ≠ 0 := mul_ne_zero hGnz hζ
-    exact this hprod0
+    have : G z * riemannZeta z = 0 := by
+      -- multiply both sides of hEq by 1 and rewrite
+      simpa [hEq] using congrArg id hXi0
+    rcases mul_eq_zero.mp this with hG0 | hζ0
+    · exact (hG_ne z hzΩ hG0).elim
+    · exact hζ0
   · intro hζ0
     have hEq : riemannXi z = G z * riemannZeta z := hXi_eq z hzΩ
     simpa [hEq, hζ0]
@@ -508,7 +509,7 @@ def buildDecomposition_cayley
     (by intro s hs; exact hG_ne_offζ (s := s) hs)
     (by intro s hs; exact hJ_def_offXi (s := s) hs)
     (by intro s hs; exact hXi_eq_Gζ (s := s) hs)
-    hΘSchur hΘA_offXi hΘ_lim1_at_ξzero
+    hΘSchur hΘA_offXi (by intro ρ hΩρ hξρ; exact hΘ_lim1_at_ξzero (ρ := ρ) hΩρ hξρ)
     (by intro s hs; exact hN_ne_off_assm (s := s) hs)
 
 end OffZeros
