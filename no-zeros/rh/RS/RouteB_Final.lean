@@ -192,20 +192,89 @@ lemma measurable_O : Measurable O := by
 /-- Boundary measurability: t ↦ det2(boundary t). -/
 lemma det2_boundary_measurable :
   Measurable (fun t : ℝ => RH.RS.det2 (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)) := by
-  exact RH.AcademicFramework.HalfPlaneOuterV2.measurable_on_boundary_of_measurable
+  exact RH.AcademicFramework.HalfPlaneOuterV2.measurable_comp_boundary
     (α := ℂ) (f := RH.RS.det2) measurable_det2
 
 /-- Boundary measurability: t ↦ O(boundary t). -/
 lemma O_boundary_measurable :
   Measurable (fun t : ℝ => O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)) := by
-  exact RH.AcademicFramework.HalfPlaneOuterV2.measurable_on_boundary_of_measurable
+  exact RH.AcademicFramework.HalfPlaneOuterV2.measurable_comp_boundary
     (α := ℂ) (f := O) measurable_O
 
 /-- Boundary measurability: t ↦ ξ_ext(boundary t). -/
 lemma xi_ext_boundary_measurable :
   Measurable (fun t : ℝ => riemannXi_ext (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)) := by
-  exact RH.AcademicFramework.HalfPlaneOuterV2.xi_ext_boundary_measurable_of_measurable
-    measurable_riemannXi_ext
+  exact RH.AcademicFramework.HalfPlaneOuterV2.measurable_comp_boundary
+    (α := ℂ) (f := riemannXi_ext) measurable_riemannXi_ext
+
+/-– Boundary measurability for the real part of F_pinch along the AF line. -/
+lemma measurable_boundary_Re_F_pinch :
+  Measurable (fun t : ℝ =>
+    ((RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
+      (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re) := by
+  classical
+  -- Build measurability for the complex‑valued trace, then take real part
+  have h_denom : Measurable (fun t : ℝ =>
+      O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)
+        * riemannXi_ext (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)) := by
+    exact O_boundary_measurable.mul xi_ext_boundary_measurable
+  have h_ratio : Measurable (fun t : ℝ =>
+      RH.RS.det2 (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)
+        / (O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)
+            * riemannXi_ext (RH.AcademicFramework.HalfPlaneOuterV2.boundary t))) := by
+    exact det2_boundary_measurable.div h_denom
+  have hF : Measurable (fun t : ℝ =>
+      (2 : ℂ) * (RH.RS.det2 (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)
+        / (O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)
+            * riemannXi_ext (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)))) := by
+    exact measurable_const.mul h_ratio
+  -- real part is a continuous (hence measurable) map composed with hF
+  simpa [RH.AcademicFramework.HalfPlaneOuterV2.F_pinch,
+         RH.AcademicFramework.HalfPlaneOuterV2.J_pinch]
+    using (Complex.continuous_re.measurable.comp hF)
+
+/-– Uniform boundary bound |Re(F_pinch(boundary t))| ≤ 2, from modulus identity. -/
+lemma F_pinch_boundary_bound
+  (hBME_af : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryModulusEq O
+               (fun s => RH.RS.det2 s / riemannXi_ext s)) :
+  ∀ t : ℝ,
+    |((RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
+        (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re| ≤ (2 : ℝ) := by
+  classical
+  intro t
+  set z : ℂ := RH.AcademicFramework.HalfPlaneOuterV2.boundary t
+  -- |J_pinch(z)| ≤ 1 (0 in degenerate cases; 1 otherwise by boundary modulus)
+  have hJ_le_one : Complex.abs (RH.AcademicFramework.HalfPlaneOuterV2.J_pinch RH.RS.det2 O z) ≤ 1 := by
+    by_cases hO0 : O z = 0
+    · -- denominator zero ⇒ J = 0
+      simpa [RH.AcademicFramework.HalfPlaneOuterV2.J_pinch, hO0]
+    · by_cases hXi0 : riemannXi_ext z = 0
+      · simpa [RH.AcademicFramework.HalfPlaneOuterV2.J_pinch, hXi0]
+      · -- nonzero denominator: unit modulus on the boundary
+        have : Complex.abs
+            (RH.AcademicFramework.HalfPlaneOuterV2.J_pinch RH.RS.det2 O
+              (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)) = 1 := by
+          exact RH.AcademicFramework.HalfPlaneOuterV2.boundary_abs_J_pinch_eq_one
+            (O := O) hBME_af t
+            (by simpa [z] using hO0)
+            (by simpa [z] using hXi0)
+        simpa [z, this]
+  -- |Re(2·J)| ≤ |2·J| = 2·|J| ≤ 2
+  have hRe_le :
+      |((RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) z).re|
+        ≤ Complex.abs ((RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) z) := by
+    simpa using Complex.abs_re_le_abs
+      (z := (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) z)
+  have : Complex.abs ((RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) z)
+      = (2 : ℝ) * Complex.abs (RH.AcademicFramework.HalfPlaneOuterV2.J_pinch RH.RS.det2 O z) := by
+    simp [RH.AcademicFramework.HalfPlaneOuterV2.F_pinch]
+  have : |((RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) z).re|
+      ≤ (2 : ℝ) * Complex.abs (RH.AcademicFramework.HalfPlaneOuterV2.J_pinch RH.RS.det2 O z) := by
+    simpa [this] using hRe_le
+  have : |((RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) z).re|
+      ≤ (2 : ℝ) * 1 :=
+    (le_trans this (mul_le_mul_of_nonneg_left hJ_le_one (by norm_num)))
+  simpa [z] using this
 
 
 /-- Default Poisson representation witness for F_pinch det2 O on Ω \ Z(ξ_ext). -/
@@ -297,6 +366,8 @@ theorem F_pinch_has_poisson_rep : HasPoissonRepOn
       intro z hz
       have := hReEqOn z hz
       simpa [F0] using this)
+    (F_pinch_boundary_bound hBME_af)
+    measurable_boundary_Re_F_pinch
 
 /-! ## Pinned removable data (u‑trick) -/
 
