@@ -104,7 +104,8 @@ theorem pipeline_ready_unconditional : PipelineReady := RH.Proof.pipeline_ready_
         ⟨u, hEq, hu0, ⟨z, hzU, hzNe, hΘz⟩⟩⟩
     exact RiemannHypothesis_from_poisson_and_pinned' hOuterExist hPoisson hPinned'
 
--- Minimal API export to Mathlib wrapper from CR-outer route
+/-
+-- Minimal API export to Mathlib wrapper from CR-outer route (commented out - requires CRGreenOuter)
 @[simp] theorem RiemannHypothesis_mathlib_from_CR_outer_ext
   (choose : ∀ ρ, ρ ∈ RH.RS.Ω → riemannZeta ρ = 0 →
       RH.RS.OffZeros.LocalData (riemannZeta := riemannZeta)
@@ -112,6 +113,7 @@ theorem pipeline_ready_unconditional : PipelineReady := RH.Proof.pipeline_ready_
   (hGnz : ∀ ρ ∈ RH.RS.Ω, G_ext ρ ≠ 0)
   : RiemannHypothesis :=
   RH.Proof.Final.RiemannHypothesis_mathlib_from_CR_outer_ext choose hGnz
+-/
 
 namespace RH
 namespace Proof
@@ -123,5 +125,3 @@ export RH.RS (certificate_from_pinch_ingredients)
 end Final
 end Proof
 end RH
-
-

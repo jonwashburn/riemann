@@ -498,6 +498,7 @@ def unitWhitney (m : ℤ) : WhitneyInterval :=
   -- interval = Icc (t0−len, t0+len) with t0 = m+1/2 and len = 1/2
   simp [WhitneyInterval.interval, unitWhitney, sub_eq_add_neg, add_comm,
         add_left_comm, add_assoc]
+  norm_num
 
 /-- The unit Whitney intervals cover ℝ (exactly, not just a.e.). -/
 theorem unitWhitney_cover_univ :
@@ -525,7 +526,9 @@ theorem unitWhitney_ae_cover :
   have : (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)) = (Set.univ : Set ℝ) :=
     unitWhitney_cover_univ
   refine Filter.Eventually.of_forall ?h
-  intro t; simpa [this]
+  intro t
+  rw [this]
+  trivial
 
 /-! ## Overlap/packing interface (pass-through)
 
@@ -743,15 +746,15 @@ theorem ae_nonneg_from_unitWhitney_local
     -- First prove the nullity on the iUnion of the intersections
     have h_union :
         volume (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m) ∩ Sᶜ) = 0 := by
-      simpa using
-        (measure_iUnion_null
-          (s := fun m : ℤ => WhitneyInterval.interval (unitWhitney m) ∩ Sᶜ)
-          (f := fun m => h_piece m))
+      refine measure_iUnion_null (fun m => ?_)
+      exact h_piece m
     -- Then rewrite as intersection with the iUnion of intervals
-    simpa [Set.iUnion_inter] using h_union
+    rw [Set.iUnion_inter]
+    exact h_union
   -- The complement of the unit-Whitney cover has measure 0 (it is empty)
   have h_cover_null : volume ((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ) = 0 := by
-    simpa [unitWhitney_cover_univ]
+    rw [unitWhitney_cover_univ, Set.compl_univ]
+    exact measure_empty
   -- Control the measure of Sᶜ by splitting along the cover and its complement
   have h_split :
       volume (Sᶜ)
@@ -778,20 +781,23 @@ theorem ae_nonneg_from_unitWhitney_local
           + volume ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ) :=
       measure_union_le _ _
     -- Convert the RHS via commutativity of intersections
-    simpa [hEq, Set.inter_comm, Set.inter_left_comm, Set.inter_assoc]
-      using hμ
+    conv_lhs => rw [hEq]
+    exact hμ
   -- Use the two null bounds to conclude Sᶜ is null
   have hSnull : volume (Sᶜ) = 0 := by
     -- h_iUnion_null controls the first term, h_cover_null the second
     have h0 :
         volume (((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)) ∩ Sᶜ))
           + volume (((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ)) = 0 := by
-      simp [h_iUnion_null, h_cover_null]
+      rw [h_iUnion_null, h_cover_null]
+      norm_num
     -- From `μ(Sᶜ) ≤ 0` and nonnegativity, deduce equality
-    apply le_antisymm_iff.mp
-    constructor
-    · simpa [h0] using h_split
-    · exact bot_le
+    have : volume (Sᶜ) ≤ 0 := by
+      calc volume (Sᶜ)
+        ≤ volume (((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)) ∩ Sᶜ))
+          + volume (((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ)) := h_split
+        _ = 0 := h0
+    exact le_antisymm this (measure_nonneg _)
   -- Convert back to an a.e. statement
   have : ∀ᵐ t : ℝ, t ∈ S := by
     simpa [ae_iff, S, Set.compl_setOf] using hSnull
@@ -821,6 +827,8 @@ open MeasureTheory
   have hle : W.t0 - W.len ≤ W.t0 + W.len := by linarith
   have hΔ : (W.t0 + W.len) - (W.t0 - W.len) = 2 * W.len := by ring
   have hnonneg : 0 ≤ (W.t0 + W.len) - (W.t0 - W.len) := by linarith
+  unfold RH.RS.length Whitney.length
+  simp [WhitneyInterval.interval, Set.Icc, hΔ]
   unfold RH.RS.length
   simp [RH.Cert.WhitneyInterval.interval, Real.volume_Icc, hle,
         ENNReal.toReal_ofReal, hΔ, hnonneg]
@@ -836,15 +844,11 @@ lemma integral_ge_const_mul_length_of_ae
   (∫ t in I, f t) ≥ c * RH.RS.length I := by
   -- Constant function is integrable on finite-measure sets
   have hconst_int : IntegrableOn (fun _ : ℝ => c) I volume := by
-    by_cases hmeas : Measurable (fun _ : ℝ => c)
-    · -- Use integrable_on_const
-      simpa using (integrableOn_const.2 (And.intro hmeas hIfin))
-    · -- Continuity implies measurability for constants; close by simp
-      simpa using (integrableOn_const.2 (And.intro (by measurability) hIfin))
+    refine integrableOn_const.2 (Or.inr hIfin)
   -- Use monotonicity of the integral under a.e. pointwise inequality
   have hmono : (∫ t in I, (fun _ => c) t) ≤ (∫ t in I, f t) := by
     have : ∀ᵐ t ∂(volume.restrict I), (fun _ => c) t ≤ f t := by simpa using h_lower
-    exact integral_mono_ae (μ := volume) hconst_int hf_int this
+    exact integral_mono_ae hconst_int hf_int this
   -- Evaluate the constant integral as c * length(I)
   have hconst : (∫ t in I, (fun _ => c) t) = c * RH.RS.length I := by
     -- integral_const over a set
@@ -903,18 +907,10 @@ lemma sigma_over_sigma2_add_sq_core_lower
     -- compute σ / (σ^2 + σ^2/4) = σ / ((5/4)σ^2) = (4/5) * (1/σ)
     have : σ / (σ^2 + σ^2 / 4) = σ / ((5 / 4) * σ^2) := by ring
     have hσne : (σ : ℝ) ≠ 0 := ne_of_gt hσ
-    have hσ2ne : σ^2 ≠ 0 := by
-      have : σ ≠ 0 := hσne
-      exact mul_ne_zero this this
-    calc
-      σ / (σ^2 + (σ / 2)^2)
-          = σ / (σ^2 + σ^2 / 4) := by ring
-      _ = σ / ((5 / 4) * σ^2) := by ring
-      _ = σ * (1 / ((5 / 4) * σ^2)) := by simp [div_eq_mul_inv]
-      _ = (1 / ((5 / 4))) * (σ / σ^2) := by
-            field_simp [hσ2ne] <;> ring
-      _ = (4 / 5) * (1 / σ) := by
-            field_simp [hσne, pow_two] <;> ring
+    have hσ2ne : σ^2 ≠ 0 := pow_ne_zero 2 hσne
+    have : σ / (σ^2 + (σ / 2)^2) = (4 / 5) * (1 / σ) := by
+      field_simp [hσne, hσ2ne]
+      ring
   -- Conclude the desired bound
   exact le_trans (by simpa [hEval]) hfrac_mono
 

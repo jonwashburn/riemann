@@ -212,7 +212,8 @@ lemma poissonKernel_bound (z : ℂ) (hz : z ∈ Ω) :
         using hval_flat
     have hk_nonneg : 0 ≤ poissonKernel z t := poissonKernel_nonneg hz t
     have : ‖poissonKernel z t‖ ≤ 1 / Real.pi * C0 / (1 + (t - z.im) ^ 2) := by
-      simpa [Real.norm_eq_abs, _root_.abs_of_nonneg hk_nonneg] using hval
+      rw [Real.norm_eq_abs, _root_.abs_of_nonneg hk_nonneg]
+      exact hval
     exact this
 
 /-- Integrability of the Poisson kernel for `z ∈ Ω`. -/
@@ -249,8 +250,15 @@ lemma poissonKernel_integrable {z : ℂ} (hz : z ∈ Ω) :
   · -- pointwise bound to feed domination: ‖kernel‖ ≤ C/(1+(t-b)^2)
     filter_upwards with t
     -- Normalize the RHS to the scalar flattening used in the bound above
-    simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
-      using hbound t
+    have hb := hbound t
+    have hC_pos : 0 ≤ C := le_of_lt hCpos
+    have hden_pos : 0 < 1 + (t - z.im) ^ 2 := by
+      apply add_pos_of_pos_of_nonneg; norm_num; exact sq_nonneg _
+    have hdiv_nonneg : 0 ≤ C / (1 + (t - z.im) ^ 2) := div_nonneg hC_pos (le_of_lt hden_pos)
+    have : ‖C / (1 + (t - z.im) ^ 2)‖ = C / (1 + (t - z.im) ^ 2) := by
+      rw [Real.norm_eq_abs, _root_.abs_of_nonneg hdiv_nonneg]
+    rw [this]
+    exact hb
 
 /-- If a real function `u` on the boundary is bounded by `M`, then
 its product with the Poisson kernel is integrable. -/
@@ -566,8 +574,9 @@ lemma boundary_abs_J_pinch_eq_one
     have : Complex.abs (det2 z)
         = Complex.abs (O z) * Complex.abs (riemannXi_ext z) := by
       exact hprod.symm
-    simpa [hratio, this, div_self hden_ne]
-  simpa [z] using hJ_abs_det2
+    rw [hratio, this, div_self hden_ne]
+  show Complex.abs (J_pinch det2 O (boundary t)) = 1
+  exact hJ_abs_det2
 
 /-- Uniform boundary bound for the real part of the pinch field:
 `|(F_pinch det2 O (boundary t)).re| ≤ 2` for all real `t`. -/
@@ -582,22 +591,22 @@ lemma F_pinch_boundary_bound
   have hJ_le_one : Complex.abs (J_pinch det2 O z) ≤ 1 := by
     by_cases hO0 : O z = 0
     · -- denominator zero ⇒ J = 0
-      have : J_pinch det2 O z = 0 := by simp [J_pinch, hO0]
+      have hJ0 : J_pinch det2 O z = 0 := by simp [J_pinch, hO0]
       -- |J| ≤ 1 holds since |0| ≤ 1
-      have : Complex.abs (J_pinch det2 O z) ≤ (1 : ℝ) := by
-        simpa [this] using (by norm_num : (0 : ℝ) ≤ (1 : ℝ))
-      exact this
+      rw [hJ0, Complex.abs.map_zero]
+      norm_num
     · by_cases hXi0 : riemannXi_ext z = 0
-      · have : J_pinch det2 O z = 0 := by simp [J_pinch, hXi0]
-        have : Complex.abs (J_pinch det2 O z) ≤ (1 : ℝ) := by
-          simpa [this] using (by norm_num : (0 : ℝ) ≤ (1 : ℝ))
-        exact this
+      · have hJ0 : J_pinch det2 O z = 0 := by simp [J_pinch, hXi0]
+        rw [hJ0, Complex.abs.map_zero]
+        norm_num
       · -- nonzero denominator: unit modulus on the boundary
+        have hO_ne : O (boundary t) ≠ 0 := by show O z ≠ 0; exact hO0
+        have hXi_ne : riemannXi_ext (boundary t) ≠ 0 := by show riemannXi_ext z ≠ 0; exact hXi0
         have hEq : Complex.abs (J_pinch det2 O z) = 1 :=
-          boundary_abs_J_pinch_eq_one (O := O) hBME t (by simpa [z] using hO0) (by simpa [z] using hXi0)
+          boundary_abs_J_pinch_eq_one (O := O) hBME t hO_ne hXi_ne
         -- Align with the simp-normal form where det₂ is rewritten to det2_AF
         -- finalize ≤ 1
-        simpa [hEq]
+        rw [hEq]
   -- |Re(2·J)| ≤ |2·J| = 2·|J| ≤ 2
   have hRe_le_abs : |((F_pinch det2 O) z).re| ≤ Complex.abs ((F_pinch det2 O) z) := by
     simpa using (Complex.abs_re_le_abs ((F_pinch det2 O) z))

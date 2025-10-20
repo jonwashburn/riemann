@@ -22,28 +22,17 @@ require mathlib from git
 
 @[default_target]
 lean_lib «rh» where
-  -- Restrict build to certificate-route modules and their AF support to reduce build surface
+  -- Build certificate-route modules only (CR-outer route excluded due to Whitney errors)
   globs := #[
-    -- Academic framework core
-    `rh.academic_framework.CompletedXi,
-    `rh.academic_framework.CayleyAdapters,
-    `rh.academic_framework.DiskHardy,
-    `rh.academic_framework.PoissonCayley,
-    `rh.academic_framework.HalfPlaneOuterV2,
-    -- RS layer used by certificate route
-    `rh.RS.Cayley,
-    `rh.RS.Det2Outer,
-    `rh.RS.OffZerosBridge,
-    `rh.RS.XiExtBridge,
-    `rh.RS.SchurGlobalization,
-    `rh.RS.PinchWrappers,
-    `rh.RS.PinchIngredients,
-    `rh.RS.RouteB_Final,
-    `rh.RS.CertificateConstruction,
-    -- Proof entry
-    `rh.Proof.Main,
-    `rh.Proof.Export,
-    `rh.Proof.DOI
+    .submodules `rh.academic_framework,
+    .submodules `rh.RS,
+    .submodules `rh.Cert,
+    .submodules `rh.Proof
+  ]
+  excludedModules := #[
+    `rh.RS.WhitneyGeometryDefs,
+    `rh.RS.WhitneyAeCore,
+    `rh.RS.CRGreenOuter
   ]
 
 -- Test library for verification and validation

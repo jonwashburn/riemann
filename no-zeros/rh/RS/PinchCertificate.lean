@@ -58,17 +58,18 @@ def buildPinchCertificate
   -- Choose an outer `O` from the existence witness
   let O : ℂ → ℂ := Classical.choose hOuter
   -- Package the two ingredients using the paper's `J_pinch` choice
-  exact PinchCertificateExt.of_pinch det2 O
-    (by
-      intro z hz
-      -- offXi ⊆ Ω \ {ξ=0}
-      have hzOld : z ∈ (Ω \ {z | riemannXi_ext z = 0}) := by
-        refine And.intro hz.1 ?_
-        intro h0; exact hz.2.2 (by simpa [Set.mem_setOf_eq] using h0)
-      simpa using (hRe_offXi z hz))
-    (by
-      intro ρ hΩ hXi
-      simpa [Θ_pinch_of] using (hRemXi ρ hΩ hXi))
+  refine {
+    J := J_pinch det2 O
+    hRe_offXi := ?_
+    existsRemXi := ?_
+  }
+  · -- Positivity on offXi - directly use the hypothesis
+    exact hRe_offXi
+  · -- Removable extension at zeros
+    intro ρ hΩ hXi
+    obtain ⟨U, hUopen, hUconn, hUsub, hρU, hIso, g, hgU, hΘU, hEq, hval, znontrivial⟩ :=
+      hRemXi ρ hΩ hXi
+    exact ⟨U, hUopen, hUconn, hUsub, hρU, hIso, g, hgU, by simpa [Θ_pinch_of, Theta_of_J] using hΘU, by simpa [Θ_pinch_of, Theta_of_J] using hEq, hval, znontrivial⟩
 
 end RS
 end RH

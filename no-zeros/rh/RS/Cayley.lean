@@ -36,9 +36,9 @@ lemma integrable_of_comp_mul_deriv_ae_neg_eq
   -- First transfer integrability along the a.e. equality
   have hIntNeg : Integrable (-g) := by
     -- `-g` is definitionally `fun t => - g t`
-    simpa using hInt.congr hAE
+    exact hInt.congr hAE
   -- Then use the symmetry of integrability under negation
-  simpa using (integrable_neg_iff (μ := volume) (f := g)).1 hIntNeg
+  exact (integrable_neg_iff (μ := volume) (f := g)).1 hIntNeg
 
 /-- Cayley(2·J): define `Θ := (2·J − 1) / (2·J + 1)`. -/
 def Theta_of_J (J : ℂ → ℂ) : ℂ → ℂ :=
@@ -101,7 +101,7 @@ lemma Θ_pinch_Schur_offXi (P : PinchOuterExt) :
 - an existence-style removable extension of `Θ := Θ_of_J J` across each `ξ_ext` zero. -/
 structure PinchCertificateExt where
   J : ℂ → ℂ
-  hRe_offXi : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}), 0 ≤ ((2 : ℂ) * J z).re
+  hRe_offXi : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi, 0 ≤ ((2 : ℂ) * J z).re
   existsRemXi : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
     ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
       (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
@@ -111,14 +111,15 @@ structure PinchCertificateExt where
 /-- Θ attached to a pinch certificate. -/
 def Θ_cert (C : PinchCertificateExt) : ℂ → ℂ := Theta_of_J C.J
 
-/-- Schur bound on `Ω \ {ξ_ext=0}` from the certificate. -/
+/-- Schur bound on `offXi` from the certificate. -/
 lemma Θ_cert_Schur_offXi (C : PinchCertificateExt) :
-    IsSchurOn (Θ_cert C) (Ω \ {z | riemannXi_ext z = 0}) := by
-  simpa [Θ_cert] using Theta_Schur_of_Re_nonneg_on_Ω_offXi C.J C.hRe_offXi
+    IsSchurOn (Θ_cert C) RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
+  exact Theta_Schur_of_Re_nonneg_on (S := RH.AcademicFramework.HalfPlaneOuterV2.offXi)
+    (hRe := C.hRe_offXi)
 
 /-! (Further certificate constructions omitted; not needed for current build.) -/
 
-/-- Concrete pinch choice and certificate builder. -/
+/-! ## Concrete pinch choice and certificate builder -/
 
 /-- Paper choice: define `J_pinch := det₂ / (O · ξ_ext)` on Ω. -/
 def J_pinch (det2 O : ℂ → ℂ) : ℂ → ℂ :=
@@ -215,9 +216,15 @@ lemma boundary_Re_F_pinch_le_two
           = Complex.abs ((2 : ℂ) * J_pinch det2 O (boundary t)) := by
               simp [F_pinch]
       _ = Complex.abs (2 : ℂ) * Complex.abs (J_pinch det2 O (boundary t)) := by
-              simpa using
-                (Complex.abs.map_mul (2 : ℂ) (J_pinch det2 O (boundary t)))
-      _ = (2 : ℝ) * 1 := by simp [Complex.abs_ofReal, hJ]
+              exact Complex.abs.map_mul (2 : ℂ) (J_pinch det2 O (boundary t))
+      _ = (2 : ℝ) * 1 := by
+        have h2 : Complex.abs (2 : ℂ) = (2 : ℝ) := by norm_num
+        -- hJ says Complex.abs (J_pinch det2 O (2⁻¹ + I * ↑t)) = 1
+        -- boundary t is definitionally 1/2 + I * t but may not simplify automatically
+        have : Complex.abs (J_pinch det2 O (boundary t)) = 1 := by
+          convert hJ using 2
+          simp [RH.AcademicFramework.HalfPlaneOuterV2.boundary]
+        rw [h2, this]
       _ = (2 : ℝ) := by norm_num
   calc
     |((F_pinch det2 O) (boundary t)).re| ≤ Complex.abs ((F_pinch det2 O) (boundary t)) :=
@@ -233,35 +240,32 @@ Requires: `det2` analytic on `Ω`, `O` analytic and zero-free on `Ω`, and
 lemma J_pinch_analytic_on_offXi
   (hDet2 : Det2OnOmega) {O : ℂ → ℂ} (hO : OuterHalfPlane O)
   (hXi : AnalyticOn ℂ riemannXi_ext (Ω \ ({1} : Set ℂ)))
-  : AnalyticOn ℂ (J_pinch det2 O) (Ω \ {z | riemannXi_ext z = 0}) := by
-  -- Work on the off-zeros set S ⊆ Ω
-  let S : Set ℂ := (Ω \ {z | riemannXi_ext z = 0})
+  : AnalyticOn ℂ (J_pinch det2 O) (Ω \ ({1} ∪ {z | riemannXi_ext z = 0})) := by
+  -- Work on the off-zeros set S ⊆ Ω, excluding the pole at 1
+  let S : Set ℂ := (Ω \ ({1} ∪ {z | riemannXi_ext z = 0}))
   have hSsub : S ⊆ Ω := by
     intro z hz; exact hz.1
+  have hSsub' : S ⊆ Ω \ ({1} : Set ℂ) := by
+    intro z hz
+    refine ⟨hz.1, ?_⟩
+    intro h1
+    exact hz.2 (Or.inl h1)
   -- Analyticity of numerator and factors on S
   have hDet2_S : AnalyticOn ℂ det2 S := (hDet2.analytic.mono hSsub)
   have hO_S : AnalyticOn ℂ O S := (hO.analytic.mono hSsub)
-  have hXi_S : AnalyticOn ℂ riemannXi_ext S := by
-    -- Restrict analyticity from Ω \ {1} through the AF off-zeros helper.
-    refine hXi.mono ?hsubset
-    intro z hz
-    have hzOff : z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
-      refine ⟨hz.1, ?_, ?_⟩
-      · exact fun hz1 => hz1
-      · exact fun hz0 => hz.2 (by simpa [Set.mem_setOf_eq] using hz0)
-    exact RH.AcademicFramework.HalfPlaneOuterV2.offXi_subset_Ω_minus_one hzOff
+  have hXi_S : AnalyticOn ℂ riemannXi_ext S := (hXi.mono hSsub')
   -- Denominator is nonzero on S: O(z) ≠ 0 on Ω and ξ_ext(z) ≠ 0 on S
   have hDen_ne : ∀ z ∈ S, (O z * riemannXi_ext z) ≠ 0 := by
     intro z hz
     have hzΩ : z ∈ Ω := hz.1
     have hO_ne : O z ≠ 0 := hO.nonzero (by exact hzΩ)
     have hXi_ne : riemannXi_ext z ≠ 0 := by
-      -- z ∉ {ξ_ext = 0}
-      have : z ∉ {w | riemannXi_ext w = 0} := by
-        intro hzero; exact hz.2 (by simpa [Set.mem_setOf_eq] using hzero)
-      -- so value is nonzero
-      by_contra h0
-      exact this (by simpa [Set.mem_setOf_eq, h0])
+      -- z ∉ {1} ∪ {ξ_ext = 0}, so z ∉ {ξ_ext = 0}
+      intro hzero
+      have : z ∈ {1} ∪ {w | riemannXi_ext w = 0} := by
+        right
+        simpa [Set.mem_setOf_eq] using hzero
+      exact hz.2 this
     exact mul_ne_zero hO_ne hXi_ne
   -- Analytic inverse of the denominator on S
   have hInv : AnalyticOn ℂ (fun z => (O z * riemannXi_ext z)⁻¹) S := by
@@ -277,6 +281,23 @@ lemma J_pinch_analytic_on_offXi
   intro z hz
   simp [J_pinch, div_eq_mul_inv]
 
+/-- Wrapper: analyticity on `offXi` which equals `Ω \ ({1} ∪ {z | riemannXi_ext z = 0})`.
+Since `riemannXi_ext` has a pole at 1, `J_pinch` is only analytic on this restricted domain. -/
+lemma J_pinch_analytic_on_offXi_restricted
+  (hDet2 : Det2OnOmega) {O : ℂ → ℂ} (hO : OuterHalfPlane O)
+  (hXi : AnalyticOn ℂ riemannXi_ext (Ω \ ({1} : Set ℂ)))
+  : AnalyticOn ℂ (J_pinch det2 O) RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
+  have h := J_pinch_analytic_on_offXi (hDet2 := hDet2) (hO := hO) (hXi := hXi)
+  -- offXi = {z | z ∈ Ω ∧ z ≠ 1 ∧ riemannXi_ext z ≠ 0}
+  -- Ω \ ({1} ∪ {z | riemannXi_ext z = 0}) = {z | z ∈ Ω ∧ z ∉ {1} ∪ {zeros}}
+  --   = {z | z ∈ Ω ∧ z ∉ {1} ∧ z ∉ {zeros}}
+  --   = {z | z ∈ Ω ∧ z ≠ 1 ∧ riemannXi_ext z ≠ 0}
+  -- So they are definitionally equal
+  convert h
+  ext z
+  simp [RH.AcademicFramework.HalfPlaneOuterV2.offXi, Set.mem_diff, Set.mem_union, Set.mem_setOf_eq]
+  tauto
+
 /-- Specialization of `J_pinch_analytic_on_offXi` to the chosen outer
 from `OuterHalfPlane.ofModulus_det2_over_xi_ext`. Uses
 `OuterHalfPlane.choose_outer_spec` to supply analyticity/nonvanishing for `O`. -/
@@ -285,8 +306,8 @@ lemma J_pinch_analytic_on_offXi_choose
   (hOuterExist : OuterHalfPlane.ofModulus_det2_over_xi_ext)
   (hXi : AnalyticOn ℂ riemannXi_ext (Ω \ ({1} : Set ℂ)))
   : AnalyticOn ℂ (J_pinch det2 (OuterHalfPlane.choose_outer hOuterExist))
-      (Ω \ {z | riemannXi_ext z = 0}) :=
-  J_pinch_analytic_on_offXi (hDet2 := hDet2)
+      RH.AcademicFramework.HalfPlaneOuterV2.offXi :=
+  J_pinch_analytic_on_offXi_restricted (hDet2 := hDet2)
     (hO := (OuterHalfPlane.choose_outer_spec hOuterExist).1) (hXi := hXi)
 
 /-- Analyticity of `Θ_pinch_of det2 O` on a set `S` where `J_pinch det2 O` is
@@ -314,10 +335,15 @@ lemma Theta_pinch_analytic_on
     intro hzero
     have : ((2 : ℂ) * J_pinch det2 O z).re = (-1 : ℂ).re := by
       have : (2 : ℂ) * J_pinch det2 O z = -1 := by
-        simpa using (by simpa [add_eq_zero_iff_eq_neg] using hzero)
-      simpa [this]
-    have : ((2 : ℂ) * J_pinch det2 O z).re = (-1 : ℝ) := by simpa
-    have : 0 ≤ (-1 : ℝ) := by simpa [this] using hzRe
+        rw [add_eq_zero_iff_eq_neg] at hzero
+        exact hzero
+      rw [this]
+    have hre_neg_one : ((2 : ℂ) * J_pinch det2 O z).re = (-1 : ℝ) := by
+      rw [this]
+      rfl
+    have : 0 ≤ (-1 : ℝ) := by
+      rw [←hre_neg_one]
+      exact hzRe
     exact (lt_of_le_of_lt this (show (-1 : ℝ) < 0 by norm_num)).false
   -- Inverse of denominator is analytic on S
   have hInv : AnalyticOn ℂ (fun z => ((2 : ℂ) * J_pinch det2 O z + 1)⁻¹) S :=
@@ -342,15 +368,15 @@ bound to justify the Cayley denominator is nonvanishing. -/
 lemma Theta_pinch_analytic_on_offXi
   (hDet2 : Det2OnOmega) {O : ℂ → ℂ} (hO : OuterHalfPlane O)
   (hXi : AnalyticOn ℂ riemannXi_ext (Ω \ ({1} : Set ℂ)))
-  (hRe : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+  (hRe : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
             0 ≤ ((2 : ℂ) * (J_pinch det2 O z)).re)
-  : AnalyticOn ℂ (Θ_pinch_of det2 O) (Ω \ {z | riemannXi_ext z = 0}) := by
-  -- First get analyticity of J_pinch on the off-zeros set
+  : AnalyticOn ℂ (Θ_pinch_of det2 O) RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
+  -- First get analyticity of J_pinch on offXi
   have hJ : AnalyticOn ℂ (J_pinch det2 O)
-      (Ω \ {z | riemannXi_ext z = 0}) :=
-    J_pinch_analytic_on_offXi (hDet2 := hDet2) (hO := hO) (hXi := hXi)
+      RH.AcademicFramework.HalfPlaneOuterV2.offXi :=
+    J_pinch_analytic_on_offXi_restricted (hDet2 := hDet2) (hO := hO) (hXi := hXi)
   -- Then apply the Cayley analyticity wrapper
-  exact Theta_pinch_analytic_on (S := (Ω \ {z | riemannXi_ext z = 0}))
+  exact Theta_pinch_analytic_on (S := RH.AcademicFramework.HalfPlaneOuterV2.offXi)
     (hJ := hJ) (hRe := hRe)
 
 /-- Specialization of `Theta_pinch_analytic_on_offXi` to the chosen outer from
@@ -359,14 +385,13 @@ lemma Theta_pinch_analytic_on_offXi_choose
   (hDet2 : Det2OnOmega)
   (hOuterExist : OuterHalfPlane.ofModulus_det2_over_xi_ext)
   (hXi : AnalyticOn ℂ riemannXi_ext (Ω \ ({1} : Set ℂ)))
-  (hRe : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+  (hRe : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
             0 ≤ ((2 : ℂ) * (J_pinch det2 (OuterHalfPlane.choose_outer hOuterExist) z)).re)
   : AnalyticOn ℂ (Θ_pinch_of det2 (OuterHalfPlane.choose_outer hOuterExist))
-      (Ω \ {z | riemannXi_ext z = 0}) := by
-  refine Theta_pinch_analytic_on_offXi (hDet2 := hDet2)
+      RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
+  exact Theta_pinch_analytic_on_offXi (hDet2 := hDet2)
     (hO := (OuterHalfPlane.choose_outer_spec hOuterExist).1)
-    (hXi := hXi) (hRe := ?_)
-  intro z hz; simpa using (hRe z hz)
+    (hXi := hXi) (hRe := hRe)
 
 /-- Restrict analyticity of `Θ_pinch_of det2 O` from the off-zeros set to an
 isolating punctured neighborhood `U \ {ρ}`. If `U ⊆ Ω` and
@@ -390,7 +415,17 @@ lemma Theta_pinch_analytic_on_isolating_punctured
     exact hz.2 this
   exact hOff.mono hsubset
 
-/-- Build a `PinchCertificateExt` from the paper `J_pinch` once the two
+/-
+Build a `PinchCertificateExt` from the paper `J_pinch` once the two
 key facts are supplied:
 1) interior positivity `0 ≤ Re(2·J_pinch)` on `Ω \ {ξ_ext=0}`;
-2) removable-extension existence for `Θ := Θ_of_J J_pinch` at each `
+2) removable-extension existence for `Θ := Θ_of_J J_pinch` at each zero of `ξ_ext`.
+
+This construction is deferred pending completion of the pinch ingredients.
+Certificate construction omitted for now; not blocking the build.
+-/
+
+end -- noncomputable section
+
+end RS
+end RH

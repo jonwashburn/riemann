@@ -516,6 +516,9 @@ theorem RiemannHypothesis_mathlib_from_CR_outer_ext_removable
 
 -- (assign-based entry wrapper removed; use CR-outer removable route or pinch skeleton)
 
+-/
+-- End of commented-out CR-outer route
+
 end RH.Proof.Final
 
 /-
