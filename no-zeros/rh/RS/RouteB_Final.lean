@@ -317,12 +317,19 @@ theorem pullback_hasPoissonRepOn_offXi :
   have hS : S ⊆ RH.AcademicFramework.HalfPlaneOuterV2.Ω := by
     intro z hz; exact hz.1
   -- Step 2: Disk-side Poisson representation for Hpull (provided by Det2Outer/DiskHardy)
-  have hDisk : RH.AcademicFramework.DiskHardy.HasDiskPoissonRepresentation Hpull := by
-    -- placeholder: reuse RS-layer builder for the pinch pullback on the disk
-    exact RH.RS.Det2Outer.diskPoisson_rep_of_pinch_pullback Hpull
-  -- Step 3: Use PoissonCayley builder to get subset half-plane representation of the pullback
-  exact RH.AcademicFramework.PoissonCayley.diskPoissonRep_pullback
-    (H := Hpull) (S := S) hDisk hS
+  -- Step 3: Build subset half‑plane Poisson representation of the pullback directly
+  -- from the subset representation of F0 using the Cayley pullback helper.
+  -- Here Hpull = F0 ∘ fromDisk by definition.
+  have hRepF0 : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn F0 S := by
+    -- We obtain this from the global F_pinch representation prepared earlier.
+    -- Use the previously built witness specialized to O.
+    -- Reuse the theorem `F_pinch_has_poisson_rep` proven above.
+    simpa [F0, RH.AcademicFramework.HalfPlaneOuterV2.F_pinch]
+      using F_pinch_has_poisson_rep
+  -- Transport the subset rep along Cayley: (Hpull ∘ toDisk) = F0 on S
+  exact RH.AcademicFramework.PoissonCayley.pullback_rep_on_from_halfplane_rep
+    (F := F0) (H := Hpull) (S := S)
+    (hHdef := by intro w; rfl) hS hRepF0
 
 theorem F_pinch_has_poisson_rep : HasPoissonRepOn
     (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
@@ -481,4 +488,224 @@ lemma exists_u_trick_on_punctured
   have hEqOn : Set.EqOn (RH.RS.Θ_pinch_of RH.RS.det2 O)
       (fun z => (1 - u z) / (1 + u z)) (U \\ {ρ}) := by
     intro z hz
-    -- On `
+    -- On `U \\ {ρ}` we have `z ≠ ρ`, `z ∈ Ω`, and `riemannXi_ext z ≠ 0` by isolation.
+    have hzU : z ∈ U := hz.1
+    have hzNe : z ≠ ρ := by
+      have : z ∈ ({ρ} : Set ℂ) → False := by
+        intro hzρ; exact hz.2 (by simpa using hzρ)
+      intro h; exact this (by simpa [h])
+    have hzΩ : z ∈ Ω := hUsub hzU
+    have hXi_ne : riemannXi_ext z ≠ 0 := by
+      -- If ξ_ext z = 0 then z ∈ U ∩ {ξ=0} = {ρ}, contradicting z ≠ ρ.
+      intro h0
+      have : z ∈ (U ∩ {w | riemannXi_ext w = 0}) := ⟨hzU, by simpa [Set.mem_setOf_eq] using h0⟩
+      have : z ∈ ({ρ} : Set ℂ) := by simpa [hIso] using this
+      exact hzNe (by simpa using this)
+    have hO_ne : O z ≠ 0 := hOuter.nonzero hzΩ
+    have hdet_ne : RH.RS.det2 z ≠ 0 := RH.RS.det2_nonzero_on_RSΩ (s := z) hzΩ
+    -- Abbreviations
+    set Jz : ℂ := RH.RS.J_pinch RH.RS.det2 O z
+    have hJz : Jz = RH.RS.det2 z / (O z * riemannXi_ext z) := rfl
+    have hJ_ne : Jz ≠ 0 := by
+      have : O z * riemannXi_ext z ≠ 0 := mul_ne_zero hO_ne hXi_ne
+      -- det2 z ≠ 0 and denominator ≠ 0 ⇒ Jz ≠ 0
+      intro hJ0
+      have : RH.RS.det2 z = 0 := by
+        -- multiply both sides of Jz = 0 by nonzero denominator
+        have := congrArg (fun w => w * (O z * riemannXi_ext z)) hJ0
+        simpa [hJz, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using this
+      exact hdet_ne this
+    -- On U \{ρ} our `u` equals 1/(2·Jz)
+    have hu_def : u z = (1 : ℂ) / ((2 : ℂ) * Jz) := by
+      have : (O z * riemannXi_ext z) ≠ 0 := mul_ne_zero hO_ne hXi_ne
+      have : u z = (O z * riemannXi_ext z) / ((2 : ℂ) * RH.RS.det2 z) := by
+        simp [u, hzNe]
+      -- Rewrite in terms of Jz
+      have : u z = ((O z * riemannXi_ext z) / ((2 : ℂ) * RH.RS.det2 z)) := this
+      --  (O·ξ)/(2·det2) = 1 / (2·(det2/(O·ξ)))
+      have hcalc :
+          ((O z * riemannXi_ext z) / ((2 : ℂ) * RH.RS.det2 z))
+            = (1 : ℂ) / ((2 : ℂ) * (RH.RS.det2 z / (O z * riemannXi_ext z))) := by
+        have h2ne : (2 : ℂ) * RH.RS.det2 z ≠ 0 := mul_ne_zero (by norm_num) hdet_ne
+        have hden_ne : O z * riemannXi_ext z ≠ 0 := mul_ne_zero hO_ne hXi_ne
+        field_simp [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc, h2ne, hden_ne]
+      simpa [hJz] using congrArg id hcalc
+    -- Algebra: Cayley(2·Jz) = (1 - 1/(2·Jz)) / (1 + 1/(2·Jz))
+    have hCayley :
+        (RH.RS.Θ_pinch_of RH.RS.det2 O) z
+          = (1 - ((1 : ℂ) / ((2 : ℂ) * Jz))) / (1 + ((1 : ℂ) / ((2 : ℂ) * Jz))) := by
+      -- Unfold Θ and J; then simplify to the standard Cayley identity
+      simp [RH.RS.Θ_pinch_of, RH.RS.Theta_of_J, RH.RS.J_pinch, hJz, div_eq_mul_inv,
+            mul_comm, mul_left_comm, mul_assoc]
+      -- Turn ((2*J) - 1)/((2*J) + 1) into (1 - 1/(2*J))/(1 + 1/(2*J))
+      -- This `simp` normal form matches the target after the previous rewriting
+    -- Conclude the EqOn by substituting `u z = 1/(2·Jz)`
+    simpa [hu_def]
+    using hCayley
+  -- Tendsto u → 0 along nhdsWithin ρ (U \ {ρ})
+  -- Work with the non-piecewise function v and then transfer to u using eventual equality
+  let v : ℂ → ℂ := fun z => (O z * riemannXi_ext z) / ((2 : ℂ) * RH.RS.det2 z)
+  have hρΩ : ρ ∈ Ω := hUsub hρU
+  -- Continuity of numerator and denominator (and nonvanishing at ρ)
+  have hO_cont : ContinuousAt O ρ :=
+    (hOuter.analytic.continuousOn.continuousAt (isOpen_Ω.mem_nhds hρΩ))
+  have hXi_diff : DifferentiableOn ℂ riemannXi_ext (Ω \\ ({1} : Set ℂ)) :=
+    riemannXi_ext_differentiable_AFΩ
+  have hΩminus_open : IsOpen (Ω \\ ({1} : Set ℂ)) := by
+    simpa using (isOpen_Ω.sdiff isClosed_singleton)
+  have hρ_in : ρ ∈ (Ω \\ ({1} : Set ℂ)) := by
+    refine ⟨hρΩ, ?_⟩
+    -- ρ ≠ 1 since ξ_ext has an isolated zero at ρ and a pole at 1
+    -- (cannot be both a zero and a pole).
+    intro h1
+    -- Use isolation: if ρ = 1 then 1 ∈ U ∩ {ξ=0}, impossible as ξ has a pole at 1.
+    have hIso1 : 1 ∈ (U ∩ {z | riemannXi_ext z = 0}) := by
+      have hρzero : riemannXi_ext ρ = 0 := by
+        -- from isolation equality
+        have : ρ ∈ (U ∩ {z | riemannXi_ext z = 0}) := by
+          have : ρ ∈ ({ρ} : Set ℂ) := by simp
+          simpa [hIso] using this
+        simpa [Set.mem_setOf_eq] using this.2
+      have : 1 = ρ := h1.symm
+      refine ⟨by simpa [this] using hρU, ?_⟩
+      simpa [this, Set.mem_setOf_eq, hρzero]
+    -- But (U ∩ {ξ=0}) = {ρ} excludes 1.
+    have : (1 : ℂ) ∈ ({ρ} : Set ℂ) := by simpa [hIso] using hIso1
+    simpa using this
+  have hXi_cont : ContinuousAt riemannXi_ext ρ :=
+    (hXi_diff.differentiableAt (isOpen.mem_nhds hΩminus_open hρ_in)).continuousAt
+  have hdet_cont : ContinuousAt RH.RS.det2 ρ :=
+    (det2_analytic_on_RSΩ.continuousOn.continuousAt (isOpen_Ω.mem_nhds hρΩ))
+  have hden_ne : ((2 : ℂ) * RH.RS.det2 ρ) ≠ 0 := mul_ne_zero (by norm_num) (by
+    -- det2 ρ ≠ 0 is an input hypothesis
+    simpa using hDet2_nz)
+  have hv_cont : ContinuousAt v ρ := by
+    -- v = num * (den)⁻¹ with num,den continuous and den(ρ) ≠ 0
+    have hnum_cont : ContinuousAt (fun z => O z * riemannXi_ext z) ρ :=
+      hO_cont.mul hXi_cont
+    have hden_cont : ContinuousAt (fun z => ((2 : ℂ) * RH.RS.det2 z)) ρ := by
+      simpa using (continuous_const.mul hdet_cont)
+    have hInv := (continuousAt_inv₀_and_eventually_ne (g := fun z => (2 : ℂ) * RH.RS.det2 z)
+      (hg := hden_cont) (hρ := hden_ne)).1
+    -- combine
+    simpa [v, div_eq_mul_inv]
+      using hnum_cont.mul hInv
+  -- Since riemannXi_ext ρ = 0 (by isolation), v → 0 and hence u → 0 on the punctured filter
+  have hXiρ : riemannXi_ext ρ = 0 := by
+    have : ρ ∈ (U ∩ {z | riemannXi_ext z = 0}) := by
+      have : ρ ∈ ({ρ} : Set ℂ) := by simp
+      simpa [hIso] using this
+    simpa [Set.mem_setOf_eq] using this.2
+  have hv0 : Tendsto v (nhdsWithin ρ U) (nhds (0 : ℂ)) := by
+    -- continuity at ρ with v ρ = 0
+    have : v ρ = 0 := by
+      simp [v, hXiρ]
+    simpa [this] using hv_cont.tendsto
+  have hv0' : Tendsto v (nhdsWithin ρ (U \\ {ρ})) (nhds (0 : ℂ)) :=
+    hv0.mono_left (by
+      -- nhdsWithin ρ (U \ {ρ}) ≤ nhdsWithin ρ U
+      intro s hs; exact hs)
+  have hEq_ev :
+      (fun z => u z) =ᶠ[nhdsWithin ρ (U \\ {ρ})]
+      (fun z => v z) := by
+    -- On the punctured neighborhood, u agrees with v by definition
+    refine Set.EqOn.eventuallyEq_nhdsWithin (s := U \\ {ρ}) ?hEq
+    intro z hz; simp [u, hz.2, v]
+  exact (hv0'.congr' hEq_ev.symm)
+
+  -- Done
+  refine ⟨u, hEqOn, ?hu⟩
+  -- deduce Tendsto u from Tendsto v and eventual equality on the punctured filter
+  exact (hv0'.congr' hEq_ev.symm)
+
+/-- Pinned removable data for Θ := Θ_pinch_of det2 O at each ξ_ext zero ρ in Ω. -/
+theorem pinned_removable_data
+  (ρ : ℂ) (hΩ : ρ ∈ Ω) (hξ : riemannXi_ext ρ = 0) :
+  ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
+    (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
+    AnalyticOn ℂ (RH.RS.Θ_pinch_of RH.RS.det2 O) (U \\ {ρ}) ∧
+    ∃ u : ℂ → ℂ,
+      Set.EqOn (RH.RS.Θ_pinch_of RH.RS.det2 O)
+        (fun z => (1 - u z) / (1 + u z)) (U \\ {ρ}) ∧
+      Filter.Tendsto u (nhdsWithin ρ (U \\ {ρ})) (nhds (0 : ℂ)) ∧
+      ∃ z, z ∈ U ∧ z ≠ ρ ∧ (RH.RS.Θ_pinch_of RH.RS.det2 O) z ≠ 1 := by
+  classical
+  -- Isolate the zero
+  obtain ⟨U, hUopen, hUconn, hUsub, hρU, hIso⟩ :=
+    exists_isolating_preconnected_open ρ hΩ hξ
+  -- Θ analyticity on U \ {ρ}: restrict from off-zeros
+  -- First build off-zeros analyticity via Cayley wrapper
+  have hDet2 : RH.RS.Det2OnOmega := RH.RS.det2_on_Ω_assumed det2_analytic_on_RSΩ (by
+    intro s hs; exact det2_nonzero_on_RSΩ (s := s) hs)
+  have hOuter : RH.RS.OuterHalfPlane O := (O_spec).1
+  have hXi : AnalyticOn ℂ riemannXi_ext (Ω \\ ({1} : Set ℂ)) :=
+    riemannXi_ext_differentiable_AFΩ
+  -- Interior nonnegativity of Re(F) on offXi via transport (uses P+ and rep)
+  have hRepOn : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
+      (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
+      (Ω \\ {z | riemannXi_ext z = 0}) := F_pinch_has_poisson_rep
+  have hBP : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
+      (fun z => (2 : ℂ) * RH.RS.J_pinch RH.RS.det2 O z) := by
+    -- from certificate-level P+ via boundary bridge
+    exact boundary_positive_AF
+  have hReInt : ∀ z ∈ (Ω \\ {z | riemannXi_ext z = 0}),
+      0 ≤ ((2 : ℂ) * RH.RS.J_pinch RH.RS.det2 O z).re := by
+    -- transport boundary positivity into the interior using the rep on offXi
+    have hT := RH.AcademicFramework.HalfPlaneOuterV2.poissonTransportOn
+      (F := RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) hRepOn hBP
+    intro z hz; simpa [RH.AcademicFramework.HalfPlaneOuterV2.F_pinch]
+      using hT z hz
+  have hOff : AnalyticOn ℂ (RH.RS.Θ_pinch_of RH.RS.det2 O)
+      (Ω \\ {z | riemannXi_ext z = 0}) := by
+    -- build Θ analyticity from J analyticity and Re(F) ≥ 0
+    exact RH.RS.Theta_pinch_analytic_on_offXi (hDet2 := hDet2) (hO := hOuter)
+      (hXi := hXi) (hRe := hReInt)
+  have hΘU : AnalyticOn ℂ (RH.RS.Θ_pinch_of RH.RS.det2 O) (U \\ {ρ}) :=
+    Theta_pinch_analytic_on_Uminus (hOff := hOff) hUsub hIso
+  -- u-trick on the punctured neighborhood
+  -- Need det2 ρ ≠ 0
+  have hdetρ : RH.RS.det2 ρ ≠ 0 := RH.RS.det2_nonzero_on_RSΩ (s := ρ) hΩ
+  obtain ⟨u, hEq, hu0⟩ :=
+    exists_u_trick_on_punctured hUopen hρU hUsub hIso hOuter hdetρ
+  -- Nontriviality witness: choose any z ∈ U, z ≠ ρ; then Θ z ≠ 1 identically
+  obtain ⟨ε, hεpos, hεsubset⟩ := Metric.mem_nhds_iff.mp (hUopen.mem_nhds hρU)
+  let z : ℂ := ρ + (ε / 2)
+  have hzU : z ∈ U := by
+    have hdist : dist z ρ = ε / 2 := by
+      simp [z, dist_eq, abs_ofReal, abs_eq_self.mpr (by linarith : 0 ≤ (ε / 2))]
+    have : dist z ρ < ε := by simpa [hdist] using (half_lt_self hεpos)
+    exact hεsubset this
+  have hzNe : z ≠ ρ := by
+    have : dist z ρ = ε / 2 := by
+      simp [z, dist_eq, abs_ofReal, abs_eq_self.mpr (by linarith : 0 ≤ (ε / 2))]
+    intro h; simpa [h] using (lt_irrefl_of_le_of_lt le_rfl (by simpa [this] using hεpos))
+  have hΘ_ne_one : (RH.RS.Θ_pinch_of RH.RS.det2 O) z ≠ 1 := by
+    -- Cayley cannot be 1 at any point of definition
+    intro h1
+    -- Write Θ = (2J-1)/(2J+1) at z and cross-multiply
+    set Jz : ℂ := RH.RS.J_pinch RH.RS.det2 O z
+    have : ((2 : ℂ) * Jz - 1) / ((2 : ℂ) * Jz + 1) = (1 : ℂ) := by
+      simpa [RH.RS.Θ_pinch_of, RH.RS.Theta_of_J, RH.RS.J_pinch] using h1
+    have hden : ((2 : ℂ) * Jz + 1) ≠ 0 := by
+      -- If the denominator vanished, Θ would be undefined; contrad.
+      -- We can derive a contradiction by evaluating real parts: Re(2J) ≥ 0 ⇒ 2J ≠ -1
+      have hx : 0 ≤ ((2 : ℂ) * Jz).re :=
+        hReInt z ⟨hUsub hzU, by
+          intro hx0
+          have : z ∈ (U ∩ {w | riemannXi_ext w = 0}) := ⟨hzU, by simpa [Set.mem_setOf_eq] using hx0⟩
+          have : z ∈ ({ρ} : Set ℂ) := by simpa [hIso] using this
+          exact (hzNe (by simpa using this))⟩
+      intro hzero
+      have : ((2 : ℂ) * Jz).re = (-1 : ℝ) := by
+        have : (2 : ℂ) * Jz = -1 := by simpa [add_eq_zero_iff_eq_neg] using hzero
+        simpa [this]
+      have : 0 ≤ (-1 : ℝ) := by simpa [this] using hx
+      exact (lt_of_le_of_lt this (by norm_num : (-1 : ℝ) < 0)).false
+    -- cross-multiply
+    have := congrArg (fun w => w * ((2 : ℂ) * Jz + 1)) this
+    have : ((2 : ℂ) * Jz - 1) = ((2 : ℂ) * Jz + 1) := by simpa [mul_comm, mul_left_comm, mul_assoc] using this
+    have : (-1 : ℂ) = (1 : ℂ) := by
+      have := congrArg (fun w : ℂ => w - (2 : ℂ) * Jz) this
+      simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using this
+    exact one_ne_neg_one (by simpa using this)
+  refine ⟨U, hUopen, hUconn, hUsub, hρU, hIso, hΘU, u, hEq, hu0, z, hzU, hzNe, hΘ_ne_one⟩

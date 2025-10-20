@@ -2,6 +2,7 @@ import Mathlib.Analysis.Analytic.Basic
 import Mathlib.Topology.Basic
 import Mathlib.Data.Real.Basic
 import rh.academic_framework.CompletedXi
+import rh.academic_framework.DiskHardy
 import rh.academic_framework.DiagonalFredholm.Determinant
 
 /-!
@@ -287,3 +288,5 @@ theorem outer_limit_locally_uniform_alt :
 
 end RS
 end RH
+
+/-! ## (no RS disk helper; Cayley pullback handled in PoissonCayley) -/

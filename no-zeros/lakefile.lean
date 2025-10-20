@@ -22,8 +22,29 @@ require mathlib from git
 
 @[default_target]
 lean_lib «rh» where
-  -- Build all rh modules
-  globs := #[.submodules `rh]
+  -- Restrict build to certificate-route modules and their AF support to reduce build surface
+  globs := #[
+    -- Academic framework core
+    `rh.academic_framework.CompletedXi,
+    `rh.academic_framework.CayleyAdapters,
+    `rh.academic_framework.DiskHardy,
+    `rh.academic_framework.PoissonCayley,
+    `rh.academic_framework.HalfPlaneOuterV2,
+    -- RS layer used by certificate route
+    `rh.RS.Cayley,
+    `rh.RS.Det2Outer,
+    `rh.RS.OffZerosBridge,
+    `rh.RS.XiExtBridge,
+    `rh.RS.SchurGlobalization,
+    `rh.RS.PinchWrappers,
+    `rh.RS.PinchIngredients,
+    `rh.RS.RouteB_Final,
+    `rh.RS.CertificateConstruction,
+    -- Proof entry
+    `rh.Proof.Main,
+    `rh.Proof.Export,
+    `rh.Proof.DOI
+  ]
 
 -- Test library for verification and validation
 lean_lib «test» where

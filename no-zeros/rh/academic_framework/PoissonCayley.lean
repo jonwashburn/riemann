@@ -553,6 +553,46 @@ lemma diskPoissonRep_pullback
     have hCoV := cayley_poisson_integral_change H hS z hz
     simpa [HalfPlaneOuterV2.poissonIntegral] using hDiskEq.trans hCoV
 
+/-- New: Build a subset half‑plane Poisson representation for the Cayley pullback directly
+from a subset half‑plane Poisson representation of the original function `F`.
+
+Let `H w := F (fromDisk w)`. On any subset `S ⊆ Ω`, we have
+`(H ∘ toDisk) z = F z` for `z ∈ S` and `H(boundaryToDisk t) = F(boundary t)`.
+Thus the Poisson representation on `S` for `F` transfers verbatim to the pullback. -/
+lemma pullback_rep_on_from_halfplane_rep
+  (F : ℂ → ℂ) (H : ℂ → ℂ) {S : Set ℂ}
+  (hHdef : ∀ w, H w = F (CayleyAdapters.fromDisk w))
+  (hS : S ⊆ HalfPlaneOuterV2.Ω)
+  (hRepOn : HalfPlaneOuterV2.HasPoissonRepOn F S)
+  : HalfPlaneOuterV2.HasPoissonRepOn (fun z => H (CayleyAdapters.toDisk z)) S := by
+  refine {
+    subset := hS
+    , analytic := ?hA
+    , integrable := ?hI
+    , formula := ?hEq };
+  · -- Analytic on S since `(H∘toDisk) = F` on S and `F` is analytic on S.
+    have hEqOn : Set.EqOn (fun z => H (CayleyAdapters.toDisk z)) F S := by
+      intro z hz; simp [hHdef]
+    exact (hRepOn.analytic.congr hEqOn)
+  · intro z hz
+    -- Integrable boundary real part: equality of boundary traces transfers integrability
+    -- `(H∘toDisk)(boundary t) = H(boundaryToDisk t) = F(boundary t)`
+    have hbd : (fun t : ℝ => ((H (CayleyAdapters.toDisk (HalfPlaneOuterV2.boundary t))).re))
+        = (fun t : ℝ => (F (HalfPlaneOuterV2.boundary t)).re) := by
+      funext t; simp [hHdef, CayleyAdapters.fromDisk_boundaryToDisk]
+    -- use integrability from `hRepOn`
+    simpa [hbd] using hRepOn.integrable z hz
+  · intro z hz
+    -- Formula equality transfers along the same boundary trace identity
+    have hbd : (fun t : ℝ => (H (CayleyAdapters.boundaryToDisk t)).re)
+        = (fun t : ℝ => (F (HalfPlaneOuterV2.boundary t)).re) := by
+      funext t; simp [hHdef, CayleyAdapters.fromDisk_boundaryToDisk]
+    have hpoint : (fun z => H (CayleyAdapters.toDisk z)) z = F z := by
+      simp [hHdef, CayleyAdapters.fromDisk_toDisk_of_mem_Ω (hS hz)]
+    -- conclude using the Poisson formula for F on S
+    simpa [HalfPlaneOuterV2.poissonIntegral, hbd, hpoint]
+      using hRepOn.formula z hz
+
 end PoissonCayley
 end AcademicFramework
 end RH

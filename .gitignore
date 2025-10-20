@@ -21,4 +21,7 @@ sandbox_det2/
 __pycache__/
 node_modules/
 
+# Large bundle files
+complete_lean_bundle_v*.txt
+
 old-rh/

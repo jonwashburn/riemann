@@ -116,7 +116,7 @@ lemma poissonKernel_nonneg {z : ℂ} (hz : z ∈ Ω) (t : ℝ) :
 /-! ### Kernel bounds and integrability -/
 
 lemma poissonKernel_bound (z : ℂ) (hz : z ∈ Ω) :
-    ∃ C > 0, ∀ t : ℝ, poissonKernel z t ≤ C / (1 + (t - z.im)^2) := by
+    ∃ C > 0, ∀ t : ℝ, ‖poissonKernel z t‖ ≤ C / (1 + (t - z.im)^2) := by
   classical
   -- Set a := Re z − 1/2 > 0 and X := (t − Im z)^2 ≥ 0
   unfold Ω at hz
@@ -155,7 +155,6 @@ lemma poissonKernel_bound (z : ℂ) (hz : z ∈ Ω) :
           simpa using this
         have hx' : a ^ 2 * (1 + X) ≤ a ^ 2 + X := by
           simpa [mul_add] using add_le_add_left hX (a ^ 2)
-        have ha_ne : a ≠ 0 := ne_of_gt ha
         have hstep : a * (1 + X) ≤ (1 / a) * (a ^ 2 + X) := by
           -- use le_div_iff₀ with a > 0: (a*(1+X) ≤ (a^2+X)/a) ↔ (a*(1+X))*a ≤ a^2+X
           have hx2 : (a * (1 + X)) * a ≤ a ^ 2 + X := by
@@ -205,8 +204,16 @@ lemma poissonKernel_bound (z : ℂ) (hz : z ∈ Ω) :
     have hscaled : (1 / Real.pi) * (a / (a ^ 2 + (t - z.im) ^ 2))
         ≤ (1 / Real.pi) * (C0 / (1 + (t - z.im) ^ 2)) :=
       mul_le_mul_of_nonneg_left (hfrac t) (le_of_lt hπpos)
-    -- Rewrite to the Poisson kernel shape (no further algebraic reshaping required)
-    simpa [poissonKernel, ha_def, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using hscaled
+    have hval_flat : (1 / Real.pi) * (a / (a ^ 2 + (t - z.im) ^ 2))
+        ≤ 1 / Real.pi * C0 / (1 + (t - z.im) ^ 2) := by
+      simpa [mul_comm, mul_left_comm, mul_assoc, div_eq_mul_inv] using hscaled
+    have hval : poissonKernel z t ≤ 1 / Real.pi * C0 / (1 + (t - z.im) ^ 2) := by
+      simpa [poissonKernel, ha_def, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+        using hval_flat
+    have hk_nonneg : 0 ≤ poissonKernel z t := poissonKernel_nonneg hz t
+    have : ‖poissonKernel z t‖ ≤ 1 / Real.pi * C0 / (1 + (t - z.im) ^ 2) := by
+      simpa [Real.norm_eq_abs, _root_.abs_of_nonneg hk_nonneg] using hval
+    exact this
 
 /-- Integrability of the Poisson kernel for `z ∈ Ω`. -/
 lemma poissonKernel_integrable {z : ℂ} (hz : z ∈ Ω) :
@@ -218,7 +225,7 @@ lemma poissonKernel_integrable {z : ℂ} (hz : z ∈ Ω) :
     simpa [sub_eq_add_neg, pow_two] using (integrable_inv_one_add_sq.comp_sub_right z.im)
   have hint : Integrable (fun t : ℝ => C / (1 + (t - z.im) ^ 2)) := by
     simpa [div_eq_mul_inv] using this.const_mul C
-  -- Comparison using strong measurability
+  -- Comparison using strong measurability (dominate by the scalar bound)
   refine hint.mono ?meas ?bound
   · -- measurability
     -- kernel is continuous hence measurable
@@ -239,43 +246,11 @@ lemma poissonKernel_integrable {z : ℂ} (hz : z ∈ Ω) :
           have : 0 < z.re - 1/2 := sub_pos.mpr hzlt
           exact sq_pos_of_ne_zero (ne_of_gt this)
         · exact sq_nonneg _
-  · -- pointwise bound (abs/norm form)
+  · -- pointwise bound to feed domination: ‖kernel‖ ≤ C/(1+(t-b)^2)
     filter_upwards with t
-    -- positivity facts to rewrite scalars to absolute-value form
-    have hπpos : 0 < Real.pi := Real.pi_pos
-    have ha_pos : 0 < z.re - 1/2 := sub_pos.mpr hz
-    have hden1_pos : 0 < (z.re - 1/2) ^ 2 + (t - z.im) ^ 2 := by
-      apply add_pos_of_pos_of_nonneg
-      · exact sq_pos_of_ne_zero (ne_of_gt ha_pos)
-      · exact sq_nonneg _
-    have hden2_pos : 0 < 1 + (t - z.im) ^ 2 := by
-      apply add_pos_of_pos_of_nonneg; norm_num; exact sq_nonneg _
-    have hC_nonneg : 0 ≤ C := le_of_lt hCpos
-    -- scalar bound in standard (non-abs) form
-    have hb_scalar : (1 / Real.pi)
-        * ((z.re - 1/2) / ((z.re - 1/2) ^ 2 + (t - z.im) ^ 2))
-        ≤ C / (1 + (t - z.im) ^ 2) := by
-      simpa [poissonKernel, one_div, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
-        using hbound t
-    -- rewrite to scalar forms via positivity, avoiding deep simp
-    set a : ℝ := z.re - 1/2
-    set X : ℝ := (t - z.im) ^ 2
-    have hLHS_nonneg : 0 ≤ (1 / Real.pi) * (a / (a ^ 2 + X)) := by
-      have : 0 ≤ (1 / Real.pi) := one_div_nonneg.mpr hπpos.le
-      have : 0 ≤ a / (a ^ 2 + X) := by exact div_nonneg (le_of_lt ha_pos) (le_of_lt hden1_pos)
-      exact mul_nonneg (one_div_nonneg.mpr hπpos.le) this
-    have hRHS_nonneg : 0 ≤ C / (1 + X) := by exact div_nonneg hC_nonneg (le_of_lt hden2_pos)
-    have hdef : poissonKernel z t = (1 / Real.pi) * (a / (a ^ 2 + X)) := by
-      simp [poissonKernel, a, X, one_div, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
-    have hk_nonneg : 0 ≤ poissonKernel z t := poissonKernel_nonneg hz t
-    have hLHS_norm : ‖poissonKernel z t‖ = (1 / Real.pi) * (a / (a ^ 2 + X)) := by
-      simpa [Real.norm_eq_abs, hdef, _root_.abs_of_nonneg hk_nonneg]
-    have hRHS_norm : ‖C / (1 + X)‖ = C / (1 + X) := by
-      simpa [Real.norm_eq_abs, _root_.abs_of_nonneg hRHS_nonneg]
-    have : (1 / Real.pi) * (a / (a ^ 2 + X)) ≤ C / (1 + X) := by
-      -- from hb_scalar after substituting a, X
-      simpa [a, X] using hb_scalar
-    simpa [hLHS_norm, hRHS_norm] using this
+    -- Normalize the RHS to the scalar flattening used in the bound above
+    simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+      using hbound t
 
 /-- If a real function `u` on the boundary is bounded by `M`, then
 its product with the Poisson kernel is integrable. -/
@@ -311,9 +286,9 @@ lemma integrable_boundedBoundary
   have hk_nonneg : 0 ≤ poissonKernel z t := poissonKernel_nonneg hz t
   have habs_le : |u t| ≤ max M 0 := le_trans (hBound t) (le_max_left _ _)
   have hcoef : ‖u t‖ ≤ ‖max M 0‖ := by
-    have hbase : ‖u t‖ ≤ max M 0 := by simpa [Real.norm_eq_abs] using habs_le
-    have h0 : 0 ≤ max 0 M := le_max_left _ _
-    simpa [max_comm] using this
+    have hbase : ‖u t‖ ≤ max M 0 := by
+      simpa [Real.norm_eq_abs] using habs_le
+    have h0 : 0 ≤ max M 0 := by simpa [max_comm] using (le_max_left (0 : ℝ) M)
     have hnorm_max : ‖max M 0‖ = max M 0 := by
       simpa [Real.norm_eq_abs, _root_.abs_of_nonneg h0]
     simpa [hnorm_max] using hbase
@@ -333,6 +308,18 @@ lemma measurable_boundary_affine : Measurable (boundary : ℝ → ℂ) := by
   · exact measurable_const
   · apply Measurable.const_mul
     exact Complex.continuous_ofReal.measurable
+
+/-- Pullback measurability along the AF boundary map. -/
+lemma measurable_on_boundary_of_measurable {α} [MeasurableSpace α]
+  {f : ℂ → α} (hf : Measurable f) :
+  Measurable (fun t : ℝ => f (boundary t)) :=
+  hf.comp measurable_boundary_affine
+
+/-- Alias with argument order matching RS callers. -/
+lemma measurable_comp_boundary {α} [MeasurableSpace α]
+  (f : ℂ → α) (hf : Measurable f) :
+  Measurable (fun t : ℝ => f (boundary t)) :=
+  measurable_on_boundary_of_measurable (f := f) hf
 
 /-- Adapter: the RS boundary parametrization equals the AF boundary parametrization. -/
 lemma rs_boundary_eq_af (t : ℝ) : RH.RS.boundary t = boundary t := by
@@ -523,12 +510,7 @@ lemma F_pinch_analyticOn_offZeros
 /-- On the boundary line Re s = 1/2, assuming the boundary modulus equality
 `|O(1/2+it)| = |det2/ξ_ext(1/2+it)|`, the pinch field has unit modulus:
 `|J_pinch det2 O (1/2+it)| = 1`, provided `O(1/2+it)` and `ξ_ext(1/2+it)` are nonzero. -/
-lemma abs_J_pinch_det2_eq_AF
-  {O : ℂ → ℂ} (z : ℂ)
-  (hDetEq : det2 z = DiagonalFredholm.det2_AF z) :
-  Complex.abs (J_pinch det2 O z) = Complex.abs (J_pinch DiagonalFredholm.det2_AF O z) := by
-  classical
-  simp [J_pinch, hDetEq]
+-- Removed AF alias detours; proofs below avoid `det2_AF`.
 
 lemma boundary_abs_J_pinch_eq_one
   {O : ℂ → ℂ}
@@ -563,72 +545,69 @@ lemma boundary_abs_J_pinch_eq_one
   -- |J| = |det2| / (|O|·|ξ|) = 1
   have hJabs : Complex.abs (J_pinch det2 O z)
       = Complex.abs (det2 z) / (Complex.abs (O z) * Complex.abs (riemannXi_ext z)) := by
-    -- |det2 * (O·ξ)^{-1}| = |det2| · |(O·ξ)^{-1}| = |det2| / |O·ξ|
-    have hm : Complex.abs (J_pinch det2 O z)
-        = Complex.abs (det2 z) * Complex.abs ((O z * riemannXi_ext z)⁻¹) := by
-      simpa [J_pinch, div_eq_mul_inv, Complex.abs.map_mul]
-    have hInv : Complex.abs ((O z * riemannXi_ext z)⁻¹)
-        = (Complex.abs (O z * riemannXi_ext z))⁻¹ := by
-      simpa using Complex.abs.map_inv (O z * riemannXi_ext z)
-    have hMulAbs : Complex.abs (O z * riemannXi_ext z)
+    -- Start from the quotient form of J_pinch and push abs through division and multiplication
+    have hdiv : Complex.abs (det2 z / (O z * riemannXi_ext z))
+        = Complex.abs (det2 z) / Complex.abs (O z * riemannXi_ext z) := by
+      simpa using Complex.abs.map_div (det2 z) (O z * riemannXi_ext z)
+    have hmul : Complex.abs (O z * riemannXi_ext z)
         = Complex.abs (O z) * Complex.abs (riemannXi_ext z) := by
-      simpa using (Complex.abs.map_mul (O z) (riemannXi_ext z))
-    simpa [hInv, hMulAbs, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using hm
-  have hden_pos : 0 < Complex.abs (O z) * Complex.abs (riemannXi_ext z) :=
-    mul_pos (Complex.abs.pos_iff.mpr hO0) (Complex.abs.pos_iff.mpr hXi0)
+      simpa using Complex.abs.map_mul (O z) (riemannXi_ext z)
+    simpa [J_pinch, hdiv, hmul]
+  have hden_pos : 0 < Complex.abs (O z) * Complex.abs (riemannXi_ext z) := by
+    have h1 : 0 < Complex.abs (O z) := Complex.abs.pos_iff.mpr hO0
+    have h2 : 0 < Complex.abs (riemannXi_ext z) := Complex.abs.pos_iff.mpr hXi0
+    exact mul_pos h1 h2
   have hden_ne : (Complex.abs (O z) * Complex.abs (riemannXi_ext z)) ≠ 0 := ne_of_gt hden_pos
   have hratio : Complex.abs (J_pinch det2 O z)
       = Complex.abs (det2 z) / (Complex.abs (O z) * Complex.abs (riemannXi_ext z)) := by
     simpa using hJabs
   have hJ_abs_det2 : Complex.abs (J_pinch det2 O z) = 1 := by
     -- |det2| / (|O|·|ξ|) = 1 from boundary modulus
-    simpa [hratio, hprod, div_self hden_ne]
-  -- AF variant via definitional equality det2 = det2_AF
-  have hDetEq : det2 z = DiagonalFredholm.det2_AF z := rfl
-  -- Close using the local equality, not assumption
-  have hJ_abs_AF : Complex.abs (J_pinch DiagonalFredholm.det2_AF O z) = 1 := by
-    simpa [HalfPlaneOuterV2.abs_J_pinch_det2_eq_AF (O := O) z hDetEq]
-      using hJ_abs_det2
-  simpa [z] using hJ_abs_AF
+    have : Complex.abs (det2 z)
+        = Complex.abs (O z) * Complex.abs (riemannXi_ext z) := by
+      exact hprod.symm
+    simpa [hratio, this, div_self hden_ne]
+  simpa [z] using hJ_abs_det2
 
--- moved above first use
-
+/-- Uniform boundary bound for the real part of the pinch field:
+`|(F_pinch det2 O (boundary t)).re| ≤ 2` for all real `t`. -/
 lemma F_pinch_boundary_bound
-    {O : ℂ → ℂ}
-    (hBME : BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
-    (t : ℝ) :
-    |(F_pinch det2 O (boundary t)).re| ≤ 2 := by
+  {O : ℂ → ℂ}
+  (hBME : BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
+  (t : ℝ) :
+  |((F_pinch det2 O) (boundary t)).re| ≤ (2 : ℝ) := by
   classical
-  -- Work at the boundary point z := boundary t
   set z : ℂ := boundary t
-  by_cases hO_ne : O z ≠ 0
-  · by_cases hXi_ne : riemannXi_ext z ≠ 0
-    · -- Both non-zero: |J| = 1 ⇒ |2·J| = 2 ⇒ |Re(2·J)| ≤ 2
-      have hJabs_det2 : Complex.abs (J_pinch det2 O z) = 1 := by
-        have := boundary_abs_J_pinch_eq_one (O := O) hBME t (by simpa [z] using hO_ne) (by simpa [z] using hXi_ne)
-        simpa [z] using this
-      have hDetEq : det2 z = DiagonalFredholm.det2_AF z := rfl
-      have hJabs : Complex.abs (J_pinch DiagonalFredholm.det2_AF O z) = 1 := by
-        simpa [HalfPlaneOuterV2.abs_J_pinch_det2_eq_AF (O := O) z hDetEq] using hJabs_det2
-      have hFabs : Complex.abs ((F_pinch det2 O) z) = (2 : ℝ) := by
-        calc
-          Complex.abs ((F_pinch det2 O) z)
-              = Complex.abs ((2 : ℂ) * J_pinch det2 O z) := by
-                  simp [F_pinch]
-          _ = Complex.abs (2 : ℂ) * Complex.abs (J_pinch det2 O z) := by
-                  simpa using (Complex.abs.map_mul (2 : ℂ) (J_pinch det2 O z))
-          _ = (2 : ℝ) * 1 := by simp [hJabs, Complex.abs_ofReal]
-          _ = (2 : ℝ) := by norm_num
-      calc
-        |((F_pinch det2 O) z).re| ≤ Complex.abs ((F_pinch det2 O) z) :=
-          Complex.abs_re_le_abs _
-        _ = (2 : ℝ) := hFabs
-    · -- ξ_ext = 0 at boundary: J_pinch = det2/(O·ξ_ext) = det2/0 = 0
-      have hXi_eq : riemannXi_ext z = 0 := Classical.not_not.mp hXi_ne
-      simp [F_pinch, J_pinch, hXi_eq]
-  · -- O = 0 at boundary: J_pinch = det2/(O·ξ_ext) = det2/0 = 0
-    have hO_eq : O z = 0 := Classical.not_not.mp hO_ne
-    simp [F_pinch, J_pinch, hO_eq]
+  -- Either the denominator vanishes or not; in both cases `|J| ≤ 1`.
+  have hJ_le_one : Complex.abs (J_pinch det2 O z) ≤ 1 := by
+    by_cases hO0 : O z = 0
+    · -- denominator zero ⇒ J = 0
+      have : J_pinch det2 O z = 0 := by simp [J_pinch, hO0]
+      -- |J| ≤ 1 holds since |0| ≤ 1
+      have : Complex.abs (J_pinch det2 O z) ≤ (1 : ℝ) := by
+        simpa [this] using (by norm_num : (0 : ℝ) ≤ (1 : ℝ))
+      exact this
+    · by_cases hXi0 : riemannXi_ext z = 0
+      · have : J_pinch det2 O z = 0 := by simp [J_pinch, hXi0]
+        have : Complex.abs (J_pinch det2 O z) ≤ (1 : ℝ) := by
+          simpa [this] using (by norm_num : (0 : ℝ) ≤ (1 : ℝ))
+        exact this
+      · -- nonzero denominator: unit modulus on the boundary
+        have hEq : Complex.abs (J_pinch det2 O z) = 1 :=
+          boundary_abs_J_pinch_eq_one (O := O) hBME t (by simpa [z] using hO0) (by simpa [z] using hXi0)
+        -- Align with the simp-normal form where det₂ is rewritten to det2_AF
+        -- finalize ≤ 1
+        simpa [hEq]
+  -- |Re(2·J)| ≤ |2·J| = 2·|J| ≤ 2
+  have hRe_le_abs : |((F_pinch det2 O) z).re| ≤ Complex.abs ((F_pinch det2 O) z) := by
+    simpa using (Complex.abs_re_le_abs ((F_pinch det2 O) z))
+  have hAbs_F : Complex.abs ((F_pinch det2 O) z) = (2 : ℝ) * Complex.abs (J_pinch det2 O z) := by
+    simp [F_pinch, Complex.abs.map_mul]
+  have : |((F_pinch det2 O) z).re| ≤ (2 : ℝ) * Complex.abs (J_pinch det2 O z) := by
+    simpa [hAbs_F] using hRe_le_abs
+  have : |((F_pinch det2 O) z).re| ≤ (2 : ℝ) * 1 :=
+    (le_trans this (mul_le_mul_of_nonneg_left hJ_le_one (by norm_num)))
+  simpa [z] using this
 
 /-! ## Measurability of boundary trace for the pinch field -/
 
@@ -678,93 +657,16 @@ theorem pinch_poissonRepOn_offZeros
   · -- integrable
     intro z hz
     have hzΩ : z ∈ Ω := offXi_subset_Ω hz
-    -- Bound |Re(F(boundary t))| ≤ 2 and use kernel integrability
     have hBound : ∀ t : ℝ, |((F_pinch det2 O) (boundary t)).re| ≤ (2 : ℝ) :=
       fun t => F_pinch_boundary_bound (O := O) hBME t
     have hMeas : Measurable (fun t => ((F_pinch det2 O) (boundary t)).re) :=
       measurable_boundary_F_pinch hDet_meas hO_meas hXi_meas
-    -- kernel is integrable
-    -- Kernel integrable via comparison with 1/(1+(t-b)^2)
-    have hker : Integrable (fun t => poissonKernel z t) := by
-      -- Obtain bound C/(1+(t-b)^2)
-      obtain ⟨C, hCpos, hbound⟩ := poissonKernel_bound z hzΩ
-      -- integrable dominating function
-      have h_dom : Integrable (fun t : ℝ => C / (1 + (t - z.im)^2)) := by
-        -- integrable_inv_one_add_sq gives integrability of 1/(1+t²)
-        have : Integrable (fun t : ℝ => 1 / (1 + (t - z.im) ^ 2)) := by
-          simpa [sub_eq_add_neg, pow_two] using
-            (integrable_inv_one_add_sq.comp_sub_right z.im)
-        simpa [div_eq_mul_inv] using this.const_mul C
-      -- Strong measurability of kernel
-      have hmeas : AEStronglyMeasurable (fun t => poissonKernel z t) := by
-        refine (Continuous.aestronglyMeasurable ?cont)
-        unfold poissonKernel
-        apply Continuous.mul
-        · exact continuous_const
-        · apply Continuous.div
-          · exact continuous_const
-          · apply Continuous.add
-            · exact continuous_const
-            · apply Continuous.pow
-              exact (continuous_id.sub continuous_const)
-          · intro t; apply ne_of_gt; apply add_pos_of_pos_of_nonneg
-            · have : 0 < z.re - 1/2 := sub_pos.mpr hzΩ; exact sq_pos_of_ne_zero (ne_of_gt this)
-            · exact sq_nonneg _
-      -- Comparison via simple nonnegativity (avoid heavy simp)
-      refine h_dom.mono hmeas ?bound
-      filter_upwards with t
-      have hk_nonneg : 0 ≤ poissonKernel z t := poissonKernel_nonneg hzΩ t
-      have hR_nonneg : 0 ≤ C / (1 + (t - z.im) ^ 2) := by
-        have : 0 < 1 + (t - z.im) ^ 2 := by
-          apply add_pos_of_pos_of_nonneg; norm_num; exact sq_nonneg _
-        exact div_nonneg (le_of_lt hCpos) (le_of_lt this)
-      have hb' : poissonKernel z t ≤ C / (1 + (t - z.im) ^ 2) := hbound t
-      have hL : ‖poissonKernel z t‖ = poissonKernel z t := by
-        simpa [Real.norm_eq_abs, _root_.abs_of_nonneg hk_nonneg]
-      have hR : ‖C / (1 + (t - z.im) ^ 2)‖ = C / (1 + (t - z.im) ^ 2) := by
-        simpa [Real.norm_eq_abs, _root_.abs_of_nonneg hR_nonneg]
-      simpa [hL, hR] using hb'
-    have h_dom : Integrable (fun t => (2 : ℝ) * poissonKernel z t) :=
-      Integrable.const_mul hker (2 : ℝ)
-    refine h_dom.mono ?hm ?hb
-    · -- measurability of integrand as AEStronglyMeasurable
-      have hker_meas : AEStronglyMeasurable (fun t => poissonKernel z t) := by
-        -- kernel is continuous in t
-        have : Continuous (fun t => poissonKernel z t) := by
-          unfold poissonKernel
-          apply Continuous.mul
-          · exact continuous_const
-          · apply Continuous.div
-            · exact continuous_const
-            · apply Continuous.add
-              · exact continuous_const
-              · apply Continuous.pow
-                exact (continuous_id.sub continuous_const)
-            · intro t; apply ne_of_gt; apply add_pos_of_pos_of_nonneg
-              · have : 0 < z.re - 1/2 := sub_pos.mpr hzΩ; exact sq_pos_of_ne_zero (ne_of_gt this)
-              · exact sq_nonneg _
-        exact this.aestronglyMeasurable
-      exact hMeas.aestronglyMeasurable.mul hker_meas
-    · -- pointwise bound: ‖F.re · kernel‖ ≤ 2 · kernel
-      filter_upwards with t
-      have hk_nonneg : 0 ≤ poissonKernel z t := poissonKernel_nonneg hzΩ t
-      calc
-        ‖((F_pinch det2 O) (boundary t)).re * poissonKernel z t‖
-            = |((F_pinch det2 O) (boundary t)).re| * poissonKernel z t := by
-              rw [norm_mul, Real.norm_eq_abs, Real.norm_eq_abs, _root_.abs_of_nonneg hk_nonneg]
-        _ ≤ 2 * poissonKernel z t := by
-              exact mul_le_mul_of_nonneg_right (hBound t) hk_nonneg
-        _ ≤ ‖2 * poissonKernel z t‖ := by
-              have : 0 ≤ 2 * poissonKernel z t := by
-                exact mul_nonneg (by norm_num) hk_nonneg
-              simpa [Real.norm_eq_abs, _root_.abs_of_nonneg this]
-                using (le_abs_self (2 * poissonKernel z t))
-
-  · -- formula
-    exact hFormula
-
--- Note: The classical Poisson identity for the pinch field on the off‑zeros set
--- is provided to this module via callers (see `pinch_hasPoissonRepOn_from_cayley`).
+    simpa using integrable_boundedBoundary
+      (u := fun t : ℝ => ((F_pinch det2 O) (boundary t)).re)
+      (z := z) (M := (2 : ℝ)) hzΩ hBound hMeas
+  · -- formula on offXi: supplied as hypothesis
+    intro z hz
+    exact hFormula z hz
 
 /-- Convenience wrapper (Cayley transport): build a Poisson representation witness for the
 pinch field on the off‑zeros set from a supplied half‑plane Poisson real‑part identity on
@@ -813,75 +715,9 @@ theorem pinch_hasPoissonRepOn_from_cayley_analytic
       fun t => F_pinch_boundary_bound (O := O) hBME t
     have hMeas : Measurable (fun t => ((F_pinch det2 O) (boundary t)).re) :=
       measurable_boundary_F_pinch hDet_meas hO_meas hXi_meas
-    -- kernel integrable via comparison with 1/(1+(t-b)^2)
-    have hker : Integrable (fun t => poissonKernel z t) := by
-      obtain ⟨C, hCpos, hbound⟩ := poissonKernel_bound z hzΩ
-      have : Integrable (fun t : ℝ => 1 / (1 + (t - z.im) ^ 2)) := by
-        simpa [sub_eq_add_neg, pow_two] using
-          (integrable_inv_one_add_sq.comp_sub_right z.im)
-      have h_dom : Integrable (fun t : ℝ => C / (1 + (t - z.im) ^ 2)) := by
-        simpa [div_eq_mul_inv] using this.const_mul C
-      have hmeas : AEStronglyMeasurable (fun t => poissonKernel z t) := by
-        refine (Continuous.aestronglyMeasurable ?cont)
-        unfold poissonKernel
-        apply Continuous.mul
-        · exact continuous_const
-        · apply Continuous.div
-          · exact continuous_const
-          · apply Continuous.add
-            · exact continuous_const
-            · apply Continuous.pow
-              exact (continuous_id.sub continuous_const)
-          · intro t; apply ne_of_gt; apply add_pos_of_pos_of_nonneg
-            · have : 0 < z.re - 1/2 := sub_pos.mpr hzΩ; exact sq_pos_of_ne_zero (ne_of_gt this)
-            · exact sq_nonneg _
-      refine h_dom.mono hmeas ?bound
-      filter_upwards with t
-      have hk_nonneg : 0 ≤ poissonKernel z t := poissonKernel_nonneg hzΩ t
-      have hR_nonneg : 0 ≤ C / (1 + (t - z.im) ^ 2) := by
-        have : 0 < 1 + (t - z.im) ^ 2 := by
-          apply add_pos_of_pos_of_nonneg; norm_num; exact sq_nonneg _
-        exact div_nonneg (le_of_lt hCpos) (le_of_lt this)
-      have hb' : poissonKernel z t ≤ C / (1 + (t - z.im) ^ 2) := hbound t
-      have hL : ‖poissonKernel z t‖ = poissonKernel z t := by
-        simpa [Real.norm_eq_abs, _root_.abs_of_nonneg hk_nonneg]
-      have hR : ‖C / (1 + (t - z.im) ^ 2)‖ = C / (1 + (t - z.im) ^ 2) := by
-        simpa [Real.norm_eq_abs, _root_.abs_of_nonneg hR_nonneg]
-      simpa [hL, hR] using hb'
-    have h_dom : Integrable (fun t => (2 : ℝ) * poissonKernel z t) :=
-      Integrable.const_mul hker (2 : ℝ)
-    refine h_dom.mono ?hm ?hb
-    · -- measurability of integrand as AEStronglyMeasurable
-      have hker_meas : AEStronglyMeasurable (fun t => poissonKernel z t) := by
-        have : Continuous (fun t => poissonKernel z t) := by
-          unfold poissonKernel
-          apply Continuous.mul
-          · exact continuous_const
-          · apply Continuous.div
-            · exact continuous_const
-            · apply Continuous.add
-              · exact continuous_const
-              · apply Continuous.pow
-                exact (continuous_id.sub continuous_const)
-            · intro t; apply ne_of_gt; apply add_pos_of_pos_of_nonneg
-              · have : 0 < z.re - 1/2 := sub_pos.mpr hzΩ; exact sq_pos_of_ne_zero (ne_of_gt this)
-              · exact sq_nonneg _
-        exact this.aestronglyMeasurable
-      exact hMeas.aestronglyMeasurable.mul hker_meas
-    · -- pointwise bound: ‖F.re · kernel‖ ≤ 2 · kernel
-      filter_upwards with t
-      have hk_nonneg : 0 ≤ poissonKernel z t := poissonKernel_nonneg hzΩ t
-      calc
-        ‖((F_pinch det2 O) (boundary t)).re * poissonKernel z t‖
-            = |((F_pinch det2 O) (boundary t)).re| * poissonKernel z t := by
-              rw [norm_mul, Real.norm_eq_abs, Real.norm_eq_abs, _root_.abs_of_nonneg hk_nonneg]
-        _ ≤ 2 * poissonKernel z t := by
-              exact mul_le_mul_of_nonneg_right (hBound t) hk_nonneg
-        _ ≤ ‖2 * poissonKernel z t‖ := by
-              have : 0 ≤ 2 * poissonKernel z t := by
-                exact mul_nonneg (by norm_num) hk_nonneg
-              simpa [Real.norm_eq_abs, _root_.abs_of_nonneg this]
-                using (le_abs_self (2 * poissonKernel z t))
+    simpa using integrable_boundedBoundary
+      (u := fun t : ℝ => ((F_pinch det2 O) (boundary t)).re)
+      (z := z) (M := (2 : ℝ)) hzΩ hBound hMeas
 
   · -- formula
     exact hReEqOn
