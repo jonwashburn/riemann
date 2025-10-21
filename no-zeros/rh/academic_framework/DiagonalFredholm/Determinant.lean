@@ -6,9 +6,7 @@ import Mathlib.Data.Complex.Basic
 import Mathlib.NumberTheory.LSeries.RiemannZeta
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Pow.Complex
-import rh.academic_framework.DiagonalFredholm.WeierstrassProduct
 import rh.academic_framework.EulerProduct.PrimeSeries
-import rh.academic_framework.DiagonalFredholm.WeierstrassProduct
 import rh.academic_framework.EulerProduct.PrimeSeries
 
 noncomputable section
@@ -17,6 +15,40 @@ open Complex Set
 open scoped Topology BigOperators
 
 namespace RH.AcademicFramework.DiagonalFredholm
+
+/-! Minimal helpers (duplicated locally to avoid extra imports). -/
+
+/-- Exponential turns sums into products (modern route).
+If `a` is summable, then `∏ exp (a i) = exp (∑ a i)` and the product is `Multipliable`. -/
+lemma tprod_exp_of_summable {ι : Type*} [Countable ι]
+    (a : ι → ℂ) (hsum : Summable a) :
+    Multipliable (fun i => Complex.exp (a i)) ∧
+      (∏' i, Complex.exp (a i)) = Complex.exp (∑' i, a i) := by
+  have hsum' : HasSum a (∑' i, a i) := hsum.hasSum
+  have hprod : HasProd (fun i => Complex.exp (a i)) (Complex.exp (∑' i, a i)) := by
+    simpa [Function.comp] using hsum'.cexp
+  exact ⟨hprod.multipliable, hprod.tprod_eq⟩
+
+/-- For `‖z‖ < 1`, the modified Euler factor `(1 - z) * exp(z + z^2/2)`
+can be written as a single exponential `exp(log(1 - z) + z + z^2/2)`. -/
+lemma eulerFactor_as_exp_log (z : ℂ) (hz : ‖z‖ < (1 : ℝ)) :
+    (1 - z) * Complex.exp (z + z ^ 2 / 2)
+      = Complex.exp (Complex.log (1 - z) + z + z ^ 2 / 2) := by
+  have hne : 1 - z ≠ 0 := by
+    intro h
+    have hz1 : ‖z‖ = 1 := by
+      have : 1 = z := sub_eq_zero.mp h
+      simpa [this.symm]
+    exact (ne_of_lt hz) hz1
+  calc
+    (1 - z) * Complex.exp (z + z ^ 2 / 2)
+        = Complex.exp (Complex.log (1 - z)) * Complex.exp (z + z ^ 2 / 2) := by
+          simpa [Complex.exp_log hne]
+    _   = Complex.exp (Complex.log (1 - z) + (z + z ^ 2 / 2)) := by
+          simpa [Complex.exp_add] using
+            (Complex.exp_add (Complex.log (1 - z)) (z + z ^ 2 / 2)).symm
+    _   = Complex.exp (Complex.log (1 - z) + z + z ^ 2 / 2) := by
+          simpa [add_comm, add_left_comm, add_assoc]
 
 /-- Additive remainder bound for the modified Euler log.
 For `σ > 1/2` and `s` with `Re(s) ≥ σ`, putting `λ = (p:ℂ)^(−s)` we have
