@@ -5,6 +5,7 @@ import rh.RS.CRGreenOuter
 import rh.RS.WhitneyAeCore
 import rh.RS.OffZerosBridge
 import rh.RS.PinchWrappers
+import rh.RS.PinchCertificate
 import rh.academic_framework.HalfPlaneOuterV2
 import rh.academic_framework.PoissonCayley
 import rh.academic_framework.CompletedXi
@@ -334,9 +335,6 @@ theorem pullback_hasPoissonRepOn_offXi :
 theorem F_pinch_has_poisson_rep : HasPoissonRepOn
     (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
     (Ω \ {z | riemannXi_ext z = 0}) := by
-  -- Package det2 analyticity/nonvanishing on RS Ω
-  have hDet2 : RH.RS.Det2OnOmega := RH.RS.det2_on_Ω_assumed det2_analytic_on_RSΩ (by
-    intro s hs; exact det2_nonzero_on_RSΩ (s := s) hs)
   -- Extract RS outer data and boundary modulus
   have hOuter : RH.RS.OuterHalfPlane O := (O_spec).1
   have hBMErs : RH.RS.BoundaryModulusEq O (fun s => RH.RS.det2 s / riemannXi_ext s) := (O_spec).2
@@ -363,10 +361,9 @@ theorem F_pinch_has_poisson_rep : HasPoissonRepOn
   have hReEqOn : RH.AcademicFramework.PoissonCayley.HasHalfPlanePoissonReEqOn F0 S := by
     exact RH.AcademicFramework.PoissonCayley.pinch_halfplane_ReEqOn_from_cayley
       (F := F0) (H := Hpull) (S := S) hInt hBd pullback_hasPoissonRepOn_offXi
-  -- Finish building the subset representation using the AF builder
-  exact RH.AcademicFramework.HalfPlaneOuterV2.pinch_hasPoissonRepOn_from_cayley
-    hDet2 (hO := hOuter) (hBME := hBME_af)
-    -- Use DifferentiableOn variant where builder accepts Analytic/Differentiable
+  -- Finish building the subset representation using the analytic-only AF builder
+  exact RH.AcademicFramework.HalfPlaneOuterV2.pinch_hasPoissonRepOn_from_cayley_analytic
+    det2_analytic_on_RSΩ (hO := hOuter) (hBME := hBME_af)
     (hXi := riemannXi_ext_differentiable_AFΩ)
     det2_boundary_measurable O_boundary_measurable xi_ext_boundary_measurable
     (by
@@ -438,19 +435,51 @@ theorem RiemannHypothesis_via_RouteB : RiemannHypothesis := by
   -- Align boundary positivity to the expected outer
   have hPplus : RH.Cert.PPlus (fun z => (2 : ℂ) * RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter) z) := by
     simpa [hChoose] using boundary_positive
-  -- Align pinned-removable packaging to the expected outer
-  have hPinned : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
+  -- Build interior positivity on offXi from (P+) and the Poisson representation
+  have hBP : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive (F_pinch det2 (Classical.choose hOuter)) := by
+    -- Coerce Cert.PPlus to AF boundary positivity (as in PinchWrappers)
+    have hcert : ∀ᵐ t : ℝ, 0 ≤ ((fun z => (2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)) (Complex.mk (1/2) t)).re := hPplus
+    have mk_eq : ∀ t, Complex.mk (1/2) t = (1/2 : ℝ) + Complex.I * (t : ℂ) := by
+      intro t; apply Complex.ext <;> simp
+    have hbd : ∀ᵐ t : ℝ, 0 ≤ ((fun z => (2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)) (boundary t)).re := by
+      refine hcert.mono ?_
+      intro t ht
+      have hb : boundary t = (1/2 : ℝ) + Complex.I * (t : ℂ) := rfl
+      have ht' : 0 ≤ ((fun z => (2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)) ((1/2 : ℝ) + Complex.I * (t : ℂ))).re := by
+        simpa [mk_eq t] using ht
+      simpa [hb] using ht'
+    simpa [RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive] using hbd
+  have hRe_offXi : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}), 0 ≤ ((F_pinch det2 (Classical.choose hOuter) z).re) := by
+    have hTrans := RH.AcademicFramework.HalfPlaneOuterV2.poissonTransportOn (F := F_pinch det2 (Classical.choose hOuter)) hRepOn hBP
+    intro z hz; simpa using hTrans z hz
+  -- Define g-based removable assignment using pinned_removable_data → g-update
+  have hRemXi : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
       ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
         (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
-        AnalyticOn ℂ (RH.RS.Θ_pinch_of RH.RS.det2 (Classical.choose hOuter)) (U \ {ρ}) ∧
-        ∃ u : ℂ → ℂ,
-          Set.EqOn (RH.RS.Θ_pinch_of RH.RS.det2 (Classical.choose hOuter))
-            (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) ∧
-          Filter.Tendsto u (nhdsWithin ρ (U \ {ρ})) (nhds (0 : ℂ)) ∧
-          ∃ z, z ∈ U ∧ z ≠ ρ ∧ (RH.RS.Θ_pinch_of RH.RS.det2 (Classical.choose hOuter)) z ≠ 1 := by
-    intro ρ hΩ hXi
-    simpa [hChoose] using pinned_removable_data ρ hΩ hXi
-  exact RH.RS.RH_from_PPlus_transport_and_pinned hOuter hRepOn hPplus hPinned
+        ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧
+          AnalyticOn ℂ (Θ_pinch_of det2 (Classical.choose hOuter)) (U \ {ρ}) ∧
+          Set.EqOn (Θ_pinch_of det2 (Classical.choose hOuter)) g (U \ {ρ}) ∧ g ρ = 1 ∧
+          ∃ z, z ∈ U ∧ g z ≠ 1 := by
+    intro ρ hΩ' hXi'
+    -- start from pinned_removable_data and convert to g via update
+    rcases (pinned_removable_data ρ hΩ' hXi') with
+      ⟨U, hUopen, hUconn, hUsub, hρU, hIso, hΘU, u, hEq, hu0, z, hzU, hzNe, hΘz⟩
+    classical
+    let Θ : ℂ → ℂ := Θ_pinch_of det2 (Classical.choose hOuter)
+    let g : ℂ → ℂ := Function.update Θ ρ (1 : ℂ)
+    have hEqOn : Set.EqOn Θ g (U \ {ρ}) := by
+      intro w hw; simp [g, Function.update_noteq hw.2]
+    have hval : g ρ = 1 := by simp [g]
+    have hgU : AnalyticOn ℂ g U :=
+      RH.RS.analyticOn_update_from_pinned (U := U) (ρ := ρ) (Θ := Θ) (u := u)
+        hUopen hρU hΘU hEq hu0
+    have hgz_ne1 : g z ≠ 1 := by
+      have : g z = Θ z := by simp [g, Function.update_noteq hzNe]
+      intro hz1; exact hΘz (by simpa [this] using hz1)
+    exact ⟨U, hUopen, hUconn, hUsub, hρU, hIso, ⟨g, hgU, hΘU, hEqOn, hval, z, hzU, hgz_ne1⟩⟩
+  -- Build certificate and conclude
+  let C : RH.RS.PinchCertificateExt := RH.RS.buildPinchCertificate hOuter hRe_offXi hRemXi
+  exact RH.Proof.Final.RH_from_pinch_certificate C
 
 /-! ### Wiring helper: Θ analyticity on an isolating punctured neighborhood
 
