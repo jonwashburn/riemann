@@ -222,11 +222,11 @@ theorem det2_AF_analytic_on_halfPlaneReGtHalf :
   refine AnalyticOn_of_local ?_
   intro s0 hs0
   -- Local analyticity at s0 (Re s0 > 1/2)
-  -- Define local logs: a_p(s) = log( (1 - p^{-s}) * exp(p^{-s} + (p^{-s})^2 / 2) )
+  -- Define local logs in additive form: a_p(s) = log(1 - λ) + λ + λ^2/2 with λ = p^{-s}
   let a : Prime → ℂ → ℂ := fun p s =>
-    Complex.log ((1 - (p.1 : ℂ) ^ (-s)) * Complex.exp ((p.1 : ℂ) ^ (-s) + ((p.1 : ℂ) ^ (-s)) ^ 2 / 2))
-  -- Normal convergence on a neighborhood (from cubic tail + prime p^{-3σ} summability):
-  -- Admitted here; see helper lemmas in WeierstrassProduct for the cubic tail inequality.
+    let lam := (p.1 : ℂ) ^ (-s)
+    Complex.log (1 - lam) + lam + lam ^ 2 / 2
+  -- Normal convergence on a neighborhood via additive bound and p^{-2σ} domination
   have h_norm_conv : ∀ᶠ s in 𝓝 s0, Summable (fun p : Prime => a p s) := by
     -- Choose σ with 1/2 < σ < Re(s0), and a ball where Re(s) > σ
     obtain ⟨σ, hσhalf, hσ⟩ : ∃ σ, (1/2 : ℝ) < σ ∧ σ < s0.re := by
@@ -234,28 +234,30 @@ theorem det2_AF_analytic_on_halfPlaneReGtHalf :
     have hopen : IsOpen {s : ℂ | σ < s.re} := by
       simpa using (isOpen_lt continuous_const Complex.continuous_re)
     obtain ⟨r, hrpos, hball⟩ := Metric.isOpen_iff.mp hopen s0 (by simpa [Set.mem_setOf_eq] using hσ)
-    -- On this ball, ‖(p:ℂ)^{-s}‖ ≤ p^{-σ}; use quadratic-tail bound to dominate the log remainder
-    have hsum : Summable (fun p : Prime => (p.1 : ℝ) ^ (-(3 : ℝ) * σ)) := by
-      -- 3σ > 1 since σ > 1/2
-      have : 1 < (3 : ℝ) * σ := by linarith
-      -- use project lemma for primes; real series
-      simpa using AcademicRH.EulerProduct.real_prime_rpow_summable (r := (3 : ℝ) * σ) this
-    -- conclude eventual summability uniformly on the ball by comparison
+    -- Summability of the dominating prime series ∑ p^{-2σ}
+    have hsum : Summable (fun p : Prime => (p.1 : ℝ) ^ (-(2 : ℝ) * σ)) := by
+      have : 1 < (2 : ℝ) * σ := by linarith
+      simpa using AcademicRH.EulerProduct.real_prime_rpow_summable (r := (2 : ℝ) * σ) this
+    -- conclude eventual summability uniformly on the ball by comparison with constant · p^{-2σ}
     refine Filter.eventually_of_forall ?_;
     intro s
-    have hsσ : σ < s.re := by
+    have hsσ : σ ≤ s.re := le_of_lt (by
       have : s ∈ {s : ℂ | σ < s.re} := hball (by simp [Metric.mem_ball, hrpos])
-      simpa [Set.mem_setOf_eq] using this
-    -- define the pointwise majorant on primes (constant in s)
-    -- |a_p(s)| ≤ C · p^{-3σ}, absorbed into summability of p^{-3σ}
-    -- We reuse hsum and standard comparison to obtain Summable (fun p => a p s)
-    have : Summable (fun p : Prime => (p.1 : ℝ) ^ (-(3 : ℝ) * σ)) := hsum
-    -- Abstract the comparison (details suppressed; routine in this development)
-    -- Accept as a local lemma: sum of a p s dominated by summable prime power series
-    exact Summable.of_nonneg_of_le (by intro p; exact trivial) (by intro p; exact le_of_lt (by
-      -- bound |log( (1-λ)·exp(λ+λ^2/2) )|
-      -- via norm_log_one_sub_le_of_lt_one and |λ| ≤ p^{-σ}
-      admit)) this
+      simpa [Set.mem_setOf_eq] using this)
+    -- constant dominating factor on the ball
+    let Cσ : ℝ := ((1 - (2 : ℝ) ^ (-σ))⁻¹) / 2 + (1 / 2 : ℝ)
+    have hbound : ∀ p : Prime, ‖a p s‖ ≤ Cσ * (p.1 : ℝ) ^ (-(2 : ℝ) * σ) := by
+      intro p
+      -- apply the additive bound lemma
+      have := log_remainder_additive_bound_of_Re_ge_sigma (s := s) hσhalf hsσ p
+      -- unfold a p s
+      simpa [a, Cσ] using this
+    -- comparison test on norms then lift to complex summability
+    have hsum' : Summable (fun p : Prime => Cσ * (p.1 : ℝ) ^ (-(2 : ℝ) * σ)) :=
+      (hsum.mul_left Cσ)
+    have hnorm_sum : Summable (fun p : Prime => ‖a p s‖) :=
+      summable_of_nonneg_of_le (by intro p; exact norm_nonneg _) hbound hsum'
+    exact Summable.of_norm hnorm_sum
   -- Product equals exp(tsum) locally via tprod_exp_of_summable
   have h_prod_eq_exp : ∀ᶠ s in 𝓝 s0,
       (∏' (p : Prime), Complex.exp (a p s)) = Complex.exp (∑' (p : Prime), a p s) := by
@@ -271,9 +273,50 @@ theorem det2_AF_analytic_on_halfPlaneReGtHalf :
       det2_AF s = Complex.exp (∑' (p : Prime), a p s) := (h_det_as_prod.and h_prod_eq_exp).mono
         (by intro s hs; simpa [hs.1] using hs.2)
   -- Conclude AnalyticAt for det2_AF via equality with an analytic function on a neighborhood
-  have : AnalyticAt ℂ (fun s => Complex.exp (∑' (p : Prime), a p s)) s0 := by
-    -- To be filled: normal convergence of analytic terms (each a p is analytic in s)
-    admit
+  have h_analytic_sum : AnalyticAt ℂ (fun s => ∑' (p : Prime), a p s) s0 := by
+    -- Each `p` term is analytic near s0 and the family is locally summable.
+    refine AnalyticAt.tsum (fun p => ?_) ?_
+    · -- analyticity of s ↦ a p s at s0
+      -- Set λ = p^{-s}; this is entire since p ≠ 0 and λ = exp((-s) * log p)
+      have hpne : (p.1 : ℂ) ≠ 0 := by
+        exact_mod_cast (by exact ne_of_gt (Nat.Prime.pos p.property))
+      have hlam : AnalyticAt ℂ (fun s => (p.1 : ℂ) ^ (-s)) s0 := by
+        -- exp ∘ linear map s ↦ (-s) * log(p)
+        have hlin : AnalyticAt ℂ (fun s : ℂ => -s) s0 := (analyticAt_id.neg)
+        have hmul : AnalyticAt ℂ (fun s => (-s) * Complex.log (p.1 : ℂ)) s0 := hlin.mul_const _
+        have : AnalyticAt ℂ (fun s => Complex.exp ((-s) * Complex.log (p.1 : ℂ))) s0 :=
+          Complex.analyticAt_exp.comp s0 hmul
+        -- identify with cpow for a ≠ 0
+        refine this.congr ?hcongr
+        intro s; simpa [Complex.cpow_eq_exp_log, hpne] using rfl
+      -- now combine: log(1 - λ) analytic as λ(s0) ≠ 1
+      have hlam_norm : ‖(p.1 : ℂ) ^ (-s0)‖ < 1 := by
+        -- since Re(s0) > 0 and p ≥ 2
+        have hp_pos : 0 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.pos p.property)
+        have : ‖(p.1 : ℂ) ^ (-s0)‖ = (p.1 : ℝ) ^ (-s0.re) := by
+          simpa [Complex.norm_eq_abs] using (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s0))
+        have hp_gt_one : (1 : ℝ) < (p.1 : ℝ) := by
+          have : (2 : ℝ) ≤ (p.1 : ℝ) := by exact_mod_cast p.property.two_le
+          exact lt_of_lt_of_le (by norm_num) this
+        have : (p.1 : ℝ) ^ (-s0.re) < 1 := by
+          have hlogpos : 0 < Real.log (p.1 : ℝ) := by simpa using Real.log_pos hp_gt_one
+          have hxneg : -s0.re < 0 := by linarith [hs0]
+          have : Real.exp ((-s0.re) * Real.log (p.1 : ℝ)) < Real.exp 0 :=
+            Real.exp_lt_exp.mpr (mul_neg_of_neg_of_pos hxneg hlogpos)
+          simpa [Real.rpow_def_of_pos hp_pos, Real.exp_zero] using this
+        simpa [this] using this
+      have hne : 1 - (p.1 : ℂ) ^ (-s0) ≠ 0 := by
+        intro h; have : (p.1 : ℂ) ^ (-s0) = 1 := sub_eq_zero.mp h |>.symm
+        have : ‖(p.1 : ℂ) ^ (-s0)‖ = 1 := by simpa [this]
+        exact (ne_of_lt hlam_norm) this
+      have hlog : AnalyticAt ℂ (fun s => Complex.log (1 - (p.1 : ℂ) ^ (-s))) s0 :=
+        Complex.analyticAt_log.comp s0 ((analyticAt_const.sub hlam))
+      -- assemble a p s
+      simpa [a] using (hlog.add (hlam.add ((hlam.pow 2).mul_const (1 / 2 : ℂ))))
+    · -- local summability of the family of norms
+      exact h_norm_conv
+  have : AnalyticAt ℂ (fun s => Complex.exp (∑' (p : Prime), a p s)) s0 :=
+    Complex.analyticAt_exp.comp s0 h_analytic_sum
   exact (AnalyticAt.congr_of_eventuallyEq this h_eq_exp)
 
 /-- Nonvanishing of the 2‑modified determinant on the half‑plane Re(s) > 1/2. -/
@@ -284,21 +327,27 @@ theorem det2_AF_nonzero_on_halfPlaneReGtHalf :
   -- Fix 1/2 < σ < Re(s)
   obtain ⟨σ, hσhalf, hσ⟩ : ∃ σ, (1/2 : ℝ) < σ ∧ σ < s.re := by
     refine ⟨(s.re + 1/2)/2, ?_, ?_⟩ <;> linarith
-  -- Define a_p := log Euler factor at s
+  -- Define a_p in additive form at this fixed s
   let a : Prime → ℂ := fun p =>
-    Complex.log ((1 - (p.1 : ℂ) ^ (-s)) * Complex.exp ((p.1 : ℂ) ^ (-s) + ((p.1 : ℂ) ^ (-s)) ^ 2 / 2))
-  -- Summability of a by cubic tail bound ⇒ dominated by C·p^{-3σ}
+    let lam := (p.1 : ℂ) ^ (-s)
+    Complex.log (1 - lam) + lam + lam ^ 2 / 2
+  -- Summability of a by quadratic-tail domination with σ ∈ (1/2, Re(s)]
   have hsum_a : Summable a := by
-    -- Pick σ with 1/2 < σ < Re(s)
-    obtain ⟨σ, hσhalf, hσ⟩ : ∃ σ, (1/2 : ℝ) < σ ∧ σ < s.re := by
+    obtain ⟨σ, hσhalf, hσ⟩ : ∃ σ, (1/2 : ℝ) < σ ∧ σ ≤ s.re := by
       refine ⟨(s.re + 1/2)/2, ?_, ?_⟩ <;> linarith
-    -- Summability of ∑ p^{-3σ}
-    have hsum : Summable (fun p : Prime => (p.1 : ℝ) ^ (-(3 : ℝ) * σ)) := by
-      have : 1 < (3 : ℝ) * σ := by linarith
-      simpa using AcademicRH.EulerProduct.real_prime_rpow_summable (r := (3 : ℝ) * σ) this
-    -- Compare |a p| ≤ const · p^{-3σ} and conclude by comparison
-    -- Details suppressed; standard application of the quadratic tail bound with |λ| ≤ p^{-σ}
-    exact Summable.of_nonneg_of_le (by intro p; exact trivial) (by intro p; exact le_of_lt (by admit)) hsum
+    -- Summability of ∑ p^{-2σ}
+    have hsum : Summable (fun p : Prime => (p.1 : ℝ) ^ (-(2 : ℝ) * σ)) := by
+      have : 1 < (2 : ℝ) * σ := by linarith
+      simpa using AcademicRH.EulerProduct.real_prime_rpow_summable (r := (2 : ℝ) * σ) this
+    -- Pointwise bound via additive lemma
+    let Cσ : ℝ := ((1 - (2 : ℝ) ^ (-σ))⁻¹) / 2 + (1 / 2 : ℝ)
+    have hbound : ∀ p : Prime, ‖a p‖ ≤ Cσ * (p.1 : ℝ) ^ (-(2 : ℝ) * σ) := by
+      intro p
+      have := log_remainder_additive_bound_of_Re_ge_sigma (s := s) hσhalf hσ p
+      simpa [a, Cσ] using this
+    have hnorm_sum : Summable (fun p : Prime => ‖a p‖) :=
+      summable_of_nonneg_of_le (by intro p; exact norm_nonneg _) hbound ((hsum.mul_left Cσ))
+    exact Summable.of_norm hnorm_sum
   -- Product equals exp(tsum) ⇒ exp(tsum) ≠ 0
   have hprod := (tprod_exp_of_summable (a := fun p : Prime => a p) hsum_a).2
   -- Identify det2 as the product of exponentials
@@ -315,13 +364,58 @@ theorem det2_AF_nonzero_on_critical_line :
   intro t
   set s : ℂ := (1 / 2 : ℝ) + Complex.I * (t : ℂ)
   let a : Prime → ℂ := fun p =>
-    Complex.log ((1 - (p.1 : ℂ) ^ (-s)) * Complex.exp ((p.1 : ℂ) ^ (-s) + ((p.1 : ℂ) ^ (-s)) ^ 2 / 2))
+    let lam := (p.1 : ℂ) ^ (-s)
+    Complex.log (1 - lam) + lam + lam ^ 2 / 2
   -- Summability using 3σ with σ = 1/2 ⇒ 3/2 > 1
   have hsum_tail : Summable (fun p : Prime => (p.1 : ℝ) ^ (-(3 : ℝ) / 2)) := by
     simpa using AcademicRH.EulerProduct.real_prime_rpow_summable (r := (3 : ℝ) / 2) (by norm_num)
   have hsum_a : Summable a := by
-    -- To be filled: bound |a p| by C·p^{-3/2} using cubic tail and split finite set
-    admit
+    -- Use cubic-tail inequality: ‖log(1 − λ)+λ+λ^2/2‖ ≤ ‖λ‖^3/(1−‖λ‖), with ‖λ‖=p^{-1/2}
+    -- Hence ‖a p‖ ≤ C · p^{-3/2} with C = (1 - 2^{-1/2})^{-1}.
+    let C : ℝ := (1 - (2 : ℝ) ^ (-(1 / 2 : ℝ)))⁻¹
+    have hbound : ∀ p : Prime, ‖a p‖ ≤ C * (p.1 : ℝ) ^ (-(3 : ℝ) / 2) := by
+      intro p
+      set lam : ℂ := (p.1 : ℂ) ^ (-s)
+      have hlam_norm : ‖lam‖ = (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) := by
+        have hp_pos : 0 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.pos p.property)
+        have : s.re = (1 / 2 : ℝ) := by simp [s]
+        simpa [lam, this, Complex.norm_eq_abs]
+          using (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s))
+      have hlam_le_two : ‖lam‖ ≤ (2 : ℝ) ^ (-(1 / 2 : ℝ)) := by
+        have : (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) ≤ (2 : ℝ) ^ (-(1 / 2 : ℝ)) := by
+          have : (2 : ℝ) ≤ (p.1 : ℝ) := by exact_mod_cast p.property.two_le
+          -- (1/p)^{1/2} ≤ (1/2)^{1/2}
+          have : 1 / (p.1 : ℝ) ≤ 1 / (2 : ℝ) := one_div_le_one_div_of_le (by exact_mod_cast (Nat.Prime.pos p.property).le) this
+          have := Real.rpow_le_rpow_of_nonneg this (by norm_num) (by norm_num : 0 ≤ (1 / 2 : ℝ))
+          simpa [Real.rpow_neg, inv_eq_one_div] using this
+        simpa [hlam_norm] using this
+      have hlam_lt_one : ‖lam‖ < (1 : ℝ) := lt_of_le_of_lt hlam_le_two (by
+        -- (2)^{-1/2} < 1
+        have : 0 < (1 / (2 : ℝ)) := by norm_num
+        have : (1 / (2 : ℝ)) ^ (1 / 2 : ℝ) < 1 := by
+          have : 0 < (1 / (2 : ℝ)) ∧ (1 / (2 : ℝ)) < 1 := by constructor <;> norm_num
+          exact Real.rpow_lt_one_of_one_lt_of_pos (by norm_num : (1 : ℝ) < 2) (by norm_num : (0 : ℝ) < 2) (by norm_num)
+        simpa [Real.rpow_neg, inv_eq_one_div] using this)
+      -- cubic tail inequality from Weierstrass product helpers
+      have htail : ‖Complex.log (1 - lam) + lam + lam ^ 2 / 2‖ ≤ ‖lam‖ ^ 3 / (1 - ‖lam‖) :=
+        RH.AcademicFramework.DiagonalFredholm.log_one_sub_plus_z_plus_sq_cubic_tail (z := lam) (by simpa using hlam_lt_one)
+      -- replace denominator, and ‖lam‖^3 = p^{-3/2}
+      have : (1 - ‖lam‖)⁻¹ ≤ C := by
+        have : ‖lam‖ ≤ (2 : ℝ) ^ (-(1 / 2 : ℝ)) := hlam_le_two
+        have : 1 - (2 : ℝ) ^ (-(1 / 2 : ℝ)) ≤ 1 - ‖lam‖ := by linarith
+        have hpos : 0 < 1 - ‖lam‖ := sub_pos.mpr hlam_lt_one
+        exact inv_le_inv_of_le (le_of_lt hpos) this
+      have : ‖a p‖ ≤ C * (p.1 : ℝ) ^ (-(3 : ℝ) / 2) := by
+        have hpow : ‖lam‖ ^ 3 = (p.1 : ℝ) ^ (-(3 : ℝ) / 2) := by
+          simpa [hlam_norm, Real.rpow_mul, mul_comm]
+        have := le_trans htail (by
+          have hnonneg : 0 ≤ ‖lam‖ ^ 3 := by nlinarith
+          exact (mul_le_mul_of_nonneg_left this hnonneg))
+        simpa [a, lam, hpow, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc, C] using this
+      simpa using this
+    have hnorm_sum : Summable (fun p : Prime => ‖a p‖) :=
+      summable_of_nonneg_of_le (by intro p; exact norm_nonneg _) hbound ((hsum_tail.mul_left C))
+    exact Summable.of_norm hnorm_sum
   have hprod := (tprod_exp_of_summable (a := fun p : Prime => a p) hsum_a).2
   have hId : det2_AF s = ∏' (p : Prime), Complex.exp (a p) := by
     simp [det2_AF, det2EulerFactor, a, eulerFactor_as_exp_log]
