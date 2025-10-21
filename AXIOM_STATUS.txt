@@ -1,9 +1,0 @@
-=== AXIOM STATUS IN ACTIVE PROOF TRACK ===
-
-Main proof file: no-zeros/rh/Proof/Main.lean
-
-Axioms in Main.lean and dependencies:
-✅ NO AXIOMS FOUND!
-
-Axioms in legacy Axioms.lean (not imported by Main.lean):
-axiom zeta_nonvanishing_on_Re_eq_one (z : ℂ) (hz : z.re = 1) :
