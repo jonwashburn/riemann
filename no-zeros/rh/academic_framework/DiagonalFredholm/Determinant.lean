@@ -18,6 +18,106 @@ open scoped Topology BigOperators
 
 namespace RH.AcademicFramework.DiagonalFredholm
 
+/-- Additive remainder bound for the modified Euler log.
+For `σ > 1/2` and `s` with `Re(s) ≥ σ`, putting `λ = (p:ℂ)^(−s)` we have
+```
+‖log(1 − λ) + λ + λ^2/2‖ ≤ ( (1 − 2^{−σ})⁻¹ / 2 + 1/2 ) · (p:ℝ)^{−2σ}.
+```
+This uses `Complex.norm_log_one_add_sub_self_le` at `z = -λ`, the triangle inequality,
+and the facts `‖λ‖ ≤ (p:ℝ)^{−σ}` and `(1 − ‖λ‖)⁻¹ ≤ (1 − 2^{−σ})⁻¹` for primes `p ≥ 2`. -/
+lemma log_remainder_additive_bound_of_Re_ge_sigma
+  {σ : ℝ} (hσ : (1 / 2 : ℝ) < σ) {s : ℂ} (hs : σ ≤ s.re) (p : Prime) :
+  let lam : ℂ := (p.1 : ℂ) ^ (-s) in
+  ‖Complex.log (1 - lam) + lam + lam ^ 2 / 2‖
+    ≤ (((1 - (2 : ℝ) ^ (-σ))⁻¹) / 2 + (1 / 2 : ℝ)) * (p.1 : ℝ) ^ (-(2 : ℝ) * σ) := by
+  classical
+  intro lam
+  have hp_pos : 0 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.pos p.property)
+  -- bound ‖λ‖ by p^{-σ}
+  have hlam_norm : ‖lam‖ = (p.1 : ℝ) ^ (-s.re) := by
+    simpa [lam, Complex.norm_eq_abs] using
+      (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s))
+  have hle_sigma : (p.1 : ℝ) ^ (-s.re) ≤ (p.1 : ℝ) ^ (-σ) := by
+    -- use monotonicity via exp/log since (p:ℝ) > 1
+    have hx : (p.1 : ℝ) ^ (-s.re)
+        = Real.exp ((-s.re) * Real.log (p.1 : ℝ)) := by
+      simpa [Real.rpow_def_of_pos hp_pos, mul_comm]
+        using (rfl : (p.1 : ℝ) ^ (-s.re) = Real.exp (Real.log (p.1 : ℝ) * (-s.re)))
+    have hy : (p.1 : ℝ) ^ (-σ)
+        = Real.exp ((-σ) * Real.log (p.1 : ℝ)) := by
+      simpa [Real.rpow_def_of_pos hp_pos, mul_comm]
+        using (rfl : (p.1 : ℝ) ^ (-σ) = Real.exp (Real.log (p.1 : ℝ) * (-σ)))
+    have hlogpos : 0 < Real.log (p.1 : ℝ) := by
+      have : (1 : ℝ) < (p.1 : ℝ) := by
+        have : (2 : ℝ) ≤ (p.1 : ℝ) := by exact_mod_cast p.property.two_le
+        exact lt_of_lt_of_le (by norm_num) this
+      simpa using Real.log_pos this
+    have hcmp : (-s.re) * Real.log (p.1 : ℝ) ≤ (-σ) * Real.log (p.1 : ℝ) := by
+      exact mul_le_mul_of_nonneg_right (by simpa using (neg_le_neg hs)) (le_of_lt hlogpos)
+    simpa [hx, hy] using Real.exp_le_exp.mpr hcmp
+  have hlam_le_sigma : ‖lam‖ ≤ (p.1 : ℝ) ^ (-σ) := by simpa [hlam_norm] using hle_sigma
+  have htwo_le : (p.1 : ℝ) ^ (-σ) ≤ (2 : ℝ) ^ (-σ) := by
+    -- monotone in base via 1/p ≤ 1/2
+    have hσpos : 0 < σ := lt_trans (by norm_num : (0 : ℝ) < 1 / 2) hσ
+    have hbase : (1 / (p.1 : ℝ)) ≤ 1 / (2 : ℝ) := by
+      have : (2 : ℝ) ≤ (p.1 : ℝ) := by exact_mod_cast p.property.two_le
+      exact one_div_le_one_div_of_le (by have : 0 < (p.1 : ℝ) := hp_pos; exact (le_of_lt this)) this
+    have := Real.rpow_le_rpow_of_nonneg hbase (le_of_lt hσpos)
+    simpa [Real.rpow_neg, inv_eq_one_div] using this
+  have hlam_le_two : ‖lam‖ ≤ (2 : ℝ) ^ (-σ) := le_trans hlam_le_sigma htwo_le
+  have hlam_lt_one : ‖lam‖ < (1 : ℝ) := by
+    have : (2 : ℝ) ^ (-σ) < 1 := by
+      have : 0 < σ := lt_trans (by norm_num : (0 : ℝ) < 1 / 2) hσ
+      -- (2)^{-σ} = (1/2)^σ ∈ (0,1)
+      have : (1 / (2 : ℝ)) ^ σ < 1 := by
+        have : 0 < (1 / (2 : ℝ)) ∧ (1 / (2 : ℝ)) < 1 := by constructor <;> norm_num
+        exact Real.rpow_lt_one_of_one_lt_of_pos (by norm_num : (1 : ℝ) < 2) (by norm_num : (0 : ℝ) < 2) this.2 ▸ (by norm_num)
+      simpa [Real.rpow_neg, inv_eq_one_div] using this
+    exact lt_of_le_of_lt hlam_le_two this
+  -- apply inequality for log(1 + z) - z with z = -λ and add the |λ|^2/2 term
+  have hlog : ‖Complex.log (1 - lam) + lam‖ ≤ ‖lam‖ ^ 2 * (1 - ‖lam‖)⁻¹ / 2 := by
+    simpa [sub_eq_add_neg, norm_neg] using
+      Complex.norm_log_one_add_sub_self_le (z := -lam) (by simpa [norm_neg] using hlam_lt_one)
+  have hhalf : ‖lam ^ 2 / 2‖ = (1 / 2 : ℝ) * ‖lam‖ ^ 2 := by
+    have : ‖lam ^ 2‖ = ‖lam‖ ^ 2 := by simpa using (norm_pow _ 2)
+    simpa [this, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+  have hsum : ‖Complex.log (1 - lam) + lam + lam ^ 2 / 2‖
+      ≤ ‖lam‖ ^ 2 * (1 - ‖lam‖)⁻¹ / 2 + (1 / 2 : ℝ) * ‖lam‖ ^ 2 := by
+    refine le_trans (norm_add_le _ _) ?_
+    exact add_le_add hlog (by simpa [hhalf])
+  -- replace (1 - ‖λ‖)⁻¹ by (1 - 2^{−σ})⁻¹ and ‖λ‖^2 by p^{−2σ}
+  have hden : (1 - ‖lam‖)⁻¹ ≤ (1 - (2 : ℝ) ^ (-σ))⁻¹ := by
+    have : ‖lam‖ ≤ (2 : ℝ) ^ (-σ) := hlam_le_two
+    have hpos₁ : 0 < 1 - ‖lam‖ := sub_pos.mpr hlam_lt_one
+    have hpos₂ : 0 < 1 - (2 : ℝ) ^ (-σ) := by
+      have : (2 : ℝ) ^ (-σ) < 1 := by
+        have : 0 < σ := lt_trans (by norm_num : (0 : ℝ) < 1 / 2) hσ
+        have : (1 / (2 : ℝ)) ^ σ < 1 := by
+          have : 0 < (1 / (2 : ℝ)) ∧ (1 / (2 : ℝ)) < 1 := by constructor <;> norm_num
+          exact Real.rpow_lt_one_of_one_lt_of_pos (by norm_num : (1 : ℝ) < 2) (by norm_num : (0 : ℝ) < 2) this.2 ▸ (by norm_num)
+        simpa [Real.rpow_neg, inv_eq_one_div] using this
+      exact sub_pos.mpr this
+    have : 1 - (2 : ℝ) ^ (-σ) ≤ 1 - ‖lam‖ := by linarith
+    exact inv_le_inv_of_le (le_of_lt hpos₁) this
+  have hsq : ‖lam‖ ^ 2 ≤ (p.1 : ℝ) ^ (-(2 : ℝ) * σ) := by
+    -- since ‖λ‖ ≤ p^{-σ}
+    have := mul_le_mul hlam_le_sigma hlam_le_sigma (by exact sq_nonneg _) (by exact le_of_lt (by norm_num : (0 : ℝ) < 1))
+    simpa [Real.rpow_mul] using this
+  have : ‖Complex.log (1 - lam) + lam + lam ^ 2 / 2‖
+      ≤ (((1 - (2 : ℝ) ^ (-σ))⁻¹) / 2 + (1 / 2 : ℝ)) * (p.1 : ℝ) ^ (-(2 : ℝ) * σ) := by
+    have h1 : ‖lam‖ ^ 2 * (1 - ‖lam‖)⁻¹ / 2 ≤ ((1 - (2 : ℝ) ^ (-σ))⁻¹) / 2 * (p.1 : ℝ) ^ (-(2 : ℝ) * σ) := by
+      have := mul_le_mul_of_nonneg_right hden (by nlinarith : 0 ≤ ‖lam‖ ^ 2 / 2)
+      have := le_trans (by simpa [mul_comm, mul_left_comm, mul_assoc, div_eq_mul_inv] using this)
+        (by
+          have := mul_le_mul_of_nonneg_left hsq (by nlinarith)
+          simpa [mul_comm, mul_left_comm, mul_assoc] using this)
+      exact this
+    have h2 : (1 / 2 : ℝ) * ‖lam‖ ^ 2 ≤ (1 / 2 : ℝ) * (p.1 : ℝ) ^ (-(2 : ℝ) * σ) :=
+      mul_le_mul_of_nonneg_left hsq (by norm_num : (0 : ℝ) ≤ 1 / 2)
+    have := add_le_add h1 h2
+    simpa [mul_add, add_comm, add_left_comm, add_assoc] using this
+  exact this
+
 /-! ### Setup: primes, half–plane, local Euler factor -/
 
 /-- Type of prime numbers (alias to mathlib's `Nat.Primes`). -/
