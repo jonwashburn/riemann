@@ -9,6 +9,7 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Complex
 import Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
 import Mathlib.Analysis.Analytic.Composition
 import rh.academic_framework.EulerProduct.PrimeSeries
+import rh.academic_framework.DiagonalFredholm.WeierstrassProduct
 
 noncomputable section
 
@@ -52,6 +53,15 @@ lemma eulerFactor_as_exp_log (z : ℂ) (hz : ‖z‖ < (1 : ℝ)) :
           simpa [add_comm, add_left_comm, add_assoc]
 
 -- (moved after `abbrev Prime` below)
+
+/-- Cubic tail bound for the modified Weierstrass log remainder on `‖z‖ < 1`:
+`‖log(1 - z) + z + z^2/2‖ ≤ ‖z‖^3 / (1 - ‖z‖)`.
+This is the `log(1 + w)` cubic remainder bound specialized to `w = -z`. -/
+lemma cubic_tail_log_one_sub {z : ℂ} (hz : ‖z‖ < (1 : ℝ)) :
+    ‖Complex.log (1 - z) + z + z ^ 2 / 2‖ ≤ ‖z‖ ^ 3 / (1 - ‖z‖) := by
+  simpa [sub_eq_add_neg, norm_neg]
+    using (Complex.norm_log_one_add_sub_self_sub_sq_div_two_le
+      (z := -z) (by simpa [norm_neg] using hz))
 
 /-! ### Setup: primes, half–plane, local Euler factor -/
 
@@ -289,7 +299,7 @@ theorem det2_AF_analytic_on_halfPlaneReGtHalf :
     Complex.log (1 - (p.1 : ℂ) ^ (-s)) + (p.1 : ℂ) ^ (-s) + ((p.1 : ℂ) ^ (-s)) ^ 2 / 2
   -- uniform summability of norms on a neighborhood via M-test
   have h_norm_conv : ∀ᶠ s in 𝓝 s0, Summable (fun p : Prime => a p s) := by
-  obtain ⟨σ, hσhalf, hσ⟩ : ∃ σ, (1/2 : ℝ) < σ ∧ σ < s0.re := by
+    obtain ⟨σ, hσhalf, hσ⟩ : ∃ σ, (1/2 : ℝ) < σ ∧ σ < s0.re := by
       refine ⟨(s0.re + 1/2)/2, ?_, ?_⟩
       · have : (1/2 : ℝ) < s0.re := hs0; linarith
       · have : (1/2 : ℝ) < s0.re := hs0; linarith
@@ -409,14 +419,107 @@ theorem det2_AF_nonzero_on_critical_line :
     simpa [neg_div] using
       AcademicRH.EulerProduct.real_prime_rpow_summable (r := (3 : ℝ) / 2) (by norm_num)
   have hsum_a : Summable a := by
-    -- bound by p^{-3/2} using cubic tail (‖λ‖ = p^{-1/2}) on the critical line
-    -- use comparison with `hsum_tail`
-    have hbound : ∀ p : Prime, ‖a p‖ ≤ (p.1 : ℝ) ^ (-((3 : ℝ) / 2)) := by
-      intro p; -- placeholder: established via Weierstrass cubic tail bound elsewhere
-      -- Keep inequality for build continuity; to be refined in WeierstrassProduct helpers
-      exact le_of_eq (by simp)
+    -- cubic-tail domination with a uniform constant on the critical line
+    -- C := (1 - 2^{-1/2})^{-1}
+    let C : ℝ := (1 - (2 : ℝ) ^ (-(1 / 2 : ℝ)))⁻¹
+    have hbound : ∀ p : Prime, ‖a p‖ ≤ C * (p.1 : ℝ) ^ (-((3 : ℝ) / 2)) := by
+      intro p
+      -- set λ = p^{-s}
+      set lam : ℂ := (p.1 : ℂ) ^ (-s)
+      -- ‖λ‖ < 1 and comparison to 2^{-1/2}
+      have hp_pos : 0 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.pos p.property)
+      have hlam_norm : ‖lam‖ = (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) := by
+        simpa [lam, Complex.norm_eq_abs, s] using
+          (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s))
+      have hlam_le_two : ‖lam‖ ≤ (2 : ℝ) ^ (-(1 / 2 : ℝ)) := by
+        -- monotonicity of rpow on (0,1]
+        have h2le : (2 : ℝ) ≤ (p.1 : ℝ) := by exact_mod_cast p.property.two_le
+        have hbase : (1 / (p.1 : ℝ)) ≤ 1 / (2 : ℝ) :=
+          one_div_le_one_div_of_le (by norm_num : (0 : ℝ) < 2) h2le
+        have hpos1 : 0 ≤ 1 / (p.1 : ℝ) := le_of_lt (one_div_pos.mpr hp_pos)
+        have : (1 / (p.1 : ℝ)) ^ (1 / 2 : ℝ) ≤ (1 / (2 : ℝ)) ^ (1 / 2 : ℝ) :=
+          Real.rpow_le_rpow hpos1 hbase (by norm_num)
+        simpa [Real.rpow_neg, inv_eq_one_div, hlam_norm] using this
+      have hlam_lt_one : ‖lam‖ < 1 :=
+        lt_of_le_of_lt hlam_le_two (by
+          have : (1 / (2 : ℝ)) ^ (1 / 2 : ℝ) < 1 :=
+            Real.rpow_lt_one (by norm_num) (by norm_num) (by norm_num)
+          simpa [Real.rpow_neg, inv_eq_one_div] using this)
+      -- cubic-tail bound: ‖log(1-λ)+λ+λ^2/2‖ ≤ ‖λ‖^3/(1-‖λ‖)
+      have hcubic :
+          ‖Complex.log (1 - lam) + lam + lam ^ 2 / 2‖
+            ≤ ‖lam‖ ^ 3 / (1 - ‖lam‖) := by
+        simpa [sub_eq_add_neg, norm_neg] using
+          (log_one_sub_plus_z_plus_sq_cubic_tail (z := lam) (by simpa using hlam_lt_one))
+      -- denominator comparison: (1-‖λ‖)^{-1} ≤ C
+      have hden : (1 - ‖lam‖)⁻¹ ≤ C := by
+        have hpos₂ : 0 < 1 - (2 : ℝ) ^ (-(1 / 2 : ℝ)) := by
+          have : (2 : ℝ) ^ (-(1 / 2 : ℝ)) < 1 := by
+            have : (1 / (2 : ℝ)) ^ (1 / 2 : ℝ) < 1 :=
+              Real.rpow_lt_one (by norm_num) (by norm_num) (by norm_num)
+            simpa [Real.rpow_neg, inv_eq_one_div] using this
+          exact sub_pos.mpr this
+        have : 1 - (2 : ℝ) ^ (-(1 / 2 : ℝ)) ≤ 1 - ‖lam‖ := by
+          have : ‖lam‖ ≤ (2 : ℝ) ^ (-(1 / 2 : ℝ)) := hlam_le_two
+          linarith
+        have := one_div_le_one_div_of_le hpos₂ this
+        simpa [one_div, C] using this
+      -- combine cubic tail with denominator bound
+      have h1 : ‖Complex.log (1 - lam) + lam + lam ^ 2 / 2‖
+          ≤ C * ‖lam‖ ^ 3 := by
+        have : ‖Complex.log (1 - lam) + lam + lam ^ 2 / 2‖
+            ≤ ‖lam‖ ^ 3 * (1 - ‖lam‖)⁻¹ := by
+          simpa [div_eq_mul_inv] using hcubic
+        have hnonneg : 0 ≤ ‖lam‖ ^ 3 := by
+          have : 0 ≤ ‖lam‖ := norm_nonneg _
+          exact pow_nonneg this 3
+        simpa [mul_comm, mul_left_comm, mul_assoc] using
+          (mul_le_mul_of_nonneg_right hden hnonneg)
+      -- bound ‖λ‖^3 by p^{-3/2}
+      have hlam_le : ‖lam‖ ≤ (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) := by
+        simpa [hlam_norm] using le_of_eq hlam_norm
+      have hsq : ‖lam‖ ^ 2 ≤ (p.1 : ℝ) ^ (-1 : ℝ) := by
+        have hposrpow : 0 < (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) :=
+          Real.rpow_pos_of_pos hp_pos (-(1 / 2 : ℝ))
+        have hmul1 : ‖lam‖ * ‖lam‖ ≤ ‖lam‖ * (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) :=
+          mul_le_mul_of_nonneg_left hlam_le (norm_nonneg _)
+        have hmul2 : ‖lam‖ * (p.1 : ℝ) ^ (-(1 / 2 : ℝ))
+            ≤ (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) * (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) :=
+          mul_le_mul_of_nonneg_right hlam_le (le_of_lt hposrpow)
+        have hmul := le_trans hmul1 hmul2
+        have hpowadd : (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) * (p.1 : ℝ) ^ (-(1 / 2 : ℝ))
+            = (p.1 : ℝ) ^ (-(1 : ℝ)) := by
+          simpa using (Real.rpow_add hp_pos (-(1 / 2 : ℝ)) (-(1 / 2 : ℝ))).symm
+        simpa [pow_two, hpowadd] using hmul
+      have hpow3 : ‖lam‖ ^ 3 ≤ (p.1 : ℝ) ^ (-1 : ℝ) * (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) := by
+        have hge0 : 0 ≤ ‖lam‖ := norm_nonneg _
+        have := mul_le_mul_of_nonneg_right hsq hge0
+        simpa [pow_succ] using this
+      have hpowadd : (p.1 : ℝ) ^ (-1 : ℝ) * (p.1 : ℝ) ^ (-(1 / 2 : ℝ))
+          = (p.1 : ℝ) ^ (-(3 : ℝ) / 2) := by
+        have := Real.rpow_add hp_pos (-(1 : ℝ)) (-(1 / 2 : ℝ))
+        have : (-(1 : ℝ)) + (-(1 / 2 : ℝ)) = -((3 : ℝ) / 2) := by ring
+        simpa [this] using this.symm
+      have : ‖Complex.log (1 - lam) + lam + lam ^ 2 / 2‖
+          ≤ C * (p.1 : ℝ) ^ (-((3 : ℝ) / 2)) := by
+        have := (mul_le_mul_of_nonneg_left hpow3 (by
+          have : 0 ≤ C := by
+            have : 0 ≤ 1 - (2 : ℝ) ^ (-(1 / 2 : ℝ)) := by
+              have : (2 : ℝ) ^ (-(1 / 2 : ℝ)) < 1 := by
+                have : (1 / (2 : ℝ)) ^ (1 / 2 : ℝ) < 1 :=
+                  Real.rpow_lt_one (by norm_num) (by norm_num) (by norm_num)
+                simpa [Real.rpow_neg, inv_eq_one_div] using this
+              exact le_of_lt (sub_pos.mpr this)
+            exact inv_nonneg.mpr this
+          exact this))
+        have := (le_trans h1 this)
+        simpa [hpowadd, mul_comm, mul_left_comm, mul_assoc] using this
+      -- unfold a and lam
+      simpa [a, lam] using this
+    have hsum' : Summable (fun p : Prime => C * (p.1 : ℝ) ^ (-((3 : ℝ) / 2))) :=
+      hsum_tail.mul_left C
     have hn : Summable (fun p : Prime => ‖a p‖) :=
-      Summable.of_nonneg_of_le (by intro _; exact norm_nonneg _) hbound hsum_tail
+      Summable.of_nonneg_of_le (by intro _; exact norm_nonneg _) hbound hsum'
     exact Summable.of_norm hn
   have hprod := (tprod_exp_of_summable (a := fun p : Prime => a p) hsum_a).2
   have hId : det2_AF s = ∏' (p : Prime), Complex.exp (a p) := by
