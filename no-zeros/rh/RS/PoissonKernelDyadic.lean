@@ -1,8 +1,4 @@
-import Mathlib.MeasureTheory.Integral.SetIntegral
-import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
-import Mathlib.Tactic
-import Mathlib.Analysis.SpecialFunctions.Integrals
-import Mathlib.Data.Nat.Dist
+import rh.Compat
 import rh.RS.PoissonKernelAnalysis
 
 /-!
@@ -56,7 +52,7 @@ lemma Ksigma_le_sigma_div_sq {σ x : ℝ} (hσ : 0 ≤ σ) (hx : x ≠ 0) :
   Ksigma σ x ≤ σ / x^2 := by
   unfold Ksigma
   have hden : x ^ 2 ≤ x ^ 2 + σ ^ 2 := le_add_of_nonneg_right (sq_nonneg σ)
-  have hxpos : 0 < x ^ 2 := by simpa using (sq_pos_of_ne_zero hx)
+  have hxpos : 0 < x ^ 2 := by simpa using (sq_pos_of_ne_zero x hx)
   have hone : 1 / (x ^ 2 + σ ^ 2) ≤ 1 / x ^ 2 := one_div_le_one_div_of_le hxpos hden
   simpa [div_eq_mul_inv] using mul_le_mul_of_nonneg_left hone hσ
 
@@ -78,8 +74,16 @@ lemma Ksigma_add_bound_of_dyadic_sep
   have hbound :=
     Ksigma_le_sigma_div_sq (σ := σ + τ) (x := a - b) (add_pos hσ hτ).le hxne
   have hx2 : (a - b) ^ 2 ≥ (sep ^ 2) * ((2 : ℝ) ^ (2 * d)) * (L ^ 2) := by
-    have hsq : (sep * (2 : ℝ) ^ d * L) ^ 2 ≤ |a - b| ^ 2 := sq_le_sq.mpr hsepAB
-    simpa [mul_pow, pow_mul, pow_two, abs_sub_comm, two_mul] using hsq
+    have hpos : 0 ≤ sep * 2 ^ d * L := by positivity
+    have h_abs_le : |sep * 2 ^ d * L| ≤ |a - b| := by
+      simpa [abs_of_nonneg hpos] using hsepAB
+    have hsq' : (sep * 2 ^ d * L) ^ 2 ≤ (a - b) ^ 2 := by
+      simpa using (RH.sq_le_sq.mpr (a := sep * 2 ^ d * L) (b := a - b) h_abs_le)
+    have hx : sep ^ 2 * (2 ^ d) ^ 2 * L ^ 2 ≤ (a - b) ^ 2 := by
+      simpa [mul_pow, mul_comm, mul_left_comm, mul_assoc] using hsq'
+    have hx' : sep ^ 2 * 2 ^ (2 * d) * L ^ 2 ≤ (a - b) ^ 2 := by
+      simpa [pow_mul, Nat.mul_comm] using hx
+    simpa [mul_comm, mul_left_comm, mul_assoc] using hx'
   have hx2_inv_le : 1 / (a - b) ^ 2 ≤
       (1 / (sep ^ 2 * L ^ 2)) * ((1 / 4 : ℝ) ^ d) := by
     have hx2_pos : 0 < (a - b) ^ 2 := by exact sq_pos_of_ne_zero _ hxne
@@ -87,7 +91,8 @@ lemma Ksigma_add_bound_of_dyadic_sep
       have h2pow : 0 < (2 : ℝ) ^ (2 * d) := by exact pow_pos (by norm_num : (0 : ℝ) < 2) _
       exact mul_pos (mul_pos (sq_pos_of_ne_zero sep (ne_of_gt hsep)) h2pow)
         (sq_pos_of_ne_zero L (ne_of_gt hL))
-    have hmono := inv_le_inv_of_le (by exact le_of_lt hden2pos) hx2
+    -- apply anti-monotonicity of inversion using positivity of the left term
+    have hmono := inv_le_inv_of_le (by exact hden2pos) hx2
     have htwopow : (2 : ℝ) ^ (2 * d) = (4 : ℝ) ^ d := by
       simpa [pow_mul] using pow_mul (2 : ℝ) 2 d
     have : 1 / (a - b) ^ 2 ≤ 1 /
@@ -120,10 +125,10 @@ lemma integral_restrict_mono_of_nonneg
     {f : ℝ → ℝ} (hf_nonneg : ∀ x, 0 ≤ f x)
     (S : Set ℝ) (hS : MeasurableSet S) :
     (∫ x in S, f x) ≤ (∫ x, f x) := by
-  have h_nonneg : 0 ≤ᵐ[Measure.restrict volume S] (fun x => f x) :=
+  have h_nonneg_vol : 0 ≤ᵐ[volume] (fun x => f x) :=
     Filter.Eventually.of_forall (by intro x; exact hf_nonneg x)
   have hle : Measure.restrict volume S ≤ volume := Measure.restrict_le_self
-  simpa using integral_mono_measure (μ := Measure.restrict volume S) (ν := volume) hle h_nonneg
+  simpa using integral_mono_measure (μ := Measure.restrict volume S) (ν := volume) hle h_nonneg_vol
 
 def inDyadicAnnulus (c L : ℝ) (k : ℕ) (x : ℝ) : Prop :=
   (2 : ℝ) ^ k * L < |x - c| ∧ |x - c| ≤ (2 : ℝ) ^ (k + 1) * L
@@ -258,10 +263,10 @@ lemma row_bound_4decay
     intro j hj
     have hnonneg_integrand : ∀ t, 0 ≤ Ksigma σ (t - a k) * Ksigma τ (t - b j) := by
       intro t; exact Ksigma_mul_nonneg (σ := σ) (τ := τ) hσ.le hτ.le t (a k) (b j)
+    have hidentity := hconv k j
     have hrest := integral_restrict_mono_of_nonneg
       (f := fun t => Ksigma σ (t - a k) * Ksigma τ (t - b j))
       hnonneg_integrand S hS
-    have hidentity := hconv k j
     by_cases hcase : 2 ≤ Nat.dist k j
     · have hsep : (1 / 2 : ℝ) * (2 : ℝ) ^ (Nat.dist k j) * L ≤ |a k - b j| :=
         sep_between_annuli_gap_ge_two (c := c) (L := L) (x := a k) (y := b j)
