@@ -29,11 +29,10 @@ lean_lib «rh» where
     .submodules `rh.Cert,
     .submodules `rh.Proof
   ]
-  excludedModules := #[
-    `rh.RS.WhitneyGeometryDefs,
-    `rh.RS.WhitneyAeCore,
-    `rh.RS.CRGreenOuter
-  ]
+
+-- Minimal active-proof target: builds only `rh.Proof` (and its imports)
+lean_lib «rh_active» where
+  roots := #[`rh.Proof.Active]
 
 -- Test library for verification and validation
 lean_lib «test» where

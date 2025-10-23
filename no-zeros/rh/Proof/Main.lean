@@ -10,17 +10,17 @@ import rh.academic_framework.CompletedXi
 import rh.academic_framework.CompletedXiSymmetry
 import rh.academic_framework.Theta
 import rh.RS.OffZerosBridge
-import rh.RS.Cayley
-import rh.RS.PinchCertificate
 import rh.RS.XiExtBridge
 import rh.RS.SchurGlobalization
-import rh.RS.CRGreenOuter
+-- import rh.RS.Cayley            -- avoid Det2Outer via Cayley in minimal build
+-- import rh.RS.PinchCertificate   -- avoid certificate/Det2 dependencies in minimal build
+-- import rh.RS.CRGreenOuter       -- avoid CR-outer dependency in minimal build
 -- CompletedXi import deferred until formalization lands
 import Mathlib.NumberTheory.LSeries.RiemannZeta
 import Mathlib.Tactic
 import Mathlib.Analysis.SpecialFunctions.Gamma.Deligne
 import Mathlib.Topology.Basic
-import rh.RS.PinchIngredients
+-- import rh.RS.PinchIngredients   -- avoid Det2Outer dependency in minimal build
 
 set_option maxRecDepth 4096
 set_option diagnostics true
