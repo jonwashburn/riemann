@@ -256,29 +256,8 @@ theorem det2EulerFactor_ne_zero_of_posRe {s : ℂ}
     exact (ne_of_lt hlt) hnorm1
   exact mul_ne_zero h1 hexp
 
-/-! ## INCOMPLETE: Alternative proof route (not used)
-
-**STATUS**: This file contains an incomplete alternative proof route (Route B) that is
-NOT used in the main RH proof. The main proof uses Route A (Carleson-Tent-Whitney via
-`rh/RS/RouteB_Final.lean` → `PPlusFromCarleson` → `Det2Outer` using HalfPlaneOuter).
-
-**BLOCKER**: The proof below requires showing that a uniformly convergent series of
-analytic functions is analytic (Weierstrass M-test). This requires mathlib infrastructure
-not available in v4.13.0 for converting `DifferentiableOn ℂ` to `AnalyticOn ℂ`.
-
-The theorems are declared as axioms in `rh/RS/Det2Outer.lean` to maintain the interface,
-but are never invoked by the active proof track. -/
-
-/-- Analyticity of the Euler product det₂ on Re(s) > 1/2.
-(INCOMPLETE - alternative route B not used in main proof) -/
-axiom det2_AF_analytic_on_halfPlaneReGtHalf :
-  AnalyticOn ℂ det2_AF {s : ℂ | (1 / 2 : ℝ) < s.re}
-
-/-! The proof sketch below shows the intended approach, but cannot be completed
-without additional mathlib infrastructure for analyticity of infinite sums.
-
 /-- Analyticity of the Euler product det₂ on Re(s) > 1/2. -/
-theorem det2_AF_analytic_on_halfPlaneReGtHalf_SKETCH :
+theorem det2_AF_analytic_on_halfPlaneReGtHalf :
   AnalyticOn ℂ det2_AF {s : ℂ | (1 / 2 : ℝ) < s.re} := by
   classical
   refine fun s0 hs0 => ?_
@@ -413,18 +392,108 @@ theorem det2_AF_analytic_on_halfPlaneReGtHalf_SKETCH :
     convert hsum using 1
     ext s
     simp only [a, add_assoc]
-  -- BLOCKER: Cannot prove analyticity of the tsum without Weierstrass M-test
-  -- infrastructure missing from mathlib v4.13.0
-  sorry
--/
+  -- Now prove analyticity of the tsum using Weierstrass M-test
+  -- Strategy: Use differentiableOn_tsum_of_summable_norm + DifferentiableOn.analyticAt
+  -- We'll construct the same bounds used earlier to build h_norm_conv
+  have h_tsum_analytic : AnalyticAt ℂ (fun s => ∑' (p : Prime), a p s) s0 := by
+    -- Get σ with 1/2 < σ < s0.re (same as earlier)
+    obtain ⟨σ, hσhalf, hσ⟩ : ∃ σ, (1/2 : ℝ) < σ ∧ σ < s0.re := by
+      refine ⟨(s0.re + 1/2)/2, ?_, ?_⟩
+      · have : (1/2 : ℝ) < s0.re := hs0; linarith
+      · have : (1/2 : ℝ) < s0.re := hs0; linarith
+    -- Open set where Re(s) > σ
+    have hopen : IsOpen {s : ℂ | σ < s.re} := by
+      simpa using (isOpen_lt continuous_const Complex.continuous_re)
+    -- s0 is in this set
+    have hs0_mem : s0 ∈ {s : ℂ | σ < s.re} := by simpa [Set.mem_setOf_eq] using hσ
+    -- Get a ball around s0 contained in this set
+    obtain ⟨r, hrpos, hball_subset⟩ := Metric.isOpen_iff.mp hopen s0 hs0_mem
+    -- Each term is differentiable on the ball (analytic at each point implies differentiable)
+    have hdiff : ∀ p : Prime, DifferentiableOn ℂ (fun s => a p s) (Metric.ball s0 r) := by
+      intro p x hx
+      -- The ball is open, so x is in the interior, hence in a neighborhood
+      -- Since a p is analytic at every point (by hterm_analytic constructed uniformly),
+      -- we can show it's analytic at x too (analyticity is an open condition)
+      have : AnalyticAt ℂ (fun s => a p s) x := by
+        -- Each component of a p s is analytic at x
+        have hlam_x : AnalyticAt ℂ (fun s => (p.1 : ℂ) ^ (-s)) x := by
+          have hpne : (p.1 : ℂ) ≠ 0 := by exact_mod_cast (ne_of_gt (Nat.Prime.pos p.property))
+          have hlin : AnalyticAt ℂ (fun s : ℂ => -s) x := analyticAt_id.neg
+          have hmul : AnalyticAt ℂ (fun s => (-s) * Complex.log (p.1 : ℂ)) x :=
+            hlin.mul analyticAt_const
+          have heq : (fun s => (p.1 : ℂ) ^ (-s)) = (fun s => Complex.exp ((-s) * Complex.log (p.1 : ℂ))) := by
+            ext s; rw [Complex.cpow_def_of_ne_zero hpne, mul_comm]
+          rw [heq]; exact hmul.cexp
+        have hlog_x : AnalyticAt ℂ (fun s => Complex.log (1 - (p.1 : ℂ) ^ (-s))) x := by
+          have hsub : AnalyticAt ℂ (fun s => 1 - (p.1 : ℂ) ^ (-s)) x := analyticAt_const.sub hlam_x
+          -- Need to show 1 - p^{-x} ∈ slitPlane; x is in ball, so x.re is close to s0.re > 1/2
+          have hx_re : 1/2 < x.re := by
+            have : x ∈ {s : ℂ | σ < s.re} := hball_subset hx
+            calc (1/2 : ℝ) < σ := hσhalf
+              _ < x.re := this
+          have : 1 - (p.1 : ℂ) ^ (-x) ∈ Complex.slitPlane := by
+            left
+            have hp_pos : 0 < (p.1 : ℝ) := Nat.cast_pos.mpr (Nat.Prime.pos p.property)
+            have hp_gt_one : 1 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.one_lt p.property)
+            have hpow_lt : (p.1 : ℝ) ^ (-x.re) < 1 := by
+              have hgt : 1 < (p.1 : ℝ) ^ (x.re) := Real.one_lt_rpow hp_gt_one (by linarith : 0 < x.re)
+              have : ((p.1 : ℝ) ^ (x.re))⁻¹ < 1 := inv_lt_one_of_one_lt₀ hgt
+              simpa [Real.rpow_neg (le_of_lt hp_pos)] using this
+            have hnorm_eq : ‖(p.1 : ℂ) ^ (-x)‖ = (p.1 : ℝ) ^ (-x.re) := by
+              rw [Complex.norm_eq_abs]; exact Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-x)
+            have hpos_diff : 0 < (1 : ℝ) - ‖(p.1 : ℂ) ^ (-x)‖ := by
+              rw [hnorm_eq]
+              exact sub_pos.mpr hpow_lt
+            have hre_bound : ((p.1 : ℂ) ^ (-x)).re ≤ ‖(p.1 : ℂ) ^ (-x)‖ := Complex.re_le_abs _
+            calc (1 - (p.1 : ℂ) ^ (-x)).re
+                = (1 : ℝ) - ((p.1 : ℂ) ^ (-x)).re := by simp [Complex.sub_re, Complex.one_re]
+              _ ≥ (1 : ℝ) - ‖(p.1 : ℂ) ^ (-x)‖ := by linarith [hre_bound]
+              _ > 0 := hpos_diff
+          exact AnalyticAt.clog hsub this
+        have hsq_x : AnalyticAt ℂ (fun s => ((p.1 : ℂ) ^ (-s)) ^ 2) x := hlam_x.pow 2
+        have hdiv_x : AnalyticAt ℂ (fun s => ((p.1 : ℂ) ^ (-s)) ^ 2 / 2) x := by
+          have hhalf : AnalyticAt ℂ (fun _ => (2 : ℂ)⁻¹) x := analyticAt_const
+          exact hsq_x.mul hhalf
+        have hlincomb_x : AnalyticAt ℂ (fun s => (p.1 : ℂ) ^ (-s) + ((p.1 : ℂ) ^ (-s)) ^ 2 / 2) x :=
+          hlam_x.add hdiv_x
+        have hsum_x : AnalyticAt ℂ (fun s => Complex.log (1 - (p.1 : ℂ) ^ (-s)) +
+            ((p.1 : ℂ) ^ (-s) + ((p.1 : ℂ) ^ (-s)) ^ 2 / 2)) x := hlog_x.add hlincomb_x
+        convert hsum_x using 1
+        ext s
+        simp only [a, add_assoc]
+      exact this.differentiableAt.differentiableWithinAt
+    -- Construct uniform bounds
+    have h2σ_gt : 1 < (2 : ℝ) * σ := by linarith
+    set Cσ := ((1 - (2 : ℝ) ^ (-σ))⁻¹) / 2 + 2⁻¹
+    have hsumσ := AcademicRH.EulerProduct.real_prime_rpow_summable h2σ_gt
+    have hsum_bound := hsumσ.mul_left Cσ
+    have hubound : ∀ p s, s ∈ Metric.ball s0 r → ‖a p s‖ ≤ Cσ * (p.1 : ℝ) ^ (-(2 * σ)) := by
+      intro p s hs
+      have hs_in : s ∈ {s : ℂ | σ < s.re} := hball_subset hs
+      have hsσ : σ < s.re := hs_in
+      have := log_remainder_additive_bound_of_Re_ge_sigma hσhalf (le_of_lt hsσ) p
+      simp only [a]
+      convert this using 2
+      · -- Show Cσ = (1 - 2 ^ (-σ))⁻¹ / 2 + 1 / 2
+        simp only [Cσ]
+        norm_num
+      · -- Show -(2 * σ) = -((2:ℝ) * σ)
+        norm_num
+    -- Apply differentiableOn_tsum_of_summable_norm
+    have hdiff_tsum : DifferentiableOn ℂ (fun s => ∑' p : Prime, a p s) (Metric.ball s0 r) :=
+      differentiableOn_tsum_of_summable_norm hsum_bound hdiff Metric.isOpen_ball hubound
+    -- Convert to AnalyticAt using DifferentiableOn.analyticAt
+    exact hdiff_tsum.analyticAt (Metric.ball_mem_nhds s0 hrpos)
+  -- Compose with exp to get analyticity of exp(tsum)
+  have h_eq_exp' : AnalyticAt ℂ (fun s => Complex.exp (∑' (p : Prime), a p s)) s0 :=
+    h_tsum_analytic.cexp
+  have : AnalyticAt ℂ det2_AF s0 :=
+    RH.AnalyticAt.congr_of_eventuallyEq h_eq_exp' (h_eq_exp.mono (by intro s hs; symm; simpa using hs))
+  -- conclude within the half-plane
+  simpa using this.analyticWithinAt
 
-/-- Nonvanishing of the 2‑modified determinant on the half‑plane Re(s) > 1/2.
-(INCOMPLETE - alternative route B not used in main proof) -/
-axiom det2_AF_nonzero_on_halfPlaneReGtHalf :
-  ∀ {s : ℂ}, s ∈ {s : ℂ | (1 / 2 : ℝ) < s.re} → det2_AF s ≠ 0
-
-/-! Proof sketch for nonvanishing (incomplete):
-theorem det2_AF_nonzero_on_halfPlaneReGtHalf_SKETCH :
+/-- Nonvanishing of the 2‑modified determinant on the half‑plane Re(s) > 1/2. -/
+theorem det2_AF_nonzero_on_halfPlaneReGtHalf :
   ∀ {s : ℂ}, s ∈ {s : ℂ | (1 / 2 : ℝ) < s.re} → det2_AF s ≠ 0 := by
   classical
   intro s hs
@@ -494,15 +563,9 @@ theorem det2_AF_nonzero_on_halfPlaneReGtHalf_SKETCH :
   -- Conclude nonvanishing
   have : det2_AF s = Complex.exp (∑' (p : Prime), a p) := by simpa [hId] using hprod
   simpa [this] using Complex.exp_ne_zero _
--/
 
-/-- Nonvanishing of det₂ on the critical line Re(s) = 1/2.
-(INCOMPLETE - alternative route B not used in main proof) -/
-axiom det2_AF_nonzero_on_critical_line :
-  ∀ t : ℝ, det2_AF ((1 / 2 : ℝ) + Complex.I * (t : ℂ)) ≠ 0
-
-/-! Proof sketch for critical line nonvanishing (incomplete):
-theorem det2_AF_nonzero_on_critical_line_SKETCH :
+/-- Nonvanishing of det₂ on the critical line Re(s) = 1/2. -/
+theorem det2_AF_nonzero_on_critical_line :
   ∀ t : ℝ, det2_AF ((1 / 2 : ℝ) + Complex.I * (t : ℂ)) ≠ 0 := by
   classical
   intro t
@@ -642,6 +705,5 @@ theorem det2_AF_nonzero_on_critical_line_SKETCH :
       = ∏' (p : Prime), Complex.exp (a p) := hId
     _ = Complex.exp (∑' (p : Prime), a p) := hprod
     _ ≠ 0 := Complex.exp_ne_zero _
--/
 
 end RH.AcademicFramework.DiagonalFredholm
