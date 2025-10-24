@@ -1,10 +1,10 @@
-import rh.Proof.Active
+import rh.Proof.Main
 
 /-!
-Axiom audit for the minimal active RH proof.
+Axiom audit for the main RH proof.
 -/
 
-#eval IO.println "\n=== ACTIVE PROOF PATH AXIOM AUDIT ===\n"
+#eval IO.println "\n=== MAIN PROOF PATH AXIOM AUDIT ===\n"
 
 -- Core RH theorem
 #eval IO.println "1. RH_core (symmetry + no-right-zeros → RH):"
@@ -39,5 +39,11 @@ Axiom audit for the minimal active RH proof.
 
 #eval IO.println "\n10. RiemannHypothesis_mathlib_from_pinch_ext_assign (FINAL):"
 #print axioms RH.Proof.Final.RiemannHypothesis_mathlib_from_pinch_ext_assign
+
+#eval IO.println "\n11. RH (top-level theorem from certificate):"
+#print axioms RH
+
+#eval IO.println "\n12. RiemannHypothesis_final (consuming pinch certificate):"
+#print axioms RiemannHypothesis_final
 
 #eval IO.println "\n=== END AXIOM AUDIT ===\n"

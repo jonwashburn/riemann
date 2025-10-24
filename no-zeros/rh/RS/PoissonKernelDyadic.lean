@@ -63,7 +63,7 @@ lemma Ksigma_add_bound_of_dyadic_sep
   {a b : ℝ} {d : ℕ}
   (hsepAB : sep * (2 : ℝ) ^ d * L ≤ |a - b|) :
   Ksigma (σ + τ) (a - b)
-    ≤ ((σ + τ) / (sep ^ 2 * L ^ 2)) * ((1 / 4 : ℝ) ^ d) := by
+    ≤ ((σ + τ) / (sep ^ 2 * L ^ 2)) * ((4 : ℝ) ^ d)⁻¹ := by
   have hpos_prod : 0 < sep * (2 : ℝ) ^ d * L :=
     mul_pos (mul_pos hsep (pow_pos (by norm_num : (0 : ℝ) < 2) d)) hL
   have hxpos : 0 < |a - b| := lt_of_lt_of_le hpos_prod hsepAB
@@ -85,20 +85,20 @@ lemma Ksigma_add_bound_of_dyadic_sep
       simpa [pow_mul, Nat.mul_comm] using hx
     simpa [mul_comm, mul_left_comm, mul_assoc] using hx'
   have hx2_inv_le : 1 / (a - b) ^ 2 ≤
-      (1 / (sep ^ 2 * L ^ 2)) * ((1 / 4 : ℝ) ^ d) := by
-    have hx2_pos : 0 < (a - b) ^ 2 := by exact sq_pos_of_ne_zero _ hxne
+      (1 / (sep ^ 2 * L ^ 2)) * ((4 : ℝ) ^ d)⁻¹ := by
     have hden2pos : 0 < (sep ^ 2) * ((2 : ℝ) ^ (2 * d)) * (L ^ 2) := by
       have h2pow : 0 < (2 : ℝ) ^ (2 * d) := by exact pow_pos (by norm_num : (0 : ℝ) < 2) _
       exact mul_pos (mul_pos (sq_pos_of_ne_zero sep (ne_of_gt hsep)) h2pow)
         (sq_pos_of_ne_zero L (ne_of_gt hL))
-    -- apply anti-monotonicity of inversion using positivity of the left term
-    have hmono := inv_le_inv_of_le (by exact hden2pos) hx2
-    have htwopow : (2 : ℝ) ^ (2 * d) = (4 : ℝ) ^ d := by
-      simpa [pow_mul] using pow_mul (2 : ℝ) 2 d
-    have : 1 / (a - b) ^ 2 ≤ 1 /
-        ((sep ^ 2) * (4 : ℝ) ^ d * (L ^ 2)) :=
-      by simpa [htwopow, mul_comm, mul_left_comm, mul_assoc] using hmono
-    simpa [one_div, mul_comm, mul_left_comm, mul_assoc] using this
+    have hmono : 1 / (a - b) ^ 2 ≤ 1 / ((sep ^ 2) * ((2 : ℝ) ^ (2 * d)) * (L ^ 2)) :=
+      one_div_le_one_div_of_le hden2pos hx2
+    have hshape : 1 / ((sep ^ 2) * ((2 : ℝ) ^ (2 * d)) * (L ^ 2))
+        = (1 / (sep ^ 2 * L ^ 2)) * ((2 : ℝ) ^ (2 * d))⁻¹ := by
+      field_simp [one_div, mul_comm, mul_left_comm, mul_assoc]
+    have htwopow : ((2 : ℝ) ^ (2 * d))⁻¹ = ((4 : ℝ) ^ d)⁻¹ := by
+      have : (2 : ℝ) ^ (2 * d) = (4 : ℝ) ^ d := RH.two_pow_two_mul_eq_four_pow d
+      simpa [this]
+    simpa [hshape, htwopow, mul_comm, mul_left_comm, mul_assoc] using hmono
   have hσt_pos : 0 < σ + τ := add_pos hσ hτ
   have : Ksigma (σ + τ) (a - b) ≤ (σ + τ) * (1 / (a - b) ^ 2) := by
     simpa [one_div, mul_comm] using hbound
@@ -114,21 +114,100 @@ lemma conv_upper_bound_4decay_of_sep
     = Real.pi * Ksigma (σ + τ) (a - b))
     (hsepAB : sep * (2 : ℝ) ^ d * L ≤ |a - b|) :
     (∫ t, Ksigma σ (t - a) * Ksigma τ (t - b))
-    ≤ Real.pi * ((σ + τ) / (sep ^ 2 * L ^ 2)) * ((1 / 4 : ℝ) ^ d) := by
+    ≤ Real.pi * ((σ + τ) / (sep ^ 2 * L ^ 2)) * ((4 : ℝ) ^ d)⁻¹ := by
   have hKs := Ksigma_add_bound_of_dyadic_sep (σ := σ) (τ := τ)
     (sep := sep) (L := L) hσ hτ hsep hL (a := a) (b := b) (d := d) hsepAB
-  simpa [hconv, mul_assoc, mul_left_comm, mul_comm]
-    using mul_le_mul_of_nonneg_left hKs Real.pi_pos.le
+  have hπpos : 0 ≤ Real.pi := Real.pi_pos.le
+  have hπKs := mul_le_mul_of_nonneg_left hKs hπpos
+  simpa [hconv, mul_assoc, mul_left_comm, mul_comm] using hπKs
 
 -- move monotonicity lemma above first use
+lemma Ksigma_pos {σ x : ℝ} (hσ : 0 < σ) : 0 < Ksigma σ x := by
+  unfold Ksigma
+  have hden : 0 < x ^ 2 + σ ^ 2 := by
+    have : 0 ≤ x ^ 2 := sq_nonneg _
+    have : 0 < x ^ 2 + σ ^ 2 := by
+      have : 0 ≤ x ^ 2 := sq_nonneg _
+      have : 0 < σ ^ 2 := pow_pos hσ 2
+      linarith
+    simpa using this
+  exact div_pos hσ hden
+
+lemma Ksigma_prod_integrable {σ τ a b : ℝ} (hσ : 0 < σ) (hτ : 0 < τ) :
+    Integrable (fun t => Ksigma σ (t - a) * Ksigma τ (t - b)) := by
+  have hposσ : 0 < σ := hσ
+  have hposτ : 0 < τ := hτ
+  have hbound : ∀ t : ℝ,
+      |Ksigma σ (t - a) * Ksigma τ (t - b)|
+        ≤ (σ * τ) / (((t - a) ^ 2 + σ ^ 2) * ((t - b) ^ 2 + τ ^ 2)) := by
+    intro t
+    have hσbound : |Ksigma σ (t - a)| = σ / ((t - a) ^ 2 + σ ^ 2) := by
+      have hden : 0 < (t - a) ^ 2 + σ ^ 2 :=
+        add_pos_of_nonneg_of_pos (sq_nonneg _) (pow_pos hposσ 2)
+      have : Ksigma σ (t - a) = σ * ((t - a) ^ 2 + σ ^ 2)⁻¹ := by
+        simp [Ksigma, div_eq_mul_inv]
+      simpa [this, Real.norm_eq_abs, abs_of_pos hposσ] using congrArg abs this
+    have hτbound : |Ksigma τ (t - b)| = τ / ((t - b) ^ 2 + τ ^ 2) := by
+      have hden : 0 < (t - b) ^ 2 + τ ^ 2 :=
+        add_pos_of_nonneg_of_pos (sq_nonneg _) (pow_pos hposτ 2)
+      have : Ksigma τ (t - b) = τ * ((t - b) ^ 2 + τ ^ 2)⁻¹ := by
+        simp [Ksigma, div_eq_mul_inv]
+      simpa [this, Real.norm_eq_abs, abs_of_pos hposτ] using congrArg abs this
+    have : |Ksigma σ (t - a) * Ksigma τ (t - b)|
+        = (σ * τ) / (((t - a) ^ 2 + σ ^ 2) * ((t - b) ^ 2 + τ ^ 2)) := by
+      simpa [abs_mul, hσbound, hτbound, div_mul_div_comm, mul_comm, mul_left_comm, mul_assoc]
+    exact this.le
+  have hbound2 : ∀ t : ℝ,
+      (σ * τ) / (((t - a) ^ 2 + σ ^ 2) * ((t - b) ^ 2 + τ ^ 2))
+        ≤ (σ * τ) / ((1 + (t - a) ^ 2) * (1 + (t - b) ^ 2)) := by
+    intro t
+    have hden1 : 1 + (t - a) ^ 2 ≤ (t - a) ^ 2 + σ ^ 2 := by
+      have : 1 ≤ σ ^ 2 := by have := pow_pos hposσ 2; linarith
+      have : (1 : ℝ) + (t - a) ^ 2 ≤ (t - a) ^ 2 + σ ^ 2 := by linarith
+      simpa [add_comm] using this
+    have hden2 : 1 + (t - b) ^ 2 ≤ (t - b) ^ 2 + τ ^ 2 := by
+      have : 1 ≤ τ ^ 2 := by have := pow_pos hposτ 2; linarith
+      have : (1 : ℝ) + (t - b) ^ 2 ≤ (t - b) ^ 2 + τ ^ 2 := by linarith
+      simpa [add_comm] using this
+    have := mul_le_mul (div_le_div_of_le_left (by positivity) (by positivity) hden1)
+      (div_le_div_of_le_left (by positivity) (by positivity) hden2)
+      (by positivity) (by positivity)
+    simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+      using this
+  have hint : Integrable
+      (fun t : ℝ => (σ * τ) / ((1 + (t - a) ^ 2) * (1 + (t - b) ^ 2))) := by
+    have h1 : Integrable (fun t : ℝ => (1 + (t - a) ^ 2)⁻¹) :=
+      (integrable_inv_one_add_sq).comp_sub_right a
+    have h2 : Integrable (fun t : ℝ => (1 + (t - b) ^ 2)⁻¹) :=
+      (integrable_inv_one_add_sq).comp_sub_right b
+    have hmul : Integrable
+        (fun t : ℝ => (1 + (t - a) ^ 2)⁻¹ * (1 + (t - b) ^ 2)⁻¹) :=
+      h1.mul h2
+    simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+      using hmul.const_mul (σ * τ)
+  refine Integrable.of_nonneg_of_le (fun t => ?_) (fun t => ?_) hint
+  · have hnonneg : 0 ≤ Ksigma σ (t - a) := by
+      have := Ksigma_nonneg (σ := σ) (x := t - a) hσ.le
+      simpa [Ksigma, div_eq_mul_inv] using this
+    have hnonneg' : 0 ≤ Ksigma τ (t - b) := by
+      have := Ksigma_nonneg (σ := τ) (x := t - b) hτ.le
+      simpa [Ksigma, div_eq_mul_inv] using this
+    have := mul_nonneg hnonneg hnonneg'
+    simpa [abs_of_nonneg this]
+  · have := hbound t
+    have := this.trans (hbound2 t)
+    simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+
 lemma integral_restrict_mono_of_nonneg
     {f : ℝ → ℝ} (hf_nonneg : ∀ x, 0 ≤ f x)
-    (S : Set ℝ) (hS : MeasurableSet S) :
+    (S : Set ℝ) (hS : MeasurableSet S) (hf_int : Integrable f volume) :
     (∫ x in S, f x) ≤ (∫ x, f x) := by
-  have h_nonneg_vol : 0 ≤ᵐ[volume] (fun x => f x) :=
-    Filter.Eventually.of_forall (by intro x; exact hf_nonneg x)
+  have h_nonneg_vol : 0 ≤ᵐ[volume] fun x => f x :=
+    Filter.Eventually.of_forall hf_nonneg
   have hle : Measure.restrict volume S ≤ volume := Measure.restrict_le_self
-  simpa using integral_mono_measure (μ := Measure.restrict volume S) (ν := volume) hle h_nonneg_vol
+  simpa using
+    (integral_mono_measure (μ := Measure.restrict volume S) (ν := volume)
+      hle h_nonneg_vol hf_int)
 
 def inDyadicAnnulus (c L : ℝ) (k : ℕ) (x : ℝ) : Prop :=
   (2 : ℝ) ^ k * L < |x - c| ∧ |x - c| ≤ (2 : ℝ) ^ (k + 1) * L
@@ -223,7 +302,7 @@ lemma sep_between_annuli_gap_ge_two
       exact sub_le_iff_le_add'.mpr this
       have hx' : (2 : ℝ) ^ j * ((2 : ℝ) ^ (k - j) - 2) ≥ (2 : ℝ) ^ (k - j - 1) := by
       have hnonneg : 0 ≤ (2 : ℝ) ^ j := pow_nonneg (by norm_num) _
-      have := one_le_pow_of_one_le (by norm_num : (1 : ℝ) ≤ 2) j
+      have := one_le_pow₀ (by norm_num : (1 : ℝ) ≤ 2) j
       have := mul_le_mul_of_nonneg_left hgeom this
       simpa using this
     have : |x - y| ≥ (2 : ℝ) ^ (k - j - 1) * L :=
@@ -248,9 +327,9 @@ lemma row_bound_4decay
     ∀ K k, k ∈ Finset.range K →
       (Finset.range K).sum (fun j =>
         (∫ t in S, Ksigma σ (t - a k) * Ksigma τ (t - b j))
-          * (((1 / 4 : ℝ) ^ j) * (nu j)))
+          * (((4 : ℝ) ^ j)⁻¹ * (nu j)))
       ≤ (max (Real.pi * ((σ + τ) / ((1 / 2 : ℝ) ^ 2 * L ^ 2))) (4 * (Real.pi / (σ + τ))))
-        * ((Finset.range K).sum (fun j => ((1 / 4 : ℝ) ^ j) * (nu j))) := by
+        * ((Finset.range K).sum (fun j => ((4 : ℝ) ^ j)⁻¹ * (nu j))) := by
   classical
   intro K k hk
   set C_far : ℝ := Real.pi * ((σ + τ) / ((1 / 2 : ℝ) ^ 2 * L ^ 2))
@@ -258,15 +337,18 @@ lemma row_bound_4decay
   set C_row : ℝ := max C_far C_near
   have hterm : ∀ j ∈ Finset.range K,
       (∫ t in S, Ksigma σ (t - a k) * Ksigma τ (t - b j))
-          * (((1 / 4 : ℝ) ^ j) * (nu j))
-      ≤ (C_row * ((1 / 4 : ℝ) ^ (Nat.dist k j))) * (((1 / 4 : ℝ) ^ j) * (nu j)) := by
+          * (((4 : ℝ) ^ j)⁻¹ * (nu j))
+      ≤ (C_row * ((4 : ℝ) ^ (Nat.dist k j))⁻¹) * (((4 : ℝ) ^ j)⁻¹ * (nu j)) := by
     intro j hj
     have hnonneg_integrand : ∀ t, 0 ≤ Ksigma σ (t - a k) * Ksigma τ (t - b j) := by
       intro t; exact Ksigma_mul_nonneg (σ := σ) (τ := τ) hσ.le hτ.le t (a k) (b j)
     have hidentity := hconv k j
+    -- monotonicity of restriction using integrability, obtained via the identity hidentity
+    have hfi : Integrable (fun t => Ksigma σ (t - a k) * Ksigma τ (t - b j)) :=
+      Ksigma_prod_integrable (σ := σ) (τ := τ) (a := a k) (b := b j) hσ hτ
     have hrest := integral_restrict_mono_of_nonneg
       (f := fun t => Ksigma σ (t - a k) * Ksigma τ (t - b j))
-      hnonneg_integrand S hS
+      hnonneg_integrand S hS hfi
     by_cases hcase : 2 ≤ Nat.dist k j
     · have hsep : (1 / 2 : ℝ) * (2 : ℝ) ^ (Nat.dist k j) * L ≤ |a k - b j| :=
         sep_between_annuli_gap_ge_two (c := c) (L := L) (x := a k) (y := b j)
@@ -276,17 +358,17 @@ lemma row_bound_4decay
         (a := a k) (b := b j) (d := Nat.dist k j) (hconv := hidentity)
         (hsepAB := hsep)
       have hx : (∫ t in S, Ksigma σ (t - a k) * Ksigma τ (t - b j))
-          ≤ C_far * ((1 / 4 : ℝ) ^ (Nat.dist k j)) :=
+          ≤ C_far * ((4 : ℝ) ^ (Nat.dist k j))⁻¹ :=
         le_trans hrest this
-      have hφ_nonneg : 0 ≤ ((1 / 4 : ℝ) ^ j) * (nu j) :=
-        mul_nonneg (pow_nonneg (by norm_num) _) (hnu_nonneg j)
+      have hφ_nonneg : 0 ≤ ((4 : ℝ) ^ j)⁻¹ * (nu j) :=
+        mul_nonneg (inv_nonneg.mpr (pow_nonneg (by norm_num) _)) (hnu_nonneg j)
       have hCrow_ge : C_far ≤ C_row := le_max_left _ _
       have : (∫ t in S, Ksigma σ (t - a k) * Ksigma τ (t - b j))
-          ≤ C_row * ((1 / 4 : ℝ) ^ (Nat.dist k j)) :=
+          ≤ C_row * ((4 : ℝ) ^ (Nat.dist k j))⁻¹ :=
         le_trans hx <|
           by
             have := mul_le_mul_of_nonneg_right hCrow_ge
-              (pow_nonneg (by norm_num) _)
+              (inv_nonneg.mpr (pow_nonneg (by norm_num) _))
             simpa [C_far, C_row, mul_comm, mul_left_comm, mul_assoc] using this
       exact mul_le_mul_of_nonneg_right this hφ_nonneg
     · have hle : Nat.dist k j ≤ 1 := Nat.lt_succ_iff.mp (lt_of_not_ge hcase)
@@ -299,42 +381,49 @@ lemma row_bound_4decay
           using mul_le_mul_of_nonneg_left this Real.pi_pos.le
       have hRestr_le := le_trans hrest hWhole
       have hCrow_ge : Real.pi / (σ + τ)
-          ≤ C_row * ((1 / 4 : ℝ) ^ (Nat.dist k j)) := by
-        have hdec_ge : ((1 / 4 : ℝ) ^ (Nat.dist k j)) ≥ (1 / 4 : ℝ) := by
+          ≤ C_row * ((4 : ℝ) ^ (Nat.dist k j))⁻¹ := by
+        have hdec_ge : ((4 : ℝ) ^ (Nat.dist k j))⁻¹ ≥ (4 : ℝ)⁻¹ := by
           by_cases h0 : Nat.dist k j = 0
-          · simpa [h0]
+          · simpa [h0] using (by
+              have : (4 : ℝ) ^ 0 = (1 : ℝ) := by simp
+              simpa [this, one_div] : ((4 : ℝ) ^ 0)⁻¹ = (4 : ℝ)⁻¹)
           · have h1 : Nat.dist k j = 1 := Nat.le_antisymm hle (Nat.succ_le_of_lt (Nat.pos_of_ne_zero h0))
-            simpa [h1]
-        have hmono : (1 / 4 : ℝ) ≤ ((1 / 4 : ℝ) ^ (Nat.dist k j)) := by
+            simpa [h1, one_div] using (le_of_eq (by simp : ((4 : ℝ) ^ 1)⁻¹ = (4 : ℝ)⁻¹))
+        have hmono : (4 : ℝ)⁻¹ ≤ ((4 : ℝ) ^ (Nat.dist k j))⁻¹ := by
           simpa using hdec_ge
         have hCpos : 0 ≤ 4 * (Real.pi / (σ + τ)) := by
           have : 0 ≤ Real.pi / (σ + τ) :=
             div_nonneg Real.pi_pos.le (add_nonneg hσ.le hτ.le)
           exact mul_nonneg (by norm_num) this
-        have : (Real.pi / (σ + τ)) ≤ C_near * ((1 / 4 : ℝ) ^ (Nat.dist k j)) := by
+        have : (Real.pi / (σ + τ)) ≤ C_near * ((4 : ℝ) ^ (Nat.dist k j))⁻¹ := by
           refine le_trans ?_ (mul_le_mul_of_nonneg_left hmono hCpos)
-          have : (1 : ℝ) ≤ 4 * (1 / 4 : ℝ) := by norm_num
+          have : (1 : ℝ) ≤ 4 * (4 : ℝ)⁻¹ := by norm_num
           have hπpos : 0 ≤ Real.pi / (σ + τ) :=
             div_nonneg Real.pi_pos.le (add_nonneg hσ.le hτ.le)
           simpa [C_near, mul_comm, mul_left_comm, mul_assoc]
             using mul_le_mul_of_nonneg_left this hπpos
         exact le_trans (le_max_right _ _) this
-      have hφ_nonneg : 0 ≤ ((1 / 4 : ℝ) ^ j) * (nu j) :=
-        mul_nonneg (pow_nonneg (by norm_num) _) (hnu_nonneg j)
+      have hφ_nonneg : 0 ≤ ((4 : ℝ) ^ j)⁻¹ * (nu j) :=
+        mul_nonneg (inv_nonneg.mpr (pow_nonneg (by norm_num) _)) (hnu_nonneg j)
       have : (∫ t in S, Ksigma σ (t - a k) * Ksigma τ (t - b j))
-          ≤ C_row * ((1 / 4 : ℝ) ^ (Nat.dist k j)) :=
+          ≤ C_row * ((4 : ℝ) ^ (Nat.dist k j))⁻¹ :=
         le_trans hRestr_le hCrow_ge
       exact mul_le_mul_of_nonneg_right this hφ_nonneg
   have hsum := Finset.sum_le_sum hterm
   have hdec_le_one : ∀ j ∈ Finset.range K,
-      ((1 / 4 : ℝ) ^ (Nat.dist k j)) ≤ 1 := by
-    intro j hj; exact pow_le_one₀ (by norm_num) (by norm_num)
+      ((4 : ℝ) ^ (Nat.dist k j))⁻¹ ≤ 1 := by
+    intro j hj
+    have hge : (1 : ℝ) ≤ (4 : ℝ) ^ (Nat.dist k j) := by
+      exact one_le_pow₀ (by norm_num : (1 : ℝ) ≤ 4) _
+    have : 1 / (4 : ℝ) ^ (Nat.dist k j) ≤ 1 / 1 :=
+      one_div_le_one_div_of_le (by norm_num) hge
+    simpa [one_div] using this
   have hφ_nonneg : ∀ j ∈ Finset.range K,
-      0 ≤ ((1 / 4 : ℝ) ^ j) * (nu j) := by
-    intro j hj; exact mul_nonneg (pow_nonneg (by norm_num) _) (hnu_nonneg j)
+      0 ≤ ((4 : ℝ) ^ j)⁻¹ * (nu j) := by
+    intro j hj; exact mul_nonneg (inv_nonneg.mpr (pow_nonneg (by norm_num) _)) (hnu_nonneg j)
   have hterm2 : ∀ j ∈ Finset.range K,
-      (C_row * ((1 / 4 : ℝ) ^ (Nat.dist k j))) * (((1 / 4 : ℝ) ^ j) * (nu j))
-      ≤ C_row * (((1 / 4 : ℝ) ^ j) * (nu j)) := by
+      (C_row * ((4 : ℝ) ^ (Nat.dist k j))⁻¹) * (((4 : ℝ) ^ j)⁻¹ * (nu j))
+      ≤ C_row * (((4 : ℝ) ^ j)⁻¹ * (nu j)) := by
     intro j hj
     have := hdec_le_one j hj
     have hCpos : 0 ≤ C_row := by
@@ -346,18 +435,17 @@ lemma row_bound_4decay
           exact mul_pos h1 h2
         exact mul_nonneg Real.pi_pos.le
           (div_nonneg (add_nonneg hσ.le hτ.le) (le_of_lt hdenpos))
-      -- 0 ≤ max C_far C_near from left branch suffices
       dsimp [C_row]; exact le_max_of_le_left h1
     have := mul_le_mul_of_nonneg_left this hCpos
     have := mul_le_mul_of_nonneg_right this (hφ_nonneg j hj)
     simpa [mul_comm, mul_left_comm, mul_assoc] using this
   have hsum2 := Finset.sum_le_sum hterm2
   have hfac : (Finset.range K).sum
-      (fun j => C_row * (((1 / 4 : ℝ) ^ j) * (nu j)))
-      = C_row * ((Finset.range K).sum (fun j => ((1 / 4 : ℝ) ^ j) * (nu j))) := by
+      (fun j => C_row * (((4 : ℝ) ^ j)⁻¹ * (nu j)))
+      = C_row * ((Finset.range K).sum (fun j => ((4 : ℝ) ^ j)⁻¹ * (nu j))) := by
     classical
     simpa using (Finset.mul_sum (s := Finset.range K) (a := C_row)
-      (f := fun j => ((1 / 4 : ℝ) ^ j) * (nu j)))
+      (f := fun j => ((4 : ℝ) ^ j)⁻¹ * (nu j)))
   exact le_trans hsum <|
     by simpa [hfac, C_row, mul_comm, mul_left_comm, mul_assoc] using hsum2
 

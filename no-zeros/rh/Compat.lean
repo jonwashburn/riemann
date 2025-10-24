@@ -53,9 +53,11 @@ lemma sq_pos_of_ne_zero {α : Type*} [LinearOrderedRing α] [Nontrivial α] (a :
 -- Real.rpow_eq_one_iff API changed or renamed
 namespace Real
 
--- This returns y=0 or x=1; with assumption x≠1, only y=0 is possible
-lemma rpow_eq_one_iff_of_pos {x : ℝ} (hx_pos : 0 < x) (hx_ne_one : x ≠ 1) {y : ℝ} :
+-- v4.6 compatibility: accept `1 < x` (old API) instead of `x ≠ 1`.
+-- This returns `y = 0 ∨ x = 1`; with `1 < x`, only `y = 0` is possible.
+lemma rpow_eq_one_iff_of_pos {x : ℝ} (hx_pos : 0 < x) (hx_gt_one : 1 < x) {y : ℝ} :
     x ^ y = 1 ↔ y = 0 ∨ x = 1 := by
+  have hx_ne_one : x ≠ 1 := ne_of_gt hx_gt_one
   constructor
   · intro h
     by_cases hy : y = 0
@@ -91,11 +93,18 @@ lemma AnalyticAt.congr_of_eventuallyEq {𝕜 : Type*} [NontriviallyNormedField �
   hf.congr hfg
 
 -- Helper: if z ≠ 0 then z ∈ slitPlane (since slitPlane excludes only nonpositive reals)
-lemma mem_slitPlane_of_ne_zero_of_re_pos {z : ℂ} (h_ne : z ≠ 0) (h_re : 0 < z.re) : z ∈ Complex.slitPlane :=
+lemma mem_slitPlane_of_ne_zero_of_re_pos {z : ℂ} (_hne : z ≠ 0) (h_re : 0 < z.re) : z ∈ Complex.slitPlane :=
   Or.inl h_re
 
-lemma mem_slitPlane_of_ne_zero_of_im_ne {z : ℂ} (h_ne : z ≠ 0) (h_im : z.im ≠ 0) : z ∈ Complex.slitPlane :=
+lemma mem_slitPlane_of_ne_zero_of_im_ne {z : ℂ} (_hne : z ≠ 0) (h_im : z.im ≠ 0) : z ∈ Complex.slitPlane :=
   Or.inr h_im
+
+-- arithmetic helper
+lemma two_pow_two_mul_eq_four_pow (d : ℕ) : (2 : ℝ) ^ (2 * d) = (4 : ℝ) ^ d := by
+  have h : (2 : ℝ) ^ (2 * d) = ((2 : ℝ) ^ 2) ^ d := by
+    simpa [pow_mul] using (pow_mul (2 : ℝ) (2 : ℕ) d)
+  have h2 : ((2 : ℝ) ^ 2) = (4 : ℝ) := by norm_num
+  exact h.trans (by simpa using congrArg (fun z : ℝ => z ^ d) h2)
 
 end
 

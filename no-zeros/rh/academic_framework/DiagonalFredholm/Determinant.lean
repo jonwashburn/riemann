@@ -340,14 +340,12 @@ theorem det2_AF_analytic_on_halfPlaneReGtHalf :
     have hsum : Summable (fun p : Prime => (p.1 : ℝ) ^ (-(2 : ℝ) * σ)) := by
       have : 1 < (2 : ℝ) * σ := by linarith
       simpa using AcademicRH.EulerProduct.real_prime_rpow_summable (r := (2 : ℝ) * σ) this
-    refine Filter.Eventually.of_forall ?_
-    intro s
-    have hsσ : σ ≤ s.re := by
-      have : s ∈ {s : ℂ | σ < s.re} := by
-        -- use the ball inclusion
-        have : s0 ∈ Metric.ball s0 r := by simpa [Metric.mem_ball] using hrpos
-        exact hball this
-      exact le_of_lt (by simpa [Set.mem_setOf_eq] using this)
+    have hball_nhds : ∀ᶠ s in 𝓝 s0, s ∈ Metric.ball s0 r := Metric.ball_mem_nhds s0 hrpos
+    refine hball_nhds.mono ?_
+    intro s hs_ball
+    have hsσ : σ ≤ s.re := le_of_lt (by
+      have : s ∈ {s : ℂ | σ < s.re} := hball hs_ball
+      simpa [Set.mem_setOf_eq] using this)
     let Cσ : ℝ := ((1 - (2 : ℝ) ^ (-σ))⁻¹) / 2 + (1 / 2 : ℝ)
     have hbound : ∀ p : Prime, ‖a p s‖ ≤ Cσ * (p.1 : ℝ) ^ (-(2 : ℝ) * σ) := by
       intro p; simpa [a] using log_remainder_additive_bound_of_Re_ge_sigma (s := s) hσhalf hsσ p
@@ -376,55 +374,36 @@ theorem det2_AF_analytic_on_halfPlaneReGtHalf :
       have hlin : AnalyticAt ℂ (fun s : ℂ => -s) s0 := analyticAt_id.neg
       have hmul : AnalyticAt ℂ (fun s => (-s) * Complex.log (p.1 : ℂ)) s0 :=
         hlin.mul analyticAt_const
-      have hcexp : AnalyticAt ℂ (fun s => Complex.exp ((-s) * Complex.log (p.1 : ℂ))) s0 :=
-        hmul.cexp
-      refine hcexp.congr ?_; intro s; simp [Complex.cpow_eq_exp_log, hpne]
+      simpa [Complex.cpow_eq_exp_log, hpne] using hmul.cexp
     have hlog : AnalyticAt ℂ (fun s => Complex.log (1 - (p.1 : ℂ) ^ (-s))) s0 := by
       have hsub : AnalyticAt ℂ (fun s => 1 - (p.1 : ℂ) ^ (-s)) s0 := analyticAt_const.sub hlam
-      have h_ne : 1 - (p.1 : ℂ) ^ (-s0) ≠ 0 := by
-        intro h
-        -- From 1 - p^{-s0} = 0, we get p^{-s0} = 1, so ‖p^{-s0}‖ = 1
-        have : (p.1 : ℂ) ^ (-s0) = 1 := sub_eq_zero.mp h
+      have h_slit : 1 - (p.1 : ℂ) ^ (-s0) ∈ Complex.slitPlane := by
+        -- Since ‖p^{-s0}‖ < 1, we have Re(1 - p^{-s0}) ≥ 1 - ‖p^{-s0}‖ > 0
+        left
         have hp_pos : 0 < (p.1 : ℝ) := Nat.cast_pos.mpr (Nat.Prime.pos p.property)
-        have : ‖(p.1 : ℂ) ^ (-s0)‖ = (p.1 : ℝ) ^ (-s0.re) := by
+        have hlam_norm : ‖(p.1 : ℂ) ^ (-s0)‖ = (p.1 : ℝ) ^ (-s0.re) := by
           rw [Complex.norm_eq_abs]
           exact Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s0)
-        have : (p.1 : ℝ) ^ (-s0.re) = 1 := by
-          rw [← this]
-          simp [‹(p.1 : ℂ) ^ (-s0) = 1›]
-        have : -s0.re = 0 := by
-          have hp_gt_one : 1 < (p.1 : ℝ) := by
-            calc (1 : ℝ) < 2 := by norm_num
-              _ ≤ p.1 := Nat.Prime.two_le p.property
-          by_contra h_ne_zero
-          cases' (Real.rpow_eq_one_iff_of_pos hp_pos hp_gt_one).mp ‹(p.1 : ℝ) ^ (-s0.re) = 1› with h1 h2
-          · exact h_ne_zero h1
-          · linarith [hs0]
-        have : s0.re = 0 := by linarith
-        have : ¬(1 / 2 : ℝ) < s0.re := by rw [this]; norm_num
-        exact this hs0
-      have h_slit : 1 - (p.1 : ℂ) ^ (-s0) ∈ Complex.slitPlane := by
-        -- Since ‖p^{-s0}‖ < 1, we have 1 - p^{-s0} has positive real part
-        left
-        have hlam_norm : ‖(p.1 : ℂ) ^ (-s0)‖ < 1 := by
-          rw [Complex.norm_eq_abs]
-          have hp_pos : 0 < (p.1 : ℝ) := Nat.cast_pos.mpr (Nat.Prime.pos p.property)
-          have : Complex.abs ((p.1 : ℂ) ^ (-s0)) = (p.1 : ℝ) ^ (-s0.re) :=
-            Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s0)
-          rw [this]
-          have : (p.1 : ℝ) ^ (-s0.re) < 1 := by
-            have hp_gt_one : 1 < p.1 := Nat.Prime.one_lt p.property
-            have : 0 < -s0.re := by linarith [hs0]
-            calc (p.1 : ℝ) ^ (-s0.re)
-                < (p.1 : ℝ) ^ 0 := Real.rpow_lt_rpow_left (by linarith : 1 < (p.1 : ℝ)) this
-              _ = 1 := Real.rpow_zero _
-          exact this
-        -- Therefore Re(1 - p^{-s0}) > 0
-        have : Complex.re ((p.1 : ℂ) ^ (-s0)) < 1 := by
-          have := Complex.re_le_abs ((p.1 : ℂ) ^ (-s0))
-          exact lt_of_le_of_lt this hlam_norm
-        simp only [Complex.sub_re, Complex.one_re]
-        linarith
+        have : (p.1 : ℝ) ^ (-s0.re) < 1 := by
+          -- since hs0: 1/2 < s0.re and p ≥ 2
+          have hp_gt_one : 1 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.one_lt p.property)
+          have hneg : -s0.re < 0 := by linarith [hs0]
+          -- exp/log monotonicity
+          have hrw : (p.1 : ℝ) ^ (-s0.re) = Real.exp ((-s0.re) * Real.log (p.1 : ℝ)) := by
+            simpa [Real.rpow_def_of_pos hp_pos, mul_comm]
+              using (rfl : (p.1 : ℝ) ^ (-s0.re) = Real.exp (Real.log (p.1 : ℝ) * (-s0.re)))
+          have hlogpos : 0 < Real.log (p.1 : ℝ) := Real.log_pos_iff.mpr hp_gt_one
+          have : Real.exp ((-s0.re) * Real.log (p.1 : ℝ)) < Real.exp 0 :=
+            Real.exp_lt_exp.mpr (mul_neg_of_neg_of_pos hneg hlogpos)
+          simpa [hrw, Real.exp_zero]
+        have hre_pos : 0 < (1 : ℝ) - ‖(p.1 : ℂ) ^ (-s0)‖ := by
+          simpa [hlam_norm] using sub_pos.mpr this
+        have h_re_le : ((1 : ℝ) - ‖(p.1 : ℂ) ^ (-s0)‖) ≤ (1 - (p.1 : ℂ) ^ (-s0)).re := by
+          have : ((p.1 : ℂ) ^ (-s0)).re ≤ ‖(p.1 : ℂ) ^ (-s0)‖ := Complex.re_le_abs _
+          have := sub_le_sub_left this 1
+          simpa [sub_eq_add_neg] using this
+        have : 0 < (1 - (p.1 : ℂ) ^ (-s0)).re := lt_of_le_of_lt h_re_le hre_pos
+        simpa using this
       exact AnalyticAt.clog hsub h_slit
     have hsq : AnalyticAt ℂ (fun s => ((p.1 : ℂ) ^ (-s)) ^ 2) s0 := hlam.pow 2
     have hlincomb : AnalyticAt ℂ (fun s => (p.1 : ℂ) ^ (-s) + ((p.1 : ℂ) ^ (-s)) ^ 2 / 2) s0 := by
