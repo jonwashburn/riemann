@@ -345,60 +345,56 @@ lemma exp_I_two_arctan_ratio (y : ℝ) :
   -- Compute cos(2·arctan y) and sin(2·arctan y) using double-angle + sin/cos of arctan
   have hcos : Real.cos (2 * Real.arctan y) = (1 - y^2) / (1 + y^2) := by
     -- cos 2u = cos^2 u - sin^2 u with u = arctan y
-    have := Real.cos_two_mul (Real.arctan y)
     -- cos(arctan y) = 1/√(1+y^2), sin(arctan y) = y/√(1+y^2)
     have cdef : Real.cos (Real.arctan y) = 1 / Real.sqrt (1 + y^2) := Real.cos_arctan y
     have sdef : Real.sin (Real.arctan y) = y / Real.sqrt (1 + y^2) := Real.sin_arctan y
-    -- Substitute and simplify
-    have : Real.cos (2 * Real.arctan y)
+    have step1 : Real.cos (2 * Real.arctan y)
         = (Real.cos (Real.arctan y))^2 - (Real.sin (Real.arctan y))^2 := by
-      simpa [two_mul] using this
-    have : Real.cos (2 * Real.arctan y)
-        = (1 / Real.sqrt (1 + y^2))^2 - (y / Real.sqrt (1 + y^2))^2 := by
-      simpa [cdef, sdef] using this
-    -- simplify squares
-    have : Real.cos (2 * Real.arctan y)
-        = (1 / (1 + y^2)) - (y^2 / (1 + y^2)) := by
-      have : (Real.sqrt (1 + y^2))^2 = 1 + y^2 := by
-        simpa using Real.sq_sqrt (by positivity : 0 ≤ 1 + y^2)
-      field_simp [pow_two, this] at *
-    simpa [sub_eq_add_neg] using this
+      rw [two_mul]
+      exact Real.cos_sq_sub_sin_sq (Real.arctan y)
+    rw [step1, cdef, sdef]
+    have hsq : (Real.sqrt (1 + y^2))^2 = 1 + y^2 :=
+      Real.sq_sqrt (by positivity : 0 ≤ 1 + y^2)
+    field_simp [hsq]
+    ring
   have hsin : Real.sin (2 * Real.arctan y) = (2 * y) / (1 + y^2) := by
     -- sin 2u = 2 sin u cos u
-    have : Real.sin (2 * Real.arctan y)
+    have step1 : Real.sin (2 * Real.arctan y)
         = 2 * Real.sin (Real.arctan y) * Real.cos (Real.arctan y) := by
-      simpa [two_mul] using Real.sin_two_mul (Real.arctan y)
+      rw [two_mul]
+      exact Real.sin_two_mul (Real.arctan y)
     -- Substitute sin/cos of arctan
     have cdef : Real.cos (Real.arctan y) = 1 / Real.sqrt (1 + y^2) := Real.cos_arctan y
     have sdef : Real.sin (Real.arctan y) = y / Real.sqrt (1 + y^2) := Real.sin_arctan y
-    have : Real.sin (2 * Real.arctan y)
-        = 2 * (y / Real.sqrt (1 + y^2)) * (1 / Real.sqrt (1 + y^2)) := by
-      simpa [cdef, sdef] using this
-    -- simplify
-    have : Real.sin (2 * Real.arctan y) = (2 * y) / (Real.sqrt (1 + y^2) * Real.sqrt (1 + y^2)) := by
-      ring_nf at this; simpa [mul_comm, mul_left_comm, mul_assoc] using this
-    have : Real.sin (2 * Real.arctan y) = (2 * y) / (1 + y^2) := by
-      have hsq : Real.sqrt (1 + y^2) * Real.sqrt (1 + y^2) = 1 + y^2 := by
-        simpa using Real.mul_self_sqrt (by positivity : 0 ≤ 1 + y^2)
-      simpa [hsq]
-    simpa using this
+    rw [step1, sdef, cdef]
+    have hsq : Real.sqrt (1 + y^2) * Real.sqrt (1 + y^2) = 1 + y^2 :=
+      Real.mul_self_sqrt (by positivity : 0 ≤ 1 + y^2)
+    field_simp [hsq]
+    ring
   -- Rewrite RHS fraction into cos + i sin form
   have hR : ((1 : ℝ) + Complex.I * y) / ((1 : ℝ) - Complex.I * y)
       = Complex.ofReal ((1 - y^2) / (1 + y^2))
         + Complex.I * Complex.ofReal ((2 * y) / (1 + y^2)) := by
     -- Multiply numerator and denominator by (1 + i y)
-    have hden : ((1 : ℝ) - Complex.I * y) * ((1 : ℝ) + Complex.I * y) = (1 + y^2) := by
-      have : ((1 : ℂ) - Complex.I * (y:ℝ)) * ((1 : ℂ) + Complex.I * (y:ℝ))
-          = (1 : ℂ) + (y:ℝ)^2 := by ring
-      simpa using this
-    have : ((1 : ℝ) + Complex.I * y) / ((1 : ℝ) - Complex.I * y)
-        = (((1 : ℝ) + Complex.I * y) * ((1 : ℝ) + Complex.I * y)) / (1 + y^2) := by
-      field_simp [hden]
-    -- Expand the square and split real/imag parts
-    have : (((1 : ℝ) + Complex.I * y) * ((1 : ℝ) + Complex.I * y))
-        = (Complex.ofReal (1 - y^2) + Complex.I * Complex.ofReal (2 * y)) := by
+    have hden : ((1 : ℂ) - Complex.I * (y:ℝ)) * ((1 : ℂ) + Complex.I * (y:ℝ)) = (1 + (y:ℝ)^2) := by
+      simp only [Complex.I_sq]
       ring
-    simpa [this, Complex.add_mul, mul_comm, mul_left_comm, mul_assoc]
+    have step1 : ((1 : ℂ) + Complex.I * (y:ℝ)) / ((1 : ℂ) - Complex.I * (y:ℝ))
+        = (((1 : ℂ) + Complex.I * (y:ℝ)) * ((1 : ℂ) + Complex.I * (y:ℝ))) / (1 + (y:ℝ)^2) := by
+      rw [div_mul_eq_div_mul_one_div, mul_comm ((1:ℂ) + _), div_mul_cancel₀]
+      · rw [hden]
+        simp
+      · simp [hden]
+        positivity
+    -- Expand the square and split real/imag parts
+    have step2 : (((1 : ℂ) + Complex.I * (y:ℝ)) * ((1 : ℂ) + Complex.I * (y:ℝ)))
+        = ((1 : ℂ) - (y:ℝ)^2 + Complex.I * ((y:ℝ) * 2)) := by
+      simp only [Complex.I_sq]
+      ring
+    rw [step1, step2]
+    simp only [Complex.ofReal_div, Complex.add_div, Complex.mul_div]
+    ring_nf
+    simp
   -- Put together
   calc
     Complex.exp (Complex.I * (2 * Real.arctan y))
@@ -413,62 +409,74 @@ lemma exp_negI_two_arctan_ratio (y : ℝ) :
   Complex.exp (- Complex.I * (2 * Real.arctan y))
     = ((1 : ℝ) - Complex.I * y) / ((1 : ℝ) + Complex.I * y) := by
   -- Take complex conjugates of the positive-angle identity
-  have h := congrArg Complex.conj (exp_I_two_arctan_ratio y)
+  have h := congrArg conj (exp_I_two_arctan_ratio y)
   -- conj(exp(i·...)) = exp(-i·...), conj((1+i y)/(1-i y)) = (1 - i y)/(1 + i y)
-  simpa using h
+  simp only [RingHom.map_div, Complex.conj_ofReal, Complex.conj_I, map_add, map_sub, map_mul,
+    Complex.exp_conj] at h
+  convert h using 1
+  · ring_nf
+    simp [Complex.exp_neg]
+  · ring
 
 /-- Parametrization identity along the boundary circle. -/
 lemma boundaryToDisk_param (t : ℝ) :
   DiskHardy.boundary (theta t) = boundaryToDisk t := by
   -- boundaryToDisk t = (s-1)/s for s = 1/2 + i t
   have hs : HalfPlaneOuterV2.boundary t = (⟨(1/2 : ℝ), t⟩ : ℂ) := by
-    simpa [HalfPlaneOuterV2.boundary_mk_eq]
-  have : boundaryToDisk t
-      = ((-1 : ℝ) + (2 : ℝ) * Complex.I * t) / ((1 : ℝ) + (2 : ℝ) * Complex.I * t) := by
-    simp [boundaryToDisk, toDisk, hs, div_eq_mul_inv]
-    field_simp
+    rfl
+  have step1 : boundaryToDisk t
+      = ((-1 : ℂ) + (2 : ℂ) * Complex.I * (t:ℂ)) / ((1 : ℂ) + (2 : ℂ) * Complex.I * (t:ℂ)) := by
+    simp only [boundaryToDisk, toDisk, hs]
+    ring_nf
+    simp only [div_eq_iff]
+    · ring
+    · simp; positivity
   -- rewrite as - (1 - 2 i t)/(1 + 2 i t)
-  have : boundaryToDisk t
-      = - ((1 : ℝ) - (2 : ℝ) * Complex.I * t) / ((1 : ℝ) + (2 : ℝ) * Complex.I * t) := by
-    simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc, mul_comm, mul_left_comm, mul_assoc]
-      using this
+  have step2 : boundaryToDisk t
+      = - ((1 : ℂ) - (2 : ℂ) * Complex.I * (t:ℂ)) / ((1 : ℂ) + (2 : ℂ) * Complex.I * (t:ℂ)) := by
+    rw [step1]
+    ring_nf
   -- LHS = exp(i·θ(t)) with θ(t) = π − 2 arctan(2 t)
   have hExp : DiskHardy.boundary (theta t)
       = Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan (2 * t))) := by
-    simp [DiskHardy.boundary, theta, Complex.mul_add, add_comm, add_left_comm, add_assoc]
+    simp only [DiskHardy.boundary, theta]
+    ring_nf
   -- Use exp(iπ) = -1 and the negative-angle identity for arctan
-  have : Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan (2 * t)))
+  have step3 : Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan (2 * t)))
       = - Complex.exp (- Complex.I * (2 * Real.arctan (2 * t))) := by
-    have : Complex.exp (Complex.I * Real.pi) = (-1 : ℂ) := by simpa using Complex.exp_pi_mul_I
+    have hpi : Complex.exp (Complex.I * Real.pi) = (-1 : ℂ) := Complex.exp_pi_mul_I
     -- exp(i(π - α)) = exp(iπ) * exp(-i α)
-    simpa [sub_eq_add_neg, Complex.exp_add, this]
+    rw [sub_eq_add_neg, mul_add, Complex.exp_add, hpi]
+    ring_nf
+    simp [Complex.exp_neg]
   -- Conclude by the explicit ratio identity
   have hRatio := exp_negI_two_arctan_ratio (2 * t)
-  simpa [this, hExp, mul_comm, mul_left_comm, mul_assoc, sub_eq_add_neg]
-    using hRatio
+  rw [hExp, step3, hRatio, step2]
 
 /-- Points of Ω are nonzero: if `Re z > 1/2` then `z ≠ 0`. -/
 lemma memΩ_ne_zero {z : ℂ} (hz : z ∈ HalfPlaneOuterV2.Ω) : z ≠ 0 := by
   intro h0
-  have : (1/2 : ℝ) < (0 : ℝ) := by
-    simpa [HalfPlaneOuterV2.Ω, Set.mem_setOf_eq, Complex.zero_re] using hz
-  exact (lt_irrefl _) this
+  simp only [HalfPlaneOuterV2.Ω, Set.mem_setOf_eq] at hz
+  rw [h0] at hz
+  simp at hz
 
 /-- `toDisk` is analytic on Ω. -/
 lemma toDisk_analyticOn_Ω : AnalyticOn ℂ toDisk HalfPlaneOuterV2.Ω := by
   -- toDisk z = (z - 1) / z
   intro z hz
   have hz0 : z ≠ 0 := memΩ_ne_zero hz
-  -- AnalyticAt for (· - 1)
+  -- AnalyticWithinAt for (· - 1)
   have h_sub : AnalyticAt ℂ (fun w : ℂ => w - (1 : ℂ)) z :=
-    (AnalyticAt.id.sub analyticAt_const)
+    analyticAt_id ℂ z |>.sub analyticAt_const
   -- AnalyticAt for inv
   have h_inv : AnalyticAt ℂ (fun w : ℂ => w⁻¹) z :=
-    AnalyticAt.inv (by simpa using hz0)
+    analyticAt_inv hz0
   -- AnalyticAt for division as multiplication by inv
   have h_div : AnalyticAt ℂ (fun w : ℂ => (w - 1) * w⁻¹) z := h_sub.mul h_inv
   -- Conclude
-  simpa [toDisk, div_eq_mul_inv] using h_div
+  convert h_div.analyticWithinAt
+  ext w
+  simp [toDisk, div_eq_mul_inv]
 
 
 /-- Bridge (packaging form): Given the Cayley relation between `F` and a disk-side
