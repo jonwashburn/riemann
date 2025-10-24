@@ -297,18 +297,12 @@ J_pinch(s) = J_outer(s) + J_inner(s)
 
 | Module | Reason Excluded | Contains |
 |--------|----------------|----------|
-| `DiagonalFredholm/Determinant.lean` | Alternative route | ✅ Complete (optional verification path) |
+| `DiagonalFredholm/Determinant.lean` | Alternative route | Errors (not used) |
 | `sealed/PoissonPlateauNew.lean` | Placeholder | `sorry` statements |
 | `sealed/TrigBounds.lean` | Placeholder | `admit` statements |
 | `Proof/CertificateOnly.lean` | Development version | Older code |
 
 **Verification:** None of these are imported by the active proof path.
-
-**Note on Determinant.lean:** While not part of the main proof chain, this file has been completed with zero sorries, axioms, or admits. It provides an alternative proof of det₂ analyticity and nonvanishing via direct Euler product analysis using mathlib's `differentiableOn_tsum_of_summable_norm` theorem combined with complex analysis (DifferentiableOn → AnalyticAt for complex functions). The file successfully:
-- Proves analyticity on Re(s) > 1/2 using Weierstrass M-test
-- Proves nonvanishing via exponential form with summable log remainders
-- Constructs uniform bounds using dominated convergence with p^{-2σ} tails
-- All 709 lines compile cleanly and build successfully
 
 ---
 

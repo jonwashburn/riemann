@@ -216,23 +216,6 @@ The proof:
 • Is reproducible via `lake build`
 
 ═══════════════════════════════════════════════════════════════════════════════
-                           ADDITIONAL COMPLETIONS
-═══════════════════════════════════════════════════════════════════════════════
-
-ALTERNATIVE VERIFICATION PATHS:
-
-DiagonalFredholm/Determinant.lean:
-• Status: ✅ COMPLETE (no sorries, axioms, or admits)
-• Provides: Alternative det₂ analyticity & nonvanishing proof  
-• Method: Euler product via Weierstrass M-test for analytic functions
-• Uses: differentiableOn_tsum_of_summable_norm + DifferentiableOn.analyticAt
-• Key theorems exported:
-  - det2_AF_analytic_on_halfPlaneReGtHalf
-  - det2_AF_nonzero_on_halfPlaneReGtHalf  
-  - det2_AF_nonzero_on_critical_line
-• Note: Not required for main proof, but provides independent verification
-
-═══════════════════════════════════════════════════════════════════════════════
 
 For detailed certificate: See PROOF_CERTIFICATE.md
 For full report: See VERIFICATION_REPORT.md

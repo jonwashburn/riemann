@@ -256,6 +256,8 @@ theorem det2EulerFactor_ne_zero_of_posRe {s : ℂ}
     exact (ne_of_lt hlt) hnorm1
   exact mul_ne_zero h1 hexp
 
+set_option maxHeartbeats 600000
+
 /-- Analyticity of the Euler product det₂ on Re(s) > 1/2. -/
 theorem det2_AF_analytic_on_halfPlaneReGtHalf :
   AnalyticOn ℂ det2_AF {s : ℂ | (1 / 2 : ℝ) < s.re} := by
@@ -394,95 +396,105 @@ theorem det2_AF_analytic_on_halfPlaneReGtHalf :
     simp only [a, add_assoc]
   -- Now prove analyticity of the tsum using Weierstrass M-test
   -- Strategy: Use differentiableOn_tsum_of_summable_norm + DifferentiableOn.analyticAt
-  -- We'll construct the same bounds used earlier to build h_norm_conv
   have h_tsum_analytic : AnalyticAt ℂ (fun s => ∑' (p : Prime), a p s) s0 := by
-    -- Get σ with 1/2 < σ < s0.re (same as earlier)
+    -- Step 1: Find a summable bound that works uniformly on a ball around s0
+    -- We use the calculation from h_norm_conv which showed the bound exists
     obtain ⟨σ, hσhalf, hσ⟩ : ∃ σ, (1/2 : ℝ) < σ ∧ σ < s0.re := by
       refine ⟨(s0.re + 1/2)/2, ?_, ?_⟩
       · have : (1/2 : ℝ) < s0.re := hs0; linarith
       · have : (1/2 : ℝ) < s0.re := hs0; linarith
-    -- Open set where Re(s) > σ
-    have hopen : IsOpen {s : ℂ | σ < s.re} := by
-      simpa using (isOpen_lt continuous_const Complex.continuous_re)
-    -- s0 is in this set
-    have hs0_mem : s0 ∈ {s : ℂ | σ < s.re} := by simpa [Set.mem_setOf_eq] using hσ
-    -- Get a ball around s0 contained in this set
-    obtain ⟨r, hrpos, hball_subset⟩ := Metric.isOpen_iff.mp hopen s0 hs0_mem
-    -- Each term is differentiable on the ball (analytic at each point implies differentiable)
-    have hdiff : ∀ p : Prime, DifferentiableOn ℂ (fun s => a p s) (Metric.ball s0 r) := by
-      intro p x hx
-      -- The ball is open, so x is in the interior, hence in a neighborhood
-      -- Since a p is analytic at every point (by hterm_analytic constructed uniformly),
-      -- we can show it's analytic at x too (analyticity is an open condition)
-      have : AnalyticAt ℂ (fun s => a p s) x := by
-        -- Each component of a p s is analytic at x
+    -- Choose radius small enough that all points in ball have Re > σ
+    let r := min (s0.re - σ) 1
+    have hrpos : 0 < r := by
+      simp only [r, lt_min_iff]
+      constructor
+      · linarith
+      · norm_num
+    -- Apply differentiableOn_tsum_of_summable_norm
+    -- We need: summable bound, each term differentiable, open set, bound holds
+    have h2σ : 1 < (2 : ℝ) * σ := by linarith
+    have hdiff_tsum : DifferentiableOn ℂ (fun s => ∑' p : Prime, a p s) (Metric.ball s0 r) := by
+      apply differentiableOn_tsum_of_summable_norm
+      · -- Summable bound
+        exact (AcademicRH.EulerProduct.real_prime_rpow_summable h2σ).mul_left
+          (((1 - (2 : ℝ) ^ (-σ))⁻¹) / 2 + 2⁻¹)
+      · -- Each term differentiable
+        intro p x hx
+        -- a p s = log(1 - p^{-s}) + p^{-s} + (p^{-s})^2/2
+        -- This is analytic at x by the same argument as for s0
+        have hpne : (p.1 : ℂ) ≠ 0 := by exact_mod_cast (ne_of_gt (Nat.Prime.pos p.property))
+        -- x is in the ball, so x.re > σ > 1/2 > 0
+        have hx_re : 0 < x.re := by
+          have : x ∈ Metric.ball s0 r := hx
+          have : dist x s0 < r := Metric.mem_ball.mp this
+          have : dist x s0 < s0.re - σ := lt_of_lt_of_le this (min_le_left _ _)
+          have habs : |x.re - s0.re| ≤ dist x s0 := by
+            calc |x.re - s0.re| ≤ Complex.abs (x - s0) := Complex.abs_re_le_abs (x - s0)
+              _ = dist x s0 := rfl
+          rw [abs_sub_comm] at habs
+          linarith [abs_sub_lt_iff.mp (lt_of_le_of_lt habs this) |>.1,
+                    abs_sub_lt_iff.mp (lt_of_le_of_lt habs this) |>.2, hσhalf]
+        -- p^{-s} is analytic at x
         have hlam_x : AnalyticAt ℂ (fun s => (p.1 : ℂ) ^ (-s)) x := by
-          have hpne : (p.1 : ℂ) ≠ 0 := by exact_mod_cast (ne_of_gt (Nat.Prime.pos p.property))
           have hlin : AnalyticAt ℂ (fun s : ℂ => -s) x := analyticAt_id.neg
           have hmul : AnalyticAt ℂ (fun s => (-s) * Complex.log (p.1 : ℂ)) x :=
             hlin.mul analyticAt_const
           have heq : (fun s => (p.1 : ℂ) ^ (-s)) = (fun s => Complex.exp ((-s) * Complex.log (p.1 : ℂ))) := by
             ext s; rw [Complex.cpow_def_of_ne_zero hpne, mul_comm]
-          rw [heq]; exact hmul.cexp
+          rw [heq]
+          exact hmul.cexp
+        -- log(1 - p^{-s}) is analytic at x (similar to s0 case)
         have hlog_x : AnalyticAt ℂ (fun s => Complex.log (1 - (p.1 : ℂ) ^ (-s))) x := by
           have hsub : AnalyticAt ℂ (fun s => 1 - (p.1 : ℂ) ^ (-s)) x := analyticAt_const.sub hlam_x
-          -- Need to show 1 - p^{-x} ∈ slitPlane; x is in ball, so x.re is close to s0.re > 1/2
-          have hx_re : 1/2 < x.re := by
-            have : x ∈ {s : ℂ | σ < s.re} := hball_subset hx
-            calc (1/2 : ℝ) < σ := hσhalf
-              _ < x.re := this
-          have : 1 - (p.1 : ℂ) ^ (-x) ∈ Complex.slitPlane := by
+          have h_slit : 1 - (p.1 : ℂ) ^ (-x) ∈ Complex.slitPlane := by
             left
             have hp_pos : 0 < (p.1 : ℝ) := Nat.cast_pos.mpr (Nat.Prime.pos p.property)
-            have hp_gt_one : 1 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.one_lt p.property)
-            have hpow_lt : (p.1 : ℝ) ^ (-x.re) < 1 := by
-              have hgt : 1 < (p.1 : ℝ) ^ (x.re) := Real.one_lt_rpow hp_gt_one (by linarith : 0 < x.re)
+            have hlam_norm : ‖(p.1 : ℂ) ^ (-x)‖ = (p.1 : ℝ) ^ (-x.re) := by
+              rw [Complex.norm_eq_abs]
+              exact Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-x)
+            have hlt1 : (p.1 : ℝ) ^ (-x.re) < 1 := by
+              have hp_gt_one : 1 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.one_lt p.property)
+              have hgt : 1 < (p.1 : ℝ) ^ (x.re) := Real.one_lt_rpow hp_gt_one hx_re
               have : ((p.1 : ℝ) ^ (x.re))⁻¹ < 1 := inv_lt_one_of_one_lt₀ hgt
               simpa [Real.rpow_neg (le_of_lt hp_pos)] using this
-            have hnorm_eq : ‖(p.1 : ℂ) ^ (-x)‖ = (p.1 : ℝ) ^ (-x.re) := by
-              rw [Complex.norm_eq_abs]; exact Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-x)
-            have hpos_diff : 0 < (1 : ℝ) - ‖(p.1 : ℂ) ^ (-x)‖ := by
-              rw [hnorm_eq]
-              exact sub_pos.mpr hpow_lt
-            have hre_bound : ((p.1 : ℂ) ^ (-x)).re ≤ ‖(p.1 : ℂ) ^ (-x)‖ := Complex.re_le_abs _
-            calc (1 - (p.1 : ℂ) ^ (-x)).re
-                = (1 : ℝ) - ((p.1 : ℂ) ^ (-x)).re := by simp [Complex.sub_re, Complex.one_re]
-              _ ≥ (1 : ℝ) - ‖(p.1 : ℂ) ^ (-x)‖ := by linarith [hre_bound]
-              _ > 0 := hpos_diff
-          exact AnalyticAt.clog hsub this
+            have hre_pos : 0 < (1 : ℝ) - ‖(p.1 : ℂ) ^ (-x)‖ := by
+              simpa [hlam_norm] using sub_pos.mpr hlt1
+            have h_re_le : ((1 : ℝ) - ‖(p.1 : ℂ) ^ (-x)‖) ≤ (1 - (p.1 : ℂ) ^ (-x)).re := by
+              have : ((p.1 : ℂ) ^ (-x)).re ≤ ‖(p.1 : ℂ) ^ (-x)‖ := Complex.re_le_abs _
+              have := sub_le_sub_left this 1
+              simpa [sub_eq_add_neg] using this
+            have : 0 < (1 - (p.1 : ℂ) ^ (-x)).re := lt_of_lt_of_le hre_pos h_re_le
+            simpa using this
+          exact AnalyticAt.clog hsub h_slit
+        -- Combine: log(1 - p^{-s}) + p^{-s} + (p^{-s})^2/2 = a p s
         have hsq_x : AnalyticAt ℂ (fun s => ((p.1 : ℂ) ^ (-s)) ^ 2) x := hlam_x.pow 2
-        have hdiv_x : AnalyticAt ℂ (fun s => ((p.1 : ℂ) ^ (-s)) ^ 2 / 2) x := by
-          have hhalf : AnalyticAt ℂ (fun _ => (2 : ℂ)⁻¹) x := analyticAt_const
-          exact hsq_x.mul hhalf
-        have hlincomb_x : AnalyticAt ℂ (fun s => (p.1 : ℂ) ^ (-s) + ((p.1 : ℂ) ^ (-s)) ^ 2 / 2) x :=
-          hlam_x.add hdiv_x
+        have hlincomb_x : AnalyticAt ℂ (fun s => (p.1 : ℂ) ^ (-s) + ((p.1 : ℂ) ^ (-s)) ^ 2 / 2) x := by
+          have hhalf : AnalyticAt ℂ (fun _ => (1 / 2 : ℂ)) x := analyticAt_const
+          have := hlam_x.add (hsq_x.mul hhalf)
+          simpa [div_eq_mul_inv] using this
         have hsum_x : AnalyticAt ℂ (fun s => Complex.log (1 - (p.1 : ℂ) ^ (-s)) +
             ((p.1 : ℂ) ^ (-s) + ((p.1 : ℂ) ^ (-s)) ^ 2 / 2)) x := hlog_x.add hlincomb_x
-        convert hsum_x using 1
+        convert hsum_x.differentiableAt.differentiableWithinAt using 1
         ext s
         simp only [a, add_assoc]
-      exact this.differentiableAt.differentiableWithinAt
-    -- Construct uniform bounds
-    have h2σ_gt : 1 < (2 : ℝ) * σ := by linarith
-    set Cσ := ((1 - (2 : ℝ) ^ (-σ))⁻¹) / 2 + 2⁻¹
-    have hsumσ := AcademicRH.EulerProduct.real_prime_rpow_summable h2σ_gt
-    have hsum_bound := hsumσ.mul_left Cσ
-    have hubound : ∀ p s, s ∈ Metric.ball s0 r → ‖a p s‖ ≤ Cσ * (p.1 : ℝ) ^ (-(2 * σ)) := by
-      intro p s hs
-      have hs_in : s ∈ {s : ℂ | σ < s.re} := hball_subset hs
-      have hsσ : σ < s.re := hs_in
-      have := log_remainder_additive_bound_of_Re_ge_sigma hσhalf (le_of_lt hsσ) p
-      simp only [a]
-      convert this using 2
-      · -- Show Cσ = (1 - 2 ^ (-σ))⁻¹ / 2 + 1 / 2
-        simp only [Cσ]
+      · -- Open set
+        exact Metric.isOpen_ball
+      · -- Bound holds
+        intro p s hs
+        have hs_re : σ ≤ s.re := by
+          have hdist : dist s s0 < r := Metric.mem_ball.mp hs
+          have hdist_σ : dist s s0 < s0.re - σ := lt_of_lt_of_le hdist (min_le_left _ _)
+          have habs : |s.re - s0.re| ≤ dist s s0 := by
+            calc |s.re - s0.re| ≤ Complex.abs (s - s0) := Complex.abs_re_le_abs (s - s0)
+              _ = dist s s0 := rfl
+          rw [abs_sub_comm] at habs
+          linarith [abs_sub_lt_iff.mp (lt_of_le_of_lt habs hdist_σ) |>.1,
+                    abs_sub_lt_iff.mp (lt_of_le_of_lt habs hdist_σ) |>.2]
+        have hbound_calc := log_remainder_additive_bound_of_Re_ge_sigma hσhalf hs_re p
+        convert hbound_calc using 1
+        -- Show the constants match: 2⁻¹ = 1/2 and -(2*σ) = -2*σ
         norm_num
-      · -- Show -(2 * σ) = -((2:ℝ) * σ)
-        norm_num
-    -- Apply differentiableOn_tsum_of_summable_norm
-    have hdiff_tsum : DifferentiableOn ℂ (fun s => ∑' p : Prime, a p s) (Metric.ball s0 r) :=
-      differentiableOn_tsum_of_summable_norm hsum_bound hdiff Metric.isOpen_ball hubound
-    -- Convert to AnalyticAt using DifferentiableOn.analyticAt
+    -- Convert to AnalyticAt using DifferentiableOn.analyticAt (complex analysis)
     exact hdiff_tsum.analyticAt (Metric.ball_mem_nhds s0 hrpos)
   -- Compose with exp to get analyticity of exp(tsum)
   have h_eq_exp' : AnalyticAt ℂ (fun s => Complex.exp (∑' (p : Prime), a p s)) s0 :=
