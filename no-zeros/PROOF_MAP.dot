@@ -1,0 +1,35 @@
+strict digraph RH_Proof {
+  rankdir=TB;
+  node [shape=box, style=rounded, fontsize=10];
+
+  RH_uncond [label="RiemannHypothesis_unconditional\n(CertificateConstruction.lean:184)"];
+  RH_pinch_cert [label="RH_from_pinch_certificate\n(Main.lean:671)"];
+  RH_ml_from_assign [label="RiemannHypothesis_mathlib_from_pinch_ext_assign\n(Main.lean:620)"];
+  RH_from_assign [label="RiemannHypothesis_from_pinch_ext_assign\n(Main.lean:603)"];
+  RH_pinch_assign [label="RH_from_pinch_assign\n(Main.lean:577)"];
+  No_right [label="no_right_zeros_from_pinch_assign\n(Main.lean:543)"];
+  Globalize [label="GlobalizeAcrossRemovable\n(SchurGlobalization.lean:226)"];
+  Symmetry [label="RH_core\n(Main.lean:98)"];
+  RH_ml [label="RH_mathlib_from_xi_ext\n(Main.lean:368)"];
+
+  Cert [label="PinchCertificateExt\n(CertificateConstruction.lean:165)"];
+  Outer [label="outer_exists_for_certificate\n(CertificateConstruction.lean:45)"];
+  Pos [label="interior_positive_with_certificate_outer\n(CertificateConstruction.lean:53)"];
+  Rem [label="removable_extension_at_xi_zeros\n(CertificateConstruction.lean:106)"];
+
+  RH_uncond -> RH_pinch_cert;
+  RH_pinch_cert -> RH_ml_from_assign;
+  RH_ml_from_assign -> RH_from_assign;
+  RH_from_assign -> RH_pinch_assign;
+  RH_pinch_assign -> No_right;
+  No_right -> Globalize;
+  RH_pinch_assign -> Symmetry;
+  RH_ml_from_assign -> RH_ml;
+  Symmetry -> RH_ml;
+
+  RH_pinch_cert -> Cert;
+  Cert -> Outer;
+  Cert -> Pos;
+  Cert -> Rem;
+}
+
