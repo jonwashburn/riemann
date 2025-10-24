@@ -102,7 +102,7 @@ lemma poissonKernel_nonneg {z : ℂ} (hz : z ∈ Ω) (t : ℝ) :
   have ha : 0 < z.re - 1/2 := sub_pos.mpr hz
   have hdenom : 0 < (z.re - 1/2)^2 + (t - z.im)^2 := by
     apply add_pos_of_pos_of_nonneg
-    · exact sq_pos_of_ne_zero (ne_of_gt ha)
+    · exact pow_pos ha 2
     · exact sq_nonneg _
   exact mul_nonneg (one_div_nonneg.mpr Real.pi_pos.le)
     (div_nonneg ha.le hdenom.le)
@@ -245,7 +245,7 @@ lemma poissonKernel_integrable {z : ℂ} (hz : z ∈ Ω) :
           have hzlt : (1/2 : ℝ) < z.re := by
             simpa [Ω, Set.mem_setOf_eq] using hz
           have : 0 < z.re - 1/2 := sub_pos.mpr hzlt
-          exact sq_pos_of_ne_zero (ne_of_gt this)
+          exact pow_pos this 2
         · exact sq_nonneg _
   · -- pointwise bound to feed domination: ‖kernel‖ ≤ C/(1+(t-b)^2)
     filter_upwards with t
@@ -286,7 +286,7 @@ lemma integrable_boundedBoundary
         · apply Continuous.pow
           exact (continuous_id.sub continuous_const)
       · intro t; apply ne_of_gt; apply add_pos_of_pos_of_nonneg
-        · have : 0 < z.re - 1/2 := sub_pos.mpr hz; exact sq_pos_of_ne_zero (ne_of_gt this)
+        · have : 0 < z.re - 1/2 := sub_pos.mpr hz; exact pow_pos this 2
         · exact sq_nonneg _
   -- Apply domination by max M 0 * kernel
   refine hDom.mono (hMeas.aestronglyMeasurable.mul hker_meas) ?_
