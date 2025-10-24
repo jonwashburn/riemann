@@ -277,23 +277,30 @@ lemma theta_measurable : Measurable theta :=
       have h3 : Continuous fun t : ℝ => 2 * Real.arctan (2 * t) := continuous_const.mul h2
       have h4 : Continuous fun t : ℝ => Real.pi - (2 * Real.arctan (2 * t)) :=
         continuous_const.sub h3
-      simpa [theta, sub_eq_add_neg, two_mul] using h4)
+      show Continuous theta from h4)
 
 lemma theta_hasDerivAt (t : ℝ) :
   HasDerivAt theta (-(4 : ℝ) / (1 + 4 * t^2)) t := by
   -- θ(t) = π − 2·arctan(2t)
-  have h₁ : HasDerivAt (fun t : ℝ => (2 : ℝ) * t) 2 t :=
-    (hasDerivAt_id t).const_mul 2
+  have h₁ : HasDerivAt (fun t : ℝ => (2 : ℝ) * t) 2 t := by
+    convert hasDerivAt_id t |>.const_mul 2
+    simp [mul_comm]
   have h₂ : HasDerivAt (fun t : ℝ => Real.arctan ((2 : ℝ) * t)) (2 / (1 + (2 * t)^2)) t := by
-    simpa [mul_comm] using (Real.hasDerivAt_arctan ((2 : ℝ) * t)).comp t h₁
+    convert (Real.hasDerivAt_arctan ((2 : ℝ) * t)).comp t h₁
+    simp [mul_comm, pow_two]
+    ring_nf
   have h₃ : HasDerivAt (fun t : ℝ => 2 * Real.arctan (2 * t)) (2 * (2 / (1 + (2 * t)^2))) t :=
     h₂.const_mul 2
   -- simplify the derivative expression
   have h₃' : HasDerivAt (fun t : ℝ => 2 * Real.arctan (2 * t)) (4 / (1 + 4 * t^2)) t := by
-    simpa [mul_comm, mul_left_comm, mul_assoc, two_mul, pow_two, add_comm, add_left_comm,
-      add_assoc, mul_add, add_mul] using h₃
+    convert h₃
+    ring_nf
+    simp [pow_two]
+    ring
   -- θ = π − (2·arctan(2t))
-  simpa [theta, sub_eq_add_neg] using h₃'.neg
+  convert h₃'.neg.const_add Real.pi using 1
+  · ext x; simp [theta]
+  · ring
 
 lemma theta_deriv_eq_neg_inv_absSq (t : ℝ) :
   deriv theta t = - (1 / (Complex.abs (HalfPlaneOuterV2.boundary t))^2) := by
@@ -302,25 +309,28 @@ lemma theta_deriv_eq_neg_inv_absSq (t : ℝ) :
   have habs : (Complex.abs (HalfPlaneOuterV2.boundary t))^2 = (1/4 : ℝ) + t^2 := by
     -- boundary t = 1/2 + i t ⇒ |·|^2 = (1/2)^2 + t^2
     have : HalfPlaneOuterV2.boundary t = (⟨(1/2 : ℝ), t⟩ : ℂ) := by
-      simpa [HalfPlaneOuterV2.boundary_mk_eq]
-    simpa [this, Complex.sq_abs, Complex.normSq_apply, pow_two] using rfl
+      rfl
+    simp only [this, Complex.sq_abs, Complex.normSq_apply, pow_two]
+    ring
   -- simplify the derivative from arctan
-  have : deriv theta t = - (4 / (1 + 4 * t^2)) := by simpa using h
+  have : deriv theta t = - (4 / (1 + 4 * t^2)) := by 
+    rw [h]
+    ring_nf
   -- rewrite -4/(1+4 t^2) as -(1 / |s|^2)
   have hden : (1 : ℝ) + 4 * t^2 = 4 * ((1/4 : ℝ) + t^2) := by
     ring
   calc
     deriv theta t = - (4 / (1 + 4 * t^2)) := this
-    _ = - (4 / (4 * ((1/4 : ℝ) + t^2))) := by simpa [hden]
+    _ = - (4 / (4 * ((1/4 : ℝ) + t^2))) := by rw [hden]
     _ = - (1 / ((1/4 : ℝ) + t^2)) := by field_simp
-    _ = - (1 / (Complex.abs (HalfPlaneOuterV2.boundary t))^2) := by simpa [habs]
+    _ = - (1 / (Complex.abs (HalfPlaneOuterV2.boundary t))^2) := by rw [habs]
 
 /-! ### Explicit Cayley ↔ unit-circle parametrization -/
 
 private lemma exp_I_two_arctan (x : ℝ) :
   Complex.exp (Complex.I * (2 * (x : ℝ))) =
     Complex.cos (2 * (x : ℝ)) + Complex.I * Complex.sin (2 * (x : ℝ)) := by
-  simpa using (Complex.exp_mul_I (z := (2 : ℂ) * (x : ℝ)))
+  simpa using (Complex.exp_mul_I ((2 : ℂ) * (x : ℝ)))
 
 /-- Identity: `exp(i·(2·arctan y)) = (1 + i y)/(1 - i y)` as complex numbers. -/
 lemma exp_I_two_arctan_ratio (y : ℝ) :
@@ -330,7 +340,7 @@ lemma exp_I_two_arctan_ratio (y : ℝ) :
   have hL : Complex.exp (Complex.I * (2 * Real.arctan y))
       = Complex.ofReal (Real.cos (2 * Real.arctan y))
         + Complex.I * Complex.ofReal (Real.sin (2 * Real.arctan y)) := by
-    have := Complex.exp_mul_I (z := (2 : ℂ) * (Real.arctan y))
+    have := Complex.exp_mul_I ((2 : ℂ) * (Real.arctan y))
     simpa [Complex.cos_ofReal, Complex.sin_ofReal, two_mul] using this
   -- Compute cos(2·arctan y) and sin(2·arctan y) using double-angle + sin/cos of arctan
   have hcos : Real.cos (2 * Real.arctan y) = (1 - y^2) / (1 + y^2) := by
