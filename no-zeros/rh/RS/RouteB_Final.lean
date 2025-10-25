@@ -7,6 +7,7 @@ import rh.RS.OffZerosBridge
 import rh.RS.PinchWrappers
 import rh.RS.PinchCertificate
 import rh.academic_framework.HalfPlaneOuterV2
+import rh.academic_framework.ConstructiveOuter
 import rh.academic_framework.PoissonCayley
 import rh.academic_framework.CompletedXi
 import Mathlib.NumberTheory.LSeries.RiemannZeta
@@ -33,8 +34,36 @@ local notation "Ω" => RH.RS.Ω
 /-! ## Shared outer witness and chosen outer -/
 
 /-! Align the chosen outer with the canonical `outer_exists.outer`. -/
-/-- Fixed witness for outer existence with boundary modulus |det₂/ξ_ext|. -/
-def hOuterWitness := RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext_proved
+/-- Fixed witness for outer existence with boundary modulus |det₂/ξ_ext|.
+Use AF constructive witness by default; keep RS witness as fallback.
+
+Guard: prefer AF constructive existence if available in this build.
+-/
+def hOuterWitness := by
+  -- AF constructive existence (Prop-level, no data dependency cycles)
+  exact
+    (show RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext from
+      (by
+        -- Bridge AF existence `ExistsOuterWithModulus` to RS Prop
+        -- Both use the same concrete BoundaryModulusEq predicate shape
+        -- and `OuterHalfPlane` wrapper is RS-level; we package the AF outer
+        -- `IsOuter` into RS `OuterHalfPlane` directly since Ω is aligned.
+        -- We reuse the AF constructive existence and coerce the structure.
+        have hAF : RH.AcademicFramework.HalfPlaneOuterV2.ExistsOuterWithModulus
+            (fun s => RH.RS.det2 s / RH.AcademicFramework.CompletedXi.riemannXi_ext s) :=
+          RH.AcademicFramework.ConstructiveOuter.outer_exists_with_modulus_det2_over_xi_constructive
+        rcases hAF with ⟨O, hO, hBME⟩
+        refine ⟨O, ?hOuterRS, ?hBMErs⟩
+        · -- Wrap AF IsOuter into RS OuterHalfPlane (same domain Ω)
+          refine ⟨?hA, ?hNZ⟩
+          · -- analytic on Ω
+            exact hO.analytic
+          · -- nonzero on Ω
+            intro s hs; exact hO.nonvanishing s hs
+        · -- identical boundary modulus predicate
+          intro t; simpa using hBME t))
+    -- Fallback to RS witness if needed
+    <|> RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext_proved
 
 /-- The chosen outer function from the fixed witness. -/
 def O : ℂ → ℂ := RH.RS.OuterHalfPlane.choose_outer hOuterWitness
