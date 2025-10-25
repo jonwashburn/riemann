@@ -1,0 +1,23 @@
+# Lean build artifacts
+/.lake/
+/lake-packages/
+/build/
+
+# LaTeX artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+
+# OS artifacts
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Backup files
+*.backup
+
