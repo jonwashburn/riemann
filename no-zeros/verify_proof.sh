@@ -28,10 +28,16 @@ else
     exit $BUILD_STATUS
 fi
 
-# Check axioms
-echo "🔍 Step 3: Checking axioms..."
-echo "Command: lake env lean --run axiom_check.lean"
-lake env lean --run axiom_check.lean 2>&1 | head -50
+# Check axioms for the active theorem
+echo "🔍 Step 3: Checking axioms (active track)..."
+cat > /tmp/axioms_active.lean << 'EOF'
+import rh.Proof.Active
+
+#print axioms RH.Proof.Final.RiemannHypothesis_mathlib_from_pinch_ext_assign
+EOF
+
+echo "Command: lake env lean /tmp/axioms_active.lean"
+lake env lean /tmp/axioms_active.lean
 echo
 
 # Extract final theorem info (active path)
@@ -82,5 +88,5 @@ echo "📄 See PROOF_CERTIFICATE.md for detailed certificate"
 echo
 
 # Cleanup
-rm -f /tmp/check_theorem.lean
+rm -f /tmp/check_theorem.lean /tmp/axioms_active.lean
 
