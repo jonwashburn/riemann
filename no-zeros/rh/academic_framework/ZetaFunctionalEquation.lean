@@ -16,7 +16,7 @@ open Complex
 
 namespace RH.AcademicFramework
 
-@[simp] theorem zeta_functional_equation (s : ℂ) :
+theorem zeta_functional_equation (s : ℂ) :
     completedRiemannZeta s = completedRiemannZeta (1 - s) := by
   simpa using (completedRiemannZeta_one_sub s).symm
 

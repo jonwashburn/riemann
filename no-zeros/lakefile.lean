@@ -23,5 +23,9 @@ lean_lib rh where
     .submodules `rh.Proof
   ]
 
+-- Minimal active track: just the top assembly module
+lean_lib «rh_active» where
+  roots := #[`rh.Proof.Active]
+
 lean_lib test where
   globs := #[.submodules `test]

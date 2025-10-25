@@ -57,6 +57,8 @@ lemma riemannXi_ext_analytic_on_RSΩ_minus_one :
       (s := RH.RS.Ω \ ({1} : Set ℂ)) hOpen)
   exact h.mpr riemannXi_ext_differentiable_on_RSΩ_minus_one
 
+-- symmetry lemmas are provided in CompletedXiSymmetry to avoid duplication
+
 /-- On Ω, zeros of `riemannXi_ext` coincide with zeros of `riemannZeta`. -/
 lemma xi_ext_zeros_eq_zeta_zeros_on_Ω :
   ∀ z ∈ RH.RS.Ω, riemannXi_ext z = 0 ↔ riemannZeta z = 0 := by
