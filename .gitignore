@@ -1,7 +1,18 @@
-# Lean build artifacts
-/.lake/
+# Build artifacts
+*.olean
+*.ilean
+*.c
+*.o
+*.trace
+
+# Lake build dirs
+.lake/
+**/.lake/
 /lake-packages/
 /build/
+
+# Sandbox and temporary workspaces
+sandbox_det2/
 
 # LaTeX artifacts
 *.aux
@@ -12,12 +23,23 @@
 *.fdb_latexmk
 *.fls
 
-# OS artifacts
+# Editor / OS
 .DS_Store
+.vscode/
+.idea/
 *.swp
 *.swo
 *~
 
+# Python/Node caches (if present)
+__pycache__/
+node_modules/
+
+# Large bundle files
+complete_lean_bundle_v*.txt
+
 # Backup files
 *.backup
 
+# Old directories
+old-rh/
