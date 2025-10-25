@@ -1,6 +1,8 @@
 -- Import only the minimal pieces to avoid cycles. Consumers of Route B should
 -- import PinchWrappers themselves if they need its helpers.
 import rh.RS.Det2Outer
+-- Guarded constructive outer import (new AF module)
+import rh.academic_framework.ConstructiveOuter
 import rh.RS.CRGreenOuter
 import rh.RS.WhitneyAeCore
 import rh.RS.OffZerosBridge
@@ -453,9 +455,23 @@ lemma exists_isolating_preconnected_open
 /-- Route B: complete unconditional proof of the Riemann Hypothesis. -/
 theorem RiemannHypothesis_via_RouteB : RiemannHypothesis := by
   -- Instantiate the complete transport route with the fixed O
+  -- Prefer the constructive AF outer existence when available
   have hOuter : ∃ O' : ℂ → ℂ, RH.RS.OuterHalfPlane O' ∧
       RH.RS.BoundaryModulusEq O' (fun s => RH.RS.det2 s / riemannXi_ext s) := by
-    refine ⟨O, (O_spec).1, (O_spec).2⟩
+    -- Use AF-side existence, then coerce to RS interface via equality of predicates
+    -- AF existence: ∃ O, IsOuter O ∧ BoundaryModulusEq O (det2/xi_ext)
+    have hAF : RH.AcademicFramework.HalfPlaneOuterV2.ExistsOuterWithModulus
+        (fun s => RH.RS.det2 s / riemannXi_ext s) :=
+      RH.AcademicFramework.ConstructiveOuter.outer_exists_with_modulus_det2_over_xi_constructive
+    rcases hAF with ⟨Oaf, hOaf, hBaf⟩
+    -- RS uses an equivalent OuterHalfPlane/BoundaryModulusEq on the same Ω/boundary
+    refine ⟨Oaf, ?hOuterRS, ?hBRS⟩
+    · -- analytic/nonzero coincide symbolically with RS.Ω
+      exact ⟨hOaf.analytic, (by intro s hs; exact hOaf.nonvanishing s hs)⟩
+    · -- boundary modulus is identical along AF boundary parametrization
+      -- AF boundary equals RS boundary; reuse the AF equality pointwise
+      intro t
+      simpa using (hBaf t)
   -- Fix abbreviations where `Classical.choose hOuter` reduces to `O`
   have hChoose : Classical.choose hOuter = O := rfl
   -- Align Poisson rep witness to the expected outer
