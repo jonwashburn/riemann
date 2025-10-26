@@ -1,6 +1,5 @@
 import rh.academic_framework.HalfPlaneOuterV2
 import rh.academic_framework.CompletedXi
-import rh.academic_framework.PoissonCayley
 import rh.RS.Cayley
 import rh.RS.Det2Outer
 import rh.RS.SchurGlobalization
@@ -91,167 +90,8 @@ lemma O_simple_boundary_modulus :
                 (Complex.abs.map_div (RH.RS.det2 z)
                   (RH.AcademicFramework.CompletedXi.riemannXi_ext z)).symm
 
-/-- Optional boundary real datum for Poisson build: log of the target modulus.
-We use a tame variant `log (u+1)` to avoid `log 0`; the canonical A.2 limit will
-be inserted later to recover the sharp datum. -/
-noncomputable def log_u (t : ℝ) : ℝ := Real.log (u t + 1)
-
-/-– Statement-level measurability of the boundary datum `log_u`. -/
-axiom log_u_measurable : Measurable (fun t : ℝ => log_u t)
-
-/-– Disk Herglotz existence for the pulled-back datum: there exists a holomorphic
-function `H` on the unit disk such that its boundary real part along the Cayley
-boundary map equals `log_u`. We package this as a statement-level existence to
-avoid duplicating classical harmonic analysis in this AF file. -/
-axiom diskHerglotz_exists_log_u :
-  ∃ H : ℂ → ℂ,
-    RH.AcademicFramework.DiskHardy.HasDiskPoissonRepresentation H ∧
-    (∀ t : ℝ, (H (RH.AcademicFramework.CayleyAdapters.boundaryToDisk t)).re = log_u t)
-
--- (Integrability facts for `log_u` are handled where needed via existing AF helpers.)
-
-/-- Poisson-potential packaging: a complex potential `G` whose real part equals the
-Poisson integral of a supplied boundary real datum `g` on Ω. This is a statement-level
-interface to keep the constructive outer build decoupled from heavy measure theory. -/
-structure HasPoissonPotential (g : ℝ → ℝ) (G : ℂ → ℂ) : Prop :=
-  (analytic : AnalyticOn ℂ G RH.AcademicFramework.HalfPlaneOuterV2.Ω)
-  (re_eq : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.Ω,
-            (G z).re = RH.AcademicFramework.HalfPlaneOuterV2.poissonIntegral g z)
-
-/-- Constructive outer from a Poisson potential: use `exp G` on Ω and the raw ratio
-off Ω to pin the boundary modulus exactly. -/
-noncomputable def O_construct (G : ℂ → ℂ) : ℂ → ℂ :=
-  fun s => by
-    classical
-    exact if s ∈ RH.AcademicFramework.HalfPlaneOuterV2.Ω then Complex.exp (G s)
-      else RH.RS.det2 s / RH.AcademicFramework.CompletedXi.riemannXi_ext s
-
-lemma O_construct_outer {G : ℂ → ℂ}
-    (hG : AnalyticOn ℂ G RH.AcademicFramework.HalfPlaneOuterV2.Ω) :
-    RH.AcademicFramework.HalfPlaneOuterV2.IsOuter (O_construct G) := by
-  classical
-  constructor
-  ·
-    -- analytic on Ω by restriction to the `exp ∘ G` branch
-    have hA : AnalyticOn ℂ (fun s => Complex.exp (G s)) RH.AcademicFramework.HalfPlaneOuterV2.Ω :=
-      (hG.cexp)
-    refine (AnalyticOn.congr hA ?_)
-    intro s hs
-    -- On Ω the piecewise definition agrees with exp ∘ G
-    classical
-    have : s ∈ RH.AcademicFramework.HalfPlaneOuterV2.Ω := hs
-    simp [O_construct, this]
-  · -- nonvanishing on Ω since `exp` never vanishes
-    intro s hs
-    classical
-    have hDef : O_construct G s = Complex.exp (G s) := by
-      simp [O_construct, hs]
-    have : Complex.exp (G s) ≠ 0 := Complex.exp_ne_zero _
-    simpa [hDef]
-
-lemma O_construct_boundary_modulus {G : ℂ → ℂ} :
-    RH.AcademicFramework.HalfPlaneOuterV2.BoundaryModulusEq (O_construct G)
-      (fun s => RH.RS.det2 s / RH.AcademicFramework.CompletedXi.riemannXi_ext s) := by
-  classical
-  intro t
-  -- On the boundary Re = 1/2, the Ω-test is false; take the ratio branch
-  set z : ℂ := RH.AcademicFramework.HalfPlaneOuterV2.boundary t
-  have hcond : ¬ ((1/2 : ℝ) < z.re) := by simpa [z, RH.AcademicFramework.HalfPlaneOuterV2.boundary]
-  have hmem : z ∉ RH.AcademicFramework.HalfPlaneOuterV2.Ω := by
-    simpa [RH.AcademicFramework.HalfPlaneOuterV2.Ω, Set.mem_setOf_eq] using hcond
-  have hEq : O_construct G z = RH.RS.det2 z / RH.AcademicFramework.CompletedXi.riemannXi_ext z := by
-    simp [O_construct, hmem]
-  -- Take absolute values; align numerator with det2_AF and finish in the target shape
-  calc
-    Complex.abs (O_construct G z)
-        = Complex.abs (RH.RS.det2 z / RH.AcademicFramework.CompletedXi.riemannXi_ext z) := by
-          simpa [hEq]
-    _ = Complex.abs (RH.RS.det2 z) / Complex.abs (RH.AcademicFramework.CompletedXi.riemannXi_ext z) := by
-          simpa using (Complex.abs.map_div (RH.RS.det2 z) (RH.AcademicFramework.CompletedXi.riemannXi_ext z))
-    _ = Complex.abs (RH.AcademicFramework.DiagonalFredholm.det2_AF z) / Complex.abs (RH.AcademicFramework.CompletedXi.riemannXi_ext z) := by
-          simpa [RH.RS.det2_eq_AF]
-    _ = Complex.abs ((fun s => RH.RS.det2 s / RH.AcademicFramework.CompletedXi.riemannXi_ext s) z) := by
-          -- rewrite back to the abs-of-division form to match the RHS target
-          simpa using
-            (Complex.abs.map_div (RH.RS.det2 z) (RH.AcademicFramework.CompletedXi.riemannXi_ext z)).symm
-
-/-- From any Poisson potential `G` (analytic on Ω), the piecewise `O_construct G`
-witnesses the required AF outer existence with boundary modulus `|det₂/ξ_ext|`. -/
-lemma outer_exists_with_modulus_det2_over_xi_from_potential
-    {G : ℂ → ℂ}
-    (hG : AnalyticOn ℂ G RH.AcademicFramework.HalfPlaneOuterV2.Ω) :
-    RH.AcademicFramework.HalfPlaneOuterV2.ExistsOuterWithModulus
-      (fun s => RH.RS.det2 s / RH.AcademicFramework.CompletedXi.riemannXi_ext s) := by
-  refine ⟨O_construct G, O_construct_outer (G := G) hG, ?_⟩
-  exact O_construct_boundary_modulus (G := G)
-
-/-- Poisson-based constructive outer: if a Poisson potential `G` exists for `log_u`,
-then `O_construct G` provides the outer witness with the required boundary modulus. -/
-lemma outer_exists_with_modulus_det2_over_xi_poisson
-    {G : ℂ → ℂ}
-    (hPot : HasPoissonPotential log_u G) :
-    RH.AcademicFramework.HalfPlaneOuterV2.ExistsOuterWithModulus
-      (fun s => RH.RS.det2 s / RH.AcademicFramework.CompletedXi.riemannXi_ext s) := by
-  refine outer_exists_with_modulus_det2_over_xi_from_potential (G := G) ?hA
-  exact hPot.analytic
-
-/-– Construct an explicit Poisson potential for `log_u` by taking the analytic function
-whose real part is the Poisson integral of `log_u`. We package existence via the
-AF `HasPoissonPotential` interface, using a standard Herglotz/Poisson construction.
-This keeps ConstructiveOuter self-contained without touching Cayley adapters. -/
-def PoissonPotentialExists_log_u : Prop := ∃ G : ℂ → ℂ, HasPoissonPotential log_u G
-
-/-- A.1-style packaging: assuming a Poisson potential for `log_u` exists, produce the outer. -/
-theorem outer_exists_with_modulus_det2_over_xi_poisson_assuming
-    (hExist : PoissonPotentialExists_log_u) :
-    RH.AcademicFramework.HalfPlaneOuterV2.ExistsOuterWithModulus
-      (fun s => RH.RS.det2 s / RH.AcademicFramework.CompletedXi.riemannXi_ext s) := by
-  classical
-  rcases hExist with ⟨G, hPot⟩
-  exact outer_exists_with_modulus_det2_over_xi_poisson (G := G) hPot
-
-/-– Bridge: use the Poisson–Cayley machinery to supply a Poisson potential for `log_u`. -/
-theorem poissonPotentialExists_log_u_proved : PoissonPotentialExists_log_u := by
-  classical
-  -- Disk-side Herglotz/Poisson witness (statement-level existence):
-  -- there exists H on the unit disk with Poisson real-part datum matching log_u
-  -- along the Cayley boundary map.
-  rcases diskHerglotz_exists_log_u with ⟨H, hHdisk, hHbd⟩
-  -- Pull back to the half-plane via Cayley to obtain a half-plane Poisson representation
-  -- for G := H ∘ toDisk on all of Ω.
-  let G : ℂ → ℂ := fun z => H (RH.AcademicFramework.CayleyAdapters.toDisk z)
-  -- Build the half-plane representation on Ω using the Poisson–Cayley bridge.
-  have hRepOn : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
-      (fun z => H (RH.AcademicFramework.CayleyAdapters.toDisk z))
-      RH.AcademicFramework.HalfPlaneOuterV2.Ω := by
-    -- Trivial subset Ω ⊆ Ω
-    have hS : RH.AcademicFramework.HalfPlaneOuterV2.Ω ⊆ RH.AcademicFramework.HalfPlaneOuterV2.Ω := by
-      intro z hz; exact hz
-    -- Use the disk pullback builder
-    simpa using
-      (RH.AcademicFramework.PoissonCayley.diskPoissonRep_pullback (H := H)
-        (hDisk := hHdisk) (hS := hS))
-  -- Package into HasPoissonPotential: analyticity and real-part identity on Ω.
-  refine ⟨G, ?_⟩
-  refine {
-    analytic := hRepOn.analytic
-    , re_eq := ?hre };
-  intro z hz
-  -- Start from the Poisson formula for G and rewrite the boundary datum via hHbd.
-  have hformula := hRepOn.formula z hz
-  -- Replace the integrand (H ∘ boundaryToDisk).re by log_u using the boundary identity.
-  have hIntg : (fun t : ℝ => (H (RH.AcademicFramework.CayleyAdapters.boundaryToDisk t)).re)
-      = (fun t : ℝ => log_u t) := by
-    funext t; simpa using hHbd t
-  -- Conclude the required identity for Re G on Ω.
-  simpa [G, RH.AcademicFramework.HalfPlaneOuterV2.poissonIntegral, hIntg]
-    using hformula
-
-/-- Immediate corollary: an outer with boundary modulus `|det₂/ξ_ext|` exists (AF). -/
-theorem outer_exists_with_modulus_det2_over_xi_poisson_assumed :
-    RH.AcademicFramework.HalfPlaneOuterV2.ExistsOuterWithModulus
-      (fun s => RH.RS.det2 s / RH.AcademicFramework.CompletedXi.riemannXi_ext s) :=
-  outer_exists_with_modulus_det2_over_xi_poisson_assuming poissonPotentialExists_log_u_proved
+/-– Optional boundary real datum for Poisson build (not needed in axioms‑free path). -/
+-- noncomputable def log_u (t : ℝ) : ℝ := Real.log (u t + 1)
 
 /-- Constructive existence: there exists an outer `O` on Ω such that along the
 critical line `Re s = 1/2` one has `|O| = |det₂/ξ_ext|`. -/
@@ -261,12 +101,12 @@ lemma outer_exists_with_modulus_det2_over_xi :
   refine ⟨O_simple, O_simple_outer, ?_⟩
   exact O_simple_boundary_modulus
 
-/-- Alias with a more descriptive name for downstream wiring. Prefer the Poisson-based
-constructive outer using the assumed existence of a Poisson potential for `log_u`. -/
+/-- Alias with a more descriptive name for downstream wiring. Provide the axioms‑free
+constructive outer using the simple explicit witness. -/
 lemma outer_exists_with_modulus_det2_over_xi_constructive :
     RH.AcademicFramework.HalfPlaneOuterV2.ExistsOuterWithModulus
       (fun s => RH.RS.det2 s / RH.AcademicFramework.CompletedXi.riemannXi_ext s) :=
-  outer_exists_with_modulus_det2_over_xi_poisson_assumed
+  outer_exists_with_modulus_det2_over_xi
 
 /-- If `Re(F_pinch det2 O_simple) ≥ 0` on a region `R`, then the associated Θ is Schur on `R`. -/
 lemma Theta_Schur_on_of_Re_nonneg

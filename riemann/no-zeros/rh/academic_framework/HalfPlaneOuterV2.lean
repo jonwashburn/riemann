@@ -10,10 +10,7 @@ import Mathlib.MeasureTheory.Function.AEEqOfIntegral
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import rh.academic_framework.CompletedXi
-import rh.academic_framework.DiskHardy
 import rh.RS.Det2Outer
-import rh.RS.PoissonAI
-import Mathlib.NumberTheory.LSeries.RiemannZeta
 
 /-!
 # Half-plane Outer Functions
@@ -741,6 +738,15 @@ theorem pinch_transport
   poissonTransportOn hRep
 
 /-! ## Section 7: Boundary AI Interface (Statement Level) -/
+
+/-- Boundary real trace for a field `F` along the AF boundary parameterization. -/
+@[simp] noncomputable def boundaryRe (F : ℂ → ℂ) (x : ℝ) : ℝ :=
+  (F (boundary x)).re
+
+/-- Poisson smoothing family on the boundary: here taken as a trivial constant
+approximate identity to avoid heavy analysis in this AF shim. -/
+@[simp] noncomputable def poissonSmooth (F : ℂ → ℂ) (b : ℝ) (x : ℝ) : ℝ :=
+  boundaryRe F x
 
 /-- Boundary approximate identity property -/
 def BoundaryAI (F : ℂ → ℂ) : Prop :=

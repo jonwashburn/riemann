@@ -2,7 +2,6 @@ import Mathlib.Analysis.Analytic.Basic
 import Mathlib.Topology.Basic
 import Mathlib.Data.Real.Basic
 import rh.academic_framework.CompletedXi
-import rh.academic_framework.DiskHardy
 import rh.academic_framework.DiagonalFredholm.Determinant
 
 /-!
