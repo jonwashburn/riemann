@@ -1,9 +1,10 @@
 import rh.RS.Cayley
 import rh.RS.Det2Outer
 import rh.RS.PinchCertificate
+import rh.Cert.KxiPPlus
 import rh.RS.PinchIngredients
 import rh.academic_framework.CompletedXi
-import rh.Proof.Main
+-- avoid pulling the full proof main in RS wrappers to keep dev build light
 -- keep packaging decoupled to avoid cycles; consumers can import XiExtBridge directly if needed
 import rh.academic_framework.HalfPlaneOuterV2
 
@@ -39,10 +40,10 @@ def hRe_offXi_from_poisson
       BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
   (hPoisson : ∀ z ∈ Ω,
       0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)).re)
-  : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+  : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
       0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)).re := by
   intro z hz
-  exact hPoisson z hz.1
+  exact hPoisson z (RH.AcademicFramework.HalfPlaneOuterV2.offXi_subset_Ω hz)
 /-! ## Wiring (P+) to interior positivity via Poisson transport -/
 
 /-- Bridge: convert certificate `(P+)` to the AF boundary-positivity predicate. -/
@@ -141,26 +142,6 @@ def pinch_certificate_from_PPlus_transport_and_pinned
   -- Build the certificate
   exact RH.RS.buildPinchCertificate hOuter hRe_offXi hRemXi
 
-/-- Final wrapper: from (P+), Poisson representation on the off-zeros set,
-and pinned–removable data, conclude `RiemannHypothesis`. -/
-def RH_from_PPlus_transport_and_pinned
-  (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
-      BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
-  (hRepOn : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn (F_pinch det2 (Classical.choose hOuter))
-              RH.AcademicFramework.HalfPlaneOuterV2.offXi)
-  (hPPlus : RH.Cert.PPlus (fun z => (2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)))
-  (hPinned : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
-      ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
-        (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
-        AnalyticOn ℂ (Θ_pinch_of det2 (Classical.choose hOuter)) (U \ {ρ}) ∧
-        ∃ u : ℂ → ℂ,
-          Set.EqOn (Θ_pinch_of det2 (Classical.choose hOuter)) (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) ∧
-          Filter.Tendsto u (nhdsWithin ρ (U \ {ρ})) (nhds (0 : ℂ)) ∧
-          ∃ z, z ∈ U ∧ z ≠ ρ ∧ (Θ_pinch_of det2 (Classical.choose hOuter)) z ≠ 1)
-  : RiemannHypothesis := by
-  classical
-  let C := pinch_certificate_from_PPlus_transport_and_pinned hOuter hRepOn hPPlus hPinned
-  exact RH.Proof.Final.RH_from_pinch_certificate C
 
 /-- Wrapper: pass pinned–removable local data for
 `Θ := Θ_pinch_of det2 (choose O)` directly as the `existsRemXi` ingredient. -/
@@ -233,27 +214,7 @@ def pinch_certificate_from_PPlus_and_pinned
   -- Build the certificate
   exact RH.RS.buildPinchCertificate hOuter hRe_offXi hRemXi
 
-/-- Final wrapper: from (P+), Poisson interior positivity, and pinned–removable
-data (together with the outer existence), conclude mathlib's `RiemannHypothesis`.
--/
-def RH_from_PPlus_and_pinned
-  (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
-      BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
-  (_hPPlus : RH.Cert.PPlus (fun z => (2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)))
-  (hPoisson : ∀ z ∈ Ω,
-      0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)).re)
-  (hPinned : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
-      ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
-        (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
-        AnalyticOn ℂ (Θ_pinch_of det2 (Classical.choose hOuter)) (U \ {ρ}) ∧
-        ∃ u : ℂ → ℂ,
-          Set.EqOn (Θ_pinch_of det2 (Classical.choose hOuter)) (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) ∧
-          Filter.Tendsto u (nhdsWithin ρ (U \ {ρ})) (nhds (0 : ℂ)) ∧
-          ∃ z, z ∈ U ∧ z ≠ ρ ∧ (Θ_pinch_of det2 (Classical.choose hOuter)) z ≠ 1)
-  : RiemannHypothesis := by
-  classical
-  let C := pinch_certificate_from_PPlus_and_pinned hOuter _hPPlus hPoisson hPinned
-  exact RH.Proof.Final.RH_from_pinch_certificate C
+-- Removed top-level RH wrappers to keep RS layer independent of proof layer.
 
 end RS
 end RH

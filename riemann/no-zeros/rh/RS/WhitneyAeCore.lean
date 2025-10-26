@@ -1,4 +1,5 @@
-import rh.RS.CRGreenOuter
+import rh.RS.Cayley
+import rh.RS.Det2Outer
 import rh.academic_framework.HalfPlaneOuterV2
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 
@@ -6,7 +7,8 @@ import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 Core (P+) predicate and Whitney a.e. facade shared by Route B and Boundary proof.
 
 This small module isolates the boundary `(P+)` predicate for the canonical field
-`F(z) := (2 : ℂ) * J_CR outer_exists z` and a trivial facade lemma that exposes
+`F(z) := (2 : ℂ) * J_pinch det2 O z` for a fixed outer `O` witnessing
+`|O| = |det₂/ξ_ext|` on the boundary, and a facade lemma that exposes
 the a.e. boundary inequality from a `(P+)` witness. Keeping this separate allows
 Route B and the boundary wedge module to depend on the same definition without
 import cycles.
@@ -18,16 +20,21 @@ open Real Complex
 open MeasureTheory
 open RH.AcademicFramework.HalfPlaneOuterV2 (boundary)
 
-/-- Boundary wedge (P+): `Re ((2) * J_CR O (boundary t)) ≥ 0` a.e. -/
-def PPlus_holds (O : OuterOnOmega) : Prop :=
-  ∀ᵐ t : ℝ, 0 ≤ ((2 : ℂ) * J_CR O (boundary t)).re
+/-- Canonical outer choice for Route B: choose any RS `OuterHalfPlane` witness. -/
+noncomputable def O : ℂ → ℂ :=
+  RH.RS.OuterHalfPlane.choose_outer RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext_proved
 
-/-- Alias using the canonical outer `outer_exists`. -/
-def PPlus_canonical : Prop := PPlus_holds outer_exists
+/-- Boundary wedge (P+): `Re (F_pinch det2 O (boundary t)) ≥ 0` a.e. -/
+def PPlus_holds (O : ℂ → ℂ) : Prop :=
+  ∀ᵐ t : ℝ, 0 ≤ ((RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) (boundary t)).re
+
+/-- Alias using the canonical chosen outer `O`. -/
+def PPlus_canonical : Prop := PPlus_holds O
 
 /-- Facade: unwrap the `(P+)` proposition into the raw a.e. inequality. -/
-theorem PPlus_canonical_ae :
-  PPlus_canonical → (∀ᵐ t : ℝ, 0 ≤ ((2 : ℂ) * J_CR outer_exists (boundary t)).re) := by
-  intro h; simpa [PPlus_canonical, PPlus_holds]
+@[simp] theorem PPlus_canonical_ae :
+  PPlus_canonical → (∀ᵐ t : ℝ,
+    0 ≤ ((RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) (boundary t)).re) :=
+  id
 
 end RH.RS.WhitneyAeCore

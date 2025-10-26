@@ -774,15 +774,26 @@ theorem ae_nonneg_from_unitWhitney_local
         · exact ht.left
         · exact ht.left
     -- Estimate the measure of the union by the sum of measures
-    have hμ : volume
+    have hμ_base : volume
         ( ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))) ∪
           ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ) )
         ≤ volume ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)))
           + volume ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ) :=
       measure_union_le _ _
-    -- Convert the RHS via commutativity of intersections
+    -- strengthen the second term using monotonicity: Sᶜ ∩ coverᶜ ⊆ coverᶜ
+    have hsubset :
+        (Sᶜ ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ)
+          ⊆ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ := by
+      intro t ht; exact ht.right
+    have hmono :
+        volume ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ)
+          ≤ volume ((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ) :=
+      measure_mono hsubset
+    -- assemble the desired inequality
     conv_lhs => rw [hEq]
-    exact hμ
+    exact
+      le_trans hμ_base
+        (add_le_add le_rfl hmono)
   -- Use the two null bounds to conclude Sᶜ is null
   have hSnull : volume (Sᶜ) = 0 := by
     -- h_iUnion_null controls the first term, h_cover_null the second
@@ -797,7 +808,7 @@ theorem ae_nonneg_from_unitWhitney_local
         ≤ volume (((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)) ∩ Sᶜ))
           + volume (((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ)) := h_split
         _ = 0 := h0
-    exact le_antisymm this (measure_nonneg _)
+    exact le_antisymm this bot_le
   -- Convert back to an a.e. statement
   have : ∀ᵐ t : ℝ, t ∈ S := by
     simpa [ae_iff, S, Set.compl_setOf] using hSnull
