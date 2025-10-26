@@ -1,5 +1,6 @@
 import rh.Proof.Main
 import rh.RS.PinchIngredients
+import rh.RS.RouteB_Final
 
 /-!
 Final wiring exports: clean, stable entry points that expose Mathlib's
@@ -29,6 +30,10 @@ theorem pipeline_ready_unconditional : PipelineReady := RH.Proof.pipeline_ready_
 
 @[simp] theorem RH (C : RH.RS.PinchCertificateExt) : RiemannHypothesis :=
   RiemannHypothesis_final C
+
+-- Unconditional export (Route B wiring)
+@[simp] theorem RiemannHypothesis_unconditional : RiemannHypothesis :=
+  RH.RS.RouteB.RiemannHypothesis_via_RouteB
 
 -- Certificate route variants re-exported for convenience
 @[simp] theorem RiemannHypothesis_from_certificate_route

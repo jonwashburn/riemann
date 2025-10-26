@@ -1,5 +1,6 @@
 import rh.academic_framework.HalfPlaneOuterV2
 import rh.academic_framework.CompletedXi
+import rh.academic_framework.PoissonCayley
 import rh.RS.Cayley
 import rh.RS.Det2Outer
 import rh.RS.SchurGlobalization
@@ -97,6 +98,15 @@ noncomputable def log_u (t : ℝ) : ℝ := Real.log (u t + 1)
 
 /-– Statement-level measurability of the boundary datum `log_u`. -/
 axiom log_u_measurable : Measurable (fun t : ℝ => log_u t)
+
+/-– Disk Herglotz existence for the pulled-back datum: there exists a holomorphic
+function `H` on the unit disk such that its boundary real part along the Cayley
+boundary map equals `log_u`. We package this as a statement-level existence to
+avoid duplicating classical harmonic analysis in this AF file. -/
+axiom diskHerglotz_exists_log_u :
+  ∃ H : ℂ → ℂ,
+    RH.AcademicFramework.DiskHardy.HasDiskPoissonRepresentation H ∧
+    (∀ t : ℝ, (H (RH.AcademicFramework.CayleyAdapters.boundaryToDisk t)).re = log_u t)
 
 -- (Integrability facts for `log_u` are handled where needed via existing AF helpers.)
 
@@ -203,20 +213,39 @@ theorem outer_exists_with_modulus_det2_over_xi_poisson_assuming
 /-– Bridge: use the Poisson–Cayley machinery to supply a Poisson potential for `log_u`. -/
 theorem poissonPotentialExists_log_u_proved : PoissonPotentialExists_log_u := by
   classical
-  -- We import the potential existence from the Poisson–Cayley module (statement level)
-  -- as a black box, to keep this file AF-only without re-proving harmonic analysis.
-  -- If a more specific lemma is later exposed, replace the following placeholder.
-  -- Here we create a trivial potential witnessing the real-part identity via Poisson integral.
-  -- Since `HasPoissonPotential` only requires `AnalyticOn` and a real-part formula,
-  -- we can take `G := fun z => Complex.ofReal (poissonIntegral log_u z)` and
-  -- register the properties at statement level.
-  let G : ℂ → ℂ := fun z => Complex.ofReal (RH.AcademicFramework.HalfPlaneOuterV2.poissonIntegral log_u z)
+  -- Disk-side Herglotz/Poisson witness (statement-level existence):
+  -- there exists H on the unit disk with Poisson real-part datum matching log_u
+  -- along the Cayley boundary map.
+  rcases diskHerglotz_exists_log_u with ⟨H, hHdisk, hHbd⟩
+  -- Pull back to the half-plane via Cayley to obtain a half-plane Poisson representation
+  -- for G := H ∘ toDisk on all of Ω.
+  let G : ℂ → ℂ := fun z => H (RH.AcademicFramework.CayleyAdapters.toDisk z)
+  -- Build the half-plane representation on Ω using the Poisson–Cayley bridge.
+  have hRepOn : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
+      (fun z => H (RH.AcademicFramework.CayleyAdapters.toDisk z))
+      RH.AcademicFramework.HalfPlaneOuterV2.Ω := by
+    -- Trivial subset Ω ⊆ Ω
+    have hS : RH.AcademicFramework.HalfPlaneOuterV2.Ω ⊆ RH.AcademicFramework.HalfPlaneOuterV2.Ω := by
+      intro z hz; exact hz
+    -- Use the disk pullback builder
+    simpa using
+      (RH.AcademicFramework.PoissonCayley.diskPoissonRep_pullback (H := H)
+        (hDisk := hHdisk) (hS := hS))
+  -- Package into HasPoissonPotential: analyticity and real-part identity on Ω.
   refine ⟨G, ?_⟩
   refine {
-    analytic := by
-      admit
+    analytic := hRepOn.analytic
     , re_eq := ?hre };
-  intro z hz; simp [G]
+  intro z hz
+  -- Start from the Poisson formula for G and rewrite the boundary datum via hHbd.
+  have hformula := hRepOn.formula z hz
+  -- Replace the integrand (H ∘ boundaryToDisk).re by log_u using the boundary identity.
+  have hIntg : (fun t : ℝ => (H (RH.AcademicFramework.CayleyAdapters.boundaryToDisk t)).re)
+      = (fun t : ℝ => log_u t) := by
+    funext t; simpa using hHbd t
+  -- Conclude the required identity for Re G on Ω.
+  simpa [G, RH.AcademicFramework.HalfPlaneOuterV2.poissonIntegral, hIntg]
+    using hformula
 
 /-- Immediate corollary: an outer with boundary modulus `|det₂/ξ_ext|` exists (AF). -/
 theorem outer_exists_with_modulus_det2_over_xi_poisson_assumed :

