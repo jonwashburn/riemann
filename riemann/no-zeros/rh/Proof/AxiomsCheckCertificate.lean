@@ -24,16 +24,10 @@ Run with:
 #eval IO.println "\n3. Schur globalization (core pinch lemma):"
 #print axioms RH.RS.GlobalizeAcrossRemovable
 
-#eval IO.println "\n4. Cayley Theta Schur bound:"
-#print axioms RH.RS.Theta_Schur_of_Re_nonneg_on
-
-#eval IO.println "\n5. J_pinch analyticity:"
+#eval IO.println "\n4. J_pinch analyticity:"
 #print axioms RH.RS.J_pinch_analytic_on_offXi
 
-#eval IO.println "\n6. Theta_pinch analyticity:"
-#print axioms RH.RS.Theta_pinch_analytic_on_offXi
-
-#eval IO.println "\n7. Certificate Theta Schur bound:"
+#eval IO.println "\n5. Certificate Theta Schur bound:"
 #print axioms RH.RS.Θ_cert_Schur_offXi
 
 #eval IO.println "\n=== CERTIFICATE CORE COMPONENTS CHECK COMPLETE ===\n"

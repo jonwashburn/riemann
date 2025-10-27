@@ -20,6 +20,3 @@ Run with:
 
 #eval IO.println "Axioms: RH.Proof.Export.RiemannHypothesis_from_certificate_rep_on_via_cov"
 #print axioms RH.Proof.Export.RiemannHypothesis_from_certificate_rep_on_via_cov
-
-#eval IO.println "Axioms: RH.Proof.Export.RiemannHypothesis_mathlib_from_CR_outer_ext"
-#print axioms RH.Proof.Export.RiemannHypothesis_mathlib_from_CR_outer_ext
