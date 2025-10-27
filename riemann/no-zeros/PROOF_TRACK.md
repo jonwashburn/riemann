@@ -1,4 +1,4 @@
-## Unconditional Route B (θ‑free, reviewer‑friendly)
+## Unconditional Route B (θ‑free, final pipeline)
 
 - Proof export: `rh/Proof/Export.lean`
   - `@[simp] theorem RiemannHypothesis_unconditional : RiemannHypothesis`
@@ -31,7 +31,7 @@
 - `rh/RS/PinnedRemovable.lean`: pinned u‑trick ⇒ removable extension for the Cayley form.
 - `rh/RS/RouteB_Final.lean`: θ‑free end‑to‑end wiring and `RiemannHypothesis_via_RouteB`.
 
-### Minimal targets and guard
+### Final targets and guard
 
 - Export build: `lake build rh_export`.
 - Dev build: `lake build rh_routeb_dev` (isolates unconditional deps).
@@ -63,5 +63,14 @@ cd riemann/no-zeros
 ```
 
 - Confirms axioms are standard and checks `RiemannHypothesis_unconditional : RiemannHypothesis`.
+
+## Quick commands
+
+```bash
+cd riemann/no-zeros
+lake build rh_routeb_dev   # dev target (θ‑free closure)
+lake build rh_export       # minimal export surface
+./verify_proof.sh          # guard + targeted builds
+```
 
 
