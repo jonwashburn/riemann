@@ -45,7 +45,7 @@ private def hRe_offXi_from_poisson
 /-! ## Wiring (P+) to interior positivity via Poisson transport -/
 
 /-- Bridge: convert certificate `(P+)` to the AF boundary-positivity predicate. -/
-private def boundaryPositive_of_PPlus
+theorem boundaryPositive_of_PPlus
   (F : ℂ → ℂ) (hP : RH.Cert.PPlus F) :
   RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive F :=
   by

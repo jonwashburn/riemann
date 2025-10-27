@@ -791,9 +791,11 @@ theorem ae_nonneg_from_unitWhitney_local
       measure_mono hsubset
     -- assemble the desired inequality
     conv_lhs => rw [hEq]
+    have : Sᶜ ∩ ⋃ m, (unitWhitney m).interval = (⋃ m, (unitWhitney m).interval) ∩ Sᶜ := by
+      rw [Set.inter_comm]
     exact
       le_trans hμ_base
-        (add_le_add le_rfl hmono)
+        (add_le_add (le_of_eq (congrArg volume this)) hmono)
   -- Use the two null bounds to conclude Sᶜ is null
   have hSnull : volume (Sᶜ) = 0 := by
     -- h_iUnion_null controls the first term, h_cover_null the second
@@ -839,10 +841,8 @@ open MeasureTheory
   have hΔ : (W.t0 + W.len) - (W.t0 - W.len) = 2 * W.len := by ring
   have hnonneg : 0 ≤ (W.t0 + W.len) - (W.t0 - W.len) := by linarith
   unfold RH.RS.length Whitney.length
-  simp [WhitneyInterval.interval, Set.Icc, hΔ]
-  unfold RH.RS.length
   simp [RH.Cert.WhitneyInterval.interval, Real.volume_Icc, hle,
-        ENNReal.toReal_ofReal, hΔ, hnonneg]
+        ENNReal.toReal_ofReal, hΔ, hnonneg, hlen]
 
 /-- Set-integral lower bound from an a.e. pointwise lower bound by a constant on a
 measurable set of finite measure. Specialized for `ℝ` with Lebesgue measure.
@@ -863,9 +863,11 @@ lemma integral_ge_const_mul_length_of_ae
   -- Evaluate the constant integral as c * length(I)
   have hconst : (∫ t in I, (fun _ => c) t) = c * RH.RS.length I := by
     -- integral_const over a set
-    have := integral_const (μ := volume) (s := I) c
+    rw [MeasureTheory.integral_const, smul_eq_mul, mul_comm]
     -- `length I = (volume I).toReal`
-    simpa [RH.RS.length] using this
+    congr 1
+    unfold RH.RS.length Whitney.length
+    simp [MeasureTheory.Measure.restrict_apply MeasurableSet.univ]
   -- Conclude
   simpa [hconst]
     using hmono
@@ -888,7 +890,10 @@ lemma sigma_over_sigma2_add_sq_core_lower
   σ / (σ^2 + x^2) ≥ (4 / 5) * (1 / σ) := by
   -- Maximize the denominator over |x| ≤ σ/2, which occurs at |x| = σ/2
   have hx2_le : x^2 ≤ (σ / 2)^2 := by
-    have := sq_le_sq.mpr hcore
+    have : |x| ≤ |σ / 2| := by
+      rw [abs_of_pos (by linarith : 0 < σ / 2)]
+      exact hcore
+    have := sq_le_sq.mpr this
     simpa [sq_abs] using this
   have hden_le : σ^2 + x^2 ≤ σ^2 + (σ / 2)^2 := by
     exact add_le_add_left hx2_le _
@@ -896,32 +901,24 @@ lemma sigma_over_sigma2_add_sq_core_lower
   -- Use monotonicity of a↦σ/a on a≥0 to get a lower bound when denominator decreases
   have hposσ : 0 < σ := hσ
   have hposden' : 0 < σ^2 + (σ / 2)^2 := by
-    have : 0 < σ^2 := by exact mul_pos_of_pos_of_pos hσ hσ
+    have : 0 < σ^2 := sq_pos_of_pos hσ
     have : 0 < σ^2 + (σ / 2)^2 := by nlinarith [this, sq_nonneg (σ / 2)]
     simpa using this
   have hfrac_mono : σ / (σ^2 + (σ / 2)^2) ≤ σ / (σ^2 + x^2) := by
     -- since σ^2 + x^2 ≤ σ^2 + (σ/2)^2, invert inequality on positives
     have hle := hden_le
-    have hpos_denom : 0 < σ^2 + x^2 := lt_of_le_of_lt (le_of_lt hσ) (by
-      have : σ^2 + x^2 ≤ σ^2 + (σ / 2)^2 := hden_le
-      exact lt_of_le_of_lt (lt_of_le_of_lt (by
-        have : 0 < σ^2 := by exact mul_pos_of_pos_of_pos hσ hσ
-        have : 0 < σ^2 + 0 := by simpa using this
-        exact this) (lt_of_le_of_lt (le_of_eq rfl) hposden')) hposden')
+    have hpos_denom : 0 < σ^2 + x^2 := by
+      have : 0 < σ^2 := sq_pos_of_pos hσ
+      nlinarith [this, sq_nonneg x]
     -- Use (a ≤ b, a,b>0) ⇒ σ/b ≤ σ/a
-    have := (div_le_div_of_nonneg_left (by exact le_of_lt hposσ) hpos_denom.le hle)
+    have := (div_le_div_of_nonneg_left (by exact le_of_lt hposσ) hpos_denom hle)
     -- Rearrange sides
     simpa [mul_comm, mul_left_comm, mul_assoc] using this
   -- Evaluate the left side explicitly
   have hEval : σ / (σ^2 + (σ / 2)^2) = (4 / 5) * (1 / σ) := by
-    field_simp [pow_two] at *
-    -- compute σ / (σ^2 + σ^2/4) = σ / ((5/4)σ^2) = (4/5) * (1/σ)
-    have : σ / (σ^2 + σ^2 / 4) = σ / ((5 / 4) * σ^2) := by ring
     have hσne : (σ : ℝ) ≠ 0 := ne_of_gt hσ
-    have hσ2ne : σ^2 ≠ 0 := pow_ne_zero 2 hσne
-    have : σ / (σ^2 + (σ / 2)^2) = (4 / 5) * (1 / σ) := by
-      field_simp [hσne, hσ2ne]
-      ring
+    field_simp [hσne, pow_two]
+    ring
   -- Conclude the desired bound
   exact le_trans (by simpa [hEval]) hfrac_mono
 

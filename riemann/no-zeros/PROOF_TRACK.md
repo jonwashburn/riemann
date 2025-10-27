@@ -33,16 +33,21 @@
 
 ### Minimal targets and guard
 
-- Export build: `lake build rh_export` (falls back to `lake build rh` if unavailable).
-- Dev build (if present): `lake build rh_routeb_dev` (isolates unconditional deps).
+- Export build: `lake build rh_export`.
+- Dev build: `lake build rh_routeb_dev` (isolates unconditional deps).
 - Guard script: from `riemann/no-zeros/` run `./verify_proof.sh`.
-  - Builds dev and export targets (export falls back to `rh` if needed).
+  - Builds dev and export targets only.
   - Verifies only standard axioms and that `RiemannHypothesis_unconditional` is present.
   - Scans the transitive closure of dev/export roots for:
     - Forbidden constructs: `sorry`, `admit`, `axiom`.
     - Banned imports: `rh.academic_framework.Theta`, `rh.academic_framework.MellinThetaZeta`,
       `rh.RS.CRGreenOuter*`, `rh.RS.sealed*`.
     - Banned tokens: `boundaryToDisk_param`, `exp_I_two_arctan_ratio`, `two_arctan`, `arctan_ratio`.
+
+### Notes on θ‑free closure and removals
+
+- The Route B dev closure explicitly excludes `BoundaryWedgeProof` and `PoissonKernelDyadic`.
+- The export is certificate-driven via `(P+)` and uses the AF Poisson facade (`HalfPlaneOuterV2`).
 
 ### Where the mathlib equivalence is realized
 
