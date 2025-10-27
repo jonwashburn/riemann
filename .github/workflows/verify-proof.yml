@@ -1,0 +1,59 @@
+name: Verify Proof
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-proof-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache elan
+        uses: actions/cache@v4
+        with:
+          path: ~/.elan
+          key: ${{ runner.os }}-elan-${{ hashFiles('riemann/no-zeros/lean-toolchain') }}
+          restore-keys: |
+            ${{ runner.os }}-elan-
+
+      - name: Cache Lake build and packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            riemann/no-zeros/.lake
+            riemann/no-zeros/lake-packages
+          key: ${{ runner.os }}-lake-${{ hashFiles('riemann/no-zeros/lake-manifest.json', 'riemann/no-zeros/lakefile.lean') }}
+          restore-keys: |
+            ${{ runner.os }}-lake-
+
+      - name: Install OS dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+
+      - name: Install elan (Lean toolchain)
+        shell: bash
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- --no-modify-path -y
+          echo "$HOME/.elan/bin" >> $GITHUB_PATH
+
+      - name: Show versions
+        run: |
+          lean --version || true
+          lake --version || true
+
+      - name: Verify proof
+        run: bash ./riemann/no-zeros/verify_proof.sh
+
+

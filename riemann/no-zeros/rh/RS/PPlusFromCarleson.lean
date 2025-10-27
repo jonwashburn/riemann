@@ -4,6 +4,7 @@ import rh.Cert.KxiPPlus
 import rh.RS.WhitneyAeCore
 import rh.RS.SchurGlobalization
 import rh.RS.PoissonPlateau
+import rh.RS.BoundaryWedgeProof
 
 /-!
 # RS bridge: Concrete Carleson ⇒ (P+)
@@ -24,11 +25,14 @@ namespace RH.RS
 
 /-! ## Pivot export (θ‑free)
 
-We provide the canonical `(P+)` proof via the lightweight core lemma
-`PPlus_canonical_proved_basic`, avoiding the heavy wedge module. -/
+We derive `(P+)` for the canonical field from the certificate Carleson route,
+threaded through Schur/plateau, then bridge into the Whitney predicate. -/
 
-theorem PPlus_canonical_proved : PPlus_canonical :=
-  RH.RS.WhitneyAeCore.PPlus_canonical_proved_basic
+theorem PPlus_canonical_proved : PPlus_canonical := by
+  -- Prefer the fully assembled wedge result to avoid placeholder forwarding
+  -- This matches the AF boundary map and `F_pinch` shape directly.
+  -- Use the canonical RS theorem that yields (P+) a.e. on the boundary.
+  simpa using RH.RS.BoundaryWedgeProof.PPlus_from_constants
 
 /-- Main export: `(P+)` holds for the canonical CR boundary field. -/
 theorem PPlusFromCarleson_exists_proved_default :

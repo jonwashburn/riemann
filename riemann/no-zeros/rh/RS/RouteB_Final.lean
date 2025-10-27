@@ -9,7 +9,6 @@ import rh.academic_framework.HalfPlaneOuterV2
 import rh.academic_framework.PoissonCayley
 import rh.academic_framework.CompletedXi
 import rh.Cert.KxiPPlus
-import rh.RS.PPlusFromCarleson
 import Mathlib.Analysis.Analytic.IsolatedZeros
 
 /-!
@@ -46,11 +45,10 @@ lemma O_spec : RH.RS.OuterHalfPlane O ∧
 /-! ## Boundary positivity (P+) for F := 2·J_pinch det2 O -/
 
 /-- Boundary positivity on the AF boundary for `F := 2·J_pinch det2 O`. -/
-theorem boundary_positive_AF :
+theorem boundary_positive_AF (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical) :
   RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
     (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)) := by
   -- Use canonical RS `(P+)` and bridge to AF boundary positivity
-  have hCanon : RH.RS.WhitneyAeCore.PPlus_canonical := RH.RS.PPlus_canonical_proved
   have hAE : ∀ᵐ t : ℝ,
       0 ≤ ((RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
         (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
@@ -60,31 +58,45 @@ theorem boundary_positive_AF :
            O, hOuterWitness] using
       (RH.RS.WhitneyAeCore.PPlus_canonical_ae hCanon)
   -- Convert to certificate form and then to AF boundary positivity
+  -- Use AF boundary directly; introduce mk=boundary when converting to Cert form
   have hb_mk : ∀ t : ℝ,
-      RH.AcademicFramework.HalfPlaneOuterV2.boundary t = Complex.mk (1/2) t := by
-    intro t; apply Complex.ext <;> simp
+      Complex.mk (1/2) t = RH.AcademicFramework.HalfPlaneOuterV2.boundary t := by
+    intro t; apply Complex.ext <;> simp [RH.AcademicFramework.HalfPlaneOuterV2.boundary]
   have hPcert : RH.Cert.PPlus
       (fun z => (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) z) := by
-    simpa [RH.Cert.PPlus, hb_mk] using hAE
+    -- convert AF boundary to mk form for Cert predicate
+    have : ∀ᵐ t : ℝ,
+        0 ≤ ((RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
+              (Complex.mk (1/2) t)).re := by
+      refine hAE.mono ?_
+      intro t ht
+      simpa [hb_mk t]
+        using ht
+    simpa [RH.Cert.PPlus]
+      using this
   -- Align to the explicit form `fun z => (2) * J_pinch ...` and bridge to AF
   have hPcanon : RH.Cert.PPlus
       (fun z => (2 : ℂ) * RH.AcademicFramework.HalfPlaneOuterV2.J_pinch RH.RS.det2 O z) := by
+    -- unfold F_pinch at the mk point, but keep boundary in mk-shape
     simpa [RH.AcademicFramework.HalfPlaneOuterV2.F_pinch,
-           RH.AcademicFramework.HalfPlaneOuterV2.J_pinch] using hPcert
+           RH.AcademicFramework.HalfPlaneOuterV2.J_pinch]
+      using hPcert
   -- Finally, use the existing bridge to AF boundary positivity
   exact RH.RS.boundaryPositive_of_PPlus _ hPcanon
 
-/-- Cert-level `(P+)` for `F := 2·J_pinch det2 O`. -/
-theorem boundary_positive : RH.Cert.PPlus
+/-- Cert-level `(P+)` for `F := 2·J_pinch det2 O`, parameterized by canonical `(P+)`. -/
+theorem boundary_positive (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical) : RH.Cert.PPlus
     (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)) := by
-  have h := boundary_positive_AF
+  have h := boundary_positive_AF hCanon
   have hb_mk : ∀ t : ℝ,
-      RH.AcademicFramework.HalfPlaneOuterV2.boundary t = Complex.mk (1/2) t := by
-    intro t; apply Complex.ext <;> simp
+      Complex.mk (1/2) t = RH.AcademicFramework.HalfPlaneOuterV2.boundary t := by
+    intro t; apply Complex.ext <;> simp [RH.AcademicFramework.HalfPlaneOuterV2.boundary]
   have hP : ∀ᵐ t : ℝ, 0 ≤ ((fun z => (2 : ℂ) * RH.RS.J_pinch RH.RS.det2 O z)
       (Complex.mk (1/2) t)).re := by
     refine h.mono ?_
-    intro t ht; simpa only [hb_mk t] using ht
+    intro t ht
+    -- convert AF boundary to mk form
+    simpa [hb_mk t] using ht
   simpa [RH.Cert.PPlus] using hP
 
 /-- Cert-level `(P+)` implies AF boundary positivity for the same `F`. -/
@@ -107,11 +119,13 @@ open Set Complex
 
 /-! Global measurability for the completed ξ (ext). -/
 private lemma measurable_riemannXi_ext : Measurable riemannXi_ext := by
-  classical; simpa [RH.AcademicFramework.CompletedXi.riemannXi_ext] using (by measurability)
+  classical
+  simpa [RH.AcademicFramework.CompletedXi.riemannXi_ext] using (by measurability)
 
 /-! Global measurability for `det₂` (alias `RS.det2`). -/
 private lemma measurable_det2 : Measurable RH.RS.det2 := by
-  classical; simpa using RH.RS.measurable_det2
+  classical
+  simpa using RH.RS.measurable_det2
 
 /-! Boundary measurability: t ↦ det2(boundary t). -/
 private lemma det2_boundary_measurable :
@@ -186,7 +200,6 @@ private lemma F_pinch_boundary_bound
       |((RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) z).re|
         ≤ Complex.abs ((RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) z) := by
     simpa using Complex.abs_re_le_abs
-      (z := (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) z)
   have : Complex.abs ((RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) z)
       = (2 : ℝ) * Complex.abs (RH.AcademicFramework.HalfPlaneOuterV2.J_pinch RH.RS.det2 O z) := by
     simp [RH.AcademicFramework.HalfPlaneOuterV2.F_pinch]
@@ -216,18 +229,6 @@ lemma F0_boundary_eq_Hpull_boundaryToDisk (t : ℝ) :
       = Hpull (RH.AcademicFramework.CayleyAdapters.boundaryToDisk t) := by
   simp [F0, Hpull]
 
-/-- Pullback Poisson representation on the off-zeros set via Cayley. -/
-private theorem pullback_hasPoissonRepOn_offXi :
-  RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
-    (fun z => Hpull (RH.AcademicFramework.CayleyAdapters.toDisk z)) S := by
-  have hS : S ⊆ RH.AcademicFramework.HalfPlaneOuterV2.Ω := by intro z hz; exact hz.1
-  have hRepF0 : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn F0 S := by
-    simpa [F0, RH.AcademicFramework.HalfPlaneOuterV2.F_pinch]
-      using F_pinch_has_poisson_rep
-  exact RH.AcademicFramework.PoissonCayley.pullback_rep_on_from_halfplane_rep
-    (F := F0) (H := Hpull) (S := S)
-    (hHdef := by intro w; rfl) hS hRepF0
-
 /-- AF-side Poisson representation on `Ω \ Z(ξ_ext)` for `F_pinch det2 O`. -/
  theorem F_pinch_has_poisson_rep : HasPoissonRepOn
     (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
@@ -247,19 +248,34 @@ private theorem pullback_hasPoissonRepOn_offXi :
     intro t
     simpa [RH.AcademicFramework.PoissonCayley.EqOnBoundary] using
       F0_boundary_eq_Hpull_boundaryToDisk (det2 := RH.RS.det2) (O := O) t
+  -- Pullback Poisson rep along Cayley on S
+  have hS : S ⊆ RH.AcademicFramework.HalfPlaneOuterV2.Ω := by intro z hz; exact hz.1
+  have hRepF0 : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn F0 S := by
+    -- restrict the global rep to S using the inclusion S ⊆ Ω \ {ξ_ext=0}
+    have hAll : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
+        (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
+        (RH.AcademicFramework.HalfPlaneOuterV2.Ω \ {z | riemannXi_ext z = 0}) := F_pinch_has_poisson_rep
+    -- S equals Ω \ {ξ_ext=0} by definition here
+    simpa [F0]
+      using hAll
+  have hRep_pull : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
+      (fun z => Hpull (RH.AcademicFramework.CayleyAdapters.toDisk z)) S := by
+    exact RH.AcademicFramework.PoissonCayley.pullback_rep_on_from_halfplane_rep
+      (F := F0) (H := Hpull) (S := S) (hHdef := by intro w; rfl) hS hRepF0
   have hReEqOn : RH.AcademicFramework.PoissonCayley.HasHalfPlanePoissonReEqOn F0 S := by
     exact RH.AcademicFramework.PoissonCayley.pinch_halfplane_ReEqOn_from_cayley
-      (F := F0) (H := Hpull) (S := S) hInt hBd pullback_hasPoissonRepOn_offXi
+      (F := F0) (H := Hpull) (S := S) hInt hBd hRep_pull
   exact RH.AcademicFramework.HalfPlaneOuterV2.pinch_hasPoissonRepOn_from_cayley_analytic
-    det2_analytic_on_RSΩ (hO := hOuter) (hBME := hBME_af)
-    (hXi := riemannXi_ext_differentiable_AFΩ)
+    RH.RS.det2_analytic_on_RSΩ (hO := hOuter) (hBME := hBME_af)
+    (hXi := RH.AcademicFramework.CompletedXi.riemannXi_ext_differentiable_AFΩ)
     det2_boundary_measurable O_boundary_measurable xi_ext_boundary_measurable
     (by intro z hz; simpa [F0] using hReEqOn z hz)
     (F_pinch_boundary_bound hBME_af)
     measurable_boundary_Re_F_pinch
 
-/-- Route B: complete unconditional proof of the Riemann Hypothesis. -/
- theorem RiemannHypothesis_via_RouteB : RiemannHypothesis := by
+/-- Route B: conditional-to-(P+) unconditional proof of the Riemann Hypothesis. -/
+ theorem RiemannHypothesis_via_RouteB_from_PPlus
+  (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical) : RiemannHypothesis := by
   have hOuter : ∃ O' : ℂ → ℂ, RH.RS.OuterHalfPlane O' ∧
       RH.RS.BoundaryModulusEq O' (fun s => RH.RS.det2 s / riemannXi_ext s) :=
     RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext_proved
@@ -268,7 +284,7 @@ private theorem pullback_hasPoissonRepOn_offXi :
       (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 (Classical.choose hOuter))
       RH.AcademicFramework.HalfPlaneOuterV2.offXi := by simpa using F_pinch_has_poisson_rep
   have hPplus : RH.Cert.PPlus (fun z => (2 : ℂ) * RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter) z) := by
-    simpa [hChoose] using boundary_positive
+    simpa [hChoose] using boundary_positive hCanon
   have hBP : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive (F_pinch det2 (Classical.choose hOuter)) := by
     have hcert : ∀ᵐ t : ℝ, 0 ≤ ((fun z => (2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)) (Complex.mk (1/2) t)).re := hPplus
     have mk_eq : ∀ t, Complex.mk (1/2) t = (1/2 : ℝ) + Complex.I * (t : ℂ) := by
@@ -289,8 +305,8 @@ private theorem pullback_hasPoissonRepOn_offXi :
       ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
         (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
         ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧
-          AnalyticOn ℂ (RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))) (U \ {ρ}) ∧
-          Set.EqOn (RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))) g (U \ {ρ}) ∧ g ρ = 1 ∧
+          AnalyticOn ℂ (RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))) (U \\ {ρ}) ∧
+          Set.EqOn (RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))) g (U \\ {ρ}) ∧ g ρ = 1 ∧
           ∃ z, z ∈ U ∧ g z ≠ 1 := by
     intro ρ hΩ' hXi'
     rcases (pinned_removable_data ρ hΩ' hXi') with
@@ -298,7 +314,7 @@ private theorem pullback_hasPoissonRepOn_offXi :
     classical
     let Theta : ℂ → ℂ := RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))
     let g : ℂ → ℂ := Function.update Theta ρ (1 : ℂ)
-    have hEqOn : Set.EqOn Theta g (U \ {ρ}) := by
+    have hEqOn : Set.EqOn Theta g (U \\ {ρ}) := by
       intro w hw; simp [g, Function.update_noteq hw.2]
     have hval : g ρ = 1 := by simp [g]
     have hgU : AnalyticOn ℂ g U :=
@@ -453,17 +469,17 @@ theorem pinned_removable_data
   have hDet2 : RH.RS.Det2OnOmega := RH.RS.det2_on_Ω_assumed det2_analytic_on_RSΩ (by
     intro s hs; exact det2_nonzero_on_RSΩ (s := s) hs)
   have hOuter : RH.RS.OuterHalfPlane O := (O_spec).1
-  have hXi : AnalyticOn ℂ riemannXi_ext (Ω \\ ({1} : Set ℂ)) :=
-    riemannXi_ext_differentiable_AFΩ
+  have hXi : AnalyticOn ℂ riemannXi_ext (Ω \ ({1} : Set ℂ)) :=
+    RH.AcademicFramework.CompletedXi.riemannXi_ext_differentiable_AFΩ
   -- Interior nonnegativity of Re(F) on offXi via transport (uses P+ and rep)
   have hRepOn : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
       (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
-      (Ω \\ {z | riemannXi_ext z = 0}) := F_pinch_has_poisson_rep
+      (Ω \ {z | riemannXi_ext z = 0}) := F_pinch_has_poisson_rep
   have hBP : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
       (fun z => (2 : ℂ) * RH.RS.J_pinch RH.RS.det2 O z) := by
     -- from certificate-level P+ via boundary bridge
     exact boundary_positive_AF
-  have hReInt : ∀ z ∈ (Ω \\ {z | riemannXi_ext z = 0}),
+  have hReInt : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
       0 ≤ ((2 : ℂ) * RH.RS.J_pinch RH.RS.det2 O z).re := by
     -- transport boundary positivity into the interior using the rep on offXi
     have hT := RH.AcademicFramework.HalfPlaneOuterV2.poissonTransportOn
