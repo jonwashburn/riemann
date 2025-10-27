@@ -11,20 +11,11 @@ package «riemann» where
   buildType := BuildType.release
 
 require mathlib from git
-  "https://github.com/leanprover-community/mathlib4.git" @ "v4.13.0"
+  "https://github.com/leanprover-community/mathlib4.git" @ "v4.12.0"
 
+@[default_target]
 lean_lib «rh» where
   globs := #[
     .submodules `rh.academic_framework,
     .submodules `rh.RS
-  ]
-
-@[default_target]
-lean_lib rh_routeb_dev where
-  roots := #[
-    `rh.academic_framework.CayleyAdapters,
-    `rh.academic_framework.PoissonCayley,
-    `rh.RS.WhitneyAeCore,
-    `rh.RS.PinchWrappers,
-    `rh.RS.RouteB_Final
   ]

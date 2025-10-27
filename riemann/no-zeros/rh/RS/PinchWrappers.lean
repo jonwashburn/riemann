@@ -1,8 +1,9 @@
 import rh.RS.Cayley
 import rh.RS.Det2Outer
 import rh.RS.PinchCertificate
+-- KxiPPlus provides the abstract `(P+)` predicate; kept minimal
 import rh.Cert.KxiPPlus
-import rh.RS.PinchIngredients
+-- import rh.RS.PinchIngredients -- unused here; keep wrappers lightweight
 import rh.academic_framework.CompletedXi
 -- avoid pulling the full proof main in RS wrappers to keep dev build light
 -- keep packaging decoupled to avoid cycles; consumers can import XiExtBridge directly if needed
@@ -32,9 +33,8 @@ open RH.AcademicFramework.HalfPlaneOuterV2
 
 local notation "Ω" => RH.RS.Ω
 
-/-- Wrapper: from a Poisson interior positivity statement for
-`F := 2 · J_pinch det2 O` on `Ω`, we obtain the exact ingredient shape needed
-by the pinch certificate on `Ω \ Z(ξ_ext)` (simple restriction). -/
+/-- From Poisson interior positivity for
+`F := 2 · J_pinch det2 O` on `Ω`, deduce the restricted off-zeros form. -/
 def hRe_offXi_from_poisson
   (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
       BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
@@ -50,7 +50,6 @@ def hRe_offXi_from_poisson
 private def boundaryPositive_of_PPlus
   (F : ℂ → ℂ) (hP : RH.Cert.PPlus F) :
   RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive F :=
-  -- Coerce the certificate-level boundary positivity to the AF predicate.
   by
     -- `BoundaryPositive` uses `boundary t = (1/2 : ℝ) + I * (t : ℂ)`
     -- Cert's `(P+)` uses `Complex.mk (1/2) t`
@@ -92,7 +91,7 @@ def hRe_offXi_from_PPlus_via_transport
   intro z hz
   simpa [F_pinch] using hTrans z hz
 
-/-- Build pinch certificate using (P+) threaded through Poisson transport on the
+/-- Build a pinch certificate using (P+) threaded through Poisson transport on the
 off-zeros set, plus pinned–removable data. -/
 def pinch_certificate_from_PPlus_transport_and_pinned
   (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
@@ -103,11 +102,11 @@ def pinch_certificate_from_PPlus_transport_and_pinned
   (hPinned : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
       ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
         (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
-        AnalyticOn ℂ (Θ_pinch_of det2 (Classical.choose hOuter)) (U \ {ρ}) ∧
+        AnalyticOn ℂ (RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))) (U \ {ρ}) ∧
         ∃ u : ℂ → ℂ,
-          Set.EqOn (Θ_pinch_of det2 (Classical.choose hOuter)) (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) ∧
+          Set.EqOn (RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))) (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) ∧
           Filter.Tendsto u (nhdsWithin ρ (U \ {ρ})) (nhds (0 : ℂ)) ∧
-          ∃ z, z ∈ U ∧ z ≠ ρ ∧ (Θ_pinch_of det2 (Classical.choose hOuter)) z ≠ 1)
+          ∃ z, z ∈ U ∧ z ≠ ρ ∧ (RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))) z ≠ 1)
   : PinchCertificateExt := by
   classical
   -- Ingredient 1: interior positivity on offXi via transport
@@ -117,75 +116,75 @@ def pinch_certificate_from_PPlus_transport_and_pinned
       ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
         (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
         ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧
-          AnalyticOn ℂ (Θ_pinch_of det2 (Classical.choose hOuter)) (U \ {ρ}) ∧
-          Set.EqOn (Θ_pinch_of det2 (Classical.choose hOuter)) g (U \ {ρ}) ∧
+          AnalyticOn ℂ (RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))) (U \ {ρ}) ∧
+          Set.EqOn (RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))) g (U \ {ρ}) ∧
           g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1 := by
     intro ρ hΩ hXi
     rcases hPinned ρ hΩ hXi with
       ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi,
-       hΘU, u, hEq, hu0, z, hzU, hzneq, hΘz⟩
+       hThetaU, u, hEq, hu0, z, hzU, hzneq, hThetaz⟩
     classical
-    let Θ : ℂ → ℂ := Θ_pinch_of det2 (Classical.choose hOuter)
-    let g : ℂ → ℂ := Function.update Θ ρ (1 : ℂ)
-    have hEqOn : Set.EqOn Θ g (U \ {ρ}) := by
+    let Theta : ℂ → ℂ := RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))
+    let g : ℂ → ℂ := Function.update Theta ρ (1 : ℂ)
+    have hEqOn : Set.EqOn Theta g (U \ {ρ}) := by
       intro w hw; simp [g, Function.update_noteq hw.2]
     have hval : g ρ = 1 := by simp [g]
     have hgU : AnalyticOn ℂ g U :=
-      RH.RS.analyticOn_update_from_pinned (U := U) (ρ := ρ) (Θ := Θ) (u := u)
-        hUopen hρU hΘU hEq hu0
-    -- Nontriviality: since z ≠ ρ and Θ z ≠ 1, we get g z ≠ 1
+      RH.RS.analyticOn_update_from_pinned (U := U) (ρ := ρ) (Θ := Theta) (u := u)
+        hUopen hρU hThetaU hEq hu0
+    -- Nontriviality: since z ≠ ρ and Theta z ≠ 1, we get g z ≠ 1
     have hgz_ne1 : g z ≠ 1 := by
-      have : g z = Θ z := by simp [g, Function.update_noteq hzneq]
-      intro hz1; exact hΘz (by simpa [this] using hz1)
+      have : g z = Theta z := by simp [g, Function.update_noteq hzneq]
+      intro hz1; exact hThetaz (by simpa [this] using hz1)
     exact ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi,
-      ⟨g, hgU, hΘU, hEqOn, hval, z, hzU, hgz_ne1⟩⟩
+      ⟨g, hgU, hThetaU, hEqOn, hval, z, hzU, hgz_ne1⟩⟩
   -- Build the certificate
   exact RH.RS.buildPinchCertificate hOuter hRe_offXi hRemXi
 
 
-/-- Wrapper: pass pinned–removable local data for
-`Θ := Θ_pinch_of det2 (choose O)` directly as the `existsRemXi` ingredient. -/
+/-- Pass pinned–removable local data for
+`Theta := Theta_of_J (J_pinch det2 (choose O))` directly as the `existsRemXi` ingredient. -/
 def hRemXi_from_pinned
   (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
       BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
-  -- Pinned data: for each ξ_ext-zero ρ pick isolating U, Θ-analytic off ρ,
-  -- and a u-function with Θ = (1-u)/(1+u) on U\{ρ} and u → 0 on 𝓝[U\{ρ}] ρ,
-  -- plus a nontrivial Θ z ≠ 1.
+  -- Pinned data: for each ξ_ext-zero ρ pick isolating U, Theta-analytic off ρ,
+  -- and a u-function with Theta = (1-u)/(1+u) on U\{ρ} and u → 0 on 𝓝[U\{ρ}] ρ,
+  -- plus a nontrivial Theta z ≠ 1.
   (hPinned : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
       ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
         (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
-        AnalyticOn ℂ (Θ_pinch_of det2 (Classical.choose hOuter)) (U \ {ρ}) ∧
+        AnalyticOn ℂ (RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))) (U \ {ρ}) ∧
         ∃ u : ℂ → ℂ,
-          Set.EqOn (Θ_pinch_of det2 (Classical.choose hOuter))
+          Set.EqOn (RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter)))
             (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) ∧
           Filter.Tendsto u (nhdsWithin ρ (U \ {ρ})) (nhds (0 : ℂ)) ∧
-          ∃ z, z ∈ U ∧ z ≠ ρ ∧ (Θ_pinch_of det2 (Classical.choose hOuter)) z ≠ 1)
+          ∃ z, z ∈ U ∧ z ≠ ρ ∧ (RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))) z ≠ 1)
   : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
       ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
         (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
         ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧
-          AnalyticOn ℂ (Θ_pinch_of det2 (Classical.choose hOuter)) (U \ {ρ}) ∧
-          Set.EqOn (Θ_pinch_of det2 (Classical.choose hOuter)) g (U \ {ρ}) ∧
+          AnalyticOn ℂ (RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))) (U \ {ρ}) ∧
+          Set.EqOn (RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))) g (U \ {ρ}) ∧
           g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1 := by
   intro ρ hΩ hXi
   -- Unpack pinned data, then use the removable-update lemma to build g
   rcases hPinned ρ hΩ hXi with
-    ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi, hΘU, u, hEq, hu0, z, hzU, hzneq, hΘz⟩
+    ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi, hThetaU, u, hEq, hu0, z, hzU, hzneq, hThetaz⟩
   classical
-  let Θ : ℂ → ℂ := Θ_pinch_of det2 (Classical.choose hOuter)
-  let g : ℂ → ℂ := Function.update Θ ρ (1 : ℂ)
-  have hEqOn : Set.EqOn Θ g (U \ {ρ}) := by
+  let Theta : ℂ → ℂ := RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))
+  let g : ℂ → ℂ := Function.update Theta ρ (1 : ℂ)
+  have hEqOn : Set.EqOn Theta g (U \ {ρ}) := by
     intro w hw; simp [g, Function.update_noteq hw.2]
   have hval : g ρ = 1 := by simp [g]
   have hgU : AnalyticOn ℂ g U :=
-    RH.RS.analyticOn_update_from_pinned (U := U) (ρ := ρ) (Θ := Θ) (u := u)
-      hUopen hρU hΘU hEq hu0
-  -- Nontriviality: since z ≠ ρ and Θ z ≠ 1, we get g z ≠ 1
+    RH.RS.analyticOn_update_from_pinned (U := U) (ρ := ρ) (Θ := Theta) (u := u)
+      hUopen hρU hThetaU hEq hu0
+  -- Nontriviality: since z ≠ ρ and Theta z ≠ 1, we get g z ≠ 1
   have hgz_ne1 : g z ≠ 1 := by
-    have : g z = Θ z := by simp [g, Function.update_noteq hzneq]
-    intro hz1; exact hΘz (by simpa [this] using hz1)
+    have : g z = Theta z := by simp [g, Function.update_noteq hzneq]
+    intro hz1; exact hThetaz (by simpa [this] using hz1)
   exact ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi,
-    ⟨g, hgU, hΘU, hEqOn, hval, z, hzU, hgz_ne1⟩⟩
+    ⟨g, hgU, hThetaU, hEqOn, hval, z, hzU, hgz_ne1⟩⟩
 
 /-- Build the pinch certificate from: outer existence; (P+) on the boundary
 for `F := 2 · J_pinch`; a Poisson interior positivity statement; and a pinned–
@@ -200,11 +199,11 @@ def pinch_certificate_from_PPlus_and_pinned
   (hPinned : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
       ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
         (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
-        AnalyticOn ℂ (Θ_pinch_of det2 (Classical.choose hOuter)) (U \ {ρ}) ∧
+        AnalyticOn ℂ (RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))) (U \ {ρ}) ∧
         ∃ u : ℂ → ℂ,
-          Set.EqOn (Θ_pinch_of det2 (Classical.choose hOuter)) (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) ∧
+          Set.EqOn (RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))) (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) ∧
           Filter.Tendsto u (nhdsWithin ρ (U \ {ρ})) (nhds (0 : ℂ)) ∧
-          ∃ z, z ∈ U ∧ z ≠ ρ ∧ (Θ_pinch_of det2 (Classical.choose hOuter)) z ≠ 1)
+          ∃ z, z ∈ U ∧ z ≠ ρ ∧ (RH.RS.Theta_of_J (RH.RS.J_pinch RH.RS.det2 (Classical.choose hOuter))) z ≠ 1)
   : PinchCertificateExt := by
   classical
   -- Ingredient 1: interior positivity on Ω \ Z(ξ_ext)

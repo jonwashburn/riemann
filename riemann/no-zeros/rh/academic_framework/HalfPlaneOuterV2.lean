@@ -38,9 +38,9 @@ open RH.RS
 /-- The right half-plane domain Ω = {s : ℂ | Re s > 1/2} -/
 def Ω : Set ℂ := {s : ℂ | (1/2 : ℝ) < s.re}
 
-/-/-- Boundary parametrization of the critical line Re s = 1/2 -/
+/-- Boundary parametrization of the critical line `Re s = 1/2`. -/
 @[simp] def boundary (t : ℝ) : ℂ := (1/2 : ℝ) + I * (t : ℂ)
-/-/-- Off-zeros domain for `riemannXi_ext` on Ω, excluding the pole at `1`. -/
+/-- Off-zeros domain for `riemannXi_ext` on Ω, excluding the pole at `1`. -/
 def offXi : Set ℂ := {z | z ∈ Ω ∧ z ≠ (1 : ℂ) ∧ riemannXi_ext z ≠ 0}
 
 lemma offXi_subset_Ω : offXi ⊆ Ω := by
@@ -53,16 +53,24 @@ lemma offXi_subset_Ω_minus_one : offXi ⊆ Ω \ ({1} : Set ℂ) := by
   intro hz1
   exact hz.2.1 hz1
 
-lemma boundary_re (t : ℝ) : (boundary t).re = 1/2 := by simp [boundary]
+/-- Real part of the boundary parameterization: `re (boundary t) = 1/2`. -/
+@[simp] lemma boundary_re (t : ℝ) : (boundary t).re = 1/2 := by simp [boundary]
 
-lemma boundary_im (t : ℝ) : (boundary t).im = t := by simp [boundary]
+/-- Imaginary part of the boundary parameterization: `im (boundary t) = t`. -/
+@[simp] lemma boundary_im (t : ℝ) : (boundary t).im = t := by simp [boundary]
 
+/-- Record-form normalization for the AF boundary map. -/
 @[simp] lemma boundary_mk_eq (t : ℝ) :
   boundary t = { re := (1/2 : ℝ), im := t } := by
   -- Prove equality by matching real and imaginary parts
   apply Complex.ext
   · simp [boundary]
   · simp [boundary]
+
+/-- Concrete form of the AF boundary map as a complex literal. -/
+@[simp] lemma boundary_eq_mk (t : ℝ) :
+  boundary t = Complex.mk (1/2) t := by
+  apply Complex.ext <;> simp [boundary]
 
 /-- Off-zeros inclusion for `offXi` into the larger off-zeros set. -/
 lemma offXi_subset_offZeros : offXi ⊆ (Ω \ {z | riemannXi_ext z = 0}) := by
@@ -85,7 +93,8 @@ def ExistsOuterWithModulus (F : ℂ → ℂ) : Prop :=
 
 /-! ## Section 2: Poisson Kernel and Integration -/
 
-/-- The Poisson kernel for the right half-plane -/
+/- -/  -- (keep lightweight imports; kernel is used only in simple forms)
+/-- The Poisson kernel for the right half‑plane. -/
 @[simp] noncomputable def poissonKernel (z : ℂ) (t : ℝ) : ℝ :=
   let a := z.re - 1/2
   let b := z.im
@@ -109,6 +118,67 @@ lemma poissonKernel_nonneg {z : ℂ} (hz : z ∈ Ω) (t : ℝ) :
 /-- Poisson integral: reconstructs interior values from boundary data -/
 @[simp] noncomputable def poissonIntegral (u : ℝ → ℝ) (z : ℂ) : ℝ :=
   ∫ t : ℝ, u t * poissonKernel z t
+
+/-- Poisson integral of the zero boundary function. -/
+@[simp] lemma poissonIntegral_zero (z : ℂ) :
+    poissonIntegral (fun _ => (0 : ℝ)) z = 0 := by
+  simp [poissonIntegral]
+
+/-- Pull out a real constant factor from the Poisson integrand.
+Requires integrability of the original integrand. -/
+lemma poissonIntegral_const_mul (c : ℝ) (u : ℝ → ℝ) (z : ℂ)
+    (hInt : Integrable (fun t : ℝ => u t * poissonKernel z t)) :
+    poissonIntegral (fun t => c * u t) z = c * poissonIntegral u z := by
+  classical
+  have hpt :
+      (fun t : ℝ => (c * u t) * poissonKernel z t)
+        = (fun t : ℝ => c • (u t * poissonKernel z t)) := by
+    funext t; simp [mul_comm, mul_left_comm, mul_assoc, Real.smul_def]
+  have hsmul := integral_smul (c) (fun t : ℝ => u t * poissonKernel z t)
+  -- Use linearity of the Bochner integral
+  simpa [poissonIntegral, hpt, Real.smul_def]
+    using hsmul
+
+/-- Additivity of the Poisson integral in the boundary function.
+Both summands must be integrable against the kernel. -/
+lemma poissonIntegral_add (u v : ℝ → ℝ) (z : ℂ)
+    (hu : Integrable (fun t : ℝ => u t * poissonKernel z t))
+    (hv : Integrable (fun t : ℝ => v t * poissonKernel z t)) :
+    poissonIntegral (fun t => u t + v t) z
+      = poissonIntegral u z + poissonIntegral v z := by
+  classical
+  have hpt :
+      (fun t : ℝ => (u t + v t) * poissonKernel z t)
+        = (fun t : ℝ => u t * poissonKernel z t + v t * poissonKernel z t) := by
+    funext t; simp [add_mul, add_comm, add_left_comm, add_assoc]
+  have := integral_add (hu) (hv)
+  simpa [poissonIntegral, hpt]
+    using this
+
+/-! ### Congruence helpers for the Poisson integral -/
+
+/-- Congruence: if `u = v` (e.g. from `funext`), then `poissonIntegral u z = poissonIntegral v z`. -/
+@[congr] lemma poissonIntegral_congr (z : ℂ) {u v : ℝ → ℝ}
+    (h : u = v) :
+    poissonIntegral u z = poissonIntegral v z := by
+  cases h; rfl
+
+/-- Rewrite Poisson integrals when boundary real parts agree pointwise. -/
+lemma poissonIntegral_congr_boundaryRe
+    {F G : ℂ → ℂ}
+    (h : ∀ t : ℝ, (F (boundary t)).re = (G (boundary t)).re)
+    (z : ℂ) :
+    poissonIntegral (fun t => (F (boundary t)).re) z
+      = poissonIntegral (fun t => (G (boundary t)).re) z := by
+  apply poissonIntegral_congr (z := z)
+  funext t; simpa using h t
+
+/-- Pointwise congruence: if `u t = v t` for all real `t`, then their Poisson integrals agree. -/
+lemma poissonIntegral_congr_pointwise (z : ℂ) {u v : ℝ → ℝ}
+    (h : ∀ t : ℝ, u t = v t) :
+    poissonIntegral u z = poissonIntegral v z := by
+  apply poissonIntegral_congr (z := z)
+  exact funext h
 
 /-! ### Kernel bounds and integrability -/
 
@@ -327,7 +397,7 @@ lemma measurable_comp_boundary {α} [MeasurableSpace α]
   measurable_on_boundary_of_measurable (f := f) hf
 
 /-- Adapter: the RS boundary parametrization equals the AF boundary parametrization. -/
-lemma rs_boundary_eq_af (t : ℝ) : RH.RS.boundary t = boundary t := by
+@[simp] lemma rs_boundary_eq_af (t : ℝ) : RH.RS.boundary t = boundary t := by
   apply Complex.ext
   · simp [RH.RS.boundary, boundary]
   · simp [RH.RS.boundary, boundary]

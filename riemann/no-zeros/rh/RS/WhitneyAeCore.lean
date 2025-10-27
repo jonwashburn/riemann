@@ -1,7 +1,5 @@
-import rh.RS.Cayley
 import rh.RS.Det2Outer
 import rh.academic_framework.HalfPlaneOuterV2
-import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 
 /-!
 Core (P+) predicate and Whitney a.e. facade shared by Route B and Boundary proof.
@@ -21,14 +19,15 @@ open MeasureTheory
 open RH.AcademicFramework.HalfPlaneOuterV2 (boundary)
 
 /-- Canonical outer choice for Route B: choose any RS `OuterHalfPlane` witness. -/
-noncomputable def O : ℂ → ℂ :=
+private noncomputable def O : ℂ → ℂ :=
   RH.RS.OuterHalfPlane.choose_outer RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext_proved
 
-/-- Boundary wedge (P+): `Re (F_pinch det2 O (boundary t)) ≥ 0` a.e. -/
+/-- (P+): nonnegativity of the boundary real part a.e. for
+`F_pinch det2 O` along `boundary t`. -/
 def PPlus_holds (O : ℂ → ℂ) : Prop :=
   ∀ᵐ t : ℝ, 0 ≤ ((RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) (boundary t)).re
 
-/-- Alias using the canonical chosen outer `O`. -/
+/-- Alias of `(P+)` using the canonical chosen outer `O`. -/
 def PPlus_canonical : Prop := PPlus_holds O
 
 /-- Facade: unwrap the `(P+)` proposition into the raw a.e. inequality. -/

@@ -49,10 +49,15 @@ lemma fromDisk_toDisk_of_ne {z : ℂ} (hz : z ≠ 0) : fromDisk (toDisk z) = z :
     _ = 1 / ((1 : ℂ) / z) := by simpa [h1]
     _ = z := by field_simp [hz]
 
-/-- Specialization on Ω: `fromDisk (toDisk z) = z`. -/
+/-- On the right half-plane Ω = {Re z > 1/2}, the Cayley maps cancel:
+`fromDisk (toDisk z) = z`. This is the involutive identity restricted to Ω
+(where the denominator is nonzero). -/
 lemma fromDisk_toDisk_of_mem_Ω {z : ℂ} (hz : z ∈ HalfPlaneOuterV2.Ω) :
     fromDisk (toDisk z) = z :=
   fromDisk_toDisk_of_ne (memΩ_ne_zero hz)
+
+@[simp] lemma fromDisk_toDisk_simp {z : ℂ} (hz : z ∈ HalfPlaneOuterV2.Ω) :
+    fromDisk (toDisk z) = z := fromDisk_toDisk_of_mem_Ω hz
 
 /-- Boundary points are nonzero. -/
 lemma boundary_ne_zero (t : ℝ) : HalfPlaneOuterV2.boundary t ≠ 0 := by
@@ -65,23 +70,36 @@ lemma boundary_ne_zero (t : ℝ) : HalfPlaneOuterV2.boundary t ≠ 0 := by
     simpa [HalfPlaneOuterV2.boundary_re] using hRe0
   exact (by norm_num : (1/2 : ℝ) ≠ 0) this
 
-/-- Boundary transport identity: `fromDisk (boundaryToDisk t) = boundary t`. -/
-lemma fromDisk_boundaryToDisk (t : ℝ) :
+/-- Boundary transport under the Cayley map: on the line Re z = 1/2,
+`fromDisk (boundaryToDisk t) = HalfPlaneOuterV2.boundary t`. -/
+@[simp] lemma fromDisk_boundaryToDisk (t : ℝ) :
     fromDisk (boundaryToDisk t) = HalfPlaneOuterV2.boundary t := by
   -- boundaryToDisk t = toDisk (boundary t)
   simpa [boundaryToDisk] using fromDisk_toDisk_of_ne (boundary_ne_zero t)
 
-/-- Helper: rewrite `(1 - toDisk z)⁻¹` to `z` without unfolding in goals. -/
+/-- Rewrite lemma (safe for `simp`): for `z ≠ 0`, `(1 - toDisk z)⁻¹ = z`. -/
 @[simp] lemma inv_one_sub_toDisk_of_ne {z : ℂ} (hz : z ≠ 0) :
     (1 - toDisk z)⁻¹ = z := by
   have h := fromDisk_toDisk_of_ne hz
   simpa [fromDisk] using h
 
-/-- Helper: rewrite `(1 - boundaryToDisk t)⁻¹` to `boundary t`. -/
+/-- Boundary rewrite (safe for `simp`):
+`(1 - boundaryToDisk t)⁻¹ = HalfPlaneOuterV2.boundary t`. -/
 @[simp] lemma inv_one_sub_boundaryToDisk (t : ℝ) :
     (1 - boundaryToDisk t)⁻¹ = HalfPlaneOuterV2.boundary t := by
   have h := fromDisk_boundaryToDisk t
   simpa [fromDisk] using h
+
+-- Helper simp for rewriting under arbitrary maps (used implicitly by `simp`).
+@[simp] lemma map_fromDisk_toDisk
+    {α : Sort _} (F : ℂ → α) {z : ℂ} (hz : z ∈ HalfPlaneOuterV2.Ω) :
+    F (fromDisk (toDisk z)) = F z := by
+  simpa using congrArg F (fromDisk_toDisk_of_mem_Ω hz)
+
+@[simp] lemma map_fromDisk_boundaryToDisk
+    {α : Sort _} (F : ℂ → α) (t : ℝ) :
+    F (fromDisk (boundaryToDisk t)) = F (HalfPlaneOuterV2.boundary t) := by
+  simpa using congrArg F (fromDisk_boundaryToDisk t)
 
 /-- From disk representation to subset half-plane representation for the pullback `H ∘ toDisk`. -/
 @[simp] theorem pullback_rep_on_from_halfplane_rep
@@ -98,10 +116,8 @@ lemma fromDisk_boundaryToDisk (t : ℝ) :
   · -- Analytic on S since `(H∘toDisk) = F` on S and `F` is analytic on S.
     have hEqOn : Set.EqOn (fun z => H (toDisk z)) F S := by
       intro z hz
-      have h1 := hHdef (toDisk z)
-      have h1' := h1
-      rw [fromDisk_toDisk_of_mem_Ω (hS hz)] at h1'
-      exact h1'
+      -- `H (toDisk z) = F (fromDisk (toDisk z))`, then `fromDisk ∘ toDisk = id` on Ω
+      simpa [fromDisk_toDisk_of_mem_Ω (hS hz)] using hHdef (toDisk z)
     exact (hRepOn.analytic.congr hEqOn)
   · intro z hz
     -- Integrable boundary real part: match integrands pointwise and reuse `hRepOn.integrable`.
@@ -110,11 +126,9 @@ lemma fromDisk_boundaryToDisk (t : ℝ) :
     have hbdRe_to : ∀ t : ℝ,
         (H (toDisk (HalfPlaneOuterV2.boundary t))).re = (F (HalfPlaneOuterV2.boundary t)).re := by
       intro t
-      have h1 := hHdef (boundaryToDisk t)
-      have h1' := h1
-      rw [fromDisk_boundaryToDisk t] at h1'
-      have hRe := congrArg Complex.re h1'
-      simpa [boundaryToDisk] using hRe
+      -- take real parts of `H (boundaryToDisk t) = F (fromDisk (boundaryToDisk t))`
+      simpa [boundaryToDisk, fromDisk_boundaryToDisk t] using
+        congrArg Complex.re (hHdef (boundaryToDisk t))
     -- pointwise equality of the exact integrand shape
     have hEqFun :
         (fun t : ℝ =>
@@ -130,23 +144,16 @@ lemma fromDisk_boundaryToDisk (t : ℝ) :
   · intro z hz
     -- Pointwise interior equality of real parts via `fromDisk ∘ toDisk = id`
     have hpointRe : (H (toDisk z)).re = (F z).re := by
-      have h1 := hHdef (toDisk z)
-      have h1' := h1
-      rw [fromDisk_toDisk_of_mem_Ω (hS hz)] at h1'
-      simpa using congrArg Complex.re h1'
+      -- take real parts of `H (toDisk z) = F (fromDisk (toDisk z))` and simplify
+      simpa [fromDisk_toDisk_of_mem_Ω (hS hz)] using
+        congrArg Complex.re (hHdef (toDisk z))
     -- Boundary equality (real parts) under Cayley
     have hbdRe_to : ∀ t : ℝ,
         (H (toDisk (HalfPlaneOuterV2.boundary t))).re = (F (HalfPlaneOuterV2.boundary t)).re := by
       intro t
-      have h1 := hHdef (boundaryToDisk t)
-      have h1' := h1
-      rw [fromDisk_boundaryToDisk t] at h1'
-      have hRe := congrArg Complex.re h1'
-      simpa [boundaryToDisk] using hRe
+      simpa [boundaryToDisk, fromDisk_boundaryToDisk t] using
+        congrArg Complex.re (hHdef (boundaryToDisk t))
     -- rewrite the Poisson integral's integrand by equality of boundary traces
-    have hUeq : (fun t : ℝ => (F (HalfPlaneOuterV2.boundary t)).re)
-            = (fun t : ℝ => (H (toDisk (HalfPlaneOuterV2.boundary t))).re) := by
-      funext t; simpa using (hbdRe_to t).symm
     -- Finish (rewrite to F-side Poisson, then to H-side by hUeq)
     have hFPI : (F z).re
         = HalfPlaneOuterV2.poissonIntegral (fun t => (F (HalfPlaneOuterV2.boundary t)).re) z :=
