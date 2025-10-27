@@ -21,6 +21,9 @@ lean_lib «rh» where
     .submodules `rh.Proof
   ]
 
+lean_lib rh_export where
+  roots := #[`rh.Proof.Export]
+
 @[default_target]
 lean_lib rh_routeb_dev where
   roots := #[

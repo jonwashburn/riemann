@@ -124,36 +124,44 @@ lemma poissonKernel_nonneg {z : ℂ} (hz : z ∈ Ω) (t : ℝ) :
     poissonIntegral (fun _ => (0 : ℝ)) z = 0 := by
   simp [poissonIntegral]
 
-/-- Pull out a real constant factor from the Poisson integrand.
-Requires integrability of the original integrand. -/
 lemma poissonIntegral_const_mul (c : ℝ) (u : ℝ → ℝ) (z : ℂ)
     (hInt : Integrable (fun t : ℝ => u t * poissonKernel z t)) :
     poissonIntegral (fun t => c * u t) z = c * poissonIntegral u z := by
   classical
-  have hpt :
-      (fun t : ℝ => (c * u t) * poissonKernel z t)
-        = (fun t : ℝ => c • (u t * poissonKernel z t)) := by
-    funext t; simp [mul_comm, mul_left_comm, mul_assoc, Real.smul_def]
-  have hsmul := integral_smul (c) (fun t : ℝ => u t * poissonKernel z t)
-  -- Use linearity of the Bochner integral
-  simpa [poissonIntegral, hpt, Real.smul_def]
-    using hsmul
+  -- Expand definitions and normalize integrands
+  have hL : poissonIntegral (fun t => c * u t) z
+      = ∫ t : ℝ, (c * u t) * poissonKernel z t := rfl
+  have hR : c * poissonIntegral u z
+      = c * ∫ t : ℝ, u t * poissonKernel z t := rfl
+  -- Rearrange integrand to factor out c at the pointwise level
+  have hpt : (fun t : ℝ => (c * u t) * poissonKernel z t)
+      = (fun t : ℝ => c * (u t * poissonKernel z t)) := by
+    funext t; ring
+  -- Use linearity of the integral for multiplication by a scalar c
+  have hlin : (∫ t : ℝ, c * (u t * poissonKernel z t))
+      = c * ∫ t : ℝ, (u t * poissonKernel z t) := by
+    simpa using integral_mul_left (c := c) (f := fun t : ℝ => u t * poissonKernel z t)
+  simpa [poissonIntegral, hL, hR, hpt]
+    using hlin
 
-/-- Additivity of the Poisson integral in the boundary function.
-Both summands must be integrable against the kernel. -/
 lemma poissonIntegral_add (u v : ℝ → ℝ) (z : ℂ)
     (hu : Integrable (fun t : ℝ => u t * poissonKernel z t))
     (hv : Integrable (fun t : ℝ => v t * poissonKernel z t)) :
     poissonIntegral (fun t => u t + v t) z
       = poissonIntegral u z + poissonIntegral v z := by
   classical
-  have hpt :
-      (fun t : ℝ => (u t + v t) * poissonKernel z t)
-        = (fun t : ℝ => u t * poissonKernel z t + v t * poissonKernel z t) := by
-    funext t; simp [add_mul, add_comm, add_left_comm, add_assoc]
-  have := integral_add (hu) (hv)
-  simpa [poissonIntegral, hpt]
-    using this
+  -- Expand both sides
+  have hL : poissonIntegral (fun t => u t + v t) z
+      = ∫ t : ℝ, (u t + v t) * poissonKernel z t := rfl
+  have hR : poissonIntegral u z + poissonIntegral v z
+      = (∫ t : ℝ, u t * poissonKernel z t) + (∫ t : ℝ, v t * poissonKernel z t) := rfl
+  -- Pointwise rewrite
+  have hpt : (fun t : ℝ => (u t + v t) * poissonKernel z t)
+      = (fun t : ℝ => u t * poissonKernel z t + v t * poissonKernel z t) := by
+    funext t; ring
+  -- Linearity of integral
+  have hadd := integral_add (hu) (hv)
+  simpa [poissonIntegral, hL, hR, hpt] using hadd
 
 /-! ### Congruence helpers for the Poisson integral -/
 

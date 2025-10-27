@@ -16,26 +16,33 @@
   `HasPoissonRepOn`, `poissonTransportOn`, `F_pinch`, `J_pinch`.
 - `rh/academic_framework/CayleyAdapters.lean`: `toDisk`, `fromDisk`, `boundaryToDisk`,
   `pullback_rep_on_from_halfplane_rep`.
-- `rh/academic_framework/PoissonCayley.lean`: `EqOnBoundary`, Cayley transport to half‑plane
-  `Re`‑identities used in the Poisson step.
+- `rh/academic_framework/PoissonCayley.lean`: `EqOnBoundary`, `CayleyKernelTransportOn`,
+  `HasHalfPlanePoissonReEqOn`, `cayley_kernel_transport_from_rep_on`, and the
+  pullback/export helper `pullback_rep_on_from_halfplane_rep` (θ‑free bridge used by Route B).
 - `rh/academic_framework/CompletedXi.lean`: completed ξ, `riemannXi_ext` basics.
 
 ### RS pipeline (P+ → off‑zeros → removable)
 
-- `rh/RS/WhitneyAeCore.lean`: canonical `(P+)` certificate for `F := 2·J_pinch`.
+- `rh/RS/WhitneyAeCore.lean`: boundary facade for `(P+)` on `F := 2·J_pinch`.
+- `rh/RS/PPlusFromCarleson.lean`: default proof-term provider for the `(P+)` witness.
 - `rh/RS/Det2Outer.lean`: `det2` and the outer witness API.
 - `rh/RS/OffZerosBridge.lean`: assignment/removable packaging on off‑zeros.
 - `rh/RS/PinchWrappers.lean`: wires `(P+)`, Poisson transport, and pinned data into certificate builders.
+- `rh/RS/PinnedRemovable.lean`: pinned u‑trick ⇒ removable extension for the Cayley form.
 - `rh/RS/RouteB_Final.lean`: θ‑free end‑to‑end wiring and `RiemannHypothesis_via_RouteB`.
 
 ### Minimal targets and guard
 
-- Export build: `lake build rh` (checks the final export only).
+- Export build: `lake build rh_export` (falls back to `lake build rh` if unavailable).
 - Dev build (if present): `lake build rh_routeb_dev` (isolates unconditional deps).
 - Guard script: from `riemann/no-zeros/` run `./verify_proof.sh`.
-  - Builds export (and dev target if present).
+  - Builds dev and export targets (export falls back to `rh` if needed).
   - Verifies only standard axioms and that `RiemannHypothesis_unconditional` is present.
-  - Scans θ‑free AF roots for `sorry|admit|axiom|theta` and fails with diagnostics if found.
+  - Scans the transitive closure of dev/export roots for:
+    - Forbidden constructs: `sorry`, `admit`, `axiom`.
+    - Banned imports: `rh.academic_framework.Theta`, `rh.academic_framework.MellinThetaZeta`,
+      `rh.RS.CRGreenOuter*`, `rh.RS.sealed*`.
+    - Banned tokens: `boundaryToDisk_param`, `exp_I_two_arctan_ratio`, `two_arctan`, `arctan_ratio`.
 
 ### Where the mathlib equivalence is realized
 
