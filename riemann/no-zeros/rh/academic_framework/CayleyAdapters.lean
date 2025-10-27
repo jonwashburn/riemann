@@ -117,7 +117,7 @@ lemma boundary_ne_zero (t : ℝ) : HalfPlaneOuterV2.boundary t ≠ 0 := by
     have hEqOn : Set.EqOn (fun z => H (toDisk z)) F S := by
       intro z hz
       -- `H (toDisk z) = F (fromDisk (toDisk z))`, then `fromDisk ∘ toDisk = id` on Ω
-      simpa [fromDisk_toDisk_of_mem_Ω (hS hz)] using hHdef (toDisk z)
+      simpa only [fromDisk_toDisk_of_mem_Ω (hS hz)] using hHdef (toDisk z)
     exact (hRepOn.analytic.congr hEqOn)
   · intro z hz
     -- Integrable boundary real part: match integrands pointwise and reuse `hRepOn.integrable`.
@@ -127,8 +127,14 @@ lemma boundary_ne_zero (t : ℝ) : HalfPlaneOuterV2.boundary t ≠ 0 := by
         (H (toDisk (HalfPlaneOuterV2.boundary t))).re = (F (HalfPlaneOuterV2.boundary t)).re := by
       intro t
       -- take real parts of `H (boundaryToDisk t) = F (fromDisk (boundaryToDisk t))`
-      simpa [boundaryToDisk, fromDisk_boundaryToDisk t] using
-        congrArg Complex.re (hHdef (boundaryToDisk t))
+      have h := congrArg Complex.re (hHdef (boundaryToDisk t))
+      have h' : (H (toDisk (HalfPlaneOuterV2.boundary t))).re
+          = (F (fromDisk (boundaryToDisk t))).re := by
+        simpa [boundaryToDisk] using h
+      have hF : (F (fromDisk (boundaryToDisk t))).re
+          = (F (HalfPlaneOuterV2.boundary t)).re := by
+        simpa using congrArg Complex.re (map_fromDisk_boundaryToDisk F t)
+      exact h'.trans hF
     -- pointwise equality of the exact integrand shape
     have hEqFun :
         (fun t : ℝ =>
@@ -145,14 +151,20 @@ lemma boundary_ne_zero (t : ℝ) : HalfPlaneOuterV2.boundary t ≠ 0 := by
     -- Pointwise interior equality of real parts via `fromDisk ∘ toDisk = id`
     have hpointRe : (H (toDisk z)).re = (F z).re := by
       -- take real parts of `H (toDisk z) = F (fromDisk (toDisk z))` and simplify
-      simpa [fromDisk_toDisk_of_mem_Ω (hS hz)] using
+      simpa only [fromDisk_toDisk_of_mem_Ω (hS hz)] using
         congrArg Complex.re (hHdef (toDisk z))
     -- Boundary equality (real parts) under Cayley
     have hbdRe_to : ∀ t : ℝ,
         (H (toDisk (HalfPlaneOuterV2.boundary t))).re = (F (HalfPlaneOuterV2.boundary t)).re := by
       intro t
-      simpa [boundaryToDisk, fromDisk_boundaryToDisk t] using
-        congrArg Complex.re (hHdef (boundaryToDisk t))
+      have h := congrArg Complex.re (hHdef (boundaryToDisk t))
+      have h' : (H (toDisk (HalfPlaneOuterV2.boundary t))).re
+          = (F (fromDisk (boundaryToDisk t))).re := by
+        simpa [boundaryToDisk] using h
+      have hF : (F (fromDisk (boundaryToDisk t))).re
+          = (F (HalfPlaneOuterV2.boundary t)).re := by
+        simpa using congrArg Complex.re (map_fromDisk_boundaryToDisk F t)
+      exact h'.trans hF
     -- rewrite the Poisson integral's integrand by equality of boundary traces
     -- Finish (rewrite to F-side Poisson, then to H-side by hUeq)
     have hFPI : (F z).re

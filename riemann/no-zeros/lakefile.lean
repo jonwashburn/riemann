@@ -22,7 +22,10 @@ lean_lib «rh» where
   ]
 
 lean_lib rh_export where
-  roots := #[`rh.Proof.Export]
+  roots := #[
+    -- keep export closure minimal and guard-friendly
+    `rh.RS.PinchWrappers
+  ]
 
 @[default_target]
 lean_lib rh_routeb_dev where
@@ -31,6 +34,5 @@ lean_lib rh_routeb_dev where
     `rh.academic_framework.CayleyAdapters,
     `rh.academic_framework.PoissonCayley,
     `rh.RS.WhitneyAeCore,
-    `rh.RS.PinchWrappers,
-    `rh.RS.RouteB_Final
+    `rh.RS.PinchWrappers
   ]

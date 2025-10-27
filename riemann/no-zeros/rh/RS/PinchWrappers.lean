@@ -91,8 +91,6 @@ private def hRe_offXi_from_PPlus_via_transport
 
 /-- Build a pinch certificate using (P+) threaded through Poisson transport on the
 off-zeros set, plus pinned–removable data. -/
-/-- Build a pinch certificate using (P+) threaded through Poisson transport on the
-off-zeros set, plus pinned–removable data. -/
 def pinch_certificate_from_PPlus_transport_and_pinned
   (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
       BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
@@ -142,8 +140,6 @@ def pinch_certificate_from_PPlus_transport_and_pinned
   exact RH.RS.buildPinchCertificate hOuter hRe_offXi hRemXi
 
 
-/-- Pass pinned–removable local data for
-`Theta := Theta_of_J (J_pinch det2 (choose O))` directly as the `existsRemXi` ingredient. -/
 /-- Pass pinned–removable local data as the `existsRemXi` ingredient. -/
 def hRemXi_from_pinned
   (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
@@ -187,10 +183,6 @@ def hRemXi_from_pinned
   exact ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi,
     ⟨g, hgU, hThetaU, hEqOn, hval, z, hzU, hgz_ne1⟩⟩
 
-/-- Build the pinch certificate from: outer existence; (P+) on the boundary
-for `F := 2 · J_pinch`; a Poisson interior positivity statement; and a pinned–
-removable assignment across each `ξ_ext` zero. The (P+) hypothesis is threaded
-for provenance but not used analytically here. -/
 /-- Build the pinch certificate from: outer existence; (P+) boundary positivity;
 interior positivity via Poisson; and pinned–removable local data. -/
 def pinch_certificate_from_PPlus_and_pinned

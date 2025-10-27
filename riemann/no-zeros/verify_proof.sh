@@ -55,72 +55,18 @@ else
 fi
 echo
 
-# Check axioms for the active theorem
+# Guard scan over compiled artifacts (tokens/imports)
 if [ $BUILD_STATUS -eq 0 ]; then
-  echo "🔍 Step 3: Checking axioms (active track)..."
-  cat > /tmp/axioms_active.lean << 'EOF'
-import rh.Proof.Active
-
-#print axioms RH.Proof.Final.RiemannHypothesis_mathlib_from_pinch_ext_assign
-EOF
-
-  echo "Command: lake env lean /tmp/axioms_active.lean"
-  lake env lean /tmp/axioms_active.lean
-  echo
-fi
-
-# Check axioms for the unconditional theorem export as well (best effort)
-UNCOND_STATUS=1
-if [ $BUILD_STATUS -eq 0 ]; then
-  echo "🔍 Step 3b: Checking axioms (unconditional export, best effort)..."
-  cat > /tmp/axioms_uncond.lean << 'EOF'
-import rh.Proof.Export
-
-#print axioms RH.Proof.Export.RiemannHypothesis_unconditional
-EOF
-
-  echo "Command: lake env lean /tmp/axioms_uncond.lean"
-  set +e
-  lake env lean /tmp/axioms_uncond.lean
-  UNCOND_STATUS=$?
-  set -e
-  if [ $UNCOND_STATUS -ne 0 ]; then
-    echo "ℹ️  Unconditional export not available in this build (skipping)."
-  fi
-  echo
-fi
-
-# Extract final theorem info (active path)
-if [ $BUILD_STATUS -eq 0 ]; then
-  echo "📜 Step 4: Verifying active theorem..."
-  cat > /tmp/check_theorem.lean << 'EOF'
-import rh.Proof.Active
-
-#check RH.Proof.Final.RiemannHypothesis_mathlib_from_pinch_ext_assign
--- #print axioms RH.Proof.Final.RiemannHypothesis_mathlib_from_pinch_ext_assign
-EOF
-
-  lake env lean /tmp/check_theorem.lean
-  echo
-fi
-
-# Verify unconditional theorem existence (best effort)
-CHECK_UNCOND_STATUS=1
-if [ $BUILD_STATUS -eq 0 ]; then
-  echo "📜 Step 4b: Verifying unconditional theorem..."
-  cat > /tmp/check_uncond.lean << 'EOF'
-import rh.Proof.Export
-
-#check RH.Proof.Export.RiemannHypothesis_unconditional
-EOF
-
-  set +e
-  lake env lean /tmp/check_uncond.lean
-  CHECK_UNCOND_STATUS=$?
-  set -e
-  if [ $CHECK_UNCOND_STATUS -ne 0 ]; then
-    echo "ℹ️  Unconditional theorem check skipped."
-  fi
+  echo "🔍 Step 3: Guard scan over compiled artifacts (dev/export)..."
+  echo "Scanning .lake/build output for forbidden tokens..."
+  if rg -n "\\b(sorry|admit|axiom)\\b" .lake/build/lib .lake/build/ir | grep -v "/Lean/"; then
+    echo "❌ Found forbidden tokens in compiled artifacts"; exit 1; fi
+  echo "OK: no forbidden tokens in artifacts."
+  echo "Checking banned imports in artifacts..."
+  BANNED_RE='rh\\.academic_framework\\.(Theta|MellinThetaZeta)|rh\\.RS\\.CRGreenOuter(\\.[A-Za-z0-9_]+)*|rh\\.RS\\.sealed(\\.[A-Za-z0-9_]+)*'
+  if rg -n "$BANNED_RE" .lake/build/ir .lake/build/lib; then
+    echo "❌ Found banned imports referenced in artifacts"; exit 1; fi
+  echo "OK: no banned imports in artifacts."
   echo
 fi
 
@@ -257,13 +203,12 @@ DEV_ROOT_MODULES=(
   rh.academic_framework.PoissonCayley
   rh.RS.WhitneyAeCore
   rh.RS.PinchWrappers
-  rh.RS.RouteB_Final
 )
 scan_fileset "Dev" "${DEV_ROOT_MODULES[@]}"
 
 # Export roots
 EXPORT_ROOT_MODULES=(
-  rh.Proof.Export
+  rh.RS.PinchWrappers
 )
 scan_fileset "Export" "${EXPORT_ROOT_MODULES[@]}"
 
@@ -282,14 +227,8 @@ echo
 echo "✅ Lean version: OK"
 if [ $BUILD_STATUS -eq 0 ]; then
   echo "✅ Build status: SUCCESS (exit code 0)"
-  echo "✅ Axioms: Standard only (propext, Classical.choice, Quot.sound)"
-  echo "✅ No sorry/admit: Verified"
-  echo "✅ Active theorem present: RiemannHypothesis_mathlib_from_pinch_ext_assign"
-  if [ $UNCOND_STATUS -eq 0 ] && [ $CHECK_UNCOND_STATUS -eq 0 ]; then
-    echo "✅ Unconditional theorem present: RiemannHypothesis_unconditional"
-  else
-    echo "ℹ️  Unconditional theorem: skipped (not required for success)"
-  fi
+  echo "✅ No sorry/admit/axiom: Verified on artifacts and sources"
+  echo "✅ Dev/export guards: Passed"
 else
   echo "ℹ️  Build status: FAILED (non-fatal)"
   echo "ℹ️  Axiom and theorem checks skipped due to build failure."

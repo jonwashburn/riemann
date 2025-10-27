@@ -8,8 +8,8 @@ import rh.RS.OffZerosBridge
 import rh.academic_framework.HalfPlaneOuterV2
 import rh.academic_framework.PoissonCayley
 import rh.academic_framework.CompletedXi
-import rh.academic_framework.GammaBounds
 import rh.Cert.KxiPPlus
+import rh.RS.PPlusFromCarleson
 import Mathlib.Analysis.Analytic.IsolatedZeros
 
 /-!
@@ -45,32 +45,34 @@ lemma O_spec : RH.RS.OuterHalfPlane O ∧
 
 /-! ## Boundary positivity (P+) for F := 2·J_pinch det2 O -/
 
-/-- Abstract bridge axiom: from a concrete Whitney–box Carleson budget, `(P+)`
-holds for the canonical pinch field `F := 2·J_pinch det2 O`.
-
-We keep this as a statement-level bridge to avoid importing the heavy
-boundary-wedge development on the Route B dev path. -/
-axiom PPlusFromCarleson_exists_canonical
-  : RH.Cert.PPlusFromCarleson_exists
-      (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z))
-
 /-- Boundary positivity on the AF boundary for `F := 2·J_pinch det2 O`. -/
 theorem boundary_positive_AF :
   RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
     (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)) := by
-  -- Build a concrete Carleson budget witness from the Archimedean strip bound
-  have hFG : RH.AcademicFramework.GammaBounds.BoundedFGammaPrimeOnStrip ((3 : ℝ) / 5) :=
-    RH.AcademicFramework.GammaBounds.boundedFGammaPrimeOnStrip_of (by norm_num) (by norm_num)
-  have hex₀ : ∃ Kξ : ℝ, RH.Cert.ConcreteHalfPlaneCarleson Kξ :=
-    RH.Cert.exists_Carleson_from_FGammaPrime (σ0 := (3 : ℝ) / 5) hFG
-  -- Strengthen to include the explicit nonnegativity conjunct expected by the existential API
-  have hex : ∃ Kξ : ℝ, 0 ≤ Kξ ∧ RH.Cert.ConcreteHalfPlaneCarleson Kξ := by
-    rcases hex₀ with ⟨Kξ, hCar⟩
-    exact ⟨Kξ, hCar.1, hCar⟩
-  -- Produce certificate-level `(P+)` via the existential bridge, then convert to AF
-  have hP : RH.Cert.PPlus (fun z => (2 : ℂ) * RH.RS.J_pinch RH.RS.det2 O z) :=
-    (PPlusFromCarleson_exists_canonical) hex
-  exact RH.RS.boundaryPositive_of_PPlus _ hP
+  -- Use canonical RS `(P+)` and bridge to AF boundary positivity
+  have hCanon : RH.RS.WhitneyAeCore.PPlus_canonical := RH.RS.PPlus_canonical_proved
+  have hAE : ∀ᵐ t : ℝ,
+      0 ≤ ((RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
+        (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
+    -- Canonical `(P+)` is stated for the same chosen outer and boundary map
+    simpa [RH.RS.WhitneyAeCore.PPlus_canonical,
+           RH.RS.WhitneyAeCore.PPlus_holds,
+           O, hOuterWitness] using
+      (RH.RS.WhitneyAeCore.PPlus_canonical_ae hCanon)
+  -- Convert to certificate form and then to AF boundary positivity
+  have hb_mk : ∀ t : ℝ,
+      RH.AcademicFramework.HalfPlaneOuterV2.boundary t = Complex.mk (1/2) t := by
+    intro t; apply Complex.ext <;> simp
+  have hPcert : RH.Cert.PPlus
+      (fun z => (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O) z) := by
+    simpa [RH.Cert.PPlus, hb_mk] using hAE
+  -- Align to the explicit form `fun z => (2) * J_pinch ...` and bridge to AF
+  have hPcanon : RH.Cert.PPlus
+      (fun z => (2 : ℂ) * RH.AcademicFramework.HalfPlaneOuterV2.J_pinch RH.RS.det2 O z) := by
+    simpa [RH.AcademicFramework.HalfPlaneOuterV2.F_pinch,
+           RH.AcademicFramework.HalfPlaneOuterV2.J_pinch] using hPcert
+  -- Finally, use the existing bridge to AF boundary positivity
+  exact RH.RS.boundaryPositive_of_PPlus _ hPcanon
 
 /-- Cert-level `(P+)` for `F := 2·J_pinch det2 O`. -/
 theorem boundary_positive : RH.Cert.PPlus

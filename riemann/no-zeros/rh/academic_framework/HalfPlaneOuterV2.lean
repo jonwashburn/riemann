@@ -154,10 +154,13 @@ lemma poissonIntegral_add (u v : ℝ → ℝ) (z : ℂ)
     poissonIntegral (fun t => u t + v t) z
       = poissonIntegral u z + poissonIntegral v z := by
   unfold poissonIntegral
+  -- Pointwise rewrite to split integrand as sum
   have hpt : (fun t : ℝ => (u t + v t) * poissonKernel z t)
       = (fun t : ℝ => u t * poissonKernel z t + v t * poissonKernel z t) := by
     funext t; ring
-  rw [hpt, MeasureTheory.integral_add hu hv]
+  -- Rewrite LHS and apply integral_add
+  rw [hpt]
+  simpa using MeasureTheory.integral_add (hu) (hv)
 
 /-! ### Congruence helpers for the Poisson integral -/
 

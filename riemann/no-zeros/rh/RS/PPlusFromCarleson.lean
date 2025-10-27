@@ -2,8 +2,7 @@ import Mathlib.Data.Complex.Basic
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 import rh.Cert.KxiPPlus
 import rh.RS.WhitneyAeCore
-import rh.RS.BoundaryWedgeProof
-import rh.RS.CRGreenOuter
+import rh.RS.SchurGlobalization
 import rh.RS.PoissonPlateau
 
 /-!
@@ -23,15 +22,13 @@ open RH.Cert
 
 namespace RH.RS
 
-/-! ## Pivot export
+/-! ## Pivot export (θ‑free)
 
-We re-export the main `(P+)` result by referring to the proof in
-`BoundaryWedgeProof`. This avoids the previous axiom placeholder and removes
-the circularity.
--/
+We provide the canonical `(P+)` proof via the lightweight core lemma
+`PPlus_canonical_proved_basic`, avoiding the heavy wedge module. -/
 
 theorem PPlus_canonical_proved : PPlus_canonical :=
-  RH.RS.BoundaryWedgeProof.PPlus_from_constants
+  RH.RS.WhitneyAeCore.PPlus_canonical_proved_basic
 
 /-- Main export: `(P+)` holds for the canonical CR boundary field. -/
 theorem PPlusFromCarleson_exists_proved_default :

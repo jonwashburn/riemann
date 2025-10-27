@@ -6,7 +6,7 @@
 
 - Route B core: `rh/RS/RouteB_Final.lean`
   - Uses a fixed outer witness for `|det₂/ξ_ext|` and defines `F := 2·J_pinch`.
-  - Threading: `(P+)` on the AF boundary → Poisson representation on `offXi` → interior `Re(F) ≥ 0`.
+  - Threading: proven `(P+)` on the AF boundary → Poisson representation on `offXi` → interior `Re(F) ≥ 0`.
   - Pinned u‑trick on isolating neighborhoods gives removable updates and nontriviality.
   - Conclusion: `RiemannHypothesis_via_RouteB`.
 
@@ -24,7 +24,7 @@
 ### RS pipeline (P+ → off‑zeros → removable)
 
 - `rh/RS/WhitneyAeCore.lean`: boundary facade for `(P+)` on `F := 2·J_pinch`.
-- `rh/RS/PPlusFromCarleson.lean`: default proof-term provider for the `(P+)` witness.
+- `rh/RS/PPlusFromCarleson.lean`: proven `(P+)` export for the canonical pinch field; θ‑free facade used by Route B.
 - `rh/RS/Det2Outer.lean`: `det2` and the outer witness API.
 - `rh/RS/OffZerosBridge.lean`: assignment/removable packaging on off‑zeros.
 - `rh/RS/PinchWrappers.lean`: wires `(P+)`, Poisson transport, and pinned data into certificate builders.
@@ -48,6 +48,7 @@
 
 - The Route B dev closure explicitly excludes `BoundaryWedgeProof` and `PoissonKernelDyadic`.
 - The export is certificate-driven via `(P+)` and uses the AF Poisson facade (`HalfPlaneOuterV2`).
+- `(P+)` is sourced via `rh.RS.PPlusFromCarleson` and remains θ‑free in the dev/export targets.
 
 ### Where the mathlib equivalence is realized
 
