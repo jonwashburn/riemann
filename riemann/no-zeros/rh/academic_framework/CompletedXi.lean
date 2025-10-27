@@ -22,6 +22,9 @@ namespace RH.AcademicFramework.CompletedXi
 /-- Completed Riemann ξ (ext), defined as mathlib's completed zeta `Λ(s)`. -/
 def riemannXi_ext (s : ℂ) : ℂ := completedRiemannZeta s
 
+/-- Archimedean factor for the ext factorization `riemannXi_ext = G_ext · ζ`. -/
+def G_ext (s : ℂ) : ℂ := Complex.Gammaℝ s
+
 /-- Open right half-plane Ω = { s | Re s > 1/2 }. -/
 private lemma isOpen_Ω : IsOpen RH.RS.Ω := by
   change IsOpen { s : ℂ | (1 / 2 : ℝ) < s.re }
@@ -103,5 +106,42 @@ lemma xi_ext_zeros_eq_zeta_zeros_on_Ω :
     -- Conclude ξ_ext z = 0
     dsimp [riemannXi_ext]
     exact hΛ0
+
+/-- Nonvanishing of the Archimedean factor on Ω. -/
+lemma G_ext_nonzero_on_Ω : ∀ z ∈ RH.RS.Ω, G_ext z ≠ 0 := by
+  intro z hzΩ
+  have hhalf : (1 / 2 : ℝ) < z.re := by
+    simpa [RH.RS.Ω, Set.mem_setOf_eq] using hzΩ
+  have hpos : (0 : ℝ) < z.re := lt_trans (by norm_num : (0 : ℝ) < 1 / 2) hhalf
+  dsimp [G_ext]
+  exact Complex.Gammaℝ_ne_zero_of_re_pos hpos
+
+/-- Factorization of `riemannXi_ext` on Ω: `riemannXi_ext = G_ext · ζ`. -/
+lemma xi_ext_factorization_on_Ω :
+  ∀ z ∈ RH.RS.Ω, riemannXi_ext z = G_ext z * riemannZeta z := by
+  intro z hzΩ
+  have hhalf : (1 / 2 : ℝ) < z.re := by
+    simpa [RH.RS.Ω, Set.mem_setOf_eq] using hzΩ
+  have hpos : (0 : ℝ) < z.re := lt_trans (by norm_num : (0 : ℝ) < 1 / 2) hhalf
+  have hΓnz : Complex.Gammaℝ z ≠ 0 := Complex.Gammaℝ_ne_zero_of_re_pos hpos
+  -- ζ definition away from 0 (which holds since Re z > 1/2 ⇒ z ≠ 0)
+  have hζ : riemannZeta z = completedRiemannZeta z / Complex.Gammaℝ z := by
+    -- supply `z ≠ 0` to the definition lemma
+    refine riemannZeta_def_of_ne_zero (s := z) ?hne0
+    intro h0
+    have : (0 : ℝ) < z.re := hpos
+    simpa [h0, Complex.zero_re] using this
+  -- Rearrange to the product form Λ = Γℝ · ζ
+  have hprod : completedRiemannZeta z = Complex.Gammaℝ z * riemannZeta z := by
+    -- from ζ = Λ / Γℝ, multiply both sides by Γℝ
+    have : riemannZeta z * Complex.Gammaℝ z = completedRiemannZeta z := by
+      calc
+        riemannZeta z * Complex.Gammaℝ z
+            = (completedRiemannZeta z / Complex.Gammaℝ z) * Complex.Gammaℝ z := by
+              simpa [hζ]
+        _ = completedRiemannZeta z := div_mul_cancel₀ _ hΓnz
+    simpa [mul_comm] using this.symm
+  -- Replace ξ with Λ and Γℝ with G_ext
+  simpa [riemannXi_ext, G_ext] using hprod
 
 end RH.AcademicFramework.CompletedXi

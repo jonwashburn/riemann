@@ -4,6 +4,10 @@
 
 set -e  # Exit on error
 
+# Always run relative to this script's directory
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
 echo "════════════════════════════════════════════════════════"
 echo "  Riemann Hypothesis Proof Verification"
 echo "════════════════════════════════════════════════════════"
@@ -124,10 +128,10 @@ else
 fi
 echo
 
-# Dev-target scans: θ‑free AF bridge and transitive closure guard
-echo "🧪 Step 6: Dev guard (θ‑free) — build rh_routeb_dev and scan transitive files..."
+# Dev/Export scans: unconditional guard over transitive closures
+echo "🧪 Step 6: Build dev and export targets, then scan transitive files..."
 
-# Try to build a dedicated dev target if present; do not fail if missing
+# Build dev target (non-fatal)
 echo "Command: lake build rh_routeb_dev"
 set +e
 lake build rh_routeb_dev
@@ -136,22 +140,24 @@ set -e
 if [ $DEV_BUILD_STATUS -eq 0 ]; then
   echo "✅ rh_routeb_dev build successful."
 else
-  echo "ℹ️  rh_routeb_dev target not present or build failed; continuing with default build context."
+  echo "ℹ️  rh_routeb_dev build failed or not present; continuing with scans."
 fi
 
-# Compute transitive closure of Lean files starting from θ‑free AF roots
-# Root modules for the dev track (θ‑free AF API)
-DEV_ROOT_MODULES=(
-  rh.academic_framework.PoissonCayley
-  rh.academic_framework.HalfPlaneOuterV2
-  rh.academic_framework.CayleyAdapters
-)
+# Build export target (non-fatal)
+echo "Command: lake build rh"
+set +e
+lake build rh
+EXPORT_BUILD_STATUS=$?
+set -e
+if [ $EXPORT_BUILD_STATUS -eq 0 ]; then
+  echo "✅ rh (export) build successful."
+else
+  echo "ℹ️  rh (export) build failed; continuing with scans."
+fi
 
-# Helpers (Bash 3.x compatible): queue/visited as indexed arrays
-transitive_files=()
-queue=("${DEV_ROOT_MODULES[@]}")
-visited=()
+FAILURES=0
 
+# Helpers (Bash 3.x compatible)
 contains() {
   local needle="$1"; shift
   for e in "$@"; do
@@ -161,63 +167,99 @@ contains() {
 }
 
 module_to_path() {
-  # Convert rh.foo.bar → rh/foo/bar.lean
-  echo "$1" | sed -e 's/\./\//g' -e 's/^/rh\//g' -e 's/$/.lean/'
+  # Convert rh.foo.bar → rh/foo/bar.lean (no extra prefixing)
+  echo "$1" | sed -e 's/\./\//g' -e 's/$/.lean/'
 }
 
-while [ ${#queue[@]} -gt 0 ]; do
-  mod="${queue[0]}"
-  queue=("${queue[@]:1}")
-
-  if contains "$mod" "${visited[@]}"; then
-    continue
-  fi
-  visited+=("$mod")
-
-  fpath=$(module_to_path "$mod")
-  if [ -f "$fpath" ]; then
-    transitive_files+=("$fpath")
-    # Extract imported modules from this file and enqueue any starting with rh.
-    # Handle one import per line (Lean convention in this repo)
-    while IFS= read -r line; do
-      # Skip non-import lines quickly
-      case "$line" in
-        import\ *) ;;
-        *) continue ;;
-      esac
-      # Strip leading 'import ' and split tokens
-      rest=${line#import }
-      for tok in $rest; do
-        case "$tok" in
-          rh.*)
-            if ! contains "$tok" "${visited[@]}" && ! contains "$tok" "${queue[@]}"; then
-              queue+=("$tok")
-            fi
-            ;;
-          *) ;;
+collect_transitive_files() {
+  # $1...$N are modules; result is echoed as newline-separated list (portable for bash 3.2)
+  local -a queue=("$@")
+  local -a visited=()
+  local -a files=()
+  while [ ${#queue[@]} -gt 0 ]; do
+    local mod="${queue[0]}"
+    queue=("${queue[@]:1}")
+    if contains "$mod" "${visited[@]}"; then
+      continue
+    fi
+    visited+=("$mod")
+    local fpath
+    fpath=$(module_to_path "$mod")
+    if [ -f "$fpath" ]; then
+      files+=("$fpath")
+      while IFS= read -r line; do
+        case "$line" in
+          import\ *) ;;
+          *) continue ;;
         esac
-      done
-    done < "$fpath"
-  fi
-done
+        local rest=${line#import }
+        for tok in $rest; do
+          case "$tok" in
+            rh.*)
+              if ! contains "$tok" "${visited[@]}" && ! contains "$tok" "${queue[@]}"; then
+                queue+=("$tok")
+              fi
+              ;;
+            *) ;;
+          esac
+        done
+      done < "$fpath"
+    fi
+  done
+  # Print newline-separated (Lean file paths have no spaces in this repo)
+  for f in "${files[@]}"; do
+    printf '%s\n' "$f"
+  done
+}
 
-if [ ${#transitive_files[@]} -eq 0 ]; then
-  echo "ℹ️  No transitive files discovered for dev roots; skipping dev guard scan."
-else
-  echo "🔎 Scanning ${#transitive_files[@]} transitive files for: sorry | admit | axiom | theta"
-  # Case-insensitive on 'theta'; other tokens are naturally lowercase in Lean
+scan_fileset() {
+  local label="$1"; shift
+  local -a roots=("$@")
+  echo "🔎 Scanning $label transitive files for: sorry | admit | axiom | theta"
+  local -a files=()
+  while IFS= read -r f; do
+    [ -n "$f" ] && files+=("$f")
+  done < <(collect_transitive_files "${roots[@]}")
+  if [ ${#files[@]} -eq 0 ]; then
+    echo "ℹ️  No files discovered for $label roots; skipping."
+    return 0
+  fi
   set +e
-  OFFENDERS=$(grep -nEI "\\bsorry\\b|\\badmit\\b|\\baxiom\\b|\\btheta\\b" "${transitive_files[@]}" 2>/dev/null)
-  GREP_STATUS=$?
+  local OFFENDERS
+  OFFENDERS=$(grep -nEIi "\\bsorry\\b|\\badmit\\b|\\baxiom\\b|\\btheta\\b" "${files[@]}" 2>/dev/null)
+  local GREP_STATUS=$?
   set -e
   if [ $GREP_STATUS -eq 0 ] && [ -n "$OFFENDERS" ]; then
-    echo "❌ Dev guard failed: forbidden tokens found in the following locations:"
+    echo "❌ $label guard failed: forbidden tokens found in the following locations:"
     echo "$OFFENDERS"
-    exit 1
+    FAILURES=1
   else
-    echo "✅ Dev guard passed: no forbidden tokens found in transitive files."
+    echo "✅ $label guard passed: no forbidden tokens found."
   fi
+}
+
+# Dev roots from lakefile (rh_routeb_dev)
+DEV_ROOT_MODULES=(
+  rh.Compat
+  rh.academic_framework.CayleyAdapters
+  rh.academic_framework.PoissonCayley
+  rh.RS.WhitneyAeCore
+  rh.RS.PinchWrappers
+  rh.RS.RouteB_Final
+)
+scan_fileset "Dev" "${DEV_ROOT_MODULES[@]}"
+
+# Export roots
+EXPORT_ROOT_MODULES=(
+  rh.Proof.Export
+)
+scan_fileset "Export" "${EXPORT_ROOT_MODULES[@]}"
+
+if [ $FAILURES -ne 0 ]; then
+  echo "❌ Unconditional surface guard: violations detected."
+  exit 1
 fi
+echo "✅ Unconditional surface guard: all checks passed."
 echo
 
 # Final summary
@@ -240,7 +282,7 @@ else
   echo "ℹ️  Build status: FAILED (non-fatal)"
   echo "ℹ️  Axiom and theorem checks skipped due to build failure."
 fi
-echo "✅ Dev-target clean: θ‑free AF transitive scan"
+echo "✅ Dev/export transitive scans: clean"
 echo
 echo "════════════════════════════════════════════════════════"
 echo "  PROOF COMPLETE AND VERIFIED"

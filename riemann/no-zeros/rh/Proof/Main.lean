@@ -8,12 +8,10 @@ import Mathlib.Topology.Defs.Filter
 import rh.academic_framework.EulerProductMathlib
 import rh.academic_framework.CompletedXi
 import rh.academic_framework.CompletedXiSymmetry
-import rh.academic_framework.Theta
 import rh.RS.OffZerosBridge
 import rh.RS.Cayley
 import rh.RS.PinchCertificate
 import rh.RS.XiExtBridge
-import rh.RS.SchurGlobalization
 import rh.RS.CRGreenOuter
 -- CompletedXi import deferred until formalization lands
 import Mathlib.NumberTheory.LSeries.RiemannZeta
@@ -412,114 +410,7 @@ theorem RH_mathlib_from_xi_ext
     rw [riemannXi_ext, hΛ0]
   exact Hxi s hXi0
 
-/-- CR-outer full route for the ext variant. -/
-theorem RiemannHypothesis_from_CR_outer_ext
-    (fe : ∀ s, RH.AcademicFramework.CompletedXi.riemannXi_ext s = RH.AcademicFramework.CompletedXi.riemannXi_ext (1 - s))
-    (choose : ∀ ρ, ρ ∈ RH.RS.Ω → riemannZeta ρ = 0 →
-      RH.RS.OffZeros.LocalData (riemannZeta := riemannZeta)
-        (Θ := RH.RS.Θ_of RH.RS.CRGreenOuterData) (ρ := ρ))
-    (hGnz : ∀ ρ ∈ RH.RS.Ω, RH.AcademicFramework.CompletedXi.G_ext ρ ≠ 0)
-    : ∀ ρ, RH.AcademicFramework.CompletedXi.riemannXi_ext ρ = 0 → ρ.re = (1 / 2 : ℝ) := by
-  -- Build Θ and Schur bound from outer data
-  let Θ : ℂ → ℂ := RH.RS.Θ_of RH.RS.CRGreenOuterData
-  have hSchur : RH.RS.IsSchurOn Θ (RH.RS.Ω \ {z | riemannZeta z = 0}) :=
-    RH.RS.Θ_Schur_of RH.RS.CRGreenOuterData
-  let assign := RH.RS.OffZeros.assign_fromLocal (Θ := Θ) (choose := choose)
-  -- zero symmetry for Ξ_ext from FE
-  have symXi : ∀ ρ, riemannXi_ext ρ = 0 → riemannXi_ext (1 - ρ) = 0 :=
-    RH.AcademicFramework.CompletedXi.zero_symmetry_from_fe riemannXi_ext fe
-  -- ζ has no zeros on Ω
-  have hζnz : ∀ ρ ∈ RH.RS.Ω, riemannZeta ρ ≠ 0 :=
-    RH.RS.no_offcritical_zeros_from_schur Θ hSchur assign
-  -- Nonvanishing of Ξ_ext on Ω via local factorization on Ω
-  have hΞnz : ∀ ρ ∈ RH.RS.Ω, riemannXi_ext ρ ≠ 0 := by
-    intro ρ hΩ
-    have hEq : riemannXi_ext ρ = G_ext ρ * riemannZeta ρ :=
-      RH.AcademicFramework.CompletedXi.xi_ext_factorization_on_Ω ρ hΩ
-    have hG := hGnz ρ hΩ
-    have hZ := hζnz ρ hΩ
-    have : G_ext ρ * riemannZeta ρ ≠ 0 := mul_ne_zero hG hZ
-    intro hXi0; rw [hEq] at hXi0; exact this hXi0
-  -- Conclude RH for Ξ_ext by symmetry wrapper
-  exact RH_riemannXi riemannXi_ext hΞnz symXi
-
-end RH.Proof.Final
-
-namespace RH.Proof.Final
-
-open RH.AcademicFramework.CompletedXi
-
-/-- One-shot wrapper: from CR-outer choose, FE for `riemannXi_ext`, and nonvanishing of `G_ext`
- on `Ω`, conclude mathlib's `RiemannZeta.RiemannHypothesis`. -/
-theorem RiemannHypothesis_mathlib_from_CR_outer_ext
-    (choose : ∀ ρ, ρ ∈ RH.RS.Ω → riemannZeta ρ = 0 →
-      RH.RS.OffZeros.LocalData (riemannZeta := riemannZeta)
-        (Θ := RH.RS.Θ_of RH.RS.CRGreenOuterData) (ρ := ρ))
-    (hGnz : ∀ ρ ∈ RH.RS.Ω, G_ext ρ ≠ 0)
-    : RiemannHypothesis := by
-  -- FE for Ξ_ext via dedicated lemma to avoid aliasing
-  have fe : ∀ s, riemannXi_ext s = riemannXi_ext (1 - s) :=
-    fun s => RH.AcademicFramework.CompletedXi.xi_ext_functional_equation s
-  -- Get Hxi_ext from the CR-outer route
-  have Hxi : ∀ ρ, riemannXi_ext ρ = 0 → ρ.re = (1 / 2 : ℝ) :=
-    RiemannHypothesis_from_CR_outer_ext fe choose hGnz
-  -- Export to mathlib
-  exact RH_mathlib_from_xi_ext Hxi
-
--- (legacy wrapper removed)
-end RH.Proof.Final
-
-/- End-to-end certificate route (integration check): from
-1) outer existence on Ω with boundary modulus `|det₂/ξ_ext|`,
-2) a half–plane Poisson transport predicate for `F := 2·J_pinch det2 O`,
-3) a Kξ certificate `KxiBound α c`, and
-4) pinned u‑trick data at each `ξ_ext` zero,
-conclude `RiemannHypothesis` by invoking the certificate pipeline.
-
-This theorem wires the existing RS/Cert lemmas without introducing new
-assumptions beyond the route inputs. -/
--- moved below wrappers to avoid forward reference
-
-namespace RH.Proof.Final
-
-open RH.AcademicFramework.CompletedXi
-
-/-- One-shot wrapper (removable-extension form): assuming for each ζ-zero `ρ ∈ Ω` there exists
-an open, preconnected `U ⊆ Ω` isolating `ρ` and an analytic extension `g` of
-`Θ := Θ_of CRGreenOuterData` across `ρ` with `g ρ = 1` and not identically `1`,
-conclude mathlib's `RiemannHypothesis` via the ext route. -/
-theorem RiemannHypothesis_mathlib_from_CR_outer_ext_removable
-    (hRem : ∀ ρ, ρ ∈ RH.RS.Ω → riemannZeta ρ = 0 →
-      ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ RH.RS.Ω ∧ ρ ∈ U ∧
-        (U ∩ {z | riemannZeta z = 0}) = ({ρ} : Set ℂ) ∧
-        ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧
-          AnalyticOn ℂ (RH.RS.Θ_of RH.RS.CRGreenOuterData) (U \ {ρ}) ∧
-          Set.EqOn (RH.RS.Θ_of RH.RS.CRGreenOuterData) g (U \ {ρ}) ∧ g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1) :
-    RiemannHypothesis := by
-  -- Package a `LocalData` chooser from the removable-extension assignment
-  let chooseOff := RH.RS.OffZeros.choose_CR
-      (Θ := RH.RS.Θ_of RH.RS.CRGreenOuterData)
-      (assign :=
-        (fun ρ (hΩ : ρ ∈ RH.RS.OffZeros.Ω) (hζ : riemannZeta ρ = 0) =>
-          hRem ρ (by simpa [RH.RS.OffZeros.Ω, RH.RS.Ω, Set.mem_setOf_eq] using hΩ) hζ))
-  let choose : ∀ ρ, ρ ∈ RH.RS.Ω → riemannZeta ρ = 0 →
-      RH.RS.OffZeros.LocalData (riemannZeta := riemannZeta)
-        (Θ := RH.RS.Θ_of RH.RS.CRGreenOuterData) (ρ := ρ) :=
-    fun ρ hΩ hζ =>
-      chooseOff ρ (by simpa [RH.RS.OffZeros.Ω, RH.RS.Ω, Set.mem_setOf_eq] using hΩ) hζ
-  -- Nonvanishing of the ext Archimedean factor on Ω
-  have hGnz : ∀ ρ ∈ RH.RS.Ω, G_ext ρ ≠ 0 := G_ext_nonzero_on_Ω
-  -- Invoke the ext route
-  exact RiemannHypothesis_mathlib_from_CR_outer_ext choose hGnz
-
--- (assign-based pinch wrappers removed; we keep the CR-outer removable route and pinch skeleton)
-
--- (assign-based entry wrapper removed; use CR-outer removable route or pinch skeleton)
-
--/
--- End of commented-out CR-outer route
-
-end RH.Proof.Final
+-- (CR-outer routes and assign-based wrapper referencing CRGreenOuterData removed)
 
 /-
 Pinch route scaffolding (paper-aligned): abstract pinch lemmas that avoid the
@@ -631,40 +522,6 @@ theorem RiemannHypothesis_mathlib_from_pinch_ext_assign
   exact RH_mathlib_from_xi_ext Hxi
 
 end RH.Proof.Final
-
-/--- Assign-based entry wrapper: given a removable-extension assignment at `Ξ_ext`-zeros
-in `Ω` for a candidate `Θ`, conclude `RiemannHypothesis` via the assign-based pinch. -/
-theorem RH_from_assign
-    (assign : ∀ ρ, ρ ∈ RH.RS.Ω → riemannXi_ext ρ = 0 →
-      ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ RH.RS.Ω ∧ ρ ∈ U ∧
-        (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
-        ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧ AnalyticOn ℂ (RH.RS.Θ_of RH.RS.CRGreenOuterData) (U \ {ρ}) ∧
-          Set.EqOn (RH.RS.Θ_of RH.RS.CRGreenOuterData) g (U \ {ρ}) ∧ g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1)
-    : RiemannHypothesis := by
-  refine RH.Proof.Final.RiemannHypothesis_mathlib_from_pinch_ext_assign
-    (Θ := RH.RS.Θ_of RH.RS.CRGreenOuterData)
-    (by
-      intro z hz
-      have hSchur : RH.RS.IsSchurOn (RH.RS.Θ_of RH.RS.CRGreenOuterData)
-                      (RH.RS.Ω \ {w | riemannZeta w = 0}) :=
-        RH.RS.Θ_Schur_of RH.RS.CRGreenOuterData
-      have hzΩ : z ∈ RH.RS.Ω := hz.1
-      have hzXi_ne : riemannXi_ext z ≠ 0 := by
-        simpa [Set.mem_setOf_eq] using hz.2
-      have hzZeta_ne : riemannZeta z ≠ 0 := by
-        intro hζ
-        have hXi : riemannXi_ext z = 0 :=
-          (RH.AcademicFramework.CompletedXi.xi_ext_zeros_eq_zeta_zeros_on_Ω z hzΩ).mpr hζ
-        exact hzXi_ne hXi
-      have hzMem : z ∈ RH.RS.Ω \ {w | riemannZeta w = 0} := by
-        refine ⟨hzΩ, ?_⟩
-        intro hzSet
-        have hζ : riemannZeta z = 0 := by
-          simpa [Set.mem_setOf_eq] using hzSet
-        exact hzZeta_ne hζ
-      exact hSchur z hzMem
-      )
-    assign
 
 /-- Final theorem using a concrete pinch certificate: build the Ξ-assign from
 the certificate and conclude RH. -/

@@ -44,7 +44,7 @@ lemma O_spec : RH.RS.OuterHalfPlane O ∧
 /-! ## Boundary positivity (P+) for F := 2·J_pinch det2 O -/
 
 /-- Boundary positivity on the AF boundary for `F := 2·J_pinch det2 O`. -/
- theorem boundary_positive_AF :
+theorem boundary_positive_AF :
   RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
     (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)) := by
   have hCanon : RH.RS.WhitneyAeCore.PPlus_canonical :=
@@ -65,7 +65,7 @@ lemma O_spec : RH.RS.OuterHalfPlane O ∧
   simpa [RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive] using hbd
 
 /-- Cert-level `(P+)` for `F := 2·J_pinch det2 O`. -/
- theorem boundary_positive : RH.Cert.PPlus
+theorem boundary_positive : RH.Cert.PPlus
     (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)) := by
   have h := boundary_positive_AF
   have hb_mk : ∀ t : ℝ,
@@ -78,7 +78,7 @@ lemma O_spec : RH.RS.OuterHalfPlane O ∧
   simpa [RH.Cert.PPlus] using hP
 
 /-- Cert-level `(P+)` implies AF boundary positivity for the same `F`. -/
-lemma boundary_positive_AF_of_PPlus :
+private lemma boundary_positive_AF_of_PPlus :
   RH.Cert.PPlus
     (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)) →
   RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
@@ -207,7 +207,7 @@ lemma F0_boundary_eq_Hpull_boundaryToDisk (t : ℝ) :
   simp [F0, Hpull]
 
 /-- Pullback Poisson representation on the off-zeros set via Cayley. -/
- theorem pullback_hasPoissonRepOn_offXi :
+private theorem pullback_hasPoissonRepOn_offXi :
   RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
     (fun z => Hpull (RH.AcademicFramework.CayleyAdapters.toDisk z)) S := by
   have hS : S ⊆ RH.AcademicFramework.HalfPlaneOuterV2.Ω := by intro z hz; exact hz.1

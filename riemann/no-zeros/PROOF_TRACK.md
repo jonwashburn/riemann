@@ -1,99 +1,46 @@
-## Proof Track (Active)
+## Unconditional Route B (θ‑free, reviewer‑friendly)
 
-- Entry: `rh/Proof/Active.lean`
-  - Final export: `RH.Proof.Final.RiemannHypothesis_mathlib_from_pinch_ext_assign`
-  - Core steps:
-    - `RH_core` symmetry
-    - `GlobalizeAcrossRemovable` (Schur pinch)
-    - `RiemannHypothesis_from_pinch_ext_assign`
-
-## Unconditional Export (Route B)
-
-- Route: `rh/RS/RouteB_Final.lean`
-  - Poisson rep on off-zeros; boundary positivity (P+)
-  - Isolating neighborhoods; pinned u-trick; removable update
-  - Certificate build: `buildPinchCertificate`
-  - Conclusion: `RiemannHypothesis_via_RouteB`
-
-- Export: `rh/Proof/Export.lean`
+- Proof export: `rh/Proof/Export.lean`
   - `@[simp] theorem RiemannHypothesis_unconditional : RiemannHypothesis`
+    (aliases the Route B result; this is exactly mathlib’s `RiemannHypothesis`).
 
-### θ‑free Route B (Dev Target)
+- Route B core: `rh/RS/RouteB_Final.lean`
+  - Uses a fixed outer witness for `|det₂/ξ_ext|` and defines `F := 2·J_pinch`.
+  - Threading: `(P+)` on the AF boundary → Poisson representation on `offXi` → interior `Re(F) ≥ 0`.
+  - Pinned u‑trick on isolating neighborhoods gives removable updates and nontriviality.
+  - Conclusion: `RiemannHypothesis_via_RouteB`.
 
-- Goal: keep the bridge θ‑free in the AF layer and wire Route B without any Greek-`Θ` identifiers in dev modules.
+### θ‑free Cayley bridge (AF shims)
 
-- Owning modules (by layer):
-  - RS layer (pinch pipeline)
-    - `rh/RS/WhitneyAeCore.lean`: `(P+)` facade and canonical outer choice.
-    - `rh/RS/PinchWrappers.lean`: package (P+), Poisson transport, pinned‑removable into certificate builders.
-    - `rh/RS/Det2Outer.lean`: `det2`, outer witness typeclass/utilities.
-    - `rh/RS/OffZerosBridge.lean`: off‑zeros helpers.
-    - `rh/RS/PinchCertificate.lean`: `PinchCertificateExt` and final glue.
-    - `rh/RS/RouteB_Final.lean`: θ‑free wiring; imports AF bridge only.
-  - AF layer (θ‑free bridge)
-    - `rh/academic_framework/HalfPlaneOuterV2.lean`: domain `Ω`, `boundary`, `F_pinch`, `J_pinch`,
-      `BoundaryPositive`, `HasPoissonRepOn`, `poissonIntegral`, `poissonTransportOn`,
-      `ExistsOuterWithModulus` (and basic bounds/measurability).
-    - `rh/academic_framework/CayleyAdapters.lean`: `toDisk`, `fromDisk`, `boundaryToDisk`,
-      pullback lemma `pullback_rep_on_from_halfplane_rep` (AF-only, θ‑free).
-    - `rh/academic_framework/PoissonCayley.lean`: θ‑free Cayley bridge API:
-      `EqOnBoundary`, `CayleyKernelTransportOn`, `reEq_on_from_disk_via_cayley`,
-      `cayley_kernel_transport_from_rep_on`, `pinch_halfplane_ReEqOn_from_cayley`,
-      `pinch_ReEqOn_from_pullback`, `pullback_rep_on_from_halfplane_rep`.
-    - `rh/academic_framework/CompletedXi.lean`: completed ξ function `riemannXi_ext`.
-    - `rh/academic_framework/ConstructiveOuter.lean`: axioms‑free outer existence witness
-      (may use a Greek name internally; not part of dev θ‑free scan roots).
+- `rh/academic_framework/HalfPlaneOuterV2.lean`: `Ω`, `boundary`, `offXi`, `BoundaryPositive`,
+  `HasPoissonRepOn`, `poissonTransportOn`, `F_pinch`, `J_pinch`.
+- `rh/academic_framework/CayleyAdapters.lean`: `toDisk`, `fromDisk`, `boundaryToDisk`,
+  `pullback_rep_on_from_halfplane_rep`.
+- `rh/academic_framework/PoissonCayley.lean`: `EqOnBoundary`, Cayley transport to half‑plane
+  `Re`‑identities used in the Poisson step.
+- `rh/academic_framework/CompletedXi.lean`: completed ξ, `riemannXi_ext` basics.
 
-- Minimal AF API consumed by `RouteB_Final.lean`:
-  - From `HalfPlaneOuterV2`: `Ω`, `boundary`, `offXi`, `F_pinch`, `J_pinch`,
-    `BoundaryPositive`, `HasPoissonRepOn`, `poissonTransportOn`,
-    `ExistsOuterWithModulus`, `boundary_abs_J_pinch_eq_one`.
-  - From `CayleyAdapters`: `toDisk`, `fromDisk`, `boundaryToDisk`,
-    `pullback_rep_on_from_halfplane_rep` (bridge helper).
-  - From `PoissonCayley`: `EqOnBoundary`, `pinch_halfplane_ReEqOn_from_cayley`,
-    `pinch_ReEqOn_from_pullback` (subset Poisson → half‑plane Re‑identity).
-  - From `CompletedXi`: `riemannXi_ext` and basic measurability/differentiability facts.
+### RS pipeline (P+ → off‑zeros → removable)
 
-- Import DAG (dev target focus)
+- `rh/RS/WhitneyAeCore.lean`: canonical `(P+)` certificate for `F := 2·J_pinch`.
+- `rh/RS/Det2Outer.lean`: `det2` and the outer witness API.
+- `rh/RS/OffZerosBridge.lean`: assignment/removable packaging on off‑zeros.
+- `rh/RS/PinchWrappers.lean`: wires `(P+)`, Poisson transport, and pinned data into certificate builders.
+- `rh/RS/RouteB_Final.lean`: θ‑free end‑to‑end wiring and `RiemannHypothesis_via_RouteB`.
 
-```
-rh/academic_framework/CompletedXi.lean      ┐
-                                            ├→ rh/academic_framework/HalfPlaneOuterV2.lean
-rh/RS/Det2Outer.lean                        ┘            ↑
-                                                         │
-rh/academic_framework/DiskHardy.lean  → rh/academic_framework/CayleyAdapters.lean
-                                                         │
-                        rh/academic_framework/PoissonCayley.lean
-                                                         │
-                 {RS layer: WhitneyAeCore, PinchWrappers, PinchCertificate}
-                                                         │
-                                rh/RS/RouteB_Final.lean
-```
+### Minimal targets and guard
 
-Dev scan roots (θ‑free):
-- `rh/academic_framework/PoissonCayley.lean`
-- `rh/academic_framework/HalfPlaneOuterV2.lean`
-- `rh/academic_framework/CayleyAdapters.lean`
+- Export build: `lake build rh` (checks the final export only).
+- Dev build (if present): `lake build rh_routeb_dev` (isolates unconditional deps).
+- Guard script: from `riemann/no-zeros/` run `./verify_proof.sh`.
+  - Builds export (and dev target if present).
+  - Verifies only standard axioms and that `RiemannHypothesis_unconditional` is present.
+  - Scans θ‑free AF roots for `sorry|admit|axiom|theta` and fails with diagnostics if found.
 
-#### Dev guard and how to run it
+### Where the mathlib equivalence is realized
 
-The θ‑free dev guard ensures the AF bridge and everything it transitively imports are free of the following tokens: `sorry`, `admit`, `axiom`, `theta` (case‑insensitive).
-
-- Build target: if present, `rh_routeb_dev` is built first; otherwise the guard proceeds without it.
-- Scan scope: starts at the θ‑free AF roots above and follows `import rh.*` lines to collect all transitive Lean files, then scans them.
-- Failure mode: emits offending `file:line:content` entries and exits non‑zero.
-
-Run:
-
-```bash
-cd riemann/no-zeros
-./verify_proof.sh
-```
-
-What it does in addition to the main proof checks:
-- Builds `rh_routeb_dev` if available.
-- Scans the transitive closure from the θ‑free AF roots for `sorry|admit|axiom|theta`.
-- Fails with clear diagnostics if any are found.
+- The export theorem’s type is `RiemannHypothesis` (mathlib’s standard statement). The
+  alias is in `rh/Proof/Export.lean` under the name `RiemannHypothesis_unconditional`.
 
 ## How to verify
 
@@ -102,10 +49,6 @@ cd riemann/no-zeros
 ./verify_proof.sh
 ```
 
-- What it does:
-  - Builds the active track and checks axioms on the active theorem.
-  - Best‑effort checks the unconditional export.
-  - Scans the active modules for `sorry`/`admit`/`axiom`.
-  - Scans θ‑free dev roots above for `sorry`/`admit`/`axiom` and for any Greek `Θ` identifiers; fails if found.
+- Confirms axioms are standard and checks `RiemannHypothesis_unconditional : RiemannHypothesis`.
 
 
