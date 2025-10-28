@@ -9,6 +9,7 @@ import rh.academic_framework.HalfPlaneOuterV2
 import rh.academic_framework.PoissonCayley
 import rh.academic_framework.CompletedXi
 import rh.Cert.KxiPPlus
+import rh.RS.PPlusFromCarleson
 import Mathlib.Analysis.Analytic.IsolatedZeros
 
 /-!
@@ -17,6 +18,10 @@ import Mathlib.Analysis.Analytic.IsolatedZeros
 This module wires the Route B components end-to-end using a fixed
 `OuterHalfPlane` witness aligned with the AF constructive outer.
 Boundary encodings are aligned via adapter lemmas.
+
+Note: This file also provides the no-argument wrapper
+`RiemannHypothesis_via_RouteB`, which wires the canonical `(P+)`
+certificate into the Route B theorem.
 -/
 
 noncomputable section
@@ -540,3 +545,8 @@ theorem pinned_removable_data
       simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using this
     exact one_ne_neg_one (by simpa using this)
   refine ⟨U, hUopen, hUconn, hUsub, hρU, hIso, hΘU, u, hEq, hu0, z, hzU, hzNe, hΘ_ne_one⟩
+
+/-- No-argument wrapper: wires the canonical `(P+)` certificate into the
+Route B theorem. -/
+@[simp] theorem RiemannHypothesis_via_RouteB : RiemannHypothesis :=
+  RiemannHypothesis_via_RouteB_from_PPlus RH.RS.PPlus_canonical_proved

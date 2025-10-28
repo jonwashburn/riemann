@@ -1,17 +1,12 @@
 import Mathlib.NumberTheory.LSeries.RiemannZeta
 import rh.RS.RouteB_Final
-
-/-!
-Final unconditional export of Mathlib's `RiemannZeta.RiemannHypothesis`, wired to the θ‑free
-Route B chain. This file deliberately avoids importing the wider proof layer to keep the
-export path free of sealed or placeholder dependencies.
--/
+import rh.RS.PPlusFromCarleson
 
 noncomputable section
 
 namespace RH.Proof.Export
 
 @[simp] theorem RiemannHypothesis_unconditional : RiemannHypothesis :=
-  RH.RS.RouteB.RiemannHypothesis_via_RouteB
+  RH.RS.RouteB.RiemannHypothesis_via_RouteB_from_PPlus RH.RS.PPlus_canonical_proved
 
 end RH.Proof.Export

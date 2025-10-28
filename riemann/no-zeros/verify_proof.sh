@@ -8,6 +8,16 @@ set -e  # Exit on error
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Args
+JSON_OUT=0
+for arg in "$@"; do
+  case "$arg" in
+    --json)
+      JSON_OUT=1
+      ;;
+  esac
+done
+
 echo "════════════════════════════════════════════════════════"
 echo "  Riemann Hypothesis Proof Verification"
 echo "════════════════════════════════════════════════════════"
@@ -16,6 +26,7 @@ echo
 # Check Lean version
 echo "📋 Step 1: Checking Lean version..."
 lean --version
+LEAN_VERSION_OK=true
 echo
 
 # Build targeted libraries only (dev/export), avoiding full globs
@@ -59,13 +70,37 @@ echo
 if [ $BUILD_STATUS -eq 0 ]; then
   echo "🔍 Step 3: Guard scan over compiled artifacts (dev/export)..."
   echo "Scanning .lake/build output for forbidden tokens..."
-  if rg -n "\\b(sorry|admit|axiom)\\b" .lake/build/lib .lake/build/ir | grep -v "/Lean/"; then
+  RG_BIN=$(command -v rg || true)
+  # JSON counters (artifacts)
+  ART_FORB_TOK_CNT=0
+  ART_BANNED_IMPORT_CNT=0
+  if [ -z "$RG_BIN" ]; then
+    echo "(rg not found) Falling back to grep -R"
+    echo "Tip: install ripgrep for faster scans (macOS: brew install ripgrep)"
+    TOKENS_OUT=$(grep -RInE "\\b(sorry|admit|axiom)\\b" .lake/build/lib .lake/build/ir 2>/dev/null | grep -v "/Lean/" || true)
+    if [ -n "$TOKENS_OUT" ]; then
+      ART_FORB_TOK_CNT=$(printf "%s\n" "$TOKENS_OUT" | wc -l | awk '{print $1}')
+      echo "❌ Found forbidden tokens in compiled artifacts"; exit 1; fi
+  else
+    TOKENS_OUT=$("$RG_BIN" -n "\\b(sorry|admit|axiom)\\b" .lake/build/lib .lake/build/ir 2>/dev/null | grep -v "/Lean/" || true)
+    if [ -n "$TOKENS_OUT" ]; then
+    ART_FORB_TOK_CNT=$(printf "%s\n" "$TOKENS_OUT" | wc -l | awk '{print $1}')
     echo "❌ Found forbidden tokens in compiled artifacts"; exit 1; fi
+  fi
   echo "OK: no forbidden tokens in artifacts."
   echo "Checking banned imports in artifacts..."
   BANNED_RE='rh\\.academic_framework\\.(Theta|MellinThetaZeta)|rh\\.RS\\.CRGreenOuter(\\.[A-Za-z0-9_]+)*|rh\\.RS\\.sealed(\\.[A-Za-z0-9_]+)*'
-  if rg -n "$BANNED_RE" .lake/build/ir .lake/build/lib; then
+  if [ -z "$RG_BIN" ]; then
+    IMPORTS_OUT=$(grep -RInE "$BANNED_RE" .lake/build/ir .lake/build/lib 2>/dev/null || true)
+    if [ -n "$IMPORTS_OUT" ]; then
+      ART_BANNED_IMPORT_CNT=$(printf "%s\n" "$IMPORTS_OUT" | wc -l | awk '{print $1}')
+      echo "❌ Found banned imports referenced in artifacts"; exit 1; fi
+  else
+    IMPORTS_OUT=$("$RG_BIN" -n "$BANNED_RE" .lake/build/ir .lake/build/lib 2>/dev/null || true)
+    if [ -n "$IMPORTS_OUT" ]; then
+    ART_BANNED_IMPORT_CNT=$(printf "%s\n" "$IMPORTS_OUT" | wc -l | awk '{print $1}')
     echo "❌ Found banned imports referenced in artifacts"; exit 1; fi
+  fi
   echo "OK: no banned imports in artifacts."
   echo
 fi
@@ -100,6 +135,10 @@ echo
 echo "🧪 Step 6: Scan transitive files from dev and export roots..."
 
 FAILURES=0
+DEV_GUARD_PASSED=true
+EXPORT_GUARD_PASSED=true
+SRC_FORB_TOK_CNT=0
+SRC_BANNED_IMPORT_CNT=0
 
 # Helpers (Bash 3.x compatible)
 contains() {
@@ -184,6 +223,14 @@ scan_fileset() {
   OFF_TOK=$(grep -nE "$BANNED_TOKENS" "${files[@]}" 2>/dev/null | grep -vE '^[^:]+:[0-9]+:\\s*--')
   set -e
 
+  # Update JSON counters (sources)
+  local off_tok_cnt=0
+  local off_import_cnt=0
+  if [ -n "$OFF_TOK" ]; then off_tok_cnt=$(printf "%s\n" "$OFF_TOK" | wc -l | awk '{print $1}'); fi
+  if [ -n "$OFF_IMPORT" ]; then off_import_cnt=$(printf "%s\n" "$OFF_IMPORT" | wc -l | awk '{print $1}'); fi
+  SRC_FORB_TOK_CNT=$((SRC_FORB_TOK_CNT + off_tok_cnt))
+  SRC_BANNED_IMPORT_CNT=$((SRC_BANNED_IMPORT_CNT + off_import_cnt))
+
   if { [ -n "$OFF_SA" ] || [ -n "$OFF_AXIOM" ] || [ -n "$OFF_IMPORT" ] || [ -n "$OFF_TOK" ]; }; then
     echo "❌ $label guard failed: forbidden items found:"
     [ -n "$OFF_SA" ] && { echo "-- base (sorry/admit):"; echo "$OFF_SA"; }
@@ -191,8 +238,12 @@ scan_fileset() {
     [ -n "$OFF_IMPORT" ] && { echo "-- banned imports:"; echo "$OFF_IMPORT"; }
     [ -n "$OFF_TOK" ] && { echo "-- banned tokens:"; echo "$OFF_TOK"; }
     FAILURES=1
+    if [ "$label" = "Dev" ]; then DEV_GUARD_PASSED=false; fi
+    if [ "$label" = "Export" ]; then EXPORT_GUARD_PASSED=false; fi
   else
     echo "✅ $label guard passed: no forbidden imports/tokens found."
+    if [ "$label" = "Dev" ]; then DEV_GUARD_PASSED=true; fi
+    if [ "$label" = "Export" ]; then EXPORT_GUARD_PASSED=true; fi
   fi
 }
 
@@ -206,9 +257,9 @@ DEV_ROOT_MODULES=(
 )
 scan_fileset "Dev" "${DEV_ROOT_MODULES[@]}"
 
-# Export roots
+# Export roots (scan the actual export surface)
 EXPORT_ROOT_MODULES=(
-  rh.RS.PinchWrappers
+  rh.Proof.Export
 )
 scan_fileset "Export" "${EXPORT_ROOT_MODULES[@]}"
 
@@ -245,6 +296,26 @@ echo "════════════════════════�
 echo
 echo "📄 See PROOF_CERTIFICATE.md for detailed certificate"
 echo
+
+# Optional JSON summary
+if [ "$JSON_OUT" -eq 1 ]; then
+  # Build fields
+  BUILD_STATUS_STR="failed"
+  if [ $BUILD_STATUS -eq 0 ]; then BUILD_STATUS_STR="success"; fi
+  # If artifact scan skipped due to build failure, counters remain 0
+  : "${ART_FORB_TOK_CNT:=0}"
+  : "${ART_BANNED_IMPORT_CNT:=0}"
+  printf '{\n'
+  printf '"lean_version_ok": %s,\n' "${LEAN_VERSION_OK:-false}"
+  printf '"build_status": "%s",\n' "$BUILD_STATUS_STR"
+  printf '"forbidden_tokens_in_artifacts": %s,\n' "${ART_FORB_TOK_CNT}"
+  printf '"forbidden_tokens_in_sources": %s,\n' "${SRC_FORB_TOK_CNT}"
+  printf '"banned_imports_in_artifacts": %s,\n' "${ART_BANNED_IMPORT_CNT}"
+  printf '"banned_imports_in_sources": %s,\n' "${SRC_BANNED_IMPORT_CNT}"
+  printf '"dev_guard_passed": %s,\n' "${DEV_GUARD_PASSED}"
+  printf '"export_guard_passed": %s\n' "${EXPORT_GUARD_PASSED}"
+  printf '}\n'
+fi
 
 # Cleanup
 rm -f /tmp/check_theorem.lean /tmp/check_uncond.lean /tmp/axioms_active.lean /tmp/axioms_uncond.lean

@@ -24,7 +24,7 @@ lean_lib «rh» where
 lean_lib rh_export where
   roots := #[
     -- keep export closure minimal and guard-friendly
-    `rh.RS.PinchWrappers
+    `rh.Proof.Export
   ]
 
 @[default_target]
@@ -35,4 +35,10 @@ lean_lib rh_routeb_dev where
     `rh.academic_framework.PoissonCayley,
     `rh.RS.WhitneyAeCore,
     `rh.RS.PinchWrappers
+  ]
+
+-- Optional: full export surface including the unconditional wrapper. Not built by default.
+lean_lib rh_export_unconditional where
+  roots := #[
+    `rh.Proof.Export
   ]
