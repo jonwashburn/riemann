@@ -24,4 +24,10 @@ node_modules/
 # Large bundle files
 complete_lean_bundle_v*.txt
 
+# Documentation files (excluded from recognition-riemann)
+*.tex
+*.txt
+*.pdf
+*.md
+
 old-rh/
