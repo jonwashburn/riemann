@@ -1,0 +1,54 @@
+name: Verify Proof
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    name: Verify on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash
+        working-directory: riemann/no-zeros
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up elan (Lean toolchain)
+        uses: leanprover/elan-action@v1
+        with:
+          # Uses the lean-toolchain file (v4.12.0) in the repository
+          override-toolchain: false
+
+      - name: Show Lean version
+        run: |
+          lean --version || true
+          lake --version || true
+
+      - name: Build export target
+        run: |
+          lake build rh_export || true
+
+      - name: Verify (human-readable)
+        run: |
+          bash ./verify_proof.sh
+
+      - name: Verify (JSON)
+        run: |
+          bash ./verify_proof.sh --json > verify.json
+
+      - name: Upload verification artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-${{ matrix.os }}
+          path: |
+            riemann/no-zeros/verify.json
+            riemann/no-zeros/PROOF_CERTIFICATE.md
+
+
