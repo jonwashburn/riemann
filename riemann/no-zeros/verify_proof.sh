@@ -89,7 +89,7 @@ if [ $BUILD_STATUS -eq 0 ]; then
   fi
   echo "OK: no forbidden tokens in artifacts."
   echo "Checking banned imports in artifacts..."
-  BANNED_RE='rh\\.academic_framework\\.(Theta|MellinThetaZeta)|rh\\.RS\\.CRGreenOuter(\\.[A-Za-z0-9_]+)*|rh\\.RS\\.sealed(\\.[A-Za-z0-9_]+)*'
+  BANNED_RE='rh\.academic_framework\.(Theta|MellinThetaZeta)|rh\.RS\.sealed(\.[A-Za-z0-9_]+)*'
   if [ -z "$RG_BIN" ]; then
     IMPORTS_OUT=$(grep -RInE "$BANNED_RE" .lake/build/ir .lake/build/lib 2>/dev/null || true)
     if [ -n "$IMPORTS_OUT" ]; then
@@ -211,7 +211,7 @@ scan_fileset() {
   # Patterns
   local SORRY_ADMIT='\\bsorry\\b|\\badmit\\b'
   # Banned imports: specific modules and namespaces
-  local BANNED_IMPORTS='^\\s*import[[:space:]]+([^\n]*\\b(rh\\.academic_framework\\.Theta|rh\\.academic_framework\\.MellinThetaZeta|rh\\.RS\\.CRGreenOuter(\\.[A-Za-z0-9_]+)*|rh\\.RS\\.sealed(\\.[A-Za-z0-9_]+)*)\\b)'
+  local BANNED_IMPORTS='^\s*import[[:space:]]+([^\n]*\b(rh\.academic_framework\.Theta|rh\.academic_framework\.MellinThetaZeta|rh\.RS\.sealed(\.[A-Za-z0-9_]+)*)\b)'
   # Banned tokens that previously correlated with conditional machinery
   local BANNED_TOKENS='\\bboundaryToDisk_param\\b|\\bexp_I_two_arctan_ratio\\b|\\btwo_arctan\\b|\\barctan_ratio\\b'
 

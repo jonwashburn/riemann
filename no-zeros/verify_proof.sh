@@ -4,6 +4,17 @@
 
 set -e  # Exit on error
 
+# Deprecated wrapper: forward to the maintained guard in riemann/no-zeros
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+NEW_SCRIPT="$SCRIPT_DIR/../riemann/no-zeros/verify_proof.sh"
+if [ -x "$NEW_SCRIPT" ]; then
+  echo "[deprecated] forwarding to $NEW_SCRIPT"
+  exec "$NEW_SCRIPT" "$@"
+else
+  echo "[deprecated] expected new script at $NEW_SCRIPT but it was not found"
+  exit 1
+fi
+
 echo "════════════════════════════════════════════════════════"
 echo "  Riemann Hypothesis Proof Verification"
 echo "════════════════════════════════════════════════════════"
