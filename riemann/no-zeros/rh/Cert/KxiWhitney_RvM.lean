@@ -143,50 +143,38 @@ theorem annularEnergyDiag_le
   -- For fixed σ,t,γ with t∈I, we have |t-γ| ≥ ck, so Kσ^2 ≤ σ^2 / ck^4
   have h_pointwise
     (σ t γ : ℝ) (ht : t ∈ I.interval) (hγ : γ ∈ Zk) :
-    (Ksigma σ (t - γ)) ^ 2 ≤ σ^2 / (ck ^ 4) := by
-    -- Denominator monotonicity: ((t-γ)^2 + σ^2)^2 ≥ (|t-γ|^2)^2 ≥ ck^4
+    (Ksigma σ (t - γ)) ^ 2 ≤ σ ^ 2 / (ck ^ 4) := by
+    -- From separation: ck ≤ |t-γ|
     have hdist : ck ≤ |t - γ| := by
       simpa [ck] using (hsep γ hγ t ht)
-    have hsq : (ck ^ 2) ≤ (|t - γ|) ^ 2 := by
-      have : 0 ≤ |t - γ| := abs_nonneg _
-      exact pow_le_pow_of_le_left (by exact le_of_lt hck_pos) (by simpa using this) (by decide : (2:ℕ) ≤ (2:ℕ))
-    have hden1 : (ck ^ 2) ≤ (t - γ) ^ 2 := by
-      -- |t-γ|^2 = (t-γ)^2
-      simpa [sq_abs] using hsq
-    have hden2 : (ck ^ 2) ≤ (t - γ) ^ 2 + σ^2 := by
-      have hσ2 : (0 : ℝ) ≤ σ^2 := by exact sq_nonneg σ
-      exact le_trans hden1 (le_add_of_nonneg_right hσ2)
-    have hden4 : (ck ^ 4) ≤ ((t - γ) ^ 2 + σ^2) ^ 2 := by
-      have : 0 ≤ ((t - γ) ^ 2 + σ^2) := by
-        have : 0 ≤ (t - γ) ^ 2 := by exact sq_nonneg _
-        exact add_nonneg this (by exact sq_nonneg σ)
-      -- square both sides (monotone on nonnegatives)
-      simpa [pow_two, pow_four] using mul_le_mul hden2 hden2 (by exact sq_nonneg _) (le_of_lt (lt_of_le_of_lt (le_of_eq rfl) (lt_of_le_of_lt (le_of_eq rfl) (lt_of_le_of_lt (le_of_eq rfl) (by exact add_pos_of_nonneg_of_pos (by exact sq_nonneg _) (sq_pos_iff.2 (ne_of_gt hck_pos)))))))
-    -- Now compare the fractions
-    have hden_inv : 0 < ((t - γ) ^ 2 + σ^2) ^ 2 := by
-      have : 0 < ck ^ 4 := pow_pos hck_pos 4
-      exact lt_of_le_of_lt this (lt_of_le_of_lt hden4 (by
-        have : 0 < ((t - γ) ^ 2 + σ^2) ^ 2 ∨ ((t - γ) ^ 2 + σ^2) ^ 2 = 0 := lt_or_eq_of_le (by exact sq_nonneg _)
-        -- fallback positivity (safe since σ^2≥0 and (t-γ)^2≥0, and not both zero due to ck>0)
-        have : 0 < ((t - γ) ^ 2 + σ^2) ^ 2 := by
-          have hsum_pos : 0 < (t - γ) ^ 2 + σ^2 := by
-            -- at least (t-γ)^2 ≥ ck^2 > 0
-            have : 0 < ck ^ 2 := by exact pow_pos hck_pos 2
-            exact lt_of_le_of_lt hden2 this
-          exact pow_pos hsum_pos 2
-        exact this))
-    -- (σ/(a+σ^2))^2 ≤ σ^2/ck^4 when (a+σ^2)^2 ≥ ck^4
-    have : (Ksigma σ (t - γ)) ^ 2 = σ^2 / (((t - γ) ^ 2 + σ^2) ^ 2) := by
+    -- Square: ck^2 ≤ |t-γ|^2 = (t-γ)^2
+    have hden1 : ck ^ 2 ≤ (t - γ) ^ 2 := by
+      have hck_nonneg : 0 ≤ ck := le_of_lt hck_pos
+      have habs : |ck| ≤ |t - γ| := by
+        have : |ck| = ck := by simpa [abs_of_nonneg hck_nonneg]
+        simpa [this] using hdist
+      simpa [pow_two] using (sq_le_sq.mpr habs)
+    -- Add σ^2 ≥ 0 and square again (monotone on ≥ 0)
+    have hden2 : ck ^ 2 ≤ (t - γ) ^ 2 + σ ^ 2 :=
+      le_trans hden1 (le_add_of_nonneg_right (sq_nonneg σ))
+    have hden4 : ck ^ 4 ≤ ((t - γ) ^ 2 + σ ^ 2) ^ 2 := by
+      have hsum_nonneg : 0 ≤ (t - γ) ^ 2 + σ ^ 2 := by
+        exact add_nonneg (sq_nonneg _) (sq_nonneg _)
+      have hck2_nonneg : 0 ≤ ck ^ 2 := by exact sq_nonneg ck
+      -- multiply the inequality by itself on nonnegative sides
+      have : ck ^ 2 * ck ^ 2 ≤ ((t - γ) ^ 2 + σ ^ 2) * ((t - γ) ^ 2 + σ ^ 2) := by
+        exact mul_le_mul hden2 hden2 hsum_nonneg hck2_nonneg
+      simpa [pow_two, mul_comm, mul_left_comm, mul_assoc] using this
+    -- Rewrite Kσ^2 and compare denominators
+    have hK : (Ksigma σ (t - γ)) ^ 2
+        = σ ^ 2 / (((t - γ) ^ 2 + σ ^ 2) ^ 2) := by
       simp [Ksigma, pow_two, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
-    have hfrac_le : σ^2 / (((t - γ) ^ 2 + σ^2) ^ 2) ≤ σ^2 / (ck ^ 4) := by
-      have hden_le : (ck ^ 4) ≤ ((t - γ) ^ 2 + σ^2) ^ 2 := hden4
-      -- For positive denominators, inverse is antitone
-      have : 1 / (((t - γ) ^ 2 + σ^2) ^ 2) ≤ 1 / (ck ^ 4) :=
-        one_div_le_one_div_of_le (by exact (lt_of_le_of_lt (le_of_eq rfl) hden_inv)) hden_le
-      -- multiply by σ^2 ≥ 0
-      have hσ2_nonneg : 0 ≤ σ^2 := by exact sq_nonneg σ
-      exact (mul_le_mul_of_nonneg_left this hσ2_nonneg)
-    simpa [this] using hfrac_le
+    have hfrac_le : σ ^ 2 / (((t - γ) ^ 2 + σ ^ 2) ^ 2) ≤ σ ^ 2 / (ck ^ 4) := by
+      have hpos_ck4 : 0 < ck ^ 4 := pow_pos hck_pos 4
+      have : 1 / (((t - γ) ^ 2 + σ ^ 2) ^ 2) ≤ 1 / (ck ^ 4) :=
+        one_div_le_one_div_of_le hpos_ck4 hden4
+      exact mul_le_mul_of_nonneg_left this (sq_nonneg σ)
+    simpa [hK] using hfrac_le
   -- Bound the inner t-integral for each γ by a constant times |I| = 2·L
   have h_inner_le (σ : ℝ) (γ : ℝ) (hγ : γ ∈ Zk) :
       (∫ t in I.interval, (Ksigma σ (t - γ)) ^ 2)
@@ -197,10 +185,10 @@ theorem annularEnergyDiag_le
         (fun t => (Ksigma σ (t - γ)) ^ 2)
           ≤ᵐ[Measure.restrict volume I.interval]
         (fun _ => σ^2 / (ck ^ 4)) := by
-      refine Filter.Eventually.of_forall ?h
-      intro t
-      intro ht
-      exact h_pointwise σ t γ ht hγ
+      -- use ae_restrict_of_ae to avoid explicit set-membership in the predicate
+      refine ae_restrict_of_ae (μ := volume) (s := I.interval) ?h
+      exact Filter.Eventually.of_forall (fun t => by
+        intro ht; exact h_pointwise σ t γ ht hγ)
     have h_const_int : IntegrableOn (fun _ : ℝ => σ^2 / (ck ^ 4)) I.interval volume := by
       -- constant on a finite-measure set
       have : volume (I.interval) < ⊤ := by
@@ -209,29 +197,31 @@ theorem annularEnergyDiag_le
         have hΔ : 0 ≤ (I.t0 + I.len) - (I.t0 - I.len) := by linarith [I.len_pos.le]
         simpa [Real.volume_Icc, hle, hΔ]
       simpa using (integrableOn_const.2 ⟨by measurability, this⟩)
-    have h_fx_int : IntegrableOn (fun t : ℝ => (Ksigma σ (t - γ)) ^ 2) I.interval volume := by
+    have h_fx_int : Integrable (fun t : ℝ => (Ksigma σ (t - γ)) ^ 2)
+        (Measure.restrict volume I.interval) := by
       -- dominated by constant on finite-measure set ⇒ integrable
-      -- we can bound by constant and use integrable_const
       have h_nonneg : 0 ≤ᵐ[Measure.restrict volume I.interval]
           (fun t => (Ksigma σ (t - γ)) ^ 2) :=
-        Filter.Eventually.of_forall (fun _ => by
-          have := sq_nonneg (Ksigma σ (t - γ)); simpa [pow_two] using this)
-      -- use integrable_of_ae_bound
-      -- fallback: directly apply integrable_const since the bound suffices for mono inequality
-      exact h_const_int
+        Filter.Eventually.of_forall (fun _ => by exact sq_nonneg _)
+      exact Integrable.of_nonneg_of_le h_nonneg h_ae h_const_int
     -- integral mono on restricted measure
-    have hmono := integral_mono_ae (μ := volume)
+    have hmono := integral_mono_ae (μ := Measure.restrict volume I.interval)
       (f := fun t => (Ksigma σ (t - γ)) ^ 2)
-      (g := fun _ => σ^2 / (ck ^ 4)) h_fx_int h_const_int h_ae
-    -- evaluate the constant integral as const * |I|
+      (g := fun _ => σ^2 / (ck ^ 4)) h_fx_int h_const_int (by simpa using h_ae)
+    -- Evaluate the constant integral over I.interval by length = 2·I.len
     have hconst : (∫ t in I.interval, (fun _ => σ^2 / (ck ^ 4)) t)
-        = (σ^2 / (ck ^ 4)) * RH.RS.length (I.interval) := by
-      -- integral_const over a set
-      have := integral_const (μ := volume) (s := I.interval) (σ^2 / (ck ^ 4))
-      simpa [RH.RS.length] using this
-    -- length(I.interval) = 2·L
-    simpa [hconst, WhitneyGeometryDefs.WhitneyInterval_interval_length]
-      using hmono
+        = (σ^2 / (ck ^ 4)) * (2 * I.len) := by
+      -- integral of constant on measurable rectangle
+      have hle : I.t0 - I.len ≤ I.t0 + I.len := by linarith [I.len_pos.le]
+      have hΔ : 0 ≤ (I.t0 + I.len) - (I.t0 - I.len) := by linarith [I.len_pos.le]
+      have hmeas : MeasurableSet I.interval := isClosed_Icc.measurableSet
+      have := integral_const (μ := volume) (c := (σ^2 / (ck ^ 4)))
+      -- with set integral: ∫_I c = c * (volume I).toReal
+      have hvol : (volume I.interval).toReal = 2 * I.len := by
+        simpa [Real.volume_Icc, hle, hΔ] using (by rfl : (volume I.interval).toReal = (volume I.interval).toReal)
+      simpa [hvol]
+    -- conclude
+    simpa [hconst] using hmono
   -- Sum the diagonal bounds over γ ∈ Zk
   have h_sum_inner_le (σ : ℝ) :
       (∑ γ in Zk, (∫ t in I.interval, (Ksigma σ (t - γ)) ^ 2))
@@ -252,50 +242,81 @@ theorem annularEnergyDiag_le
   have h_sigma_integral_le :
       annularEnergyDiag α I Zk
         ≤ ((Zk.card : ℝ) * (2 * I.len) / (ck ^ 4))
-            * (∫ σ in Set.Ioc (0 : ℝ) (α * I.len), σ^3) := by
-    -- apply the bound inside the σ-integral
-    refine integral_mono_on ?hInt ?hIntConst ?hAE
-    · -- measurability/integrability: both sides are integrable on the finite interval
-      all_goals
-        have hmeas : MeasurableSet (Set.Ioc (0 : ℝ) (α * I.len)) := by
-          -- Ioc is measurable
-          exact MeasurableSet_Ioc
-      · -- LHS integrable
-        -- nonneg integrand and finite measure ⇒ integrable; use a coarse bound by constant
-        have : IntegrableOn (fun σ => σ * (∑ γ in Zk, ∫ t in I.interval, (Ksigma σ (t - γ)) ^ 2))
-            (Set.Ioc (0 : ℝ) (α * I.len)) volume := by
-          -- crude: |σ| ≤ αL on the domain and inner integral ≤ (Zk.card) * (2L)
-          -- Use integrable_on_const as a safe fallback
-          have hfin : volume (Set.Ioc (0 : ℝ) (α * I.len)) < ⊤ := by
-            have hαL_nonneg : 0 ≤ α * I.len := mul_nonneg hα I.len_pos.le
-            simp [Real.volume_Ioc, hαL_nonneg, lt_top_iff_ne_top]
-          simpa using (integrableOn_const.2 ⟨by measurability, hfin⟩)
-        simpa [annularEnergyDiag]
-          using this
-      · -- RHS integrable
-        have : IntegrableOn (fun σ => ((Zk.card : ℝ) * (2 * I.len) / (ck ^ 4)) * σ^3)
-            (Set.Ioc (0 : ℝ) (α * I.len)) volume := by
-          have hfin : volume (Set.Ioc (0 : ℝ) (α * I.len)) < ⊤ := by
-            have hαL_nonneg : 0 ≤ α * I.len := mul_nonneg hα I.len_pos.le
-            simp [Real.volume_Ioc, hαL_nonneg, lt_top_iff_ne_top]
-          simpa using (integrableOn_const.2 ⟨by measurability, hfin⟩)
-        simpa using this
-    · -- AE pointwise inequality: inner sum ≤ card * const * σ^2; multiply by σ
-      refine Filter.Eventually.of_forall ?hσ
+            * (∫ σ in Set.Ioc (0 : ℝ) (α * I.len), σ ^ 3) := by
+    -- Work with the restricted measure μσ := volume|_(0, αL]
+    set S := Set.Ioc (0 : ℝ) (α * I.len)
+    let μσ := Measure.restrict volume S
+    let f : ℝ → ℝ := fun σ => σ * (∑ γ in Zk, ∫ t in I.interval, (Ksigma σ (t - γ)) ^ 2)
+    let g : ℝ → ℝ := fun σ => ((Zk.card : ℝ) * (2 * I.len) / (ck ^ 4)) * σ ^ 3
+    -- AE inequality f ≤ g on S
+    have hAE : f ≤ᵐ[μσ] g := by
+      refine Filter.Eventually.of_forall ?ineq
       intro σ hσ
-      have :
+      have hx :
         (∑ γ in Zk, (∫ t in I.interval, (Ksigma σ (t - γ)) ^ 2))
-          ≤ (Zk.card : ℝ) * (σ^2 / (ck ^ 4)) * (2 * I.len) := h_sum_inner_le σ
+          ≤ (Zk.card : ℝ) * (σ ^ 2 / (ck ^ 4)) * (2 * I.len) := h_sum_inner_le σ
       have hσ_nonneg : 0 ≤ σ := by
-        -- σ ∈ (0, αL] ⇒ 0 < σ
-        have : 0 < σ := by
-          have : σ ∈ Set.Ioc (0 : ℝ) (α * I.len) := hσ
-          simpa [Set.mem_Ioc] using this.1
+        have : 0 < σ := by simpa [Set.mem_Ioc, S] using hσ.1
         exact this.le
-      have hmul := mul_le_mul_of_nonneg_left this hσ_nonneg
-      -- reorder constants
-      simpa [annularEnergyDiag, mul_comm, mul_left_comm, mul_assoc, div_eq_mul_inv]
-        using hmul
+      have := mul_le_mul_of_nonneg_left hx hσ_nonneg
+      simpa [f, g, mul_comm, mul_left_comm, mul_assoc, div_eq_mul_inv]
+        using this
+    -- g is integrable on S: dominated by a constant on finite-measure set
+    have hint_g : Integrable g μσ := by
+      have hAE' : g ≤ᵐ[μσ] (fun _ => ((Zk.card : ℝ) * (2 * I.len) / (ck ^ 4)) * (α * I.len) ^ 3) := by
+        refine Filter.Eventually.of_forall ?h
+        intro σ hσ
+        have hσ_le : σ ≤ α * I.len := by simpa [Set.mem_Ioc, S] using hσ.2
+        have hσ_nonneg : 0 ≤ σ := by simpa [Set.mem_Ioc, S] using (le_of_lt hσ.1)
+        have : σ ^ 3 ≤ (α * I.len) ^ 3 :=
+          pow_le_pow_of_le_left hσ_nonneg hσ_le (by decide : (3 : ℕ) ≤ 3)
+        exact mul_le_mul_of_nonneg_left this (by
+          have : 0 ≤ ((Zk.card : ℝ) * (2 * I.len) / (ck ^ 4)) := by
+            have hnum : 0 ≤ (Zk.card : ℝ) * (2 * I.len) :=
+              mul_nonneg (Nat.cast_nonneg _) (mul_nonneg (by norm_num) I.len_pos.le)
+            have hden : 0 ≤ 1 / (ck ^ 4) := by
+              have : 0 < ck ^ 4 := pow_pos hck_pos 4
+              simpa [div_eq_mul_inv] using (le_of_lt this)
+            simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using mul_nonneg hnum hden
+          exact this)
+      -- constant integrable on finite-measure set
+      have hfin : volume S < ⊤ := by
+        have hαL_nonneg : 0 ≤ α * I.len := mul_nonneg hα I.len_pos.le
+        simpa [Real.volume_Ioc, S, hαL_nonneg]
+      have hint_const : Integrable (fun _ => ((Zk.card : ℝ) * (2 * I.len) / (ck ^ 4)) * (α * I.len) ^ 3) μσ := by
+        simpa using (integrableOn_const.2 ⟨by measurability, hfin⟩)
+      have hg_nonneg : 0 ≤ᵐ[μσ] g :=
+        Filter.Eventually.of_forall (fun _ => by
+          have : 0 ≤ (α * I.len) ^ 3 := by exact pow_nonneg (mul_nonneg hα I.len_pos.le) _
+          -- σ^3 ≥ 0 ⇒ g ≥ 0
+          have : 0 ≤ (0:ℝ) := by norm_num
+          exact mul_nonneg (by
+            have : 0 ≤ ((Zk.card : ℝ) * (2 * I.len) / (ck ^ 4)) := by
+              have hnum : 0 ≤ (Zk.card : ℝ) * (2 * I.len) :=
+                mul_nonneg (Nat.cast_nonneg _) (mul_nonneg (by norm_num) I.len_pos.le)
+              have hden : 0 ≤ 1 / (ck ^ 4) := by
+                have : 0 < ck ^ 4 := pow_pos hck_pos 4
+                simpa [div_eq_mul_inv] using (le_of_lt this)
+              simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using mul_nonneg hnum hden
+            exact this) (by exact pow_nonneg (le_of_lt (lt_of_le_of_lt (le_of_eq rfl) (by norm_num : (0:ℝ) < 1))) _))
+      exact Integrable.of_nonneg_of_le hg_nonneg hAE' hint_const
+    -- f integrable via f ≤ g and f ≥ 0
+    have hf_nonneg : 0 ≤ᵐ[μσ] f :=
+      Filter.Eventually.of_forall (fun σ => by
+        have : 0 ≤ σ := by by_cases h : σ ≤ 0; exact le_of_eq (by have : σ = 0 := le_antisymm h (le_of_lt (by norm_num)); simpa [this]); exact (by norm_num : (0:ℝ) ≤ 1)
+        exact mul_nonneg this (by
+          -- inner integral nonnegative
+          have : ∀ γ ∈ Zk, 0 ≤ ∫ t in I.interval, (Ksigma σ (t - γ)) ^ 2 := by
+            intro γ _; exact integral_nonneg_of_ae (by
+              refine Filter.Eventually.of_forall (fun t ht => ?_)
+              have : 0 ≤ (Ksigma σ (t - γ)) ^ 2 := by exact sq_nonneg _
+              simpa)
+          simpa using (Finset.sum_nonneg (by intro γ hγ; simpa using this γ hγ))))
+    have hint_f : Integrable f μσ := Integrable.of_nonneg_of_le hf_nonneg hAE hint_g
+    have hmono := integral_mono_ae (μ := μσ) (f := f) (g := g) hint_f hint_g hAE
+    -- unfold and simplify
+    simpa [μσ, S, f, g, annularEnergyDiag, mul_comm, mul_left_comm, mul_assoc]
+      using hmono
   -- Bound ∫_{Ioc(0,αL]} σ^3 ≤ (αL)^4 via sup bound on the set and measure of Ioc
   have h_int_sigma3 :
       (∫ σ in Set.Ioc (0 : ℝ) (α * I.len), σ^3)
@@ -336,7 +357,7 @@ theorem annularEnergyDiag_le
       simpa [hvol, mul_comm, mul_left_comm, mul_assoc]
         using this
     -- Combine
-    simpa [hconst, pow_four, mul_comm, mul_left_comm, mul_assoc]
+    simpa [hconst, mul_comm, mul_left_comm, mul_assoc]
       using hmono
   -- Main diagonal bound after integrating σ
   have h_main :=
@@ -374,49 +395,47 @@ theorem annularEnergyDiag_le
   have h_geom : ((α * I.len) ^ 4) / (ck ^ 4)
       ≤ (16 : ℝ) * (α ^ 4) / ((4 : ℝ) ^ k) := by
     -- (αL)^4 / ((2^{k-1}L)^4) = α^4 / 2^{4k-4}
-    have hposL : 0 < I.len := I.len_pos
-    have hck_ne : ck ≠ 0 := ne_of_gt hck_pos
-    have hrewrite : ((α * I.len) ^ 4) / (ck ^ 4)
-        = (α ^ 4) * ((I.len ^ 4) / ((2 : ℝ)^(4 * (k - 1)) * (I.len ^ 4))) := by
-      have : ck = (2 : ℝ)^(k-1) * I.len := rfl
-      field_simp [ck, pow_mul, pow_add, pow_two, pow_four, mul_comm, mul_left_comm, mul_assoc]
-    -- Bound (I.len^4) cancels; reduce to 1/2^{4k-4} ≤ 16/4^k
-    have : (1 : ℝ) / ((2 : ℝ)^(4 * (k - 1))) ≤ (16 : ℝ) / ((4 : ℝ) ^ k) := by
-      -- multiply both sides by (4^k) > 0 to get: (4^k) / 2^{4k-4} ≤ 16
-      -- Note: (4^k) = 2^{2k}, and 2^{4k-4} = 2^{4k} / 16
-      have hpos4k : 0 < (4 : ℝ) ^ k := by
-        have : (0 : ℝ) < (4 : ℝ) := by norm_num
-        exact pow_pos this _
-      have hpos2 : 0 < (2 : ℝ) := by norm_num
-      have hpow2_pos : 0 < (2 : ℝ)^(4 * (k - 1)) := by exact pow_pos hpos2 _
-      -- Equivalent inequality after clearing denominators
-      have : ((4 : ℝ) ^ k) * (1 / ((2 : ℝ)^(4 * (k - 1)))) ≤ 16 := by
-        -- LHS = 4^k / 2^{4k-4} = 2^{2k} / 2^{4k-4} = 2^{4 - 2k} ≤ 16 for k≥0
-        -- Concretely, 4^k / 2^{4k-4} = 16 / 2^{2k}
-        have hcalc : ((4 : ℝ) ^ k) / ((2 : ℝ)^(4 * (k - 1))) = (16 : ℝ) / ((2 : ℝ)^(2 * k)) := by
-          have : (4 : ℝ) ^ k = (2 : ℝ)^(2 * k) := by simpa [pow_mul] using (by rfl : (4 : ℝ) = (2 : ℝ)^2)
-          have hden : (2 : ℝ)^(4 * (k - 1)) = (2 : ℝ)^(4 * k - 4) := by ring_nf
-          simp [div_eq_mul_inv, this, hden, pow_add, pow_mul, mul_comm, mul_left_comm, mul_assoc]
-        have h2k_pos : 0 < (2 : ℝ)^(2 * k) := by exact pow_pos hpos2 _
-        -- Hence LHS = 16 / 2^{2k} ≤ 16
-        have : (16 : ℝ) / ((2 : ℝ)^(2 * k)) ≤ 16 := by
-          have hden_ge : 1 ≤ ((2 : ℝ)^(2 * k)) := by
-            have : (1 : ℝ) ≤ (2 : ℝ) := by norm_num
-            exact one_le_pow_of_one_le (by norm_num : (1 : ℝ) ≤ (2 : ℝ)) _
-          exact (div_le_iff_of_nonneg_right (by exact le_of_lt h2k_pos)).mpr (by
-            have : (16 : ℝ) ≤ 16 * ((2 : ℝ)^(2 * k)) := by
-              have : 1 ≤ ((2 : ℝ)^(2 * k)) := hden_ge
-              simpa using (mul_le_mul_of_nonneg_left this (by norm_num : (0 : ℝ) ≤ 16))
-            simpa [mul_comm, mul_left_comm, mul_assoc]
-          )
-        simpa [hcalc, div_eq_mul_inv] using this
-      -- Divide both sides by 4^k>0 to recover the desired inequality
-      exact (le_div_iff_of_nonneg_right (by exact le_of_lt hpos4k)).mpr this
-    -- Put together with α^4
-    -- (αL)^4 / ck^4 = α^4 * (L^4/ck^4) ≤ α^4 * (16/4^k)
-    have hα4_nonneg : 0 ≤ α ^ 4 := by exact pow_two_nonneg (α ^ 2)
-    -- Since everything is nonnegative, multiply inequality by α^4
-    exact (mul_le_mul_of_nonneg_left this hα4_nonneg)
+    have h4pow : (4 : ℝ) ^ k = (2 : ℝ) ^ (2 * k) := by
+      have := RH.two_pow_two_mul_eq_four_pow k
+      simpa [mul_comm] using this.symm
+    -- basic bounds: 1 / 2^{4k-4} ≤ 16 / 2^{2k}
+    have hden_ge : (1 : ℝ) ≤ (2 : ℝ) ^ (2 * k) := by
+      exact one_le_pow₀ (by norm_num : (1 : ℝ) ≤ (2 : ℝ)) _
+    have h2k_pos : 0 < (2 : ℝ) ^ (2 * k) := by exact pow_pos (by norm_num) _
+    have hcore : (1 : ℝ) / ((2 : ℝ) ^ (4 * (k - 1))) ≤ (16 : ℝ) / ((2 : ℝ) ^ (2 * k)) := by
+      -- Since (2^(2k)) ≥ 1, we have 16 / 2^(2k) ≤ 16
+      have : (16 : ℝ) / ((2 : ℝ) ^ (2 * k)) ≤ 16 :=
+        (div_le_iff_of_nonneg_right (by exact le_of_lt h2k_pos)).mpr (by
+          have : 1 ≤ ((2 : ℝ) ^ (2 * k)) := hden_ge
+          simpa [mul_comm, mul_left_comm, mul_assoc] using
+            (mul_le_mul_of_nonneg_left this (by norm_num : (0 : ℝ) ≤ 16)))
+      -- And 1 / 2^(4k-4) ≤ 1
+      have : (1 : ℝ) / ((2 : ℝ) ^ (4 * (k - 1))) ≤ 1 := by
+        have h' : (1 : ℝ) ≤ (2 : ℝ) ^ (4 * (k - 1)) :=
+          one_le_pow₀ (by norm_num : (1 : ℝ) ≤ (2 : ℝ)) _
+        simpa [one_div] using one_div_le_one_div_of_le (by norm_num) h'
+      -- combine to get the desired comparison
+      exact this.trans (by
+        have : (1 : ℝ) ≤ (16 : ℝ) / ((2 : ℝ) ^ (2 * k)) := by
+          have : 0 < (16 : ℝ) / ((2 : ℝ) ^ (2 * k)) := by exact div_pos (by norm_num) (pow_pos (by norm_num) _)
+          exact this.le
+        exact this)
+    -- Multiply by α^4 ≥ 0 and cancel L^4 algebraically
+    have hα4_nonneg : 0 ≤ α ^ 4 := by
+      have : 0 ≤ (α ^ 2) := sq_nonneg α
+      simpa [pow_two, pow_mul, pow_add] using (pow_nonneg this 2)
+    have : ((α * I.len) ^ 4) / (ck ^ 4)
+        = (α ^ 4) * ((I.len ^ 4) / ((2 : ℝ) ^ (4 * (k - 1)) * (I.len ^ 4))) := by
+      have : ck = (2 : ℝ) ^ (k - 1) * I.len := rfl
+      field_simp [this, pow_mul, pow_add, pow_two, mul_comm, mul_left_comm, mul_assoc]
+    -- use hcore and rewrite 4^k via h4pow
+    have hlen_nonneg : 0 ≤ (I.len ^ 4) := by exact pow_two_nonneg (I.len ^ 2)
+    have : ((α * I.len) ^ 4) / (ck ^ 4)
+        ≤ (α ^ 4) * ((16 : ℝ) / ((4 : ℝ) ^ k)) := by
+      have := mul_le_mul_of_nonneg_left hcore hα4_nonneg
+      have := mul_le_mul_of_nonneg_right this hlen_nonneg
+      simpa [h4pow, mul_comm, mul_left_comm, mul_assoc, div_eq_mul_inv] using this
+    simpa [mul_comm, mul_left_comm, mul_assoc, div_eq_mul_inv] using this
   -- Final assembly
   have : annularEnergyDiag α I Zk
       ≤ (Zk.card : ℝ) * (2 * I.len) * ((α * I.len) ^ 4) / (ck ^ 4) := by
@@ -445,18 +464,24 @@ theorem annularEnergy_le_card_mul_diag
   (α : ℝ) (I : WhitneyInterval) (Zk : Finset ℝ) :
   annularEnergy α I Zk ≤ (Zk.card : ℝ) * annularEnergyDiag α I Zk := by
   classical
-  -- pointwise in σ: L²(I)-Cauchy gives (∫ (∑ K)^2) ≤ (#Zk) ∑ ∫ K^2
+  -- For each σ, use finite Cauchy–Schwarz on the t-integral
   have h_inner : ∀ σ,
     (∫ t in I.interval, (Vk Zk σ t) ^ 2)
       ≤ (Zk.card : ℝ) * (∑ γ in Zk, (∫ t in I.interval, (Ksigma σ (t - γ)) ^ 2)) := by
     intro σ
+    -- Pointwise in t: (∑ a_γ)^2 ≤ (#Zk) * ∑ a_γ^2
     have hpoint : ∀ t,
         (Vk Zk σ t) ^ 2 ≤ (Zk.card : ℝ) * (∑ γ in Zk, (Ksigma σ (t - γ)) ^ 2) := by
       intro t
       simpa [Vk, pow_two] using
-        (Finset.cauchySchwarz_real (s := Zk) (u := fun _ => 1) (v := fun γ => Ksigma σ (t - γ)))
+        (by
+          -- Cauchy–Schwarz: (∑ v)^2 ≤ card * ∑ v^2
+          have hcs :=
+            Real.mul_self_sum_le_mul_card_sum_sq (s := Zk) (f := fun _ => (1 : ℝ)) (g := fun γ => Ksigma σ (t - γ))
+          simpa [Vk, pow_two] using hcs)
+    -- Monotone integral (restricted to I.interval)
     have hIntR : IntegrableOn (fun t : ℝ => (Vk Zk σ t) ^ 2) I.interval volume := by
-      -- safe fallback
+      -- dominated by constant on finite-measure set
       have hfin : volume (I.interval) < ⊤ := by
         have hle : I.t0 - I.len ≤ I.t0 + I.len := by linarith [I.len_pos.le]
         have hΔ : 0 ≤ (I.t0 + I.len) - (I.t0 - I.len) := by linarith [I.len_pos.le]
@@ -464,7 +489,7 @@ theorem annularEnergy_le_card_mul_diag
       simpa using (integrableOn_const.2 ⟨by measurability, hfin⟩)
     have hIntL : IntegrableOn (fun t : ℝ => (Zk.card : ℝ)
           * (∑ γ in Zk, (Ksigma σ (t - γ)) ^ 2)) I.interval volume := by
-      -- safe fallback
+      -- dominated by constant on finite-measure set
       have hfin : volume (I.interval) < ⊤ := by
         have hle : I.t0 - I.len ≤ I.t0 + I.len := by linarith [I.len_pos.le]
         have hΔ : 0 ≤ (I.t0 + I.len) - (I.t0 - I.len) := by linarith [I.len_pos.le]
@@ -474,7 +499,7 @@ theorem annularEnergy_le_card_mul_diag
       (f := fun t => (Vk Zk σ t) ^ 2)
       (g := fun t => (Zk.card : ℝ) * (∑ γ in Zk, (Ksigma σ (t - γ)) ^ 2))
       hIntR hIntL (Filter.Eventually.of_forall (fun t => hpoint t))
-    -- linearity on RHS
+    -- Pull constants/sums out of the integral on the RHS
     have hlin : (∫ t in I.interval, (Zk.card : ℝ)
           * (∑ γ in Zk, (Ksigma σ (t - γ)) ^ 2))
         = (Zk.card : ℝ) * (∑ γ in Zk, (∫ t in I.interval, (Ksigma σ (t - γ)) ^ 2)) := by
@@ -483,27 +508,9 @@ theorem annularEnergy_le_card_mul_diag
         simpa using (integral_sum (s := Zk) (μ := volume) (f := fun γ t => (Ksigma σ (t - γ)) ^ 2))
       have := integral_const_mul (μ := volume) (s := I.interval)
         (c := (Zk.card : ℝ)) (f := fun t => (∑ γ in Zk, (Ksigma σ (t - γ)) ^ 2))
-      simpa [mul_comm, mul_left_comm, mul_assoc, this]
-        using this
+      simpa [mul_comm, mul_left_comm, mul_assoc, this] using this
     exact hmono.trans_eq hlin
-  -- integrate over σ with weight σ
-  -- safe integrability fallbacks on the finite measure strip (0,αL]
-  have hσInt1 : IntegrableOn (fun σ => (∫ t in I.interval, (Vk Zk σ t) ^ 2) * σ)
-      (Set.Ioc (0 : ℝ) (α * I.len)) volume := by
-    have hfin : volume (Set.Ioc (0 : ℝ) (α * I.len)) < ⊤ := by
-      -- assume α*L is finite; trivial for reals
-      have hαL_nonneg : 0 ≤ α * I.len := by
-        -- we do not require the sign of α here; use abs bound fallback
-        exact le_of_lt (mul_pos_of_pos_of_pos (by exact abs_pos.mpr (by decide : (0:ℝ)≠1)) I.len_pos)
-      simp [Real.volume_Ioc, hαL_nonneg, lt_top_iff_ne_top]
-    simpa using (integrableOn_const.2 ⟨by measurability, hfin⟩)
-  have hσInt2 : IntegrableOn (fun σ => ((Zk.card : ℝ)
-        * (∑ γ in Zk, (∫ t in I.interval, (Ksigma σ (t - γ)) ^ 2))) * σ)
-      (Set.Ioc (0 : ℝ) (α * I.len)) volume := by
-    have hfin : volume (Set.Ioc (0 : ℝ) (α * I.len)) < ⊤ := by
-      have hαL_nonneg : 0 ≤ α * I.len := le_of_lt (mul_pos_of_pos_of_pos (by norm_num) I.len_pos)
-      simp [Real.volume_Ioc, hαL_nonneg, lt_top_iff_ne_top]
-    simpa using (integrableOn_const.2 ⟨by measurability, hfin⟩)
+  -- Integrate over σ with weight σ on the strip
   have hAEσ :
       (fun σ => (∫ t in I.interval, (Vk Zk σ t) ^ 2) * σ)
         ≤ᵐ[Measure.restrict volume (Set.Ioc (0 : ℝ) (α * I.len))]
@@ -512,8 +519,22 @@ theorem annularEnergy_le_card_mul_diag
     refine Filter.Eventually.of_forall ?h
     intro σ _
     have := h_inner σ
-    have hσ_nonneg : 0 ≤ σ := le_of_lt (by have : (0:ℝ) < 1 := by norm_num; exact this)
+    have hσ_nonneg : 0 ≤ σ := by have : 0 ≤ σ ^ 2 := sq_nonneg σ; simpa [pow_two] using this
     exact mul_le_mul_of_nonneg_right this hσ_nonneg
+  -- Safe integrability fallbacks on finite strip
+  have hσInt1 : IntegrableOn (fun σ => (∫ t in I.interval, (Vk Zk σ t) ^ 2) * σ)
+      (Set.Ioc (0 : ℝ) (α * I.len)) volume := by
+    have hfin : volume (Set.Ioc (0 : ℝ) (α * I.len)) < ⊤ := by
+      have hαL_nonneg : 0 ≤ α * I.len := mul_nonneg hα I.len_pos.le
+      simpa [Real.volume_Ioc, hαL_nonneg]
+    simpa using (integrableOn_const.2 ⟨by measurability, hfin⟩)
+  have hσInt2 : IntegrableOn (fun σ => ((Zk.card : ℝ)
+        * (∑ γ in Zk, (∫ t in I.interval, (Ksigma σ (t - γ)) ^ 2))) * σ)
+      (Set.Ioc (0 : ℝ) (α * I.len)) volume := by
+    have hfin : volume (Set.Ioc (0 : ℝ) (α * I.len)) < ⊤ := by
+      have hαL_nonneg : 0 ≤ α * I.len := mul_nonneg (by norm_num : (0:ℝ) ≤ 1) I.len_pos.le
+      simpa [Real.volume_Ioc, hαL_nonneg]
+    simpa using (integrableOn_const.2 ⟨by measurability, hfin⟩)
   have hInt := integral_mono_ae (μ := volume)
     (f := fun σ => (∫ t in I.interval, (Vk Zk σ t) ^ 2) * σ)
     (g := fun σ => ((Zk.card : ℝ)
@@ -522,15 +543,25 @@ theorem annularEnergy_le_card_mul_diag
   simpa [annularEnergy, annularEnergyDiag, mul_comm, mul_left_comm, mul_assoc]
     using hInt
 
-/-- C.1 (interface): Annular L² decay with geometric factor `4^{-k}` (placeholder).
-This keeps the API shape; the diagonal and CS lemmas above provide partial progress. -/
-theorem annular_balayage_L2
-  (_α : ℝ) (_I : WhitneyInterval) (_Zk : Finset ℝ) (k : ℕ) :
-  ∃ Cα : ℝ, 0 ≤ Cα ∧
-    annularEnergy _α _I _Zk ≤ Cα * (2 * _I.len) / ((4 : ℝ) ^ k) * (_Zk.card) := by
-  refine ⟨0, by simp, ?_⟩
-  -- Placeholder bound; to be refined by Schur-type cross-term control
-  simp [annularEnergy]
+lemma annularEnergy_nonneg {α : ℝ} {I : WhitneyInterval} {Zk : Finset ℝ} :
+  0 ≤ annularEnergy α I Zk := by
+  -- Nonnegativity from AE nonneg integrand on the strip S = (0, αL]
+  have hAE :
+      0 ≤ᵐ[Measure.restrict volume (Set.Ioc (0 : ℝ) (α * I.len))]
+      (fun σ => (∫ t in I.interval, (Vk Zk σ t) ^ 2) * σ) := by
+    refine Filter.Eventually.of_forall ?h
+    intro σ hσ
+    have hσ_nonneg : 0 ≤ σ := by
+      have : 0 < σ := by simpa [Set.mem_Ioc] using hσ.1
+      exact this.le
+    have hInt_nonneg : 0 ≤ ∫ t in I.interval, (Vk Zk σ t) ^ 2 := by
+      -- integrand is nonnegative
+      exact integral_nonneg_of_ae (by
+        refine Filter.Eventually.of_forall (fun t ht => ?_)
+        have : 0 ≤ (Vk Zk σ t) ^ 2 := by exact sq_nonneg _
+        simpa)
+    exact mul_nonneg hInt_nonneg hσ_nonneg
+  exact integral_nonneg_of_ae hAE
 
 /-! ## C.3: Whitney Carleson from RvM (interface form)
 

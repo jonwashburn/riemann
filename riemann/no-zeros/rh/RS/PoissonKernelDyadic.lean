@@ -125,9 +125,17 @@ lemma conv_upper_bound_4decay_of_sep
     ≤ Real.pi * ((σ + τ) / (sep ^ 2 * L ^ 2)) * ((4 : ℝ) ^ d)⁻¹ := by
   have hKs := Ksigma_add_bound_of_dyadic_sep (σ := σ) (τ := τ)
     (sep := sep) (L := L) hσ hτ hsep hL (a := a) (b := b) (d := d) hsepAB
-  have hπpos : 0 ≤ Real.pi := Real.pi_pos.le
-  have hπKs := mul_le_mul_of_nonneg_left hKs hπpos
-  simpa [hconv, mul_assoc, mul_left_comm, mul_comm] using hπKs
+  have hπKs :
+      Real.pi * Ksigma (σ + τ) (a - b)
+        ≤ Real.pi * (((σ + τ) / (sep ^ 2 * L ^ 2)) * ((4 : ℝ) ^ d)⁻¹) :=
+    mul_le_mul_of_nonneg_left hKs Real.pi_pos.le
+  calc
+    (∫ t, Ksigma σ (t - a) * Ksigma τ (t - b))
+        = Real.pi * Ksigma (σ + τ) (a - b) := by simpa [hconv]
+    _ ≤ Real.pi * (((σ + τ) / (sep ^ 2 * L ^ 2)) * ((4 : ℝ) ^ d)⁻¹) := by
+      simpa [mul_comm, mul_left_comm, mul_assoc] using hπKs
+    _ = Real.pi * ((σ + τ) / (sep ^ 2 * L ^ 2)) * ((4 : ℝ) ^ d)⁻¹ := by
+      ring
 
 -- move monotonicity lemma above first use
 lemma Ksigma_pos {σ x : ℝ} (hσ : 0 < σ) : 0 < Ksigma σ x := by
@@ -146,7 +154,7 @@ lemma Ksigma_prod_integrable {σ τ a b : ℝ} (hσ : 0 < σ) (hτ : 0 < τ) :
   -- Nonnegativity of the integrand
   have hf_nonneg : ∀ t, 0 ≤ Ksigma σ (t - a) * Ksigma τ (t - b) := by
     intro t; exact Ksigma_mul_nonneg (σ := σ) (τ := τ) hσ.le hτ.le t a b
-  -- Constants giving uniform control of denominators
+  -- Constants controlling denominators
   let cσ : ℝ := min (1 : ℝ) (σ ^ 2)
   let cτ : ℝ := min (1 : ℝ) (τ ^ 2)
   have cσ_pos : 0 < cσ := lt_min_iff.mpr ⟨by norm_num, pow_pos hσ 2⟩
@@ -155,7 +163,7 @@ lemma Ksigma_prod_integrable {σ τ a b : ℝ} (hσ : 0 < σ) (hτ : 0 < τ) :
   have cσ_le_sq : cσ ≤ σ ^ 2 := min_le_right _ _
   have cτ_le_one : cτ ≤ 1 := min_le_left _ _
   have cτ_le_sq : cτ ≤ τ ^ 2 := min_le_right _ _
-  -- Inverse-monotonicity bounds
+  -- Inverse monotonicity bounds
   have invA : ∀ t, ((t - a) ^ 2 + σ ^ 2)⁻¹ ≤ (cσ * (1 + (t - a) ^ 2))⁻¹ := by
     intro t
     have hsum : cσ + cσ * (t - a) ^ 2 ≤ σ ^ 2 + (t - a) ^ 2 := by
@@ -182,59 +190,73 @@ lemma Ksigma_prod_integrable {σ τ a b : ℝ} (hσ : 0 < σ) (hτ : 0 < τ) :
     exact RH.inv_le_inv_of_le hpos hle
   -- Pointwise domination by a simple integrable function
   let C : ℝ := (σ * τ) * (cσ * cτ)⁻¹
-  have hmajor : ∀ t, |Ksigma σ (t - a) * Ksigma τ (t - b)| ≤ C * (1 + (t - a) ^ 2)⁻¹ := by
+  have h_major : ∀ t, Ksigma σ (t - a) * Ksigma τ (t - b)
+      ≤ C * (1 + (t - a) ^ 2)⁻¹ := by
     intro t
-    have hnonneg := hf_nonneg t
-    have hEq : Ksigma σ (t - a) * Ksigma τ (t - b)
-        = (σ * τ) * (((t - a) ^ 2 + σ ^ 2)⁻¹ * ((t - b) ^ 2 + τ ^ 2)⁻¹) := by
-      simp [Ksigma, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
-    have hA := invA t
-    have hB := invB t
-    have hmul := mul_le_mul hA hB (by positivity) (by positivity)
-    have hstep1 : Ksigma σ (t - a) * Ksigma τ (t - b)
-        ≤ (σ * τ) * ((cσ * (1 + (t - a) ^ 2))⁻¹ * (cτ * (1 + (t - b) ^ 2))⁻¹) := by
-      simpa [hEq, mul_comm, mul_left_comm, mul_assoc] using
-        mul_le_mul_of_nonneg_left hmul (by positivity)
-    have hsep : (cσ * (1 + (t - a) ^ 2))⁻¹ * (cτ * (1 + (t - b) ^ 2))⁻¹
-        = (cσ * cτ)⁻¹ * (1 + (t - a) ^ 2)⁻¹ * (1 + (t - b) ^ 2)⁻¹ := by
-      have h1 : (cσ * (1 + (t - a) ^ 2))⁻¹ = cσ⁻¹ * (1 + (t - a) ^ 2)⁻¹ := by
+    -- bound each kernel using invA/invB
+    have hKA : Ksigma σ (t - a) ≤ (σ / cσ) * (1 + (t - a) ^ 2)⁻¹ := by
+      unfold Ksigma
+      have := invA t
+      have hσ_nonneg : 0 ≤ σ := le_of_lt hσ
+      have hmul := mul_le_mul_of_nonneg_left this hσ_nonneg
+      -- σ * (cσ * X)⁻¹ = (σ / cσ) * X⁻¹ (by_cases)
+      have : σ * (cσ * (1 + (t - a) ^ 2))⁻¹ = (σ / cσ) * (1 + (t - a) ^ 2)⁻¹ := by
         by_cases hcσ : cσ = 0
         · simp [hcσ]
         · field_simp [hcσ, one_div, mul_comm, mul_left_comm, mul_assoc]
-      have h2 : (cτ * (1 + (t - b) ^ 2))⁻¹ = cτ⁻¹ * (1 + (t - b) ^ 2)⁻¹ := by
+      simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc, this]
+        using hmul
+    have hKB : Ksigma τ (t - b) ≤ (τ / cτ) * (1 + (t - b) ^ 2)⁻¹ := by
+      unfold Ksigma
+      have := invB t
+      have hτ_nonneg : 0 ≤ τ := le_of_lt hτ
+      have hmul := mul_le_mul_of_nonneg_left this hτ_nonneg
+      have : τ * (cτ * (1 + (t - b) ^ 2))⁻¹ = (τ / cτ) * (1 + (t - b) ^ 2)⁻¹ := by
         by_cases hcτ : cτ = 0
         · simp [hcτ]
         · field_simp [hcτ, one_div, mul_comm, mul_left_comm, mul_assoc]
-      have : cσ⁻¹ * (1 + (t - a) ^ 2)⁻¹ * (cτ⁻¹ * (1 + (t - b) ^ 2)⁻¹)
-          = (cσ * cτ)⁻¹ * (1 + (t - a) ^ 2)⁻¹ * (1 + (t - b) ^ 2)⁻¹ := by
-        by_cases hcσ : cσ = 0 <;> by_cases hcτ : cτ = 0
-        · simp [hcσ, hcτ]
-        · simp [hcσ, hcτ, one_div, mul_comm, mul_left_comm, mul_assoc]
-      simpa [h1, h2, mul_comm, mul_left_comm, mul_assoc] using this
+      simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc, this]
+        using hmul
+    have hmul' := mul_le_mul hKA hKB (by positivity) (by positivity)
+    -- drop the (1 + (t - b)^2)⁻¹ factor using ≤ 1
     have hdrop : (1 + (t - b) ^ 2)⁻¹ ≤ (1 : ℝ) := by
       have : (1 : ℝ) ≤ 1 + (t - b) ^ 2 := by linarith [sq_nonneg (t - b)]
       have h1 : 0 < (1 : ℝ) := by norm_num
       simpa [one_div] using RH.inv_le_inv_of_le h1 this
-    have hC_nonneg : 0 ≤ (σ * τ) * (cσ * cτ)⁻¹ * (1 + (t - a) ^ 2)⁻¹ := by positivity
-    have hfinal : Ksigma σ (t - a) * Ksigma τ (t - b)
-        ≤ (σ * τ) * (cσ * cτ)⁻¹ * (1 + (t - a) ^ 2)⁻¹ := by
-      have := mul_le_mul_of_nonneg_left hdrop hC_nonneg
-      have := le_trans (le_of_eq (by ring_nf :
-        (σ * τ) * ((cσ * (1 + (t - a) ^ 2))⁻¹ * (cτ * (1 + (t - b) ^ 2))⁻¹)
-          = (σ * τ) * (cσ * cτ)⁻¹ * (1 + (t - a) ^ 2)⁻¹ * (1 + (t - b) ^ 2)⁻¹))
-        (by simpa [mul_comm, mul_left_comm, mul_assoc] using this)
-      exact this
-    have : |Ksigma σ (t - a) * Ksigma τ (t - b)|
-        = Ksigma σ (t - a) * Ksigma τ (t - b) := by
-      simpa [abs_of_nonneg (hnonneg)]
-    simpa [this, mul_comm, mul_left_comm, mul_assoc] using
-      (le_trans hstep1 <| by
-        simpa [hsep, mul_comm, mul_left_comm, mul_assoc] using hfinal)
+    have hctau_nonneg : 0 ≤ τ / cτ := by positivity
+    have hstep : (τ / cτ) * (1 + (t - b) ^ 2)⁻¹ ≤ (τ / cτ) * 1 :=
+      mul_le_mul_of_nonneg_left hdrop hctau_nonneg
+    have hprod_drop :
+        ((σ / cσ) * (1 + (t - a) ^ 2)⁻¹) * ((τ / cτ) * (1 + (t - b) ^ 2)⁻¹)
+        ≤ ((σ / cσ) * (1 + (t - a) ^ 2)⁻¹) * ((τ / cτ) * 1) :=
+      mul_le_mul_of_nonneg_left hstep (by positivity)
+    have hmul_le :
+        Ksigma σ (t - a) * Ksigma τ (t - b)
+        ≤ ((σ / cσ) * (1 + (t - a) ^ 2)⁻¹) * ((τ / cτ) * (1 + (t - b) ^ 2)⁻¹) := by
+      simpa [Ksigma, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using hmul'
+    have : Ksigma σ (t - a) * Ksigma τ (t - b)
+        ≤ ((σ / cσ) * (1 + (t - a) ^ 2)⁻¹) * ((τ / cτ) * 1) :=
+      le_trans hmul_le hprod_drop
+    have : Ksigma σ (t - a) * Ksigma τ (t - b)
+        ≤ ((σ * τ) / (cσ * cτ)) * (1 + (t - a) ^ 2)⁻¹ := by
+      have : ((σ / cσ) * (1 + (t - a) ^ 2)⁻¹) * ((τ / cτ) * 1)
+          = ((σ * τ) / (cσ * cτ)) * (1 + (t - a) ^ 2)⁻¹ := by
+        by_cases hcσ : cσ = 0 <;> by_cases hcτ : cτ = 0
+        · simp [hcσ, hcτ, mul_comm, mul_left_comm, mul_assoc]
+        · field_simp [hcσ, hcτ, one_div, mul_comm, mul_left_comm, mul_assoc]
+      simpa [this, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using this
+    simpa [C, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using this
   -- Integrable majorant
   have hint : Integrable (fun t : ℝ => C * (1 + (t - a) ^ 2)⁻¹) := by
     simpa [sub_eq_add_neg, pow_two, mul_comm, mul_left_comm, mul_assoc]
       using (integrable_inv_one_add_sq.comp_sub_right a).const_mul C
-  exact Integrable.of_nonneg_of_le hf_nonneg hmajor hint
+  -- conclude by domination and nonnegativity (a.e.)
+  have h_nonneg_ae : 0 ≤ᵐ[volume] fun t => Ksigma σ (t - a) * Ksigma τ (t - b) :=
+    Filter.Eventually.of_forall hf_nonneg
+  have h_le_ae : (fun t => Ksigma σ (t - a) * Ksigma τ (t - b))
+      ≤ᵐ[volume] (fun t => C * (1 + (t - a) ^ 2)⁻¹) :=
+    Filter.Eventually.of_forall h_major
+  exact MeasureTheory.Integrable.of_nonneg_of_le h_nonneg_ae h_le_ae hint
 
 lemma integral_restrict_mono_of_nonneg
     {f : ℝ → ℝ} (hf_nonneg : ∀ x, 0 ≤ f x)
@@ -247,45 +269,59 @@ lemma integral_restrict_mono_of_nonneg
     (integral_mono_measure (μ := Measure.restrict volume S) (ν := volume)
       hle h_nonneg_vol hf_int)
 
+-- moved earlier; definition kept here to avoid forward reference issues
+
 def inDyadicAnnulus (c L : ℝ) (k : ℕ) (x : ℝ) : Prop :=
   (2 : ℝ) ^ k * L < |x - c| ∧ |x - c| ≤ (2 : ℝ) ^ (k + 1) * L
+
+lemma sep_lower_bound (t a b : ℝ) : |t - b| ≥ |a - b| - |t - a| := by
+  have : |a - b| ≤ |t - b| + |t - a| := by
+    simpa [abs_sub_comm, add_comm] using (abs_sub_le a t b)
+  exact (sub_le_iff_le_add).2 this
 
 lemma sep_from_base_of_annulus
     {c L t x : ℝ} {k : ℕ}
     (hbase : |t - c| ≤ L) (hAnn : inDyadicAnnulus c L k x)
     (hk : 1 ≤ k) :
     (2 : ℝ) ^ (k - 1) * L ≤ |t - x| := by
-  have htri : |t - x| ≥ | |x - c| - |t - c| | := by
+  -- |t - x| ≥ ||y|-|z|| with y = x - c, z = t - c
+  have h1 : | |x - c| - |t - c| | ≤ |x - t| := by
     simpa [abs_sub_comm, sub_eq_add_neg, add_comm, add_left_comm, add_assoc]
-      using abs_sub_abs_le_abs_sub (x := t) (y := c) (z := x)
-  have hx_rad : (2 : ℝ) ^ k * L < |x - c| := hAnn.1
-  have hstep : |t - x| > (2 : ℝ) ^ k * L - L :=
-    lt_of_le_of_lt
-      (by
-        have := sub_le_sub_right (le_of_lt hx_rad) L
-        simpa using this)
-      (by linarith)
-  have hgeom : (2 : ℝ) ^ k * L - L ≥ (2 : ℝ) ^ (k - 1) * L := by
-    have hposL : 0 ≤ L := (abs_nonneg (t - c)).trans <| (abs_le.mp hbase).2
-    have hk' : (2 : ℝ) ^ k - 1 ≥ (2 : ℝ) ^ (k - 1) := by
-      have hkpow : (2 : ℝ) ^ k = 2 * (2 : ℝ) ^ (k - 1) := by
+      using (abs_abs_sub_le_abs_sub (x := x - c) (y := t - c))
+  have hxt : |x - t| = |t - x| := by simpa [abs_sub_comm]
+  -- bounds from annulus/base
+  have hx_ge : (2 : ℝ) ^ k * L ≤ |x - c| := le_of_lt hAnn.1
+  have ht_le : |t - c| ≤ L := hbase
+  -- 2^k L - L ≤ |x - t|
+  have hA : (2 : ℝ) ^ k * L - L ≤ |x - t| := by
+    have h2 : (2 : ℝ) ^ k * L - L ≤ (2 : ℝ) ^ k * L - |t - c| := by
+      have : -L ≤ -|t - c| := by simpa using (neg_le_neg ht_le)
+      simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using add_le_add_left this _
+    have h3 : (2 : ℝ) ^ k * L - |t - c| ≤ | |x - c| - |t - c| | := by
+      have : (2 : ℝ) ^ k * L - |t - c| ≤ |x - c| - |t - c| := by
+        exact sub_le_sub_right hx_ge _
+      exact le_trans this (le_abs_self _)
+    exact le_trans h2 (le_trans h3 h1)
+  -- (2^(k-1)) L ≤ 2^k L - L
+  have hB : (2 : ℝ) ^ (k - 1) * L ≤ (2 : ℝ) ^ k * L - L := by
+    have hL_nonneg : 0 ≤ L :=
+      (abs_nonneg (t - c)).trans <| (abs_le.mp hbase).2
+    have hx1 : (1 : ℝ) ≤ (2 : ℝ) ^ (k - 1) := by
+      simpa using (one_le_pow_of_one_le (by norm_num : (1 : ℝ) ≤ 2) (k - 1))
+    have : (2 : ℝ) ^ (k - 1) ≤ (2 : ℝ) ^ k - 1 := by
+      have hk' : (2 : ℝ) ^ k = 2 * (2 : ℝ) ^ (k - 1) := by
         have : k = (k - 1) + 1 := by
           have := Nat.succ_pred_eq_of_pos hk
           simpa [Nat.add_comm] using this.symm
         simpa [this, pow_add, pow_one, two_mul, one_mul]
           using pow_add (2 : ℝ) (k - 1) 1
-      have hnonneg : 0 ≤ (2 : ℝ) ^ (k - 1) := pow_nonneg (by norm_num) _
-      have : 2 * (2 : ℝ) ^ (k - 1) - 1 ≥ (2 : ℝ) ^ (k - 1) := by
-      have : (2 : ℝ) ^ (k - 1) - 1 ≥ 0 := by
-          have := one_le_pow₀ (by norm_num : (1 : ℝ) ≤ 2) (k - 1)
-          linarith
-        linarith
-      simpa [hkpow] using this
-    have := mul_le_mul_of_nonneg_right hk' hposL
-    simpa [mul_sub] using this
-  have : |t - x| ≥ (2 : ℝ) ^ (k - 1) * L :=
-    le_of_lt <| lt_of_le_of_lt hgeom hstep
-  exact this
+      have : 2 * (2 : ℝ) ^ (k - 1) - 1 ≥ (2 : ℝ) ^ (k - 1) := by linarith
+      simpa [hk'] using this
+    have := mul_le_mul_of_nonneg_right this hL_nonneg
+    simpa [mul_comm, mul_left_comm, mul_assoc, mul_sub] using this
+  -- chain
+  have : (2 : ℝ) ^ (k - 1) * L ≤ |x - t| := le_trans hB hA
+  simpa [hxt] using this
 
 lemma sep_between_annuli_gap_ge_two
     {c L x y : ℝ} {k j : ℕ}
@@ -488,11 +524,6 @@ lemma row_bound_4decay
       (f := fun j => ((4 : ℝ) ^ j)⁻¹ * (nu j)))
   exact le_trans hsum <|
     by simpa [hfac, C_row, mul_comm, mul_left_comm, mul_assoc] using hsum2
-
-lemma sep_lower_bound (t a b : ℝ) : |t - b| ≥ |a - b| - |t - a| := by
-  have : |a - b| ≤ |t - b| + |t - a| := by
-    simpa [abs_sub_comm, add_comm] using (abs_sub_le a t b)
-  exact (sub_le_iff_le_add).2 this
 
 end PoissonKernelDyadic
 end RS
