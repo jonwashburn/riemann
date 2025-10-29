@@ -47,6 +47,7 @@ noncomputable def det2 (s : ℂ) : ℂ :=
 @[simp] lemma det2_eq_AF :
   RH.RS.det2 = RH.AcademicFramework.DiagonalFredholm.det2_AF := rfl
 
+
 /-! ## Bridging lemmas from the academic framework
 
 We expose analyticity of `det2` on Ω and nonvanishing on the boundary line

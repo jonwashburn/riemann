@@ -23,7 +23,7 @@ open MeasureTheory
 open RH.AcademicFramework.HalfPlaneOuterV2 (boundary)
 
 /-- Canonical outer choice for Route B: choose any RS `OuterHalfPlane` witness. -/
-private noncomputable def O : ℂ → ℂ :=
+noncomputable def O : ℂ → ℂ :=
   RH.RS.OuterHalfPlane.choose_outer RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext_proved
 
 /-- (P+): nonnegativity of the boundary real part a.e. for
