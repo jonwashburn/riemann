@@ -123,3 +123,22 @@ lemma two_pow_two_mul_eq_four_pow (d : ℕ) : (2 : ℝ) ^ (2 * d) = (4 : ℝ) ^ 
 end
 
 end RH
+
+namespace MeasureTheory
+
+theorem integrable_of_nonneg_of_le
+    {α : Type*} [MeasurableSpace α] {μ : Measure α}
+    {f g : α → ℝ}
+    (hf_meas : AEStronglyMeasurable f μ)
+    (hf_nonneg : 0 ≤ᵐ[μ] f) (hfg : f ≤ᵐ[μ] g)
+    (hg : Integrable g μ) : Integrable f μ := by
+  have hbound : ∀ᵐ x ∂μ, ‖f x‖ ≤ g x := by
+    have hboth : ∀ᵐ x ∂μ, 0 ≤ f x ∧ f x ≤ g x := hf_nonneg.and hfg
+    refine hboth.mono ?_;
+    intro x hx
+    have hx0 : 0 ≤ f x := hx.1
+    have hx1 : f x ≤ g x := hx.2
+    simpa [Real.norm_eq_abs, abs_of_nonneg hx0] using hx1
+  exact Integrable.mono' hg hf_meas hbound
+
+end MeasureTheory
