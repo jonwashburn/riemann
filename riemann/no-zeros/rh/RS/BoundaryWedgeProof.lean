@@ -3,6 +3,7 @@ import rh.RS.PoissonKernelDyadic
 import rh.RS.SchurGlobalization
 import rh.RS.PaperWindow
 import rh.Cert.KxiPPlus
+import rh.Cert.KxiWhitney_RvM
 import rh.academic_framework.HalfPlaneOuterV2
 import rh.academic_framework.CompletedXi
 import rh.RS.WhitneyAeCore
