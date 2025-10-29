@@ -223,24 +223,28 @@ lemma Ksigma_prod_integrable {σ τ a b : ℝ} (hσ : 0 < σ) (hτ : 0 < τ) :
     have hmaj' : Ksigma σ (t - a) * Ksigma τ (t - b)
         ≤ C * (1 + (t - a) ^ 2)⁻¹ :=
       le_trans hprod (by simpa [hbound])
-    -- rewrite to the requested fraction shape under abs
-    simpa [Ksigma, div_eq_mul_inv, abs_of_nonneg hprod_nonneg]
-      using hmaj'
+    -- rewrite to the requested fraction shape, then add abs using nonnegativity
+    have hfrac : σ / ((t - a) ^ 2 + σ ^ 2) * (τ / ((t - b) ^ 2 + τ ^ 2))
+        ≤ C * (1 + (t - a) ^ 2)⁻¹ := by
+      simpa [Ksigma, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using hmaj'
+    have : |σ / ((t - a) ^ 2 + σ ^ 2) * (τ / ((t - b) ^ 2 + τ ^ 2))|
+        ≤ C * (1 + (t - a) ^ 2)⁻¹ := by
+      have hv : 0 ≤ σ / ((t - a) ^ 2 + σ ^ 2) * (τ / ((t - b) ^ 2 + τ ^ 2)) := hprod_nonneg
+      simpa [abs_of_nonneg hv] using hfrac
+    exact this
   -- Integrable majorant
   have hint : Integrable (fun t : ℝ => C * (1 + (t - a) ^ 2)⁻¹) := by
     simpa [sub_eq_add_neg, pow_two, mul_comm, mul_left_comm, mul_assoc]
       using (integrable_inv_one_add_sq.comp_sub_right a).const_mul C
-  have h_abs_nonneg : 0 ≤ᵐ[volume]
-      (fun t => |Ksigma σ (t - a) * Ksigma τ (t - b)|) :=
-    Filter.Eventually.of_forall (by intro t; exact abs_nonneg _)
-  exact Integrable.of_nonneg_of_le (μ := volume)
-    (f := fun t => |σ / ((t - a) ^ 2 + σ ^ 2) * (τ / ((t - b) ^ 2 + τ ^ 2))|)
-    (g := fun t => C * (1 + (t - a) ^ 2)⁻¹)
-    (by
-      have : ∀ t, 0 ≤ |σ / ((t - a) ^ 2 + σ ^ 2) * (τ / ((t - b) ^ 2 + τ ^ 2))| := by
-        intro t; exact abs_nonneg _
-      exact Filter.Eventually.of_forall this)
-    (Filter.Eventually.of_forall hmajor) hint
+  have hf_abs_nonneg : ∀ t, 0 ≤ |σ / ((t - a) ^ 2 + σ ^ 2) * (τ / ((t - b) ^ 2 + τ ^ 2))| := by
+    intro t; exact abs_nonneg _
+  have hf_ae : 0 ≤ᵐ[volume]
+      (fun t => |σ / ((t - a) ^ 2 + σ ^ 2) * (τ / ((t - b) ^ 2 + τ ^ 2))|) :=
+    Filter.Eventually.of_forall hf_abs_nonneg
+  have hfg_ae : (fun t => |σ / ((t - a) ^ 2 + σ ^ 2) * (τ / ((t - b) ^ 2 + τ ^ 2))|)
+      ≤ᵐ[volume] (fun t => C * (1 + (t - a) ^ 2)⁻¹) :=
+    Filter.Eventually.of_forall hmajor
+  exact Integrable.of_nonneg_of_le (μ := volume) hf_ae hfg_ae hint
 
 lemma integral_restrict_mono_of_nonneg
     {f : ℝ → ℝ} (hf_nonneg : ∀ x, 0 ≤ f x)
