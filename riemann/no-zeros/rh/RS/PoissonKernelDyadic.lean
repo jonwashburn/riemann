@@ -236,17 +236,42 @@ lemma Ksigma_prod_integrable {σ τ a b : ℝ} (hσ : 0 < σ) (hτ : 0 < τ) :
   have hint : Integrable (fun t : ℝ => C * (1 + (t - a) ^ 2)⁻¹) := by
     simpa [sub_eq_add_neg, pow_two, mul_comm, mul_left_comm, mul_assoc]
       using (integrable_inv_one_add_sq.comp_sub_right a).const_mul C
-  have hf_abs_nonneg : ∀ t, 0 ≤ |σ / ((t - a) ^ 2 + σ ^ 2) * (τ / ((t - b) ^ 2 + τ ^ 2))| := by
-    intro t; exact abs_nonneg _
-  have hf_ae : 0 ≤ᵐ[volume]
-      (fun t => |σ / ((t - a) ^ 2 + σ ^ 2) * (τ / ((t - b) ^ 2 + τ ^ 2))|) :=
-    Filter.Eventually.of_forall hf_abs_nonneg
-  have hfg_ae : (fun t => |σ / ((t - a) ^ 2 + σ ^ 2) * (τ / ((t - b) ^ 2 + τ ^ 2))|)
-      ≤ᵐ[volume] (fun t => C * (1 + (t - a) ^ 2)⁻¹) :=
-    Filter.Eventually.of_forall hmajor
-  have hmeas : AEStronglyMeasurable
-      (fun t : ℝ => |σ / ((t - a) ^ 2 + σ ^ 2) * (τ / ((t - b) ^ 2 + τ ^ 2))|) := by
-    measurability
+  -- Measurability for the product (same as absolute value since nonnegative)
+  have hmeas : AEStronglyMeasurable (fun t => Ksigma σ (t - a) * Ksigma τ (t - b)) := by
+    -- The function is continuous (and hence measurable) since it's a composition
+    -- of continuous functions: mul, div, sub, pow
+    have hcont : Continuous (fun t : ℝ => Ksigma σ (t - a) * Ksigma τ (t - b)) := by
+      apply Continuous.mul
+      · unfold Ksigma
+        apply Continuous.div
+        · exact continuous_const
+        · apply Continuous.add
+          · apply Continuous.pow
+            exact continuous_id.sub continuous_const
+          · exact continuous_const
+        · intro t; exact ne_of_gt (by
+            have : 0 ≤ (t - a) ^ 2 := sq_nonneg _
+            have : 0 < σ ^ 2 := pow_pos hσ 2
+            linarith)
+      · unfold Ksigma
+        apply Continuous.div
+        · exact continuous_const
+        · apply Continuous.add
+          · apply Continuous.pow
+            exact continuous_id.sub continuous_const
+          · exact continuous_const
+        · intro t; exact ne_of_gt (by
+            have : 0 ≤ (t - b) ^ 2 := sq_nonneg _
+            have : 0 < τ ^ 2 := pow_pos hτ 2
+            linarith)
+    exact hcont.aestronglyMeasurable
+  -- Prove integrability using the majorant
+  have hf_ae : 0 ≤ᵐ[volume] (fun t => Ksigma σ (t - a) * Ksigma τ (t - b)) :=
+    Filter.Eventually.of_forall hf_nonneg
+  have hfg_ae : (fun t => Ksigma σ (t - a) * Ksigma τ (t - b))
+      ≤ᵐ[volume] (fun t => C * (1 + (t - a) ^ 2)⁻¹) := by
+    filter_upwards with t
+    simpa [Ksigma] using hmajor t
   exact MeasureTheory.integrable_of_nonneg_of_le (μ := volume)
     hmeas hf_ae hfg_ae hint
 
@@ -289,16 +314,18 @@ lemma sep_from_base_of_annulus
   have hgeom : (2 : ℝ) ^ (k - 1) * L ≤ (2 : ℝ) ^ k * L - L := by
     have hrew : (2 : ℝ) ^ k * L - L = ((2 : ℝ) ^ k - 1) * L := by ring
     have hk1 : (2 : ℝ) ^ k - 1 ≥ (2 : ℝ) ^ (k - 1) := by
+      have hkpos : 0 < k := by omega
       have hkpow : (2 : ℝ) ^ k = 2 * (2 : ℝ) ^ (k - 1) := by
-        have : k = (k - 1) + 1 := by
-          have := Nat.succ_pred_eq_of_pos hk; simpa using this.symm
-        simpa [this, pow_add, pow_one, two_mul, one_mul] using pow_add (2 : ℝ) (k - 1) 1
+        have : k = (k - 1) + 1 := by omega
+        rw [this, pow_add (2 : ℝ) (k - 1) 1, pow_one]
+        ring
       have hnonneg : 0 ≤ (2 : ℝ) ^ (k - 1) := pow_nonneg (by norm_num) _
       have : (2 : ℝ) ^ (k - 1) - 1 ≥ 0 := by
         have := one_le_pow₀ (by norm_num : (1 : ℝ) ≤ 2) (k - 1)
         linarith
       have : 2 * (2 : ℝ) ^ (k - 1) - 1 ≥ (2 : ℝ) ^ (k - 1) := by linarith
-      simpa [hkpow] using this
+      rw [← hkpow] at this
+      exact this
     have hrw : (2 : ℝ) ^ (k - 1) * L ≤ ((2 : ℝ) ^ k - 1) * L :=
       mul_le_mul_of_nonneg_right hk1 hLnonneg
     simpa [hrew] using hrw
@@ -327,36 +354,117 @@ lemma sep_between_annuli_gap_ge_two
     have hcomb : (2 : ℝ) ^ j * L - (2 : ℝ) ^ (k + 1) * L ≤ |x - y| :=
       le_trans hdiff hsep
     -- show RHS ≥ 2^(j-1) L, then compare with target
-    have hk1_lt_j : k + 1 < j :=
-      lt_of_lt_of_le (Nat.lt_succ_self (k + 1)) (by simpa [add_comm] using hd2)
+    have hk1_lt_j : k + 1 < j := by
+      -- From hd2: 2 ≤ j - k, we get j ≥ k + 2, so k + 1 < j
+      have : k + 2 ≤ j := by
+        have : j - k ≥ 2 := hd2
+        omega
+      omega
     have hk1_le_jpred : k + 1 ≤ j - 1 := Nat.le_pred_of_lt hk1_lt_j
     have hpow_mono : (2 : ℝ) ^ (k + 1) ≤ (2 : ℝ) ^ (j - 1) :=
-      pow_le_pow_of_le_left (by norm_num : (0 : ℝ) ≤ 2) (by norm_num) hk1_le_jpred
+      pow_le_pow_right (by norm_num : (1 : ℝ) ≤ 2) hk1_le_jpred
     have hdiff_ge : (2 : ℝ) ^ j * L - (2 : ℝ) ^ (j - 1) * L ≤ (2 : ℝ) ^ j * L - (2 : ℝ) ^ (k + 1) * L := by
       have := mul_le_mul_of_nonneg_right hpow_mono hLnonneg
       simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using (sub_le_sub_left this ((2 : ℝ) ^ j * L))
     have h2j : (2 : ℝ) ^ j * L - (2 : ℝ) ^ (j - 1) * L = (2 : ℝ) ^ (j - 1) * L := by
       have : (2 : ℝ) ^ j = (2 : ℝ) ^ (j - 1) * 2 := by
-        have : j = (j - 1) + 1 := by
-          have := Nat.succ_pred_eq_of_pos (by
-            have : 0 < j := lt_of_le_of_lt (Nat.succ_le_succ (Nat.zero_le _)) (Nat.succ_lt_of_lt hk1_lt_j)
-            simpa using this)
-          simpa using this.symm
-        simpa [this, pow_add, pow_one, two_mul, mul_comm, mul_left_comm, mul_assoc] using pow_add (2 : ℝ) (j - 1) 1
+        have hpos : 0 < j := by omega
+        have h_eq : j = (j - 1) + 1 := by
+          have := Nat.succ_pred_eq_of_pos hpos
+          rw [← this]
+        rw [h_eq, pow_add (2 : ℝ) (j - 1) 1, pow_one]
+        simp only [add_sub_cancel]
       ring
     have hge_j1 : (2 : ℝ) ^ (j - 1) * L ≤ |x - y| :=
       le_trans (by simpa [h2j] using hdiff_ge) hcomb
     -- compare 2^(j-k-1) L to 2^(j-1) L
     have hmono_pow : (2 : ℝ) ^ (j - k - 1) ≤ (2 : ℝ) ^ (j - 1) := by
-      exact pow_le_pow_of_le_left (by norm_num : (0 : ℝ) ≤ 2) (by norm_num) (Nat.sub_le_sub_right hkj 1)
+      exact pow_le_pow_right (by norm_num : (1 : ℝ) ≤ 2) (Nat.sub_le_sub_right hkj 1)
     have : (2 : ℝ) ^ (j - k - 1) * L ≤ (2 : ℝ) ^ (j - 1) * L :=
       mul_le_mul_of_nonneg_right hmono_pow hLnonneg
     have : (2 : ℝ) ^ (j - k - 1) * L ≤ |x - y| := le_trans this hge_j1
-    simpa [one_div, inv_eq_one_div, hdist, pow_succ, two_mul, mul_comm, mul_left_comm, mul_assoc] using this
-  · -- case j ≤ k: symmetry
-    have h := sep_between_annuli_gap_ge_two (c := c) (L := L) (x := y) (y := x)
-      (k := j) (j := k) hAnnY hAnnX hL (by simpa [Nat.dist_comm] using hgap)
-    simpa [abs_sub_comm, Nat.dist_comm, mul_comm, mul_left_comm, mul_assoc] using h
+    -- target: (1/2) * 2^(j-k) * L ≤ |x - y|
+    -- we have: 2^(j-k-1) * L ≤ |x - y|
+    -- need: (1/2) * 2^(j-k) = 2^(j-k-1)
+    have htarget : (1 / 2 : ℝ) * (2 : ℝ) ^ (j - k) * L = (2 : ℝ) ^ (j - k - 1) * L := by
+      have : (1 / 2 : ℝ) * (2 : ℝ) ^ (j - k) = (2 : ℝ) ^ (j - k - 1) := by
+        have : (2 : ℝ) ^ (j - k) = 2 * (2 : ℝ) ^ (j - k - 1) := by
+          have hpos : 0 < j - k - 1 := by
+            have : 2 ≤ j - k := hd2
+            omega
+          have h_eq : j - k = (j - k - 1) + 1 := Nat.succ_pred_eq_of_pos hpos
+          rw [h_eq, pow_add (2 : ℝ) (j - k - 1) 1, pow_one]
+          ring
+        ring
+      rw [this]
+    rw [htarget] at this
+    exact this
+  · -- case j ≤ k: explicit symmetric case (no recursion)
+    have hdist : Nat.dist k j = k - j := by rw [Nat.dist_comm, Nat.dist_eq_sub_of_le hjk]
+    have hd2 : 2 ≤ k - j := by simpa [hdist] using hgap
+    have hLnonneg : 0 ≤ L := le_of_lt hL
+    -- |x - y| ≥ |x - c| - |y - c| (symmetric to the k ≤ j case)
+    have hsep : |x - y| ≥ |x - c| - |y - c| := by
+      have := sep_lower_bound y c x
+      simpa [abs_sub_comm] using this
+    have hx_lb : (2 : ℝ) ^ k * L ≤ |x - c| := le_of_lt hAnnX.1
+    have hy_ub : |y - c| ≤ (2 : ℝ) ^ (j + 1) * L := hAnnY.2
+    have hdiff : (2 : ℝ) ^ k * L - (2 : ℝ) ^ (j + 1) * L ≤ |x - c| - |y - c| :=
+      sub_le_sub hx_lb hy_ub
+    have hcomb : (2 : ℝ) ^ k * L - (2 : ℝ) ^ (j + 1) * L ≤ |x - y| :=
+      le_trans hdiff hsep
+    -- show RHS ≥ 2^(k-1) L, then compare with target
+    have hj1_lt_k : j + 1 < k := by
+      -- From hd2: 2 ≤ k - j, we get k ≥ j + 2, so j + 1 < k
+      have : j + 2 ≤ k := by
+        have : k - j ≥ 2 := hd2
+        omega
+      omega
+    have hj1_le_kpred : j + 1 ≤ k - 1 := Nat.le_pred_of_lt hj1_lt_k
+    have hpow_mono : (2 : ℝ) ^ (j + 1) ≤ (2 : ℝ) ^ (k - 1) :=
+      pow_le_pow_right (by norm_num : (1 : ℝ) ≤ 2) hj1_le_kpred
+    have hdiff_ge : (2 : ℝ) ^ k * L - (2 : ℝ) ^ (k - 1) * L ≤ (2 : ℝ) ^ k * L - (2 : ℝ) ^ (j + 1) * L := by
+      have := mul_le_mul_of_nonneg_right hpow_mono hLnonneg
+      simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using (sub_le_sub_left this ((2 : ℝ) ^ k * L))
+    have h2k : (2 : ℝ) ^ k * L - (2 : ℝ) ^ (k - 1) * L = (2 : ℝ) ^ (k - 1) * L := by
+      have : (2 : ℝ) ^ k = (2 : ℝ) ^ (k - 1) * 2 := by
+        have hpos : 0 < k := by omega
+        have h_eq : k = (k - 1) + 1 := by
+          have := Nat.succ_pred_eq_of_pos hpos
+          rw [← this]
+        rw [h_eq, pow_add (2 : ℝ) (k - 1) 1, pow_one]
+        simp only [add_sub_cancel]
+      ring
+    have hge_k1 : (2 : ℝ) ^ (k - 1) * L ≤ |x - y| :=
+      le_trans (by simpa [h2k] using hdiff_ge) hcomb
+    -- compare 2^(k-j-1) L to 2^(k-1) L
+    have hmono_pow : (2 : ℝ) ^ (k - j - 1) ≤ (2 : ℝ) ^ (k - 1) := by
+      exact pow_le_pow_right (by norm_num : (1 : ℝ) ≤ 2) (Nat.sub_le_sub_right hjk 1)
+    have : (2 : ℝ) ^ (k - j - 1) * L ≤ (2 : ℝ) ^ (k - 1) * L :=
+      mul_le_mul_of_nonneg_right hmono_pow hLnonneg
+    have : (2 : ℝ) ^ (k - j - 1) * L ≤ |x - y| := le_trans this hge_k1
+    -- target: (1/2) * 2^(k-j) * L ≤ |x - y|
+    -- we have: 2^(k-j-1) * L ≤ |x - y|
+    -- need: (1/2) * 2^(k-j) = 2^(k-j-1)
+    have htarget : (1 / 2 : ℝ) * (2 : ℝ) ^ (k - j) * L = (2 : ℝ) ^ (k - j - 1) * L := by
+      have : (1 / 2 : ℝ) * (2 : ℝ) ^ (k - j) = (2 : ℝ) ^ (k - j - 1) := by
+        have : (2 : ℝ) ^ (k - j) = 2 * (2 : ℝ) ^ (k - j - 1) := by
+          have hpos : 0 < k - j - 1 := by
+            have : 2 ≤ k - j := hd2
+            omega
+          have h_eq : k - j = (k - j - 1) + 1 := Nat.succ_pred_eq_of_pos hpos
+          rw [h_eq, pow_add (2 : ℝ) (k - j - 1) 1, pow_one]
+          ring
+        ring
+      rw [this]
+    rw [htarget] at this
+    -- Now need to connect to Nat.dist_comm
+    have hdist_equiv : (1 / 2 : ℝ) * (2 : ℝ) ^ (Nat.dist k j) * L = (1 / 2 : ℝ) * (2 : ℝ) ^ (k - j) * L := by
+      rw [hdist]
+    rw [← hdist_equiv, ← htarget] at this
+    -- abs_sub_comm gives |x - y| = |y - x|
+    rw [abs_sub_comm]
+    exact this
 
 lemma row_bound_4decay
     {σ τ α L c : ℝ} (hσ : 0 < σ) (hτ : 0 < τ) (hL : 0 < L)
@@ -419,20 +527,25 @@ lemma row_bound_4decay
       have hWhole :
           (∫ t, Ksigma σ (t - a k) * Ksigma τ (t - b j))
             ≤ Real.pi / (σ + τ) := by
+        rw [hidentity]
         have : Ksigma (σ + τ) (a k - b j) ≤ 1 / (σ + τ) :=
           Ksigma_le_inv_sigma (σ := σ + τ) (x := a k - b j) (add_pos hσ hτ)
-        simpa [hidentity, mul_comm, mul_left_comm, mul_assoc]
-          using mul_le_mul_of_nonneg_left this Real.pi_pos.le
+        have : Real.pi * Ksigma (σ + τ) (a k - b j) ≤ Real.pi * (1 / (σ + τ)) :=
+          mul_le_mul_of_nonneg_left this Real.pi_pos.le
+        simpa [one_div] using this
       have hRestr_le := le_trans hrest hWhole
       have hCrow_ge : Real.pi / (σ + τ)
           ≤ C_row * ((4 : ℝ) ^ (Nat.dist k j))⁻¹ := by
         have hdec_ge : ((4 : ℝ) ^ (Nat.dist k j))⁻¹ ≥ (4 : ℝ)⁻¹ := by
           by_cases h0 : Nat.dist k j = 0
-          · simpa [h0] using (by
-              have : (4 : ℝ) ^ 0 = (1 : ℝ) := by simp
-              simpa [this, one_div] : ((4 : ℝ) ^ 0)⁻¹ = (4 : ℝ)⁻¹)
-          · have h1 : Nat.dist k j = 1 := Nat.le_antisymm hle (Nat.succ_le_of_lt (Nat.pos_of_ne_zero h0))
-            simpa [h1, one_div] using (le_of_eq (by simp : ((4 : ℝ) ^ 1)⁻¹ = (4 : ℝ)⁻¹))
+          · -- if dist = 0, then (4^0)⁻¹ = 1 ≥ 1/4 = 4⁻¹
+            have : (4 : ℝ) ^ 0 = (1 : ℝ) := by simp
+            have : ((4 : ℝ) ^ 0)⁻¹ = (1 : ℝ) := by simp [this]
+            have : (1 : ℝ) ≥ (4 : ℝ)⁻¹ := by norm_num
+            simpa [h0, this]
+          · -- if dist = 1, then (4^1)⁻¹ = 1/4 = 4⁻¹
+            have h1 : Nat.dist k j = 1 := Nat.le_antisymm hle (Nat.succ_le_of_lt (Nat.pos_of_ne_zero h0))
+            simpa [h1] using (le_of_eq (by simp : ((4 : ℝ) ^ 1)⁻¹ = (4 : ℝ)⁻¹))
         have hmono : (4 : ℝ)⁻¹ ≤ ((4 : ℝ) ^ (Nat.dist k j))⁻¹ := by
           simpa using hdec_ge
         have hCpos : 0 ≤ 4 * (Real.pi / (σ + τ)) := by
@@ -495,8 +608,10 @@ lemma row_bound_4decay
     simpa using
       (Finset.mul_sum (s := Finset.range K) (a := C_row)
         (f := fun j => ((4 : ℝ) ^ j)⁻¹ * (nu j))).symm
-  exact le_trans hsum <|
-    by simpa [hfac, C_row, mul_comm, mul_left_comm, mul_assoc] using hsum2
+  -- hsum2: ∑ j (C_row * (4^dist k j)⁻¹ * (4^j)⁻¹ * nu j) ≤ ∑ j (C_row * (4^j)⁻¹ * nu j)
+  -- hfac: ∑ j (C_row * (4^j)⁻¹ * nu j) = C_row * ∑ j ((4^j)⁻¹ * nu j)
+  -- target: ∑ j (C_row * (4^dist k j)⁻¹ * (4^j)⁻¹ * nu j) ≤ C_row * ∑ j ((4^j)⁻¹ * nu j)
+  exact le_trans hsum (by rw [← hfac]; exact hsum2)
 
 end PoissonKernelDyadic
 end RS
