@@ -234,7 +234,17 @@ lemma Ksigma_prod_integrable {σ τ a b : ℝ} (hσ : 0 < σ) (hτ : 0 < τ) :
   have hint : Integrable (fun t : ℝ => C * (1 + (t - a) ^ 2)⁻¹) := by
     simpa [sub_eq_add_neg, pow_two, mul_comm, mul_left_comm, mul_assoc]
       using (integrable_inv_one_add_sq.comp_sub_right a).const_mul C
-  exact Integrable.of_nonneg_of_le hf_nonneg hmajor hint
+  exact MeasureTheory.integrable_of_nonneg_of_le (μ := volume)
+    (f := fun t => |Ksigma σ (t - a) * Ksigma τ (t - b)|)
+    (g := fun t => C * (1 + (t - a) ^ 2)⁻¹)
+    (by
+      have : ∀ t, 0 ≤ |Ksigma σ (t - a) * Ksigma τ (t - b)| := by intro t; exact abs_nonneg _
+      exact Filter.Eventually.of_forall this)
+    (by
+      have : ∀ t, |Ksigma σ (t - a) * Ksigma τ (t - b)| ≤ C * (1 + (t - a) ^ 2)⁻¹ := by
+        intro t; simpa [abs_of_nonneg (hf_nonneg t)] using hmajor t
+      exact Filter.Eventually.of_forall this)
+    hint
 
 lemma integral_restrict_mono_of_nonneg
     {f : ℝ → ℝ} (hf_nonneg : ∀ x, 0 ≤ f x)
