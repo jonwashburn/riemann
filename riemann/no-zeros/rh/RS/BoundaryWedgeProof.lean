@@ -1,7 +1,6 @@
 import rh.RS.CRGreenOuter
 import rh.RS.PoissonKernelDyadic
 import rh.RS.SchurGlobalization
-import rh.Cert.KxiWhitney_RvM
 import rh.RS.PaperWindow
 import rh.Cert.KxiPPlus
 import rh.academic_framework.HalfPlaneOuterV2
