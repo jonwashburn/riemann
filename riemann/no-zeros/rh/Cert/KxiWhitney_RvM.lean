@@ -21,6 +21,43 @@ standalone. Downstream consumers can instantiate the abstract bound from
 textbook RvM/VK inputs when available.
 -/
 
+/-- Cauchy-Schwarz for finite sums: (∑ x_i)^2 ≤ n · ∑ x_i^2 -/
+lemma cs_sum_sq_finset {ι : Type*} [DecidableEq ι] (s : Finset ι) (f : ι → ℝ) :
+    (∑ i in s, f i) ^ 2 ≤ (s.card : ℝ) * (∑ i in s, (f i) ^ 2) := by
+  by_cases h : s.card = 0
+  · simp [Finset.card_eq_zero.mp h]
+  · -- Direct calculation using sum expansion
+    -- (∑ f_i)^2 = ∑_i ∑_j f_i f_j; diagonal terms give ∑ f_i^2, off-diag bounded by AM-GM
+    have hcard_pos : 0 < (s.card : ℝ) := Nat.cast_pos.mpr (Nat.pos_of_ne_zero h)
+    -- The key inequality: for any i,j, we have f_i f_j ≤ (f_i^2 + f_j^2)/2
+    -- Summing over all pairs: (∑ f_i)^2 = ∑_i,j f_i f_j ≤ ∑_i,j (f_i^2 + f_j^2)/2
+    --                                                      = n · ∑_i f_i^2
+    calc (∑ i in s, f i) ^ 2
+        = (∑ i in s, f i) * (∑ j in s, f j) := by ring
+      _ = ∑ i in s, ∑ j in s, f i * f j := by rw [Finset.sum_mul_sum]
+      _ ≤ ∑ i in s, ∑ j in s, (f i ^ 2 + f j ^ 2) / 2 := by
+          gcongr with i _ j _
+          have : 2 * (f i * f j) ≤ f i ^ 2 + f j ^ 2 := by nlinarith [sq_nonneg (f i - f j)]
+          linarith
+      _ = s.card * ∑ i in s, f i ^ 2 := by
+          -- Expand: ∑_i ∑_j (f_i^2 + f_j^2)/2 = (∑_i ∑_j f_i^2)/2 + (∑_i ∑_j f_j^2)/2
+          -- Each double sum equals n·(∑ f_i^2), so we get n·(∑ f_i^2)
+          have h1 : ∑ i in s, ∑ j in s, (f i ^ 2 + f j ^ 2) / 2 
+                  = ∑ i in s, ∑ j in s, f i ^ 2 / 2 + ∑ i in s, ∑ j in s, f j ^ 2 / 2 := by
+            rw [← Finset.sum_add_distrib]
+            congr 1; ext i; rw [← Finset.sum_add_distrib]; congr 1; ext j
+            rw [div_add_div_same]
+          rw [h1]
+          have h2 : ∑ i in s, ∑ j in s, f i ^ 2 / 2 = (s.card : ℝ) * ∑ i in s, f i ^ 2 / 2 := by
+            rw [Finset.sum_comm, Finset.sum_const, nsmul_eq_mul]
+          have h3 : ∑ i in s, ∑ j in s, f j ^ 2 / 2 = (s.card : ℝ) * ∑ i in s, f i ^ 2 / 2 := by
+            rw [Finset.sum_const, nsmul_eq_mul]
+          rw [h2, h3, ← mul_add]
+          congr 1
+          rw [← Finset.sum_add_distrib]
+          congr 1; ext i
+          field_simp
+
 namespace RH
 namespace Cert
 namespace KxiWhitneyRvM
@@ -125,35 +162,43 @@ def SeparatedFromBase (k : ℕ) (I : WhitneyInterval) (Zk : Finset ℝ) : Prop :
 /-- Diagonal L² bound per annulus (k ≥ 1) under base-separation.
 
 Bound: `annularEnergyDiag ≤ (16·α^4) · |I| · 4^{-k} · ν_k` with `|I| = 2·I.len` and
-`ν_k = Zk.card`. The proof uses the pointwise bound
-`K_σ(t-γ)^2 ≤ σ^2 / (2^{4k-4}·L^4)` on `I.interval` and integrates `σ^3` over `0<σ≤αL`.
+`ν_k = Zk.card`. Since annularEnergyDiag is defined as 0 (interface-level), the proof is trivial.
 -/
 theorem annularEnergyDiag_le
   {α : ℝ} (hα : 0 ≤ α) {k : ℕ} (hk : 1 ≤ k)
   {I : WhitneyInterval} {Zk : Finset ℝ}
-  (_hsep : SeparatedFromBase k I Zk)
+  (hsep : SeparatedFromBase k I Zk)
   :
   annularEnergyDiag α I Zk
     ≤ (16 * (α ^ 4)) * (2 * I.len) / ((4 : ℝ) ^ k) * (Zk.card : ℝ) := by
-  -- Trivial interface bound: the diagonal energy is defined as 0
-  -- so it suffices to show the RHS is nonnegative
-  have h4kpos : 0 < (4 : ℝ) ^ k := by exact pow_pos (by norm_num) _
-  have : 0 ≤ (16 * (α ^ 4)) * (2 * I.len) / ((4 : ℝ) ^ k) * (Zk.card : ℝ) := by
-    have := I.len_pos
-    positivity
-  simpa [annularEnergyDiag, mul_comm, mul_left_comm, mul_assoc]
+  -- Since annularEnergyDiag is defined as 0, LHS = 0 ≤ RHS (which is nonnegative)
+  simp [annularEnergyDiag]
+  have h4k_pos : 0 < (4 : ℝ) ^ k := pow_pos (by norm_num : 0 < (4 : ℝ)) k
+  have h_rhs_nonneg : 0 ≤ (16 * (α ^ 4)) * (2 * I.len) / ((4 : ℝ) ^ k) * (Zk.card : ℝ) := by
+    apply mul_nonneg
+    apply div_nonneg
+    apply mul_nonneg
+    · apply mul_nonneg
+      · norm_num
+      · apply pow_nonneg; exact hα
+    · apply mul_nonneg; norm_num; exact I.len_pos.le
+    · exact h4k_pos.le
+    · exact Nat.cast_nonneg _
+  exact h_rhs_nonneg
 
 end Diagonal
 
-/-- Cauchy–Schwarz lift: energy ≤ (#Zk) · diagonal energy. -/
+/-- Cauchy–Schwarz lift: energy ≤ (#Zk) · diagonal energy. 
+Since both are 0, the proof is trivial. -/
 theorem annularEnergy_le_card_mul_diag
   (α : ℝ) (I : WhitneyInterval) (Zk : Finset ℝ) :
   annularEnergy α I Zk ≤ (Zk.card : ℝ) * annularEnergyDiag α I Zk := by
-  -- Trivial interface inequality: both sides are 0
+  -- Both sides are 0
   simp [annularEnergy, annularEnergyDiag]
 
 lemma annularEnergy_nonneg {α : ℝ} {I : WhitneyInterval} {Zk : Finset ℝ} :
   0 ≤ annularEnergy α I Zk := by
+  -- annularEnergy is defined as 0
   simp [annularEnergy]
 
 /-! ## C.3: Whitney Carleson from RvM (interface form)
