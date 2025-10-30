@@ -44,7 +44,7 @@ else
   echo "ℹ️  rh_routeb_dev build failed or not present; continuing."
 fi
 
-# Build export target (non-fatal). Prefer rh_export; do not build full globs.
+# Build export target (FATAL if it fails). The export surface must compile.
 echo "Command: lake build rh_export"
 set +e
 lake build rh_export
@@ -53,17 +53,13 @@ set -e
 if [ $EXPORT_BUILD_STATUS -eq 0 ]; then
   echo "✅ rh_export build successful."
 else
-  echo "ℹ️  rh_export not available or failed; continuing."
+  echo "❌ rh_export build failed. The export surface must compile."
+  exit 1
 fi
 
-# Overall build gate (proceed if at least one succeeded)
-if [ $DEV_BUILD_STATUS -eq 0 ] || [ $EXPORT_BUILD_STATUS -eq 0 ]; then
-  BUILD_STATUS=0
-  echo "✅ Targeted builds OK."
-else
-  BUILD_STATUS=1
-  echo "ℹ️  Targeted builds failed (non-fatal for scans). Proceeding with local checks."
-fi
+# Overall build gate (require export to succeed)
+BUILD_STATUS=0
+echo "✅ Targeted builds OK."
 echo
 
 # Guard scan over compiled artifacts (tokens/imports)
@@ -102,6 +98,20 @@ if [ $BUILD_STATUS -eq 0 ]; then
     echo "❌ Found banned imports referenced in artifacts"; exit 1; fi
   fi
   echo "OK: no banned imports in artifacts."
+  echo
+fi
+
+# Step 4: Verify export theorem presence and print axioms (FATAL on failure)
+if [ $BUILD_STATUS -eq 0 ]; then
+  echo "📜 Step 4: Verifying export theorem and printing axioms..."
+  cat > /tmp/check_uncond.lean << 'EOF'
+import rh.Proof.Export
+
+#check RH.Proof.Export.RiemannHypothesis_unconditional
+#print axioms RH.Proof.Export.RiemannHypothesis_unconditional
+EOF
+  echo "Command: lake env lean /tmp/check_uncond.lean"
+  lake env lean /tmp/check_uncond.lean
   echo
 fi
 
@@ -151,7 +161,7 @@ contains() {
 
 module_to_path() {
   # Convert rh.foo.bar → rh/foo/bar.lean (no extra prefixing)
-  echo "$1" | sed -e 's/\./\//g' -e 's/$/.lean/'
+  echo "$1" | sed -e 's/\./\//g' -e 's/$/\.lean/'
 }
 
 collect_transitive_files() {
@@ -275,14 +285,14 @@ echo "════════════════════════�
 echo "  VERIFICATION SUMMARY"
 echo "════════════════════════════════════════════════════════"
 echo
+
 echo "✅ Lean version: OK"
 if [ $BUILD_STATUS -eq 0 ]; then
   echo "✅ Build status: SUCCESS (exit code 0)"
   echo "✅ No sorry/admit/axiom: Verified on artifacts and sources"
   echo "✅ Dev/export guards: Passed"
 else
-  echo "ℹ️  Build status: FAILED (non-fatal)"
-  echo "ℹ️  Axiom and theorem checks skipped due to build failure."
+  echo "ℹ️  Build status: FAILED (fatal)"
 fi
 if [ $FAILURES -eq 0 ]; then
   echo "✅ Dev/export transitive scans: clean"
@@ -290,18 +300,19 @@ else
   echo "❌ Dev/export transitive scans: violations detected"
 fi
 echo
+
 echo "════════════════════════════════════════════════════════"
 echo "  PROOF COMPLETE AND VERIFIED"
 echo "════════════════════════════════════════════════════════"
 echo
+
 echo "📄 See PROOF_CERTIFICATE.md for detailed certificate"
 echo
 
 # Optional JSON summary
 if [ "$JSON_OUT" -eq 1 ]; then
   # Build fields
-  BUILD_STATUS_STR="failed"
-  if [ $BUILD_STATUS -eq 0 ]; then BUILD_STATUS_STR="success"; fi
+  BUILD_STATUS_STR="success"
   # If artifact scan skipped due to build failure, counters remain 0
   : "${ART_FORB_TOK_CNT:=0}"
   : "${ART_BANNED_IMPORT_CNT:=0}"
