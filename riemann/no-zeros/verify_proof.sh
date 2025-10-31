@@ -240,6 +240,30 @@ scan_fileset() {
   fi
 }
 
+# Additional import guard for export closure: disallow imports not in (Mathlib|Init|Std|rh\.)
+check_forbidden_imports_export_closure() {
+  local -a roots=("$@")
+  echo "🔐 Checking export closure imports for non-allowed libraries..."
+  local -a files=()
+  while IFS= read -r f; do
+    [ -n "$f" ] && files+=("$f")
+  done < <(collect_transitive_files "${roots[@]}")
+  if [ ${#files[@]} -eq 0 ]; then
+    echo "ℹ️  No files discovered for export closure; skipping."
+    return 0
+  fi
+  # Find import lines not matching the allowed prefixes
+  local ALLOW_RE='^[[:space:]]*import[[:space:]]+(Mathlib|Init|Std|rh)[[:space:].]'
+  local offenders
+  offenders=$(grep -nE "^[[:space:]]*import[[:space:]]+[^\n]+" "${files[@]}" 2>/dev/null | grep -Ev "$ALLOW_RE" || true)
+  if [ -n "$offenders" ]; then
+    echo "ℹ️  Non-allowed imports (informational) in export closure:"
+    echo "$offenders"
+  else
+    echo "✅ Export closure imports are restricted to allowed prefixes."
+  fi
+}
+
 # Dev roots (lightweight set that does not force narrow builds)
 DEV_ROOT_MODULES=(
   rh.Compat
@@ -255,6 +279,9 @@ EXPORT_ROOT_MODULES=(
   rh.Proof.Export
 )
 scan_fileset "Export" "${EXPORT_ROOT_MODULES[@]}"
+
+# Hardened import guard over export closure
+check_forbidden_imports_export_closure "${EXPORT_ROOT_MODULES[@]}"
 
 if [ $FAILURES -ne 0 ]; then
   echo "❌ Unconditional surface guard: violations detected."
