@@ -18,6 +18,8 @@ import Mathlib.NumberTheory.LSeries.RiemannZeta
 import Mathlib.Tactic
 import Mathlib.Analysis.SpecialFunctions.Gamma.Deligne
 import Mathlib.Topology.Basic
+import Mathlib.Topology.Instances.Complex
+import Mathlib.Topology.MetricSpace.Basic
 import rh.RS.PinchIngredients
 
 set_option maxRecDepth 4096
@@ -293,6 +295,7 @@ open RH.AcademicFramework.CompletedXi
 
 /-- Disjunction transport at `1-ρ`: if `Ξ(ρ)=0` and `Ξ=G·ζ`, then `G(1-ρ)=0 ∨ ζ(1-ρ)=0`. -/
 lemma disj_at_one_sub_of_xi_zero
+    (riemannXi G : ℂ → ℂ)
     (hXiEq : ∀ s, riemannXi s = G s * riemannZeta s)
     (symXi : ∀ s, riemannXi s = 0 → riemannXi (1 - s) = 0)
     (ρ : ℂ) (hXi0 : riemannXi ρ = 0)
@@ -304,6 +307,7 @@ lemma disj_at_one_sub_of_xi_zero
 
 /-- RH for a supplied `riemannXi` using FE, Schur bound, assignment, and `G ≠ 0` on Ω. -/
 theorem RH_xi_from_supplied_RS
+    (riemannXi G : ℂ → ℂ)
     (fe : ∀ s, riemannXi s = riemannXi (1 - s))
     (Θ : ℂ → ℂ)
     (hSchur : RH.RS.IsSchurOn Θ (RH.RS.Ω \ {z | riemannZeta z = 0}))
@@ -312,6 +316,7 @@ theorem RH_xi_from_supplied_RS
         (U ∩ {z | riemannZeta z = 0}) = ({ρ} : Set ℂ) ∧
         ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧ AnalyticOn ℂ Θ (U \ {ρ}) ∧
           Set.EqOn Θ g (U \ {ρ}) ∧ g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1)
+    (hXiEq : ∀ s, riemannXi s = G s * riemannZeta s)
     (hGnz : ∀ ρ ∈ RH.RS.Ω, G ρ ≠ 0)
     : ∀ ρ, riemannXi ρ = 0 → ρ.re = (1 / 2 : ℝ) := by
   -- Derive zero-symmetry from the supplied functional equation locally
@@ -325,7 +330,8 @@ theorem RH_xi_from_supplied_RS
     intro ρ hΩ
     have hG := hGnz ρ hΩ
     have hZ := hζnz ρ hΩ
-    simpa [xi_factorization ρ] using mul_ne_zero hG hZ
+    have hEq : riemannXi ρ = G ρ * riemannZeta ρ := hXiEq ρ
+    simpa [hEq] using mul_ne_zero hG hZ
   -- Conclude RH for Ξ by symmetry wrapper
   exact RH_riemannXi riemannXi hΞnz symXi
 
@@ -473,7 +479,7 @@ open RH.AcademicFramework.CompletedXi
 /-- Assign‑based pinch specialized to `riemannXi_ext`. -/
 theorem RiemannHypothesis_from_pinch_ext_assign
     (Θ : ℂ → ℂ)
-    (hSchur : RH.RS.IsSchurOn Θ (RH.RS.Ω \ {z | riemannXi_ext z = 0}))
+    (hSchur_offXi : RH.RS.IsSchurOn Θ RH.AcademicFramework.HalfPlaneOuterV2.offXi)
     (assign : ∀ ρ, ρ ∈ RH.RS.Ω → riemannXi_ext ρ = 0 →
       ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ RH.RS.Ω ∧ ρ ∈ U ∧
         (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
@@ -485,12 +491,156 @@ theorem RiemannHypothesis_from_pinch_ext_assign
     fun s => RH.AcademicFramework.CompletedXi.xi_ext_functional_equation s
   have symXi : ∀ ρ, riemannXi_ext ρ = 0 → riemannXi_ext (1 - ρ) = 0 :=
     RH.AcademicFramework.CompletedXi.zero_symmetry_from_fe riemannXi_ext fe
-  exact RH.Proof.poissonIntegralinch.RH_from_pinch_assign riemannXi_ext Θ symXi hSchur assign
+  -- Prove no-right-zeros using the assign-based pinch with Schur on offXi.
+  have noRightZeros : ∀ ρ ∈ RH.RS.Ω, riemannXi_ext ρ ≠ 0 := by
+    intro ρ hΩ hXiρ
+    rcases assign ρ hΩ hXiρ with
+      ⟨U, hUopen, hUconn, hUsub, hρU, hUZeq, g, hg, hΘU, hExt, hval, z0, hz0U, hneq⟩
+    -- Shrink to a ball around ρ contained in Ω ∩ U, and in the ρ ≠ 1 case also avoiding 1
+    have hΩ_open : IsOpen RH.RS.Ω := RH.RS.isOpen_Ω
+    obtain ⟨εΩ, hεΩpos, hεΩsubset⟩ :=
+      Metric.mem_nhds_iff.mp (hΩ_open.mem_nhds (hUsub hρU))
+    obtain ⟨εU, hεUpos, hεUsubset⟩ :=
+      Metric.mem_nhds_iff.mp (hUopen.mem_nhds hρU)
+    by_cases hρ1 : ρ = (1 : ℂ)
+    · -- Pick a small ball in Ω ∩ U; removing ρ ensures z ≠ 1 on the puncture
+      let t : ℝ := min εΩ εU
+      have htpos : 0 < t := lt_min hεΩpos hεUpos
+      have hBall_sub_Ω : Metric.ball ρ t ⊆ RH.RS.Ω := by
+        intro z hz
+        have hzlt : dist z ρ < εΩ := lt_of_lt_of_le hz (min_le_left _ _)
+        have : z ∈ Metric.ball ρ εΩ := by simpa [Metric.mem_ball] using hzlt
+        exact hεΩsubset this
+      have hBall_sub_U : Metric.ball ρ t ⊆ U := by
+        intro z hz
+        have hzlt : dist z ρ < εU := lt_of_lt_of_le hz (min_le_right _ _)
+        have : z ∈ Metric.ball ρ εU := by simpa [Metric.mem_ball] using hzlt
+        exact hεUsubset this
+      -- Define U'
+      let U' : Set ℂ := Metric.ball ρ t
+      have hU'open : IsOpen U' := isOpen_ball
+      have hU'subΩ : U' ⊆ RH.RS.Ω := hBall_sub_Ω
+      have hρU' : ρ ∈ U' := by simpa [U', Metric.mem_ball, dist_self] using htpos
+      -- Isolation persists
+      have hIso' : (U' ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
+        apply Set.Subset.antisymm
+        · intro z hz
+          have hzU : z ∈ U := hBall_sub_U hz.1
+          have hzpair : z ∈ U ∩ {z | riemannXi_ext z = 0} := ⟨hzU, hz.2⟩
+          have : z ∈ ({ρ} : Set ℂ) := by simpa [hUZeq] using hzpair
+          simpa using this
+        · intro z hz; obtain rfl : z = ρ := by simpa [Set.mem_singleton_iff] using hz
+          refine ⟨?_, ?_⟩
+          · have : dist ρ ρ < t := by simpa [dist_self] using htpos
+            simpa [U', Metric.mem_ball] using this
+          · simpa [hXiρ]
+      -- Build Schur on U'\{ρ} via offXi inclusion
+      have hUminusSub_offXi : (U' \ {ρ}) ⊆ RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
+        intro z hz
+        have hzU' : z ∈ U' := hz.1
+        have hzNeρ : z ≠ ρ := hz.2
+        have hzΩ : z ∈ RH.RS.Ω := hU'subΩ hzU'
+        have hzXi : riemannXi_ext z ≠ 0 := by
+          intro h0
+          have : z ∈ (U' ∩ {w | riemannXi_ext w = 0}) := ⟨hzU', by simpa [Set.mem_setOf_eq] using h0⟩
+          have : z ∈ ({ρ} : Set ℂ) := by simpa [hIso'] using this
+          exact hzNeρ (by simpa using this)
+        have hzNe1 : z ≠ (1 : ℂ) := by
+          -- since ρ = 1 and z ≠ ρ
+          simpa [hρ1]
+        exact ⟨hzΩ, hzNe1, hzXi⟩
+      have hSchur_U' : RH.RS.IsSchurOn Θ (U' \ {ρ}) := by
+        intro z hz; exact hSchur_offXi z (hUminusSub_offXi hz)
+      have hΘU' : AnalyticOn ℂ Θ (U' \ {ρ}) :=
+        hΘU.mono (by intro z hz; exact ⟨hBall_sub_U hz.1, hz.2⟩)
+      have hEqOn' : Set.EqOn Θ g (U' \ {ρ}) := by
+        intro w hw; exact hExt ⟨hBall_sub_U hw.1, hw.2⟩
+      have hPF := RH.RS.PinchFromExtension U' hU'open (isPreconnected_ball) ρ hρU' Θ hΘU' hSchur_U'
+        g (hg.mono (by intro w hw; exact hBall_sub_U hw)) hEqOn' hval
+      have hAllOne : ∀ w ∈ U', g w = 1 := hPF.1
+      have : g z0 = 1 := by
+        have hz0U' : z0 ∈ U' := hBall_sub_U hz0U
+        exact hAllOne z0 hz0U'
+      exact (hneq this).elim
+    · -- ρ ≠ 1: choose a ball that also avoids 1
+      let δ : ℝ := dist ρ 1 / 2
+      have hδpos : 0 < δ := by
+        have : 0 < dist ρ 1 := by exact dist_pos.mpr hρ1
+        exact half_pos this
+      let t : ℝ := min εΩ (min εU δ)
+      have htpos : 0 < t := lt_min (lt_min hεΩpos hεUpos) hδpos
+      have hBall_sub_Ω : Metric.ball ρ t ⊆ RH.RS.Ω := by
+        intro z hz; exact hεΩsubset (lt_of_lt_of_le hz (min_le_left _ _))
+      have hBall_sub_U : Metric.ball ρ t ⊆ U := by
+        intro z hz
+        have : z ∈ Metric.ball ρ εU := lt_of_lt_of_le hz (le_trans (min_le_right _ _) (min_le_left _ _))
+        exact hεUsubset this
+      -- 1 ∉ ball ρ t since t ≤ δ = dist ρ 1 / 2
+      have hBall_avoids1 : (1 : ℂ) ∉ Metric.ball ρ t := by
+        intro h1
+        have : dist ρ 1 ≤ dist ρ 1 / 2 := by
+          have ht_le_δ : t ≤ δ := by
+            have : min εU δ ≤ δ := min_le_right _ _
+            exact le_trans (min_le_right _ _) this
+          have : dist 1 ρ < t := by simpa [Metric.mem_ball, dist_comm] using h1
+          exact le_of_lt (lt_of_lt_of_le this ht_le_δ)
+        have : ¬ dist ρ 1 ≤ dist ρ 1 / 2 := by
+          have : 0 < dist ρ 1 := by exact dist_pos.mpr hρ1
+          have : dist ρ 1 / 2 < dist ρ 1 := by exact half_lt_self this
+          exact not_le_of_gt this
+        exact this.elim this
+      -- Define U' := ball ρ t and proceed as in the previous case
+      let U' : Set ℂ := Metric.ball ρ t
+      have hU'open : IsOpen U' := isOpen_ball
+      have hU'subΩ : U' ⊆ RH.RS.Ω := hBall_sub_Ω
+      have hρU' : ρ ∈ U' := by simpa [U', Metric.mem_ball, dist_self] using htpos
+      have hIso' : (U' ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
+        apply Set.Subset.antisymm
+        · intro z hz
+          have hzU : z ∈ U := hBall_sub_U hz.1
+          have hzpair : z ∈ U ∩ {z | riemannXi_ext z = 0} := ⟨hzU, hz.2⟩
+          have : z ∈ ({ρ} : Set ℂ) := by simpa [hUZeq] using hzpair
+          simpa using this
+        · intro z hz; obtain rfl : z = ρ := by simpa [Set.mem_singleton_iff] using hz
+          refine ⟨?_, ?_⟩
+          · have : dist ρ ρ < t := by simpa [dist_self] using htpos
+            simpa [U', Metric.mem_ball] using this
+          · simpa [hXiρ]
+      have hUminusSub_offXi : (U' \ {ρ}) ⊆ RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
+        intro z hz
+        have hzU' : z ∈ U' := hz.1
+        have hzNeρ : z ≠ ρ := hz.2
+        have hzΩ : z ∈ RH.RS.Ω := hU'subΩ hzU'
+        have hzXi : riemannXi_ext z ≠ 0 := by
+          intro h0
+          have : z ∈ (U' ∩ {w | riemannXi_ext w = 0}) := ⟨hzU', by simpa [Set.mem_setOf_eq] using h0⟩
+          have : z ∈ ({ρ} : Set ℂ) := by simpa [hIso'] using this
+          exact hzNeρ (by simpa using this)
+        have hzNe1 : z ≠ (1 : ℂ) := by
+          intro h1; have : (1 : ℂ) ∈ U' := by simpa [U'] using h1
+          exact hBall_avoids1 this
+        exact ⟨hzΩ, hzNe1, hzXi⟩
+      have hSchur_U' : RH.RS.IsSchurOn Θ (U' \ {ρ}) := by
+        intro z hz; exact hSchur_offXi z (hUminusSub_offXi hz)
+      have hΘU' : AnalyticOn ℂ Θ (U' \ {ρ}) :=
+        hΘU.mono (by intro z hz; exact ⟨hBall_sub_U hz.1, hz.2⟩)
+      have hEqOn' : Set.EqOn Θ g (U' \ {ρ}) := by
+        intro w hw; exact hExt ⟨hBall_sub_U hw.1, hw.2⟩
+      have hPF := RH.RS.PinchFromExtension U' hU'open (isPreconnected_ball) ρ hρU' Θ hΘU' hSchur_U'
+        g (hg.mono (by intro w hw; exact hBall_sub_U hw)) hEqOn' hval
+      have hAllOne : ∀ w ∈ U', g w = 1 := hPF.1
+      have : g z0 = 1 := by
+        have hz0U' : z0 ∈ U' := hBall_sub_U hz0U
+        exact hAllOne z0 hz0U'
+      exact (hneq this).elim
+    -- Done
+  -- Conclude via symmetry
+  exact RH.Proof.RH_core (Ξ := riemannXi_ext) noRightZeros symXi
 
 /-- Export to mathlib from the assign‑based pinch route. -/
 theorem RiemannHypothesis_mathlib_from_pinch_ext_assign
     (Θ : ℂ → ℂ)
-    (hSchur : RH.RS.IsSchurOn Θ (RH.RS.Ω \ {z | riemannXi_ext z = 0}))
+    (hSchur_offXi : RH.RS.IsSchurOn Θ RH.AcademicFramework.HalfPlaneOuterV2.offXi)
     (assign : ∀ ρ, ρ ∈ RH.RS.Ω → riemannXi_ext ρ = 0 →
       ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ RH.RS.Ω ∧ ρ ∈ U ∧
         (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
@@ -498,7 +648,7 @@ theorem RiemannHypothesis_mathlib_from_pinch_ext_assign
           Set.EqOn Θ g (U \ {ρ}) ∧ g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1)
     : RiemannHypothesis := by
   have Hxi : ∀ ρ, riemannXi_ext ρ = 0 → ρ.re = (1 / 2 : ℝ) :=
-    RiemannHypothesis_from_pinch_ext_assign Θ hSchur assign
+    RiemannHypothesis_from_pinch_ext_assign Θ hSchur_offXi assign
   exact RH_mathlib_from_xi_ext Hxi
 
 end RH.Proof.Final
@@ -507,7 +657,7 @@ end RH.Proof.Final
 theorem RH_from_pinch_certificate (C : RH.RS.PinchCertificateExt) : RiemannHypothesis := by
   -- Θ from certificate and its Schur bound off Z(Ξ_ext)
   have hSchur : RH.RS.IsSchurOn (RH.RS.Θ_cert C)
-      (RH.RS.Ω \ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}) :=
+      RH.AcademicFramework.HalfPlaneOuterV2.offXi :=
     RH.RS.Θ_cert_Schur_offXi C
   -- Xi-assign from the certificate's removable existence
   let assignXi : ∀ ρ, ρ ∈ RH.RS.Ω → RH.AcademicFramework.CompletedXi.riemannXi_ext ρ = 0 →
@@ -541,7 +691,7 @@ theorem RH (C : RH.RS.PinchCertificateExt) : RiemannHypothesis :=
 theorem RiemannHypothesis_from_pinch_ingredients
     (hOuter : ∃ O : ℂ → ℂ, _root_.RH.RS.OuterHalfPlane O ∧
         _root_.RH.RS.BoundaryModulusEq O (fun s => _root_.RH.RS.det2 s / riemannXi_ext s))
-    (hRe_offXi : ∀ z ∈ (_root_.RH.RS.Ω \ {z | riemannXi_ext z = 0}),
+    (hRe_offXi : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
         0 ≤ ((2 : ℂ) * (_root_.RH.RS.J_pinch _root_.RH.RS.det2 (Classical.choose hOuter) z)).re)
     (hRemXi : ∀ ρ, ρ ∈ _root_.RH.RS.Ω → riemannXi_ext ρ = 0 →
         ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ _root_.RH.RS.Ω ∧ ρ ∈ U ∧
@@ -571,10 +721,10 @@ theorem RiemannHypothesis_from_poisson_and_pinned'
             ∃ z, z ∈ U ∧ z ≠ ρ ∧ (_root_.RH.RS.Θ_pinch_of _root_.RH.RS.det2 (Classical.choose hOuter)) z ≠ 1)
     : RiemannHypothesis := by
   classical
-  -- Ingredient 1: restrict Poisson positivity to the off-zeros set
-  let hRe_offXi : ∀ z ∈ (RH.RS.Ω \ {z | riemannXi_ext z = 0}),
+  -- Ingredient 1: restrict Poisson positivity to the AF `offXi` set
+  let hRe_offXi : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
         0 ≤ ((2 : ℂ) * (_root_.RH.RS.J_pinch _root_.RH.RS.det2 (Classical.choose hOuter) z)).re :=
-    fun z hz => hPoisson z hz.1
+    fun z hz => hPoisson z (RH.AcademicFramework.HalfPlaneOuterV2.offXi_subset_Ω hz)
   -- Ingredient 2: package pinned data into a removable-extension assignment
   let hRemXi : ∀ ρ, ρ ∈ RH.RS.Ω → riemannXi_ext ρ = 0 →
         ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ RH.RS.Ω ∧ ρ ∈ U ∧

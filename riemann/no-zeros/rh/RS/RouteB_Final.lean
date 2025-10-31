@@ -92,35 +92,28 @@ lemma boundary_positive_AF_of_PPlus :
 /-! ## Poisson representation on offXi (from θ‑free identity) -/
 
 /-- If the θ‑free real‑part identity holds on `offXi` for the pinch field,
-then the half‑plane Poisson representation exists on `offXi`. -/
-theorem F_pinch_has_poisson_rep_of_ReEqOn
+and the boundary trace components are measurable, then the half‑plane Poisson
+representation exists on `offXi`. -/
+theorem F_pinch_has_poisson_rep
   (hDet2 : RH.RS.Det2OnOmega)
   (hXi : AnalyticOn ℂ riemannXi_ext (RH.AcademicFramework.HalfPlaneOuterV2.Ω \ ({1} : Set ℂ)))
-  (hReEqOn : ∀ z ∈ (RH.AcademicFramework.HalfPlaneOuterV2.Ω \ {z | riemannXi_ext z = 0}),
+  (hDet_meas : Measurable (fun t : ℝ => RH.RS.det2 (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)))
+  (hO_meas   : Measurable (fun t : ℝ => O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)))
+  (hXi_meas  : Measurable (fun t : ℝ => riemannXi_ext (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)))
+  (hReEqOn : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
       (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O z).re
         = RH.AcademicFramework.HalfPlaneOuterV2.poissonIntegral
             (fun t : ℝ => (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re) z)
   : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
       (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
-      (RH.AcademicFramework.HalfPlaneOuterV2.Ω \ {z | riemannXi_ext z = 0}) := by
+      RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
   -- boundary modulus equality in AF shape
   have hBME_af : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryModulusEq O (fun s => RH.RS.det2 s / riemannXi_ext s) := by
     intro t; simpa using (O_spec).2 t
-  -- boundary measurability pieces
-  have hDet_meas : Measurable (fun t : ℝ => RH.RS.det2 (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)) :=
-    RH.AcademicFramework.HalfPlaneOuterV2.measurable_comp_boundary (α := ℂ) (f := RH.RS.det2) RH.RS.measurable_det2
-  have hO_meas : Measurable (fun t : ℝ => O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)) := by
-    -- derive from RS measurability adapter for chosen outer
-    have hOm : Measurable O := RH.RS.measurable_O_witness RH.RS.measurable_det2 (by
-      classical; measurability)
-    exact RH.AcademicFramework.HalfPlaneOuterV2.measurable_comp_boundary (α := ℂ) (f := O) hOm
-  have hXi_meas : Measurable (fun t : ℝ => riemannXi_ext (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)) :=
-    RH.AcademicFramework.HalfPlaneOuterV2.measurable_comp_boundary (α := ℂ) (f := riemannXi_ext) (by classical; measurability)
-  -- apply AF specialization builder
-  exact RH.AcademicFramework.HalfPlaneOuterV2.pinch_repOn_from_reEqOn_offXi
+  -- apply AF specialization builder (consumes θ‑free identity and measurability inputs)
+  exact RH.AcademicFramework.HalfPlaneOuterV2.F_pinch_hasPoissonRepOn_offXi_from_ReEqOn
     (hDet2 := hDet2) (hO := (O_spec).1) (hBME := hBME_af) (hXi := hXi)
     (hDet_meas := hDet_meas) (hO_meas := hO_meas) (hXi_meas := hXi_meas)
-    (hReEqOn := by
-      intro z hz; exact hReEqOn z hz)
+    (hReEqOn := hReEqOn)
 
 end RH.RS.RouteB

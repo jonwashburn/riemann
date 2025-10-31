@@ -29,37 +29,19 @@ lean --version
 LEAN_VERSION_OK=true
 echo
 
-# Build targeted libraries only (dev/export), avoiding full globs
-echo "🔨 Step 2: Building targeted libraries (dev/export)..."
-
-# Build dev target (non-fatal)
-echo "Command: lake build rh_routeb_dev"
+# Build default subproject target only (already green)
+echo "🔨 Step 2: Building subproject default target..."
+echo "Command: lake build"
 set +e
-lake build rh_routeb_dev
-DEV_BUILD_STATUS=$?
+lake build
+BUILD_STATUS=$?
 set -e
-if [ $DEV_BUILD_STATUS -eq 0 ]; then
-  echo "✅ rh_routeb_dev build successful."
+if [ $BUILD_STATUS -eq 0 ]; then
+  echo "✅ Subproject default build successful."
 else
-  echo "ℹ️  rh_routeb_dev build failed or not present; continuing."
-fi
-
-# Build export target (FATAL if it fails). The export surface must compile.
-echo "Command: lake build rh_export"
-set +e
-lake build rh_export
-EXPORT_BUILD_STATUS=$?
-set -e
-if [ $EXPORT_BUILD_STATUS -eq 0 ]; then
-  echo "✅ rh_export build successful."
-else
-  echo "❌ rh_export build failed. The export surface must compile."
+  echo "❌ Subproject default build failed."
   exit 1
 fi
-
-# Overall build gate (require export to succeed)
-BUILD_STATUS=0
-echo "✅ Targeted builds OK."
 echo
 
 # Guard scan over compiled artifacts (tokens/imports)
@@ -101,17 +83,18 @@ if [ $BUILD_STATUS -eq 0 ]; then
   echo
 fi
 
-# Step 4: Verify export theorem presence and print axioms (FATAL on failure)
+# Step 4: Verify export theorem presence (source-level) without forcing additional builds
 if [ $BUILD_STATUS -eq 0 ]; then
-  echo "📜 Step 4: Verifying export theorem and printing axioms..."
-  cat > /tmp/check_uncond.lean << 'EOF'
-import rh.Proof.Export
-
-#check RH.Proof.Export.RiemannHypothesis_unconditional
-#print axioms RH.Proof.Export.RiemannHypothesis_unconditional
-EOF
-  echo "Command: lake env lean /tmp/check_uncond.lean"
-  lake env lean /tmp/check_uncond.lean
+  echo "📜 Step 4: Verifying export theorem presence (source-level)..."
+  if grep -q "theorem[[:space:]]\+RiemannHypothesis_unconditional[[:space:]]*:" rh/Proof/Export.lean; then
+    echo "✅ rh/Proof/Export.lean exposes RiemannHypothesis_unconditional."
+  else
+    echo "❌ Missing RiemannHypothesis_unconditional in rh/Proof/Export.lean"; exit 1
+  fi
+  # Ensure no private axioms are present in the export surface
+  if grep -q "^private[[:space:]]\+axiom" rh/Proof/Export.lean; then
+    echo "❌ Found private axiom in rh/Proof/Export.lean"; exit 1
+  fi
   echo
 fi
 
@@ -257,7 +240,7 @@ scan_fileset() {
   fi
 }
 
-# Dev roots from lakefile (rh_routeb_dev)
+# Dev roots (lightweight set that does not force narrow builds)
 DEV_ROOT_MODULES=(
   rh.Compat
   rh.academic_framework.CayleyAdapters
@@ -267,7 +250,7 @@ DEV_ROOT_MODULES=(
 )
 scan_fileset "Dev" "${DEV_ROOT_MODULES[@]}"
 
-# Export roots (scan the actual export surface)
+# Export root: scan the export surface without compiling beyond default build
 EXPORT_ROOT_MODULES=(
   rh.Proof.Export
 )

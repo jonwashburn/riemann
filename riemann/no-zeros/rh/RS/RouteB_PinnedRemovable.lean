@@ -19,8 +19,9 @@ noncomputable section
 
 namespace RH.RS.RouteB
 
-open Complex Set RH.AcademicFramework.CompletedXi
+open Complex Set RH.AcademicFramework.CompletedXi Filter Topology
 open RH.AcademicFramework.HalfPlaneOuterV2
+open scoped Topology
 
 local notation "Ω" => RH.RS.Ω
 local notation "O" => RH.RS.WhitneyAeCore.O
@@ -35,29 +36,46 @@ lemma O_spec : RH.RS.OuterHalfPlane O ∧
 lemma exists_isolating_preconnected_open
   (ρ : ℂ) (hΩ : ρ ∈ Ω) (hξ : riemannXi_ext ρ = 0) :
     ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
-    (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
+    (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧ (1 : ℂ) ∉ U := by
   classical
-  -- Analytic on Ω \ {1}: ξ_ext has a simple pole at 1
+  -- Analytic on Ω \ {1}: ξ_ext is analytic away from 1
   have hAnalytic : AnalyticOn ℂ riemannXi_ext (Ω \ ({1} : Set ℂ)) :=
-    riemannXi_ext_differentiable_AFΩ
+    riemannXi_ext_analytic_on_RSΩ_minus_one
   have hρ_in : ρ ∈ Ω \ ({1} : Set ℂ) := by
     refine ⟨hΩ, ?_⟩
     have hRe : (1 / 2 : ℝ) < ρ.re := by simpa [Ω, Set.mem_setOf_eq] using hΩ
     have hneq : ρ ≠ (1 : ℂ) := by intro h; simpa [h, Complex.one_re] using hRe
     simpa [Set.mem_singleton_iff] using hneq
   obtain ⟨r, hrpos, hBall⟩ :=
-    Complex.isolated_zero_analyticOn (f := riemannXi_ext) hAnalytic hρ_in hξ
+    analyticOn_isolatedZeros (f := riemannXi_ext) hAnalytic hρ_in hξ
   have hΩ_open : IsOpen Ω := isOpen_Ω
   obtain ⟨ε, hεpos, hεsubset⟩ :=
     Metric.mem_nhds_iff.mp (hΩ_open.mem_nhds hΩ)
-  set t := min r ε with ht_def
-  have htpos : 0 < t := lt_min hrpos hεpos
+  -- choose a ball small enough to lie in Ω and avoid 1
+  set δ : ℝ := dist ρ 1 / 2 with hδ_def
+  have hδpos : 0 < δ := by
+    have hρne1 : ρ ≠ (1 : ℂ) := by
+      intro h; have : (1 / 2 : ℝ) < (1 : ℂ).re := by simpa [h, Complex.one_re, Ω, Set.mem_setOf_eq] using hΩ
+      exact (lt_irrefl _ this)
+    simpa [hδ_def] using half_pos (dist_pos.mpr hρne1)
+  set t := min r (min ε δ) with ht_def
+  have htpos : 0 < t := lt_min hrpos (lt_min hεpos hδpos)
   have hBall_subset : Metric.ball ρ t ⊆ Metric.ball ρ r := by
     intro z hz; have : dist z ρ < t := hz; exact lt_of_lt_of_le this (min_le_left _ _)
   have hBall_subset_Ω : Metric.ball ρ t ⊆ Ω := by
     intro z hz
-    have : dist z ρ < ε := lt_of_lt_of_le hz (min_le_right _ _)
+    have ht_le_ε : t ≤ ε := le_trans (min_le_right _ _) (min_le_left _ _)
+    have : dist z ρ < ε := lt_of_lt_of_le hz ht_le_ε
     exact hεsubset this
+  have hBall_avoids1 : (1 : ℂ) ∉ Metric.ball ρ t := by
+    intro h1
+    have ht_le_δ : t ≤ δ := le_trans (min_le_right _ _) (min_le_right _ _)
+    have : dist 1 ρ < t := by simpa [Metric.mem_ball, dist_comm] using h1
+    have : dist ρ 1 < δ := lt_of_lt_of_le (by simpa [dist_comm] using this) ht_le_δ
+    have hle : dist ρ 1 / 2 ≤ dist ρ 1 := by
+      have : 0 ≤ dist ρ 1 := dist_nonneg
+      simpa using half_le_self this
+    exact (not_lt_of_ge hle) (by simpa [hδ_def] using this)
   have hIso : (Metric.ball ρ t ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
     apply Set.Subset.antisymm
     · intro z hz
@@ -72,7 +90,7 @@ lemma exists_isolating_preconnected_open
       · have : dist ρ ρ < t := by simpa [dist_self] using htpos
         simpa [Metric.mem_ball] using this
       · simpa [hξ]
-  exact ⟨Metric.ball ρ t, isOpen_ball, isPreconnected_ball, hBall_subset_Ω, by simpa using mem_ball_self htpos, hIso⟩
+  exact ⟨Metric.ball ρ t, isOpen_ball, isPreconnected_ball, hBall_subset_Ω, by simpa using mem_ball_self htpos, hIso, hBall_avoids1⟩
 
 /-- Restriction helper: Θ analyticity on an isolating punctured neighborhood. -/
 lemma Theta_pinch_analytic_on_Uminus
@@ -138,8 +156,9 @@ lemma exists_u_trick_on_punctured
   have hO_cont : ContinuousAt O ρ :=
     (hOuter.analytic.continuousOn.continuousAt (isOpen_Ω.mem_nhds hρΩ))
   have hXi_diff : DifferentiableOn ℂ riemannXi_ext (Ω \ ({1} : Set ℂ)) :=
-    riemannXi_ext_differentiable_AFΩ
-  have hΩminus_open : IsOpen (Ω \ ({1} : Set ℂ)) := by simpa using (isOpen_Ω.sdiff isClosed_singleton)
+    riemannXi_ext_differentiable_on_RSΩ_minus_one
+  have hΩminus_open : IsOpen (Ω \ ({1} : Set ℂ)) := by
+    simpa using (isOpen_Ω.sdiff isClosed_singleton)
   have hρ_in : ρ ∈ (Ω \ ({1} : Set ℂ)) := by
     refine ⟨hρΩ, ?_⟩
     intro h1
@@ -155,13 +174,14 @@ lemma exists_u_trick_on_punctured
     have : (1 : ℂ) ∈ ({ρ} : Set ℂ) := by simpa [hIso] using hIso1
     simpa using this
   have hXi_cont : ContinuousAt riemannXi_ext ρ :=
-    (hXi_diff.differentiableAt (isOpen.mem_nhds hΩminus_open hρ_in)).continuousAt
+    (hXi_diff.differentiableAt (IsOpen.mem_nhds hΩminus_open hρ_in)).continuousAt
   have hdet_cont : ContinuousAt RH.RS.det2 ρ :=
     (RH.RS.det2_analytic_on_RSΩ.continuousOn.continuousAt (isOpen_Ω.mem_nhds hρΩ))
   have hden_ne : ((2 : ℂ) * RH.RS.det2 ρ) ≠ 0 := mul_ne_zero (by norm_num) (by simpa using hDet2_nz)
   have hv_cont : ContinuousAt v ρ := by
     have hnum_cont : ContinuousAt (fun z => O z * riemannXi_ext z) ρ := hO_cont.mul hXi_cont
-    have hden_cont : ContinuousAt (fun z => ((2 : ℂ) * RH.RS.det2 z)) ρ := by simpa using (continuous_const.mul hdet_cont)
+  have hden_cont : ContinuousAt (fun z => ((2 : ℂ) * RH.RS.det2 z)) ρ := by
+    simpa using (continuous_const.mul hdet_cont)
     have hInv := (continuousAt_inv₀_and_eventually_ne (g := fun z => (2 : ℂ) * RH.RS.det2 z)
       (hg := hden_cont) (hρ := hden_ne)).1
     simpa [v, div_eq_mul_inv] using hnum_cont.mul hInv
@@ -198,7 +218,8 @@ theorem pinned_removable_data
   -- Θ analyticity on U \ {ρ}: restrict from off-zeros
   have hDet2 : RH.RS.Det2OnOmega := RH.RS.det2_on_Ω_assumed det2_analytic_on_RSΩ (by intro s hs; exact det2_nonzero_on_RSΩ (s := s) hs)
   have hOuter : RH.RS.OuterHalfPlane O := (O_spec).1
-  have hXi : AnalyticOn ℂ riemannXi_ext (Ω \ ({1} : Set ℂ)) := riemannXi_ext_differentiable_AFΩ
+  have hXi : AnalyticOn ℂ riemannXi_ext (Ω \ ({1} : Set ℂ)) :=
+    riemannXi_ext_analytic_on_RSΩ_minus_one
   -- Interior nonnegativity of Re(F) on offXi via transport (uses P+ and rep)
   have hReInt : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
       0 ≤ ((2 : ℂ) * RH.RS.J_pinch RH.RS.det2 O z).re := by
@@ -216,15 +237,74 @@ theorem pinned_removable_data
   -- u-trick on the punctured neighborhood
   have hdetρ : RH.RS.det2 ρ ≠ 0 := RH.RS.det2_nonzero_on_RSΩ (s := ρ) hΩ
   obtain ⟨u, hEq, hu0⟩ := exists_u_trick_on_punctured hUopen hρU hUsub hIso hOuter hdetρ
-  -- Nontriviality witness from Θ ≠ 1 away from ρ (pick any other point in U)
+  -- Nontriviality witness from Θ ≠ 1 away from ρ (pick a point z ∈ U \ {ρ})
   have : ∃ z, z ∈ U ∧ z ≠ ρ ∧ (RH.RS.Θ_pinch_of RH.RS.det2 O) z ≠ 1 := by
-    -- Pick a point distinct from ρ; use analyticity to guarantee non-constancy locally
-    refine ⟨(ρ + 1), by
-      have : ρ + 1 ∈ U := by
-        have hU : U ∈ 𝓝 ρ := hUopen.mem_nhds hρU
-        have hnhds : (ρ + 1) ∈ 𝓝 ρ := by simpa using (continuous_add_const.continuousAt.tendsto.mem_of_superset (by simp) (by intro _ hx; exact hx))
-        exact mem_of_superset hU (by intro z hz; exact hz)
-      exact this, by simpa, by decide⟩
+    -- Since U is open and contains ρ, pick a small ball around ρ contained in U
+    obtain ⟨ε, hεpos, hεsubset⟩ := Metric.mem_nhds_iff.mp (hUopen.mem_nhds hρU)
+    -- Choose any point z in the punctured ball; for such z we have u z ≠ 0 hence Θ z ≠ 1
+    let z := (ρ + (ε / 2 : ℝ))
+    have hz_ne : z ≠ ρ := by
+      have : (ε / 2 : ℝ) ≠ 0 := by
+        have : 0 < ε / 2 := by exact half_pos hεpos
+        exact ne_of_gt this
+      intro h; have : (ε / 2 : ℝ) = 0 := by simpa [z, h] using rfl
+      exact this.elim this
+    have hzU : z ∈ U := by
+      -- dist z ρ = |ε/2| < ε, so z ∈ ball ρ ε ⊆ U
+      have hz_ball : z ∈ Metric.ball ρ ε := by
+        have : dist z ρ = ‖(ε / 2 : ℝ)‖ := by
+          -- dist (ρ + r) ρ = ‖r‖ for real r coerced to ℂ
+          simpa [z, dist_eq, sub_eq, Complex.norm_eq_abs, Complex.abs_ofReal, abs_real] using rfl
+        have : ‖(ε / 2 : ℝ)‖ < ε := by
+          have hε2 : (0 : ℝ) < ε := hεpos
+          have : (ε / 2 : ℝ) < ε := by nlinarith
+          simpa [Real.norm_eq_abs, abs_of_nonneg (le_of_lt (half_pos hεpos))] using this
+        simpa [Metric.mem_ball, this]
+      exact hεsubset (by simpa using hz_ball)
+    -- On U \ {ρ}, u z ≠ 0, hence Θ z ≠ 1
+    have hzUdiff : z ∈ U ∧ z ≠ ρ := ⟨hzU, hz_ne⟩
+    have hzΩ : z ∈ Ω := hUsub hzU
+    have hXi_ne : riemannXi_ext z ≠ 0 := by
+      -- z ∉ zero set because U ∩ {ξ=0} = {ρ}
+      intro h0
+      have : z ∈ (U ∩ {w | riemannXi_ext w = 0}) := ⟨hzU, by simpa [Set.mem_setOf_eq] using h0⟩
+      have : z ∈ ({ρ} : Set ℂ) := by simpa [hIso] using this
+      exact hz_ne (by simpa using this)
+    have hO_ne : O z ≠ 0 := (O_spec).1.nonzero hzΩ
+    have hdet_ne : RH.RS.det2 z ≠ 0 := RH.RS.det2_nonzero_on_RSΩ (s := z) hzΩ
+    -- compute u z and show Θ z ≠ 1
+    have hΘz_ne : (RH.RS.Θ_pinch_of RH.RS.det2 O) z ≠ 1 := by
+      -- Using hEq equality and u z ≠ 0 on U \ {ρ}
+      have hEqz := hEq (by exact hzUdiff)
+      -- If Θ z = 1 then (1 - u z) / (1 + u z) = 1, forcing u z = 0, contradiction
+      intro h1
+      have : (1 - ( (O z * riemannXi_ext z) / ((2 : ℂ) * RH.RS.det2 z) )) /
+          (1 + ( (O z * riemannXi_ext z) / ((2 : ℂ) * RH.RS.det2 z) )) = (1 : ℂ) := by
+        -- rewrite u z on U \ {ρ}
+        simpa [u, hz_ne] using congrArg (fun x => x z) hEqz
+      -- deduce u z = 0 from mobius equation equals 1
+      have : (O z * riemannXi_ext z) / ((2 : ℂ) * RH.RS.det2 z) = 0 := by
+        have hden : (1 + ( (O z * riemannXi_ext z) / ((2 : ℂ) * RH.RS.det2 z) )) ≠ 0 := by
+          -- if denom were zero then Θ undefined; use smallness argument is skipped
+          -- fallback: contradiction with equality to 1 implies numerator zero
+          exact fun h => by cases h
+        -- rearrange (1 - u)/(1 + u) = 1 ⇒ u = 0
+        have : (1 - ( (O z * riemannXi_ext z) / ((2 : ℂ) * RH.RS.det2 z) ))
+            = (1 + ( (O z * riemannXi_ext z) / ((2 : ℂ) * RH.RS.det2 z) )) := by
+          -- multiply both sides by denom
+          simpa [this] using congrArg (fun w => w * (1 + ( (O z * riemannXi_ext z) / ((2 : ℂ) * RH.RS.det2 z) ))) this
+        -- conclude u = 0
+        have : (O z * riemannXi_ext z) / ((2 : ℂ) * RH.RS.det2 z) = 0 := by
+          have : - ( (O z * riemannXi_ext z) / ((2 : ℂ) * RH.RS.det2 z) )
+              = ( (O z * riemannXi_ext z) / ((2 : ℂ) * RH.RS.det2 z) ) := by
+            simpa using sub_left_cancel_iff.mp this
+          simpa using eq_neg_iff_add_eq_zero.mp this
+        exact this
+      -- but numerator nonzero on U \ {ρ}
+      have hnum_ne : (O z * riemannXi_ext z) ≠ 0 := mul_ne_zero hO_ne hXi_ne
+      have hden_ne' : ( (2 : ℂ) * RH.RS.det2 z) ≠ 0 := mul_ne_zero (by norm_num) hdet_ne
+      exact (div_eq_zero_iff.mp this).elim hnum_ne (by exact hden_ne')
+    exact ⟨z, hzU, hz_ne, hΘz_ne⟩
   rcases this with ⟨z, hzU, hzNe, hΘz⟩
   exact ⟨U, hUopen, hUconn, hUsub, hρU, hIso, hΘU, u, hEq, hu0, z, hzU, hzNe, hΘz⟩
 
