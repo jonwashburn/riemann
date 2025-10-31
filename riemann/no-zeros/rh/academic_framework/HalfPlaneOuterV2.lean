@@ -558,6 +558,23 @@ theorem repOn_of_rep_subset {F : ℂ → ℂ} {S : Set ℂ}
     intro z hzS
     exact hRep.formula z (hS hzS)
 
+/-- Builder: obtain a subset half‑plane Poisson representation from
+an a priori real‑part Poisson identity on `S ⊆ Ω`, together with analyticity
+and the required integrability of the boundary integrand. -/
+theorem repOn_from_reEqOn {F : ℂ → ℂ} {S : Set ℂ}
+  (hS : S ⊆ Ω)
+  (hA : AnalyticOn ℂ F S)
+  (hI : ∀ z ∈ S, Integrable (fun t => (F (boundary t)).re * poissonKernel z t))
+  (hReEqOn : ∀ z ∈ S, (F z).re = poissonIntegral (fun t => (F (boundary t)).re) z)
+  : HasPoissonRepOn F S := by
+  refine {
+    subset := hS
+    , analytic := hA
+    , integrable := hI
+    , formula := hReEqOn }
+
+-- (specializations moved below; use `pinch_poissonRepOn_offZeros` instead)
+
 /-- Transport on subsets -/
 theorem poissonTransportOn {F : ℂ → ℂ} {S : Set ℂ} (hRep : HasPoissonRepOn F S) :
     BoundaryPositive F → ∀ z ∈ S, 0 ≤ (F z).re := by
@@ -750,6 +767,25 @@ theorem pinch_poissonRepOn_offZeros
   · -- formula on offXi: supplied as hypothesis
     intro z hz
     exact hFormula z hz
+
+/-- Specialization: from a θ‑free half‑plane real‑part identity on `offXi` for
+the pinch field, together with analyticity and boundary integrability inputs,
+build a subset half‑plane Poisson representation on `offXi`. -/
+theorem F_pinch_hasPoissonRepOn_offXi_from_ReEqOn
+    (hDet2 : Det2OnOmega)
+    {O : ℂ → ℂ} (hO : OuterHalfPlane O)
+    (hBME : BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
+    (hXi : AnalyticOn ℂ riemannXi_ext (Ω \ ({1} : Set ℂ)))
+    (hDet_meas : Measurable (fun t => det2 (boundary t)))
+    (hO_meas   : Measurable (fun t => O (boundary t)))
+    (hXi_meas  : Measurable (fun t => riemannXi_ext (boundary t)))
+    (hReEqOn   : ∀ z ∈ offXi,
+        (F_pinch det2 O z).re =
+          poissonIntegral (fun t : ℝ => (F_pinch det2 O (boundary t)).re) z)
+    : HasPoissonRepOn (F_pinch det2 O) offXi := by
+  -- Delegate to the generic builder with supplied θ‑free identity.
+  exact pinch_poissonRepOn_offZeros hDet2 (hO := hO) (hBME := hBME) (hXi := hXi)
+    (hDet_meas := hDet_meas) (hO_meas := hO_meas) (hXi_meas := hXi_meas) hReEqOn
 
 /-- Convenience wrapper (Cayley transport): build a Poisson representation witness for the
 pinch field on the off‑zeros set from a supplied half‑plane Poisson real‑part identity on

@@ -89,6 +89,14 @@ theorem reEq_on_from_disk_via_cayley
 
 -- Boundary identity for the Cayley pullback: `F(boundary t) = H(boundaryToDisk t)`.
 
+/-! A direct bridge: a subset half‑plane Poisson representation immediately yields
+the real‑part identity on that subset. This is used to convert witnesses when
+assembling the Cayley transport pipeline. -/
+theorem hReEq_on_of_halfplane_rep_on (F : ℂ → ℂ) {S : Set ℂ}
+  (hRepOn : HasPoissonRepOn F S) : HasHalfPlanePoissonReEqOn F S := by
+  intro z hz
+  exact hRepOn.formula z hz
+
 /-- Kernel transport on `S` for `H` from a Poisson rep of `(H ∘ toDisk)`. -/
 theorem cayley_kernel_transport_from_rep_on
   (H : ℂ → ℂ) {S : Set ℂ}
@@ -152,6 +160,21 @@ theorem pinch_ReEqOn_from_pullback
     (S := S) hEqInt hEqBd hKernel
 
   -- θ-based sections removed: θ-free API suffices for Route B
+
+/-- θ‑free identity (wrapper): given interior and boundary identifications via Cayley
+and a subset Poisson representation for the pullback `(H ∘ toDisk)` on `offXi`,
+conclude the half‑plane real‑part identity for the pinch field on `offXi`. -/
+theorem pinch_theta_free_ReEqOn_offXi
+  (det2 O H : ℂ → ℂ)
+  (hEqInt : Set.EqOn (HalfPlaneOuterV2.F_pinch det2 O)
+              (fun z => H (CayleyAdapters.toDisk z)) HalfPlaneOuterV2.offXi)
+  (hEqBd  : EqOnBoundary (HalfPlaneOuterV2.F_pinch det2 O) H)
+  (hRepPull : HalfPlaneOuterV2.HasPoissonRepOn
+                (fun z => H (CayleyAdapters.toDisk z)) HalfPlaneOuterV2.offXi)
+  : HasHalfPlanePoissonReEqOn (HalfPlaneOuterV2.F_pinch det2 O) HalfPlaneOuterV2.offXi := by
+  -- specialize the generic builder to `S = offXi`
+  exact pinch_ReEqOn_from_pullback (det2 := det2) (O := O)
+    (S := HalfPlaneOuterV2.offXi) (H := H) hEqInt hEqBd hRepPull
 
 /-- Subset Poisson rep for `H ∘ toDisk` on `S` from a rep of `F` on `S`. -/
 theorem pullback_rep_on_from_halfplane_rep
