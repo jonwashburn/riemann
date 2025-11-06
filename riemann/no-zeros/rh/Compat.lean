@@ -38,7 +38,7 @@ open scoped BigOperators Topology Interval
 -- inv_le_inv_of_le deprecated in newer mathlib; use the root lemma for 4.12 compatibility
 lemma inv_le_inv_of_le {α : Type*} [LinearOrderedField α] {a b : α}
     (ha : 0 < a) (h : a ≤ b) : b⁻¹ ≤ a⁻¹ :=
-  _root_.inv_le_inv_of_le ha h
+  inv_anti₀ ha h
 
 -- inv_lt_one_of_one_lt₀ existed in older mathlib; provide a compatible lemma
 lemma inv_lt_one_of_one_lt₀ {α : Type*} [LinearOrderedField α]
@@ -51,7 +51,7 @@ lemma inv_lt_one_of_one_lt₀ {α : Type*} [LinearOrderedField α]
 -- one_le_pow₀: in newer mathlib prefer one_le_pow_of_one_le
 lemma one_le_pow₀ {α : Type*} [LinearOrderedSemiring α]
     {a : α} (ha : 1 ≤ a) (n : ℕ) : 1 ≤ a ^ n := by
-  simpa using one_le_pow_of_one_le ha n
+  exact _root_.one_le_pow₀ ha --one_le_pow_of_one_le ha n
 
 -- sq_le_sq signature changed - now needs absolute values
 namespace sq_le_sq
@@ -116,7 +116,7 @@ lemma mem_slitPlane_of_ne_zero_of_im_ne {z : ℂ} (_hne : z ≠ 0) (h_im : z.im 
 -- arithmetic helper
 lemma two_pow_two_mul_eq_four_pow (d : ℕ) : (2 : ℝ) ^ (2 * d) = (4 : ℝ) ^ d := by
   have h : (2 : ℝ) ^ (2 * d) = ((2 : ℝ) ^ 2) ^ d := by
-    simpa [pow_mul] using (pow_mul (2 : ℝ) (2 : ℕ) d)
+    simp [pow_mul]
   have h2 : ((2 : ℝ) ^ 2) = (4 : ℝ) := by norm_num
   exact h.trans (by simpa using congrArg (fun z : ℝ => z ^ d) h2)
 
