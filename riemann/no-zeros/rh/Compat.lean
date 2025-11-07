@@ -124,14 +124,7 @@ lemma two_pow_two_mul_eq_four_pow (d : ℕ) : (2 : ℝ) ^ (2 * d) = (4 : ℝ) ^ 
 
 end
 
-namespace Metric
-
-lemma isPreconnected_ball_complex (z : ℂ) (r : ℝ) : IsPreconnected (Metric.ball z r) := by
-  have hconv : Convex ℝ (Metric.ball z r) := by
-    simpa using Metric.convex_ball z r
-  exact hconv.isPathConnected.isPreconnected
-
-end Metric
+-- No ball preconnectedness lemma here; keep RS-specific shims out of Compat.
 
 end RH
 

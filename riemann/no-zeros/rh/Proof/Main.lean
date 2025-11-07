@@ -524,7 +524,9 @@ theorem RiemannHypothesis_from_pinch_ext_assign
         simpa [U', Metric.mem_ball] using this
       have hU'open : IsOpen U' := by simpa [U'] using Metric.isOpen_ball
       have hU'pre : IsPreconnected U' := by
-        simpa [U'] using (Metric.isPreconnected_ball_complex (z := ρ) (r := t))
+        -- balls in a normed vector space are convex ⇒ path-connected ⇒ preconnected
+        have hconv : Convex ℝ (Metric.ball ρ t) := by simpa using Metric.convex_ball ρ t
+        simpa [U'] using hconv.isPathConnected.isPreconnected
       have hU'subΩ : U' ⊆ RH.RS.Ω := hBall_sub_Ω
       -- Isolation persists
       have hIso' : (U' ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
@@ -575,10 +577,15 @@ theorem RiemannHypothesis_from_pinch_ext_assign
       let t : ℝ := min εΩ (min εU δ)
       have htpos : 0 < t := lt_min (lt_min hεΩpos hεUpos) hδpos
       have hBall_sub_Ω : Metric.ball ρ t ⊆ RH.RS.Ω := by
-        intro z hz; exact hεΩsubset (lt_of_lt_of_le hz (min_le_left _ _))
+        intro z hz
+        have hzlt : dist z ρ < εΩ := lt_of_lt_of_le hz (min_le_left _ _)
+        have : z ∈ Metric.ball ρ εΩ := by simpa [Metric.mem_ball] using hzlt
+        exact hεΩsubset this
       have hBall_sub_U : Metric.ball ρ t ⊆ U := by
         intro z hz
-        have : z ∈ Metric.ball ρ εU := lt_of_lt_of_le hz (le_trans (min_le_right _ _) (min_le_left _ _))
+        have hzltU : dist z ρ < εU :=
+          lt_of_lt_of_le hz (le_trans (min_le_right _ _) (min_le_left _ _))
+        have : z ∈ Metric.ball ρ εU := by simpa [Metric.mem_ball] using hzltU
         exact hεUsubset this
       -- 1 ∉ ball ρ t since t ≤ δ = dist ρ 1 / 2
       have hBall_avoids1 : (1 : ℂ) ∉ Metric.ball ρ t := by
@@ -601,7 +608,8 @@ theorem RiemannHypothesis_from_pinch_ext_assign
         simpa [U', Metric.mem_ball] using this
       have hU'open : IsOpen U' := by simpa [U'] using Metric.isOpen_ball
       have hU'pre : IsPreconnected U' := by
-        simpa [U'] using (Metric.isPreconnected_ball_complex (z := ρ) (r := t))
+        have hconv : Convex ℝ (Metric.ball ρ t) := by simpa using Metric.convex_ball ρ t
+        simpa [U'] using hconv.isPathConnected.isPreconnected
       have hU'subΩ : U' ⊆ RH.RS.Ω := hBall_sub_Ω
       have hIso' : (U' ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
         apply Set.Subset.antisymm
