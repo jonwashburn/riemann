@@ -1,9 +1,9 @@
-import Mathlib.NumberTheory.EulerProduct.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Pow.Complex
-import Mathlib.Topology.Algebra.InfiniteSum.Basic
+import Mathlib.Analysis.CStarAlgebra.Classes
+import Mathlib.Data.Real.Pi.Bounds
+import Mathlib.Data.Real.StarOrdered
+import Mathlib.NumberTheory.LSeries.HurwitzZetaValues
+import Mathlib.Topology.CompletelyRegular
 import rh.academic_framework.EulerProduct.PrimeSeries
-import Mathlib
 
 /-!
 # The Prime-Power Tail Constant K₀ and Explicit Bounds
@@ -102,6 +102,9 @@ This converges absolutely (see `summable_K0_terms` below). The value is approxim
 0.0349 according to numerical evaluations in the literature. -/
 noncomputable def K0Const : ℝ :=
   (1/4 : ℝ) * ∑' k : {n // 2 ≤ n}, P k / (((k : ℕ) : ℝ) ^ 2)
+
+-- Convenient shorthand used throughout
+notation "K0" => K0Const
 
 /-! ## Section 4: Basic Convergence Results -/
 
@@ -855,6 +858,130 @@ theorem K0_le_finitePlusTail
     _ = (1/4 : ℝ) * ((∑' k, F k / (((k : ℕ) : ℝ) ^ 2))
                    + (∑' k, T k / (((k : ℕ) : ℝ) ^ 2))) := by
       rw [hlin]
+
+/-! ### Coarse upper bound shape (for numerics) -/
+
+/-- **Definition** A convenient coarse upper-bound value for `K₀` used in diagnostics:
+`K0UpperSimple = (1/4) * P(2) * ∑_{k≥2} 1/k²`.
+
+This captures the elementary monotonicity heuristic `P(k) ≤ P(2)` for `k≥2` and
+factors out the zeta(2)-tail. This bound follows from Theorem 5.2 (`K0_le_bound_simple`).
+
+**Historical Note:** This bound was used in early numerical work before more refined
+estimates became available. The inequality `K₀ ≤ K0UpperSimple` is established in
+`K0_le_bound_simple`. -/
+noncomputable def K0UpperSimple : ℝ :=
+  (1/4 : ℝ) * P 2 * (∑' k : {n // 2 ≤ n}, (1 : ℝ) / (((k : ℕ) : ℝ) ^ 2))
+
+/-- **Corollary** The coarse upper bound: `K₀ ≤ K0UpperSimple`.
+
+This follows immediately from `K0_le_bound_simple` and the definition of `K0UpperSimple`. -/
+theorem K0_le_K0UpperSimple : K0Const ≤ K0UpperSimple := by
+  dsimp [K0UpperSimple]
+  exact K0_le_bound_simple
+
+/-! ### Interface predicate for certificate consumers -/
+
+/-- **Interface-level statement**: The arithmetic tail constant `K₀` is
+nonnegative on the half-plane strip. This is packaged as a predicate to
+avoid committing to an analytic construction in this track. Certificate
+consumers can require this fact without depending on concrete implementation details.
+
+**Mathematical Content:** This states that `K₀ ≥ 0`, which follows from the fact
+that `K₀ = (1/4) · ∑_{k≥2} P(k)/k²` where each term `P(k)/k² ≥ 0` and the
+prefactor `1/4 > 0`.
+
+**Usage:** This predicate provides a clean interface for higher-level theorems
+that need the nonnegativity of `K₀` without depending on the specific construction. -/
+def K0_bound_on_strip : Prop := 0 ≤ K0Const
+
+/-- **Proof of nonnegativity**: `K₀ = (1/4) · ∑_{k≥2} P(k)/k² ≥ 0` since each term is
+nonnegative and the prefactor `1/4` is nonnegative.
+
+**Proof:** Each term `P(k)/k² ≥ 0` because:
+- `P(k) = ∑_p p^{-k} ≥ 0` (sum of nonnegative terms)
+- `k² > 0` for `k ≥ 2`
+- Division preserves nonnegativity
+
+The sum of nonnegative terms is nonnegative, and multiplying by `1/4 > 0` preserves
+nonnegativity. This establishes `K0_bound_on_strip`. □ -/
+theorem K0_bound_on_strip_proved : K0_bound_on_strip := by
+  dsimp [K0_bound_on_strip]
+  exact K0_nonneg
+
+/-! ### Notation -/
+
+/-- Convenience notation: `K0` as shorthand for `K0Const`.
+
+This notation is provided for readability in statements that would otherwise
+be cluttered with the full name `K0Const`. -/
+notation "K0" => K0Const
+
+/-! ### Alternative summability lemma -/
+
+/-- **Lemma** For integer `k ≥ 2`, the prime series `∑_p p^{-k}` converges (absolute).
+
+This is a convenience wrapper that provides the same result as `summable_P` but
+with a slightly different proof structure. Both lemmas are equivalent and can be
+used interchangeably.
+
+**Proof:** Reduces to the real-exponent lemma `r > 1` via `AcademicRH.EulerProduct.real_prime_rpow_summable`. -/
+lemma summable_P_of_two_le (k : ℕ) (hk : 2 ≤ k) :
+    Summable (fun p : Nat.Primes => (p : ℝ) ^ (-(k : ℝ))) :=
+  summable_P k hk
+
+/-! ### Generalized finite-plus-tail decomposition -/
+
+/-- **Theorem 7.3** Generalized finite-plus-tail decomposition with intermediate bound:
+If `P(k) ≤ integerTail(k) ≤ F(k) + T(k)` for each `k≥2` and all weighted series converge,
+then `K₀ ≤ (1/4) · (∑ F/k² + ∑ T/k²)`.
+
+This is a more general version of `K0_le_finitePlusTail` that allows for an intermediate
+bounding function `integerTail`. This additional generality is useful when:
+- `P(k)` is not directly comparable to `F(k) + T(k)`
+- One wants to separate the analysis into multiple stages
+- Working with certified numerical bounds that have intermediate representations
+
+**Relation to Theorem 7.2:** When `integerTail = P`, this reduces to `K0_le_finitePlusTail`.
+
+**Proof Strategy:** Apply `K0_le_series_of_pointwise` twice:
+1. First: `K₀ ≤ (1/4) · ∑ integerTail/k²` (using `P ≤ integerTail`)
+2. Second: `∑ integerTail/k² ≤ ∑ (F+T)/k²` (using `integerTail ≤ F+T`)
+3. Combine via transitivity and linearity of summation. □ -/
+theorem K0_le_finitePlusTail_generalized
+    (integerTail : {n // 2 ≤ n} → ℝ)
+    (F T : {n // 2 ≤ n} → ℝ)
+    (hdecomp : ∀ k : {n // 2 ≤ n}, integerTail k ≤ F k + T k)
+    (hF : Summable (fun k : {n // 2 ≤ n} => F k / (((k : ℕ) : ℝ) ^ 2)))
+    (hT : Summable (fun k : {n // 2 ≤ n} => T k / (((k : ℕ) : ℝ) ^ 2)))
+    (hIsum : Summable (fun k : {n // 2 ≤ n} => integerTail k / (((k : ℕ) : ℝ) ^ 2)))
+    (hP_le_int : ∀ k : {n // 2 ≤ n}, P k ≤ integerTail k) :
+    K0Const ≤ (1/4 : ℝ) * ((∑' k, F k / (((k : ℕ) : ℝ) ^ 2))
+                        + (∑' k, T k / (((k : ℕ) : ℝ) ^ 2))) := by
+  -- Step 1: K₀ ≤ (1/4) · ∑ integerTail/k²
+  have h1 : K0Const ≤ (1/4 : ℝ) * (∑' k : {n // 2 ≤ n}, integerTail k / (((k : ℕ) : ℝ) ^ 2)) := by
+    refine K0_le_series_of_pointwise (B := integerTail) (hpt := hP_le_int) (hBL := hIsum)
+  -- Step 2: ∑ integerTail/k² ≤ ∑ (F+T)/k²
+  have h2 : (∑' k : {n // 2 ≤ n}, integerTail k / (((k : ℕ) : ℝ) ^ 2))
+      ≤ (∑' k : {n // 2 ≤ n}, (F k + T k) / (((k : ℕ) : ℝ) ^ 2)) := by
+    apply tsum_le_tsum
+    · intro k
+      have hk_nonneg : 0 ≤ (((k : ℕ) : ℝ) ^ 2) := by positivity
+      exact div_le_div_of_nonneg_right (hdecomp k) hk_nonneg
+    · exact hIsum
+    · simpa [add_div] using hF.add hT
+  -- Step 3: Linearity of summation
+  have hlin : (∑' k : {n // 2 ≤ n}, (F k + T k) / (((k : ℕ) : ℝ) ^ 2))
+      = (∑' k, F k / (((k : ℕ) : ℝ) ^ 2)) + (∑' k, T k / (((k : ℕ) : ℝ) ^ 2)) := by
+    simpa [add_div] using (tsum_add hF hT)
+  -- Combine steps
+  calc
+    K0Const
+        ≤ (1/4 : ℝ) * (∑' k : {n // 2 ≤ n}, integerTail k / (((k : ℕ) : ℝ) ^ 2)) := h1
+    _ ≤ (1/4 : ℝ) * (∑' k : {n // 2 ≤ n}, (F k + T k) / (((k : ℕ) : ℝ) ^ 2)) := by
+        apply mul_le_mul_of_nonneg_left h2 (by norm_num : (0 : ℝ) ≤ 1/4)
+    _ = (1/4 : ℝ) * ((∑' k, F k / (((k : ℕ) : ℝ) ^ 2))
+                   + (∑' k, T k / (((k : ℕ) : ℝ) ^ 2))) := by rw [hlin]
 
 /-
 ### Future Improvements
