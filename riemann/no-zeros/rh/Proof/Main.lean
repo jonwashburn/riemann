@@ -20,6 +20,7 @@ import Mathlib.Analysis.SpecialFunctions.Gamma.Deligne
 import Mathlib.Topology.Basic
 import Mathlib.Topology.Instances.Complex
 import Mathlib.Topology.MetricSpace.Basic
+import Mathlib.Analysis.Convex.Basic
 import rh.RS.PinchIngredients
 
 set_option maxRecDepth 4096
@@ -518,9 +519,13 @@ theorem RiemannHypothesis_from_pinch_ext_assign
         exact hεUsubset this
       -- Define U'
       let U' : Set ℂ := Metric.ball ρ t
-      have hU'open : IsOpen U' := isOpen_ball
+      have hρU' : ρ ∈ U' := by
+        have : dist ρ ρ < t := by simpa [dist_self] using htpos
+        simpa [U', Metric.mem_ball] using this
+      have hU'open : IsOpen U' := by simpa [U'] using Metric.isOpen_ball
+      have hU'pre : IsPreconnected U' := by
+        simpa [U'] using (isPreconnected_ball : IsPreconnected (Metric.ball ρ t))
       have hU'subΩ : U' ⊆ RH.RS.Ω := hBall_sub_Ω
-      have hρU' : ρ ∈ U' := by simpa [U', Metric.mem_ball, dist_self] using htpos
       -- Isolation persists
       have hIso' : (U' ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
         apply Set.Subset.antisymm
@@ -555,7 +560,7 @@ theorem RiemannHypothesis_from_pinch_ext_assign
         hΘU.mono (by intro z hz; exact ⟨hBall_sub_U hz.1, hz.2⟩)
       have hEqOn' : Set.EqOn Θ g (U' \ {ρ}) := by
         intro w hw; exact hExt ⟨hBall_sub_U hw.1, hw.2⟩
-      have hPF := RH.RS.PinchFromExtension U' hU'open (isPreconnected_ball) ρ hρU' Θ hΘU' hSchur_U'
+      have hPF := RH.RS.PinchFromExtension U' hU'open (hU'pre) ρ hρU' Θ hΘU' hSchur_U'
         g (hg.mono (by intro w hw; exact hBall_sub_U hw)) hEqOn' hval
       have hAllOne : ∀ w ∈ U', g w = 1 := hPF.1
       have : g z0 = 1 := by
@@ -591,9 +596,13 @@ theorem RiemannHypothesis_from_pinch_ext_assign
         exact this.elim this
       -- Define U' := ball ρ t and proceed as in the previous case
       let U' : Set ℂ := Metric.ball ρ t
-      have hU'open : IsOpen U' := isOpen_ball
+      have hρU' : ρ ∈ U' := by
+        have : dist ρ ρ < t := by simpa [dist_self] using htpos
+        simpa [U', Metric.mem_ball] using this
+      have hU'open : IsOpen U' := by simpa [U'] using Metric.isOpen_ball
+      have hU'pre : IsPreconnected U' := by
+        simpa [U'] using (isPreconnected_ball : IsPreconnected (Metric.ball ρ t))
       have hU'subΩ : U' ⊆ RH.RS.Ω := hBall_sub_Ω
-      have hρU' : ρ ∈ U' := by simpa [U', Metric.mem_ball, dist_self] using htpos
       have hIso' : (U' ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
         apply Set.Subset.antisymm
         · intro z hz
@@ -626,7 +635,7 @@ theorem RiemannHypothesis_from_pinch_ext_assign
         hΘU.mono (by intro z hz; exact ⟨hBall_sub_U hz.1, hz.2⟩)
       have hEqOn' : Set.EqOn Θ g (U' \ {ρ}) := by
         intro w hw; exact hExt ⟨hBall_sub_U hw.1, hw.2⟩
-      have hPF := RH.RS.PinchFromExtension U' hU'open (isPreconnected_ball) ρ hρU' Θ hΘU' hSchur_U'
+      have hPF := RH.RS.PinchFromExtension U' hU'open (hU'pre) ρ hρU' Θ hΘU' hSchur_U'
         g (hg.mono (by intro w hw; exact hBall_sub_U hw)) hEqOn' hval
       have hAllOne : ∀ w ∈ U', g w = 1 := hPF.1
       have : g z0 = 1 := by
