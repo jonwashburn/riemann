@@ -1,11 +1,12 @@
-import rh.RS.CRGreenOuter
 import rh.RS.PinchCertificate
 import rh.RS.Det2Outer
-import rh.RS.OffZerosBridge
 import rh.academic_framework.CompletedXi
-import rh.Proof.Main
+import rh.academic_framework.CompletedXiSymmetry
 import rh.RS.PinchWrappers
--- (keep export surface minimal; avoid importing heavy RS modules here)
+import rh.RS.XiExtBridge
+import rh.RS.PoissonAI
+import rh.RS.RouteB_Final
+import rh.RS.OffZerosBridge
 import Mathlib.Analysis.Analytic.IsolatedZeros
 import Mathlib.Analysis.Complex.RemovableSingularity
 import Mathlib.Topology.Basic
@@ -13,9 +14,6 @@ import Mathlib.Topology.Instances.Complex
 import Mathlib.Topology.Filter
 import Mathlib.Topology.Order
 import Mathlib.Topology.Algebra.Field
-import rh.RS.RouteB_Final
-import rh.RS.PPlusFromCarleson
-import rh.RS.RouteB_PinnedRemovable
 -- light imports for the mathlib RH wrapper
 import Mathlib.NumberTheory.LSeries.RiemannZeta
 import Mathlib.Analysis.SpecialFunctions.Gamma.Deligne
@@ -153,7 +151,7 @@ theorem RiemannHypothesis_mathlib_from_pinch_ext_assign
         simpa [U', Metric.mem_ball] using this
       have hU'open : IsOpen U' := by simpa [U'] using Metric.isOpen_ball
       have hU'pre : IsPreconnected U' := by
-        simpa [U'] using (isPreconnected_ball : IsPreconnected (Metric.ball ρ t))
+        simpa [U'] using (Metric.isPreconnected_ball_complex ρ t)
       have hU'subΩ : U' ⊆ RH.RS.Ω := hBall_sub_Ω
       have hIso' : (U' ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
         apply Set.Subset.antisymm
@@ -216,7 +214,7 @@ theorem RiemannHypothesis_mathlib_from_pinch_ext_assign
         simpa [U', Metric.mem_ball] using this
       have hU'open : IsOpen U' := by simpa [U'] using Metric.isOpen_ball
       have hU'pre : IsPreconnected U' := by
-        simpa [U'] using (isPreconnected_ball : IsPreconnected (Metric.ball ρ t))
+        simpa [U'] using (Metric.isPreconnected_ball_complex ρ t)
       have hU'subΩ : U' ⊆ RH.RS.Ω := hBall_sub_Ω
       have hIso' : (U' ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
         apply Set.Subset.antisymm
@@ -275,68 +273,58 @@ theorem outer_exists_for_certificate :
     BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s) := by
   refine ⟨RH.RS.RouteB.O, (RH.RS.RouteB.O_spec).1, (RH.RS.RouteB.O_spec).2⟩
 
--- Interior positivity for the certificate outer via Route B (P+) + Poisson transport.
--- We avoid depending on the boundary wedge module by using the Route B wiring and
--- the transport helper from `PinchWrappers`.
+/-! ## Section 2: Poisson transport and removable data
+
+open RH.RS.RouteB
+
+/-- Poisson representation of the certificate pinch field on the AF off-zeros set. -/
+lemma certificate_poisson_rep_on_offXi :
+  HalfPlaneOuterV2.HasPoissonRepOn
+    (HalfPlaneOuterV2.F_pinch det2 (Classical.choose outer_exists_for_certificate))
+    HalfPlaneOuterV2.offXi := by
+  classical
+  have hChoose : Classical.choose outer_exists_for_certificate = RH.RS.RouteB.O := rfl
+  have hRepBase := RH.RS.RouteB.F_pinch_has_poisson_rep
+  have hoffSubset : HalfPlaneOuterV2.offXi ⊆
+      (HalfPlaneOuterV2.Ω \ {z | riemannXi_ext z = 0}) := by
+    intro z hz; exact ⟨hz.1, by simpa [Set.mem_setOf_eq] using hz.2.2⟩
+  refine {
+    subset := by
+      intro z hz; exact (hoffSubset hz).1
+    , analytic := by
+        simpa [HalfPlaneOuterV2.F_pinch, hChoose]
+          using hRepBase.analytic.mono hoffSubset
+    , integrable := by
+        intro z hz
+        simpa [HalfPlaneOuterV2.F_pinch, hChoose]
+          using hRepBase.integrable z (hoffSubset hz)
+    , formula := by
+        intro z hz
+        simpa [HalfPlaneOuterV2.F_pinch, hChoose]
+          using hRepBase.formula z (hoffSubset hz) }
+
+/-- Boundary positivity for the certificate pinch field, via the Route B façade. -/
+lemma certificate_boundary_positive :
+  HalfPlaneOuterV2.BoundaryPositive
+    (HalfPlaneOuterV2.F_pinch det2 (Classical.choose outer_exists_for_certificate)) := by
+  classical
+  have hChoose : Classical.choose outer_exists_for_certificate = RH.RS.RouteB.O := rfl
+  have hBP := RH.RS.RouteB.boundary_positive_AF
+  simpa [HalfPlaneOuterV2.F_pinch, hChoose] using hBP
+
+/-- Interior positivity for the certificate pinch field on `offXi`. -/
 lemma interior_positive_with_certificate_outer :
-  ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+  ∀ z ∈ HalfPlaneOuterV2.offXi,
     0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose outer_exists_for_certificate) z)).re := by
   classical
-  -- Align the chosen outer with Route B's fixed choice
-  have hChoose : Classical.choose outer_exists_for_certificate = RH.RS.RouteB.O := rfl
-  -- Route B provides (P+) and a Poisson representation on the off-zeros set
-  have hP : RH.Cert.PPlus (fun z => (2 : ℂ) * J_pinch det2 (RH.RS.RouteB.O) z) :=
-    RH.RS.RouteB.boundary_positive RH.RS.PPlusFromCarleson.PPlus_canonical_proved
-  have hRep : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
-      (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 (RH.RS.RouteB.O))
-      RH.AcademicFramework.HalfPlaneOuterV2.offXi := RH.RS.RouteB.F_pinch_has_poisson_rep
-  -- Transport boundary positivity to the interior on the off-zeros set
-  have hTrans := RH.RS.hRe_offXi_from_PPlus_via_transport
-    (hOuter := outer_exists_for_certificate) (hRepOn := by
-      -- specialize to the same outer using definitional equality
-      simpa [RH.AcademicFramework.HalfPlaneOuterV2.F_pinch, hChoose]
-        using hRep)
-    (hPPlus := by
-      -- coerce (P+) to the RS predicate expected by the wrapper
-      simpa [hChoose] using hP)
-  -- Conclude the pointwise interior positivity
+  have hPos := RH.RS.hRe_offXi_from_rep_and_boundary
+    (hOuter := outer_exists_for_certificate)
+    (hRepOn := certificate_poisson_rep_on_offXi)
+    (hBP := certificate_boundary_positive)
   intro z hz
-  -- Convert subset form to AF offXi using hz.1 ∈ Ω and hz.2 ≠ xi 0
-  have hz_offXi : z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
-    exact ⟨hz.1, by
-      intro h1
-      have : z ∈ ({w | riemannXi_ext w = 0} : Set ℂ) := by simpa [Set.mem_setOf_eq] using h1
-      exact hz.2 this⟩
-  simpa [hChoose] using hTrans z hz_offXi
+  simpa using hPos z hz
 
-/-! ## Section 2: Outer Existence Witness
-
-Package the outer from ACTION 2 into the required format.
--/
-
--- (outer_exists_for_certificate theorem defined in Section 1a above)
-
-/-! ## Section 3: Removable Extension Data
-
-Provide pinned removable extension at each ξ_ext zero.
-This is standard removable singularity theory with the u-trick.
--/
-
-/-- Specialization: isolated zeros for `riemannXi_ext` on Ω. We reuse the
-Route B pinned removable packaging, which already supplies an isolating
-neighborhood `U` with `(U ∩ {ξ_ext = 0}) = {ρ}`. -/
-lemma xi_ext_zero_isolated_on_Ω
-  (ρ : ℂ) (hΩ : ρ ∈ Ω) (hξ : riemannXi_ext ρ = 0) :
-  ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
-    (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
-  classical
-  -- Extract the isolating neighborhood from the Route B pinned data
-  obtain ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi, _, _, _, _, _, _, _⟩ :=
-    RH.RS.RouteB.pinned_removable_data ρ hΩ hξ
-  exact ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi⟩
-
-/-- Removable extension across each `ξ_ext` zero for the pinch Θ, built from
-Route B's pinned u–trick packaging and the standard removable-update builder. -/
+/-- Removable extension across each `ξ_ext` zero using the lightweight Route B façade. -/
 theorem removable_extension_at_xi_zeros
   (O_witness : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
       BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s)) :
@@ -348,30 +336,18 @@ theorem removable_extension_at_xi_zeros
         Set.EqOn (Θ_pinch_of det2 (Classical.choose O_witness)) g (U \ {ρ}) ∧
         g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1 := by
   classical
-  -- Align the chosen outer with the RouteB outer `O`
   have hChoose : Classical.choose O_witness = RH.RS.RouteB.O := rfl
-  -- Build the existence assignment via the pinned u‑trick packaging
-  -- provided by Route B, then pass it through the pinned→removable builder
-  -- to obtain the analytic extension across ρ with value 1.
   intro ρ hΩ hXi
-  -- Pinned data for Θ := Θ_pinch_of det2 O on a neighborhood U of ρ
-  obtain ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi, hΘU, u, hEq, hu0, z0, hz0U,
-      hz0ne, hΘz0ne⟩ :=
-    (RH.RS.RouteB.pinned_removable_data ρ hΩ hXi)
-  -- Use the pinned→removable assignment builder to produce the extension `g`
-  -- and package into the expected existence shape.
-  -- We inline the builder to avoid an extra chooser lambda here.
-  -- Invoke the centralized pinned→removable builder
+  obtain ⟨U, hUopen, hUconn, hUsub, hρU, hIso, hΘU, u, hEq, hu0, z0, hz0U,
+      hz0ne, hΘz0ne⟩ := RH.RS.RouteB.pinned_removable_data ρ hΩ hXi
   let data := RH.RS.OffZeros.LocalDataXi.of_pinned
-    (riemannXi := riemannXi_ext) (Θ := Θ_pinch_of det2 (Classical.choose O_witness))
-    (U := U) hUopen hUconn hUsub hρU hIsoXi hΘU u hEq hu0 z0 hz0U hz0ne hΘz0ne
-  refine ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi, ?_⟩
+    (riemannXi := riemannXi_ext)
+    (Θ := Θ_pinch_of det2 (Classical.choose O_witness))
+    (U := U) hUopen hUconn hUsub hρU hIso hΘU u hEq hu0 z0 hz0U hz0ne hΘz0ne
+  refine ⟨U, hUopen, hUconn, hUsub, hρU, hIso, ?_⟩
   exact ⟨data.g, data.hg, data.hΘU, data.hExt, data.hval, z0, hz0U, by
-    -- Nontriviality passes to `g` at `z0` since `z0 ≠ ρ` ⇒ update leaves the value
-    -- unchanged and we had Θ z0 ≠ 1.
     intro hg1
     have : (Θ_pinch_of det2 (Classical.choose O_witness)) z0 = 1 := by
-      -- data.g agrees with Θ off ρ
       have : data.g z0 = (Θ_pinch_of det2 (Classical.choose O_witness)) z0 := by
         change (Function.update _ _ _ _) = _
         simpa [Function.update, hz0ne] using rfl
@@ -431,7 +407,7 @@ This is the final theorem using only:
 
 All components proven or admitted as standard. No RH assumptions.
 -/
-theorem RiemannHypothesis_unconditional : RiemannHypothesis := by
-  exact RH.Proof.Final.RH_from_pinch_certificate concrete_certificate
+theorem RiemannHypothesis_unconditional : RiemannHypothesis :=
+  RH_from_pinch_certificate concrete_certificate
 
 end RH.RS.CertificateConstruction

@@ -524,7 +524,7 @@ theorem RiemannHypothesis_from_pinch_ext_assign
         simpa [U', Metric.mem_ball] using this
       have hU'open : IsOpen U' := by simpa [U'] using Metric.isOpen_ball
       have hU'pre : IsPreconnected U' := by
-        simpa [U'] using (isPreconnected_ball : IsPreconnected (Metric.ball ρ t))
+        simpa [U'] using (Metric.isPreconnected_ball_complex (z := ρ) (r := t))
       have hU'subΩ : U' ⊆ RH.RS.Ω := hBall_sub_Ω
       -- Isolation persists
       have hIso' : (U' ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
@@ -601,7 +601,7 @@ theorem RiemannHypothesis_from_pinch_ext_assign
         simpa [U', Metric.mem_ball] using this
       have hU'open : IsOpen U' := by simpa [U'] using Metric.isOpen_ball
       have hU'pre : IsPreconnected U' := by
-        simpa [U'] using (isPreconnected_ball : IsPreconnected (Metric.ball ρ t))
+        simpa [U'] using (Metric.isPreconnected_ball_complex (z := ρ) (r := t))
       have hU'subΩ : U' ⊆ RH.RS.Ω := hBall_sub_Ω
       have hIso' : (U' ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
         apply Set.Subset.antisymm
