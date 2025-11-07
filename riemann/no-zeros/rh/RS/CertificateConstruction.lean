@@ -2,6 +2,7 @@ import rh.RS.PinchCertificate
 import rh.RS.Det2Outer
 import rh.academic_framework.CompletedXi
 import rh.academic_framework.CompletedXiSymmetry
+import rh.academic_framework.HalfPlaneOuterV2
 import rh.RS.PinchWrappers
 import rh.RS.XiExtBridge
 import rh.RS.PoissonAI
@@ -132,29 +133,144 @@ theorem RiemannHypothesis_mathlib_from_pinch_ext_assign
     fun s => RH.AcademicFramework.CompletedXi.xi_ext_functional_equation s
   have symXi : ∀ ρ, riemannXi_ext ρ = 0 → riemannXi_ext (1 - ρ) = 0 :=
     RH.AcademicFramework.CompletedXi.zero_symmetry_from_fe riemannXi_ext fe
-  -- No-right-zeros via assign-based pinch on offXi using globalize-across-removable
+  -- No-right-zeros via assign-based pinch using local PinchFromExtension
   have noRightZeros : ∀ ρ ∈ RH.RS.Ω, riemannXi_ext ρ ≠ 0 := by
     intro ρ hΩ hXiρ
     rcases assign ρ hΩ hXiρ with
       ⟨U, hUopen, hUconn, hUsub, hρU, hUZeq, g, hg, hΘU, hExt, hval, z0, hz0U, hneq⟩
-    have hρZ : ρ ∈ ({z | riemannXi_ext z = 0} : Set ℂ) := by
-      simpa [Set.mem_setOf_eq] using hXiρ
-    have hUminusSub : (U \ {ρ}) ⊆ (RH.RS.Ω \ ({z | riemannXi_ext z = 0})) := by
-      intro x hx
-      have hxU : x ∈ U := hx.1
-      have hxNe : x ≠ ρ := hx.2
-      have hxNotZ : x ∉ ({z | riemannXi_ext z = 0} : Set ℂ) := by
-        intro hxZ
-        have hxInCap : x ∈ (U ∩ {z | riemannXi_ext z = 0}) := ⟨hxU, hxZ⟩
-        have hxSingleton : x ∈ ({ρ} : Set ℂ) := by simpa [hUZeq] using hxInCap
-        have : x = ρ := by simpa using hxSingleton
-        exact hxNe this
-      exact ⟨hUsub hxU, hxNotZ⟩
-    have hg_one : ∀ w ∈ U, g w = 1 :=
-      RH.RS.GlobalizeAcrossRemovable ({z | riemannXi_ext z = 0}) Θ hSchur_offXi
-        U hUopen hUconn hUsub ρ hΩ hρU hρZ g hg hΘU hUminusSub hExt hval
-    have : g z0 = 1 := hg_one z0 hz0U
-    exact (hneq this).elim
+    by_cases hρ1 : ρ = (1 : ℂ)
+    · -- ρ = 1: pinch directly on U
+      have hUminus_offXi : (U \ {ρ}) ⊆ RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
+        intro z hz
+        have hzU : z ∈ U := hz.1
+        have hzNeρ : z ≠ ρ := hz.2
+        have hzΩ : z ∈ RH.RS.Ω := hUsub hzU
+        have hzXi : riemannXi_ext z ≠ 0 := by
+          intro h0
+          have : z ∈ (U ∩ {w | riemannXi_ext w = 0}) := ⟨hzU, by simpa [Set.mem_setOf_eq] using h0⟩
+          have : z ∈ ({ρ} : Set ℂ) := by simpa [hUZeq] using this
+          exact hzNeρ (by simpa using this)
+        have hzNe1 : z ≠ (1 : ℂ) := by simpa [hρ1] using hzNeρ
+        exact ⟨hzΩ, hzNe1, hzXi⟩
+      have hSchur_U : RH.RS.IsSchurOn Θ (U \ {ρ}) :=
+        fun z hz => hSchur_offXi z (hUminus_offXi hz)
+      have hPF := RH.RS.PinchFromExtension U hUopen hUconn ρ hρU Θ hΘU hSchur_U
+        g hg hExt hval
+      have hAllOne : ∀ w ∈ U, g w = 1 := hPF.1
+      have : g z0 = 1 := hAllOne z0 hz0U
+      exact (hneq this).elim
+    · -- ρ ≠ 1: shrink to a ball avoiding 1 and pinch there
+      -- radii around ρ inside Ω and U
+      obtain ⟨εΩ, hεΩpos, hεΩsubset⟩ :=
+        Metric.mem_nhds_iff.mp (RH.RS.isOpen_Ω.mem_nhds (hUsub hρU))
+      obtain ⟨εU, hεUpos, hεUsubset⟩ :=
+        Metric.mem_nhds_iff.mp (hUopen.mem_nhds hρU)
+      -- choose t ≤ εΩ, εU and also ≤ δ := dist ρ 1 / 2 to avoid 1
+      let δ : ℝ := dist ρ 1 / 2
+      have hδpos : 0 < δ := by
+        have : 0 < dist ρ 1 := dist_pos.mpr hρ1
+        exact half_pos this
+      let t : ℝ := min εΩ (min εU δ)
+      have htpos : 0 < t := lt_min hεΩpos (lt_min hεUpos hδpos)
+      -- define U' and basic properties
+      let U' : Set ℂ := Metric.ball ρ t
+      have hρU' : ρ ∈ U' := by simpa [U', Metric.mem_ball, dist_self] using htpos
+      have hU'open : IsOpen U' := by simpa [U'] using Metric.isOpen_ball
+      have hU'pre : IsPreconnected U' := by
+        simpa [U'] using (ball_preconnected_pos ρ htpos)
+      have hBall_sub_Ω : U' ⊆ RH.RS.Ω := by
+        intro z hz
+        have hzlt : dist z ρ < εΩ := lt_of_lt_of_le hz (min_le_left _ _)
+        have : z ∈ Metric.ball ρ εΩ := by simpa [Metric.mem_ball] using hzlt
+        exact hεΩsubset this
+      have hBall_sub_U : U' ⊆ U := by
+        intro z hz
+        have ht_le_min : t ≤ εU :=
+          le_trans (min_le_right _ _) (min_le_left _ _)
+        have hzltU : dist z ρ < εU := lt_of_lt_of_le hz ht_le_min
+        have : z ∈ Metric.ball ρ εU := by simpa [Metric.mem_ball] using hzltU
+        exact hεUsubset this
+      have hBall_avoids1 : (1 : ℂ) ∉ U' := by
+        intro h1
+        have ht_le_δ : t ≤ δ :=
+          le_trans (min_le_right _ _) (min_le_right _ _)
+        have : dist ρ 1 < t := by simpa [dist_comm, Metric.mem_ball, U'] using h1
+        have : dist ρ 1 < δ := lt_of_lt_of_le this ht_le_δ
+        have half_le : dist ρ 1 / 2 ≤ dist ρ 1 := by
+          have : 0 ≤ dist ρ 1 := dist_nonneg
+          simpa using half_le_self this
+        exact (not_lt_of_ge half_le) (by simpa [δ] using this)
+      -- isolation persists to U'
+      have hIso' : (U' ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
+        apply Set.Subset.antisymm
+        · intro z hz
+          have hzU : z ∈ U := hBall_sub_U hz.1
+          have hzpair : z ∈ U ∩ {z | riemannXi_ext z = 0} := ⟨hzU, hz.2⟩
+          have : z ∈ ({ρ} : Set ℂ) := by simpa [hUZeq] using hzpair
+          simpa using this
+        · intro z hz; obtain rfl : z = ρ := by simpa [Set.mem_singleton_iff] using hz
+          refine ⟨?_, ?_⟩
+          · have : dist ρ ρ < t := by simpa [dist_self] using htpos
+            simpa [U', Metric.mem_ball] using this
+          · simpa [hXiρ]
+      -- U' \ {ρ} ⊆ offXi
+      have hUminus_offXi : (U' \ {ρ}) ⊆ RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
+        intro z hz
+        have hzU' : z ∈ U' := hz.1
+        have hzNeρ : z ≠ ρ := hz.2
+        have hzΩ : z ∈ RH.RS.Ω := hBall_sub_Ω hzU'
+        have hzXi : riemannXi_ext z ≠ 0 := by
+          intro h0
+          have : z ∈ (U' ∩ {w | riemannXi_ext w = 0}) := ⟨hzU', by simpa [Set.mem_setOf_eq] using h0⟩
+          have : z ∈ ({ρ} : Set ℂ) := by simpa [hIso'] using this
+          exact hzNeρ (by simpa using this)
+        have hzNe1 : z ≠ (1 : ℂ) := by
+          intro hz1
+          have hzU' : z ∈ U' := hz.1
+          have h1U' : (1 : ℂ) ∈ U' := by simpa [hz1] using hzU'
+          exact hBall_avoids1 h1U'
+        exact ⟨hzΩ, hzNe1, hzXi⟩
+      -- pinch on U'
+      have hSchur_U' : RH.RS.IsSchurOn Θ (U' \ {ρ}) :=
+        fun z hz => hSchur_offXi z (hUminus_offXi hz)
+      have hΘU' : AnalyticOn ℂ Θ (U' \ {ρ}) :=
+        hΘU.mono (by intro z hz; exact ⟨hBall_sub_U hz.1, hz.2⟩)
+      have hEqOn' : Set.EqOn Θ g (U' \ {ρ}) :=
+        fun z hz => hExt ⟨hBall_sub_U hz.1, hz.2⟩
+      have hPF := RH.RS.PinchFromExtension U' hU'open hU'pre ρ hρU' Θ hΘU' hSchur_U'
+        g (hg.mono hBall_sub_U) hEqOn' hval
+      have hAllOne' : ∀ w ∈ U', g w = 1 := hPF.1
+      -- isolated-zeros: either g ≡ 1 near ρ on U (contradiction with z0), or eventually ≠ 1
+      have hga : AnalyticAt ℂ g ρ :=
+        AnalyticWithinAt.analyticAt_of_isOpen (hg ρ hρU) hUopen hρU
+      have hIso := (AnalyticAt.eventually_eq_zero_or_eventually_ne_zero
+        (𝕜 := ℂ) (f := fun z => g z - 1) (z₀ := ρ) (hga.sub analyticAt_const))
+      cases hIso with
+      | inl hev =>
+        -- if g → 1 eventually, identity forces g ≡ 1 on U, contradicting z0 witness
+        have hEq : ∀ᶠ z in 𝓝 ρ, g z = 1 := by
+          simpa [sub_eq_zero] using hev
+        have hgNhd : AnalyticOnNhd ℂ g U := fun x hx => ⟨U, hUopen, hx, Subset.rfl, hg⟩
+        have h1Nhd : AnalyticOnNhd ℂ (fun _ => (1 : ℂ)) U := analyticOnNhd_const
+        have hEqOnU : Set.EqOn g (fun _ => (1 : ℂ)) U :=
+          AnalyticOnNhd.eqOn_of_preconnected_of_eventuallyEq hgNhd h1Nhd hUconn hρU hEq
+        have : g z0 = 1 := hEqOnU z0 hz0U
+        exact (hneq this).elim
+      | inr hne =>
+        -- restrict the eventual-ne to the punctured ball and contradict g ≡ 1 on U'
+        have hsub : (U' \ {ρ}) ⊆ ((Set.univ : Set ℂ) \ {ρ}) := by
+          intro z hz; exact ⟨trivial, hz.2⟩
+        -- carry eventually_ne to the punctured ball
+        have hEvNe_all : ∀ᶠ z in nhdsWithin ρ ((Set.univ : Set ℂ) \ {ρ}), (g z - 1) ≠ 0 := hne
+        have hEvNe_ball₀ : ∀ᶠ z in nhdsWithin ρ (U' \ {ρ}), (g z - 1) ≠ 0 :=
+          Filter.Eventually.filter_mono hEvNe_all (nhdsWithin_mono _ hsub)
+        have hEvNe_ball : ∀ᶠ z in nhdsWithin ρ (U' \ {ρ}), g z ≠ 1 :=
+          hEvNe_ball₀.mono (by intro z hz; simpa [sub_eq_zero] using hz)
+        -- and eventually_eq on the ball from the pinch result
+        have hEvEq_ball : ∀ᶠ z in nhdsWithin ρ (U' \ {ρ}), g z = 1 :=
+          Filter.Eventually.of_forall (fun z hz => hAllOne' z hz.1)
+        -- contradiction on the same filter
+        exact (hEvEq_ball.and hEvNe_ball).elim (by intro z hz; exact (hz.2 (hz.1)).elim)
   -- Conclude via symmetry
   have Hxi : ∀ ρ, riemannXi_ext ρ = 0 → ρ.re = (1 / 2 : ℝ) := RH_core noRightZeros symXi
   exact RH_mathlib_from_xi_ext Hxi
@@ -179,42 +295,42 @@ open RH.RS.RouteB
 
 /-- Poisson representation of the certificate pinch field on the AF off-zeros set. -/
 lemma certificate_poisson_rep_on_offXi :
-  HalfPlaneOuterV2.HasPoissonRepOn
-    (HalfPlaneOuterV2.F_pinch det2 (Classical.choose outer_exists_for_certificate))
-    HalfPlaneOuterV2.offXi := by
+  RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
+    (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 (Classical.choose outer_exists_for_certificate))
+    RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
   classical
   have hChoose : Classical.choose outer_exists_for_certificate = RH.RS.RouteB.O := rfl
   have hRepBase := RH.RS.RouteB.F_pinch_has_poisson_rep
-  have hoffSubset : HalfPlaneOuterV2.offXi ⊆
-      (HalfPlaneOuterV2.Ω \ {z | riemannXi_ext z = 0}) := by
+  have hoffSubset : RH.AcademicFramework.HalfPlaneOuterV2.offXi ⊆
+      (RH.AcademicFramework.HalfPlaneOuterV2.Ω \ {z | riemannXi_ext z = 0}) := by
     intro z hz; exact ⟨hz.1, by simpa [Set.mem_setOf_eq] using hz.2.2⟩
   refine {
     subset := by
       intro z hz; exact (hoffSubset hz).1
     , analytic := by
-        simpa [HalfPlaneOuterV2.F_pinch, hChoose]
+        simpa [RH.AcademicFramework.HalfPlaneOuterV2.F_pinch, hChoose]
           using hRepBase.analytic.mono hoffSubset
     , integrable := by
         intro z hz
-        simpa [HalfPlaneOuterV2.F_pinch, hChoose]
+        simpa [RH.AcademicFramework.HalfPlaneOuterV2.F_pinch, hChoose]
           using hRepBase.integrable z (hoffSubset hz)
     , formula := by
         intro z hz
-        simpa [HalfPlaneOuterV2.F_pinch, hChoose]
+        simpa [RH.AcademicFramework.HalfPlaneOuterV2.F_pinch, hChoose]
           using hRepBase.formula z (hoffSubset hz) }
 
 /-- Boundary positivity for the certificate pinch field, via the Route B façade. -/
 lemma certificate_boundary_positive :
-  HalfPlaneOuterV2.BoundaryPositive
-    (HalfPlaneOuterV2.F_pinch det2 (Classical.choose outer_exists_for_certificate)) := by
+  RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
+    (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 (Classical.choose outer_exists_for_certificate)) := by
   classical
   have hChoose : Classical.choose outer_exists_for_certificate = RH.RS.RouteB.O := rfl
   have hBP := RH.RS.RouteB.boundary_positive_AF
-  simpa [HalfPlaneOuterV2.F_pinch, hChoose] using hBP
+  simpa [RH.AcademicFramework.HalfPlaneOuterV2.F_pinch, hChoose] using hBP
 
 /-- Interior positivity for the certificate pinch field on `offXi`. -/
 lemma interior_positive_with_certificate_outer :
-  ∀ z ∈ HalfPlaneOuterV2.offXi,
+  ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
     0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose outer_exists_for_certificate) z)).re := by
   classical
   have hPos := RH.RS.hRe_offXi_from_rep_and_boundary
