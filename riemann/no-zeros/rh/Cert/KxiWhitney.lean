@@ -68,13 +68,13 @@ open RH.AcademicFramework.EulerProduct.K0
 /-- Extract the nonnegative `Kξ` value from a `KxiBound` witness and expose the
 combined ζ‑side box constant as a real number. -/
 noncomputable def CboxZeta (α c : ℝ) (h : KxiBound α c) : ℝ :=
-  K0 + Classical.choose h
+  RH.AcademicFramework.EulerProduct.K0.K0Const + Classical.choose h
 
 /-- Nonnegativity of the combined ζ‑side constant. -/
 lemma CboxZeta_nonneg {α c : ℝ} (h : KxiBound α c) :
     0 ≤ CboxZeta α c h := by
   -- `K0 ≥ 0` from the arithmetic tail module; `Kξ ≥ 0` by assumption
-  have hK0 : 0 ≤ K0 :=
+  have hK0 : 0 ≤ RH.AcademicFramework.EulerProduct.K0.K0Const :=
     RH.AcademicFramework.EulerProduct.K0.K0_bound_on_strip_proved
   have hKxi : 0 ≤ Classical.choose h := (Classical.choose_spec h).1
   simpa [CboxZeta, add_comm, add_left_comm, add_assoc] using add_nonneg hK0 hKxi
