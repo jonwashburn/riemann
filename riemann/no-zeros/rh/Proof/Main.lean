@@ -21,11 +21,55 @@ import Mathlib.Topology.Basic
 import Mathlib.Topology.Instances.Complex
 import Mathlib.Topology.MetricSpace.Basic
 import rh.RS.PinchIngredients
+--import rh.dev.upstream.lemmas.PreconnectedBallComplex
+import Mathlib
 
 set_option maxRecDepth 4096
 set_option diagnostics true
+open Metric
+
+namespace AnalyticOn
+
+/-- Identity principle (globalization) for an open, preconnected domain:
+if `g` is analytic on `U` and equals the constant `1` on a nonempty open
+subset `U' ⊆ U`, then `g = 1` on all of `U`. -/
+lemma eqOn_of_isPreconnected_of_open_subset
+    {g : ℂ → ℂ} {U U' : Set ℂ}
+    (hg : AnalyticOn ℂ g U) (hUconn : IsPreconnected U) (hUopen : IsOpen U)
+    (hU'open : IsOpen U') (hU'sub : U' ⊆ U) (hU'ne : U'.Nonempty)
+    (hEq : ∀ z ∈ U', g z = (1 : ℂ)) :
+    Set.EqOn g (fun _ => (1 : ℂ)) U := by
+  classical
+  rcases hU'ne with ⟨z0, hz0U'⟩
+  have hz0U : z0 ∈ U := hU'sub hz0U'
+  have hgN : AnalyticOnNhd ℂ g U :=
+    (IsOpen.analyticOn_iff_analyticOnNhd (𝕜 := ℂ) (f := g) hUopen).1 hg
+  have h1N : AnalyticOnNhd ℂ (fun _ : ℂ => (1 : ℂ)) U :=
+    (IsOpen.analyticOn_iff_analyticOnNhd (𝕜 := ℂ) (f := fun _ : ℂ => (1 : ℂ)) hUopen).1
+      (by
+        simpa using
+          (analyticOn_const (𝕜 := ℂ) (E := ℂ) (F := ℂ) (s := U) (v := (1 : ℂ))))
+  have hEv : g =ᶠ[nhds z0] (fun _ => (1 : ℂ)) := by
+    refine Filter.eventually_of_mem (hU'open.mem_nhds hz0U') ?_
+    intro z hz; simpa using hEq z hz
+  exact AnalyticOnNhd.eqOn_of_preconnected_of_eventuallyEq hgN h1N hUconn hz0U hEv
+
+end AnalyticOn
 
 namespace RH.Proof
+
+/-!
+Lemma: open balls in `ℂ` are preconnected (generic Mathlib-style statement).
+This is a good upstream candidate when not already covered by an existing lemma.
+-/
+
+open Metric
+
+lemma isPreconnected_ball_complex (z : ℂ) (r : ℝ) : IsPreconnected (Metric.ball z r) := by
+  -- Convex sets in real topological vector spaces are path connected, hence preconnected
+  have hconv : Convex ℝ (Metric.ball z r) := by
+    simpa using (convex_ball z r)
+  exact Convex.isPreconnected hconv
 
 /-/ Proof-layer alias for certificate readiness. -/
 def PipelineReady : Prop := RH.AcademicFramework.Certificate.Ready
@@ -435,7 +479,7 @@ theorem no_right_zeros_from_pinch_assign
     intro x hx
     have hxU : x ∈ U := hx.1
     have hxNe : x ≠ ρ := by
-      intro h; exact hx.2 (by simpa [h])
+      intro h; exact hx.2 (by simp [h])
     have hxNotZ : x ∉ ({z | Ξ z = 0} : Set ℂ) := by
       intro hxZ
       have hxInCap : x ∈ (U ∩ {z | Ξ z = 0}) := ⟨hxU, hxZ⟩
@@ -531,9 +575,9 @@ theorem RiemannHypothesis_from_pinch_ext_assign
           simpa using this
         · intro z hz; obtain rfl : z = ρ := by simpa [Set.mem_singleton_iff] using hz
           refine ⟨?_, ?_⟩
-          · have : dist ρ ρ < t := by simpa [dist_self] using htpos
+          · have : dist z z < t := by simpa [dist_self] using htpos
             simpa [U', Metric.mem_ball] using this
-          · simpa [hXiρ]
+          · simp [hXiρ]
       -- Build Schur on U'\{ρ} via offXi inclusion
       have hUminusSub_offXi : (U' \ {ρ}) ⊆ RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
         intro z hz
@@ -547,7 +591,7 @@ theorem RiemannHypothesis_from_pinch_ext_assign
           exact hzNeρ (by simpa using this)
         have hzNe1 : z ≠ (1 : ℂ) := by
           -- since ρ = 1 and z ≠ ρ
-          simpa [hρ1]
+          simpa [hρ1] using hzNeρ
         exact ⟨hzΩ, hzNe1, hzXi⟩
       have hSchur_U' : RH.RS.IsSchurOn Θ (U' \ {ρ}) := by
         intro z hz; exact hSchur_offXi z (hUminusSub_offXi hz)
@@ -555,12 +599,29 @@ theorem RiemannHypothesis_from_pinch_ext_assign
         hΘU.mono (by intro z hz; exact ⟨hBall_sub_U hz.1, hz.2⟩)
       have hEqOn' : Set.EqOn Θ g (U' \ {ρ}) := by
         intro w hw; exact hExt ⟨hBall_sub_U hw.1, hw.2⟩
-      have hPF := RH.RS.PinchFromExtension U' hU'open (isPreconnected_ball) ρ hρU' Θ hΘU' hSchur_U'
+      have hPF := RH.RS.PinchFromExtension U' hU'open (isPreconnected_ball_complex ρ t) ρ hρU' Θ hΘU' hSchur_U'
         g (hg.mono (by intro w hw; exact hBall_sub_U hw)) hEqOn' hval
       have hAllOne : ∀ w ∈ U', g w = 1 := hPF.1
       have : g z0 = 1 := by
-        have hz0U' : z0 ∈ U' := hBall_sub_U hz0U
-        exact hAllOne z0 hz0U'
+        -- Prove 1-avoidance on U \ {ρ} using ρ = 1 and isolation, then globalize on U
+        have hUminusSub_offXi_U : (U \ {ρ}) ⊆ RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
+          intro w hw
+          have hwU : w ∈ U := hw.1
+          have hwNeρ : w ≠ ρ := hw.2
+          have hwΩ : w ∈ RH.RS.Ω := hUsub hwU
+          have hwXi : riemannXi_ext w ≠ 0 := by
+            intro h0
+            have : w ∈ (U ∩ {z | riemannXi_ext z = 0}) := ⟨hwU, by simpa [Set.mem_setOf_eq] using h0⟩
+            have : w ∈ ({ρ} : Set ℂ) := by simpa [hUZeq] using this
+            exact hwNeρ (by simpa using this)
+          have hwNe1 : w ≠ (1 : ℂ) := by simpa [hρ1] using hwNeρ
+          exact ⟨hwΩ, hwNe1, hwXi⟩
+        have hSchur_U : RH.RS.IsSchurOn Θ (U \ {ρ}) := by
+          intro w hw; exact hSchur_offXi w (hUminusSub_offXi_U hw)
+        have hPFU := RH.RS.PinchFromExtension U hUopen hUconn ρ hρU Θ hΘU hSchur_U
+          g hg hExt hval
+        have hAllOneU : ∀ w ∈ U, g w = 1 := hPFU.1
+        exact hAllOneU z0 hz0U
       exact (hneq this).elim
     · -- ρ ≠ 1: choose a ball that also avoids 1
       let δ : ℝ := dist ρ 1 / 2
@@ -568,27 +629,35 @@ theorem RiemannHypothesis_from_pinch_ext_assign
         have : 0 < dist ρ 1 := by exact dist_pos.mpr hρ1
         exact half_pos this
       let t : ℝ := min εΩ (min εU δ)
-      have htpos : 0 < t := lt_min (lt_min hεΩpos hεUpos) hδpos
+      have htpos : 0 < t := lt_min (hεΩpos) (lt_min hεUpos hδpos)
       have hBall_sub_Ω : Metric.ball ρ t ⊆ RH.RS.Ω := by
-        intro z hz; exact hεΩsubset (lt_of_lt_of_le hz (min_le_left _ _))
+        intro z hz
+        have hzlt : dist z ρ < εΩ := lt_of_lt_of_le hz (min_le_left _ _)
+        have : z ∈ Metric.ball ρ εΩ := by simpa [Metric.mem_ball] using hzlt
+        exact hεΩsubset this
+
       have hBall_sub_U : Metric.ball ρ t ⊆ U := by
         intro z hz
-        have : z ∈ Metric.ball ρ εU := lt_of_lt_of_le hz (le_trans (min_le_right _ _) (min_le_left _ _))
+        have hzlt : dist z ρ < εU :=
+          lt_of_lt_of_le hz (le_trans (min_le_right _ _) (min_le_left _ _))
+        have : z ∈ Metric.ball ρ εU := by simpa [Metric.mem_ball] using hzlt
         exact hεUsubset this
       -- 1 ∉ ball ρ t since t ≤ δ = dist ρ 1 / 2
       have hBall_avoids1 : (1 : ℂ) ∉ Metric.ball ρ t := by
         intro h1
-        have : dist ρ 1 ≤ dist ρ 1 / 2 := by
-          have ht_le_δ : t ≤ δ := by
-            have : min εU δ ≤ δ := min_le_right _ _
-            exact le_trans (min_le_right _ _) this
-          have : dist 1 ρ < t := by simpa [Metric.mem_ball, dist_comm] using h1
-          exact le_of_lt (lt_of_lt_of_le this ht_le_δ)
+        have ht_le_δ : t ≤ δ := by
+          have : min εU δ ≤ δ := min_le_right _ _
+          exact le_trans (min_le_right _ _) this
+        -- From membership, get a strict inequality and push it to δ
+        have hlt : dist ρ 1 < dist ρ 1 / 2 := by
+          have h1' : dist 1 ρ < t := by simpa [Metric.mem_ball, dist_comm] using h1
+          have : dist 1 ρ < δ := lt_of_lt_of_le h1' ht_le_δ
+          simpa [δ, dist_comm] using this
+        -- But x/2 < x for x > 0, contradiction
         have : ¬ dist ρ 1 ≤ dist ρ 1 / 2 := by
-          have : 0 < dist ρ 1 := by exact dist_pos.mpr hρ1
-          have : dist ρ 1 / 2 < dist ρ 1 := by exact half_lt_self this
-          exact not_le_of_gt this
-        exact this.elim this
+          have : 0 < dist ρ 1 := dist_pos.mpr hρ1
+          exact not_le_of_gt (half_lt_self this)
+        exact this (le_of_lt hlt)
       -- Define U' := ball ρ t and proceed as in the previous case
       let U' : Set ℂ := Metric.ball ρ t
       have hU'open : IsOpen U' := isOpen_ball
@@ -603,9 +672,9 @@ theorem RiemannHypothesis_from_pinch_ext_assign
           simpa using this
         · intro z hz; obtain rfl : z = ρ := by simpa [Set.mem_singleton_iff] using hz
           refine ⟨?_, ?_⟩
-          · have : dist ρ ρ < t := by simpa [dist_self] using htpos
+          · have : dist z z < t := by simpa [dist_self] using htpos
             simpa [U', Metric.mem_ball] using this
-          · simpa [hXiρ]
+          · simp [hXiρ]
       have hUminusSub_offXi : (U' \ {ρ}) ⊆ RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
         intro z hz
         have hzU' : z ∈ U' := hz.1
@@ -617,7 +686,9 @@ theorem RiemannHypothesis_from_pinch_ext_assign
           have : z ∈ ({ρ} : Set ℂ) := by simpa [hIso'] using this
           exact hzNeρ (by simpa using this)
         have hzNe1 : z ≠ (1 : ℂ) := by
-          intro h1; have : (1 : ℂ) ∈ U' := by simpa [U'] using h1
+          intro h1
+          have : (1 : ℂ) ∈ U' := by
+            simpa [U', Metric.mem_ball, dist_comm, h1] using hzU'
           exact hBall_avoids1 this
         exact ⟨hzΩ, hzNe1, hzXi⟩
       have hSchur_U' : RH.RS.IsSchurOn Θ (U' \ {ρ}) := by
@@ -626,12 +697,26 @@ theorem RiemannHypothesis_from_pinch_ext_assign
         hΘU.mono (by intro z hz; exact ⟨hBall_sub_U hz.1, hz.2⟩)
       have hEqOn' : Set.EqOn Θ g (U' \ {ρ}) := by
         intro w hw; exact hExt ⟨hBall_sub_U hw.1, hw.2⟩
-      have hPF := RH.RS.PinchFromExtension U' hU'open (isPreconnected_ball) ρ hρU' Θ hΘU' hSchur_U'
+      have hPF := RH.RS.PinchFromExtension U' hU'open (isPreconnected_ball_complex ρ t) ρ hρU' Θ hΘU' hSchur_U'
         g (hg.mono (by intro w hw; exact hBall_sub_U hw)) hEqOn' hval
-      have hAllOne : ∀ w ∈ U', g w = 1 := hPF.1
-      have : g z0 = 1 := by
-        have hz0U' : z0 ∈ U' := hBall_sub_U hz0U
-        exact hAllOne z0 hz0U'
+      -- g = 1 on U' and g analytic on U ⇒ g = 1 on all of U (identity theorem)
+      have hEqOnU :
+          Set.EqOn g (fun _ => (1 : ℂ)) U :=
+        AnalyticOn.eqOn_of_isPreconnected_of_open_subset
+          (hg)               -- g analytic on U
+          hUconn             -- U is preconnected
+          hUopen             -- U is open
+          hU'open            -- U' is open
+          (by
+            -- U' ⊆ U
+            intro x hx; exact hBall_sub_U hx)
+          ⟨ρ, hρU'⟩           -- U' nonempty
+          (by
+            -- g = 1 on U'
+            intro w hw; exact hPF.1 w hw)
+      have hAllOneU : ∀ w ∈ U, g w = 1 := by
+        intro w hw; simpa using hEqOnU hw
+      have : g z0 = 1 := hAllOneU z0 hz0U
       exact (hneq this).elim
     -- Done
   -- Conclude via symmetry
