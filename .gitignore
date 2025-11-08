@@ -1,0 +1,13 @@
+# Lean build artifacts
+/.lake/
+/lake-packages/
+/build/
+*.olean
+*.log
+*.aux
+
+# Temporary files
+/tmp/
+**/.DS_Store
+**/.lake/
+**/lake-packages/

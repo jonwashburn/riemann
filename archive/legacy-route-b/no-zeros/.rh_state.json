@@ -1,0 +1,19 @@
+{
+  "phase": "cayley",
+  "checklist": {
+    "disk.poisson.implemented": true,
+    "cayley.push.realpart.implemented": false,
+    "halfplane.pinch.rep.on_offxi": false,
+    "vendor.axiom.removed": false,
+    "transport.wired": false,
+    "schur.offzeros.wired": false,
+    "wrappers.compile.clean": false
+  },
+  "anchors": {
+    "disk.poisson.kernel": "RH.AcademicFramework.DiskHardy.poissonKernel",
+    "cayley.toDisk": "RH.AcademicFramework.CayleyAdapters.toDisk",
+    "cayley.map_Ω_to_unitDisk": "RH.AcademicFramework.CayleyAdapters.map_Ω_to_unitDisk",
+    "cayley.boundary_maps_to_unitCircle": "RH.AcademicFramework.CayleyAdapters.boundary_maps_to_unitCircle"
+  }
+}
+

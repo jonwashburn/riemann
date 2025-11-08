@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Local pre-commit guard: run proof verification in JSON mode and block on failures
+
+set -euo pipefail
+
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+cd "$REPO_ROOT/riemann/no-zeros"
+
+echo "[pre-commit] Running proof verification (JSON mode)..."
+
+# Prefer bash to ensure consistent behavior
+if ! bash ./verify_proof.sh --json > /dev/null; then
+  echo
+  echo "[pre-commit] ❌ Verification failed. Commit aborted."
+  echo "Run: (cd riemann/no-zeros && ./verify_proof.sh) for details."
+  exit 1
+fi
+
+echo "[pre-commit] ✅ Verification passed."
+exit 0
+
+
