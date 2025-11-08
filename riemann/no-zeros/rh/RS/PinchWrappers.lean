@@ -74,7 +74,7 @@ theorem boundaryPositive_of_PPlus
 
 /-- From (P+) and a Poisson representation on the off-zeros set, deduce
 interior nonnegativity of `F := 2·J_pinch det2 O` on `offXi`. -/
-theorem hRe_offXi_from_PPlus_via_transport
+private def hRe_offXi_from_PPlus_via_transport
   (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
       BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
   (hRepOn : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn (F_pinch det2 (Classical.choose hOuter))
@@ -84,24 +84,6 @@ theorem hRe_offXi_from_PPlus_via_transport
       0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)).re := by
   have hBP : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive (F_pinch det2 (Classical.choose hOuter)) :=
     boundaryPositive_of_PPlus _ hPPlus
-  have hTrans := RH.AcademicFramework.HalfPlaneOuterV2.poissonTransportOn
-    (F := F_pinch det2 (Classical.choose hOuter)) hRepOn hBP
-  intro z hz
-  simpa [F_pinch] using hTrans z hz
-
-/-!
-Public transport: from subset Poisson rep on `offXi` and boundary positivity,
-deduce interior nonnegativity on `offXi` for the pinch field. -/
-theorem hRe_offXi_from_rep_and_boundary
-  (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
-      BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
-  (hRepOn : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
-              (F_pinch det2 (Classical.choose hOuter))
-              RH.AcademicFramework.HalfPlaneOuterV2.offXi)
-  (hBP : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
-              (F_pinch det2 (Classical.choose hOuter)))
-  : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
-      0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)).re := by
   have hTrans := RH.AcademicFramework.HalfPlaneOuterV2.poissonTransportOn
     (F := F_pinch det2 (Classical.choose hOuter)) hRepOn hBP
   intro z hz

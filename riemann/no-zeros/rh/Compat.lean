@@ -8,8 +8,6 @@ import Mathlib.Analysis.Analytic.Basic
 import Mathlib.Analysis.Analytic.Composition
 import Mathlib.Analysis.NormedSpace.OperatorNorm.NormedSpace
 import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Convex.Basic
-import Mathlib.Topology.Connected.PathConnected
 import Mathlib.NumberTheory.LSeries.RiemannZeta
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Pow.Complex
@@ -38,9 +36,9 @@ open scoped BigOperators Topology Interval
 -- Shims for v4.6 → v4.13 API changes:
 
 -- inv_le_inv_of_le deprecated in newer mathlib; use the root lemma for 4.12 compatibility
-lemma inv_le_inv_of_le' {α : Type*} [LinearOrderedField α] {a b : α}
+lemma inv_le_inv_of_le {α : Type*} [LinearOrderedField α] {a b : α}
     (ha : 0 < a) (h : a ≤ b) : b⁻¹ ≤ a⁻¹ :=
-  inv_le_inv_of_le ha h
+  inv_anti₀ ha h
 
 -- inv_lt_one_of_one_lt₀ existed in older mathlib; provide a compatible lemma
 lemma inv_lt_one_of_one_lt₀ {α : Type*} [LinearOrderedField α]
@@ -53,7 +51,7 @@ lemma inv_lt_one_of_one_lt₀ {α : Type*} [LinearOrderedField α]
 -- one_le_pow₀: in newer mathlib prefer one_le_pow_of_one_le
 lemma one_le_pow₀ {α : Type*} [LinearOrderedSemiring α]
     {a : α} (ha : 1 ≤ a) (n : ℕ) : 1 ≤ a ^ n := by
-  exact one_le_pow_of_one_le ha n
+  exact _root_.one_le_pow₀ ha --one_le_pow_of_one_le ha n
 
 -- sq_le_sq signature changed - now needs absolute values
 namespace sq_le_sq
@@ -123,8 +121,6 @@ lemma two_pow_two_mul_eq_four_pow (d : ℕ) : (2 : ℝ) ^ (2 * d) = (4 : ℝ) ^ 
   exact h.trans (by simpa using congrArg (fun z : ℝ => z ^ d) h2)
 
 end
-
--- No ball preconnectedness lemma here; keep RS-specific shims out of Compat.
 
 end RH
 
