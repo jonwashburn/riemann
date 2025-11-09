@@ -37,14 +37,8 @@ namespace RH
 namespace RS
 namespace Whitney
 
-/-! Minimal local definition to replace missing `RH.Cert.WhitneyInterval` dependency.
-This keeps this module self-contained for compilation.
--/
-
-structure WhitneyInterval where
-  t0 : ℝ
-  len : ℝ
-  len_pos : 0 < len
+/-! Use the canonical Whitney interval from the certificate layer. -/
+abbrev WhitneyInterval := RH.Cert.WhitneyInterval
 
 namespace WhitneyInterval
 
@@ -773,13 +767,29 @@ theorem ae_nonneg_from_unitWhitney_local
         rcases ht with ht | ht
         · exact ht.left
         · exact ht.left
-    -- Estimate the measure of the union by the sum of measures
-    have hμ : volume
+    -- Estimate the measure of the union by the sum of measures, then relax the RHS
+    have hμ0 : volume
         ( ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))) ∪
           ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ) )
         ≤ volume ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)))
           + volume ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ) :=
       measure_union_le _ _
+    have hA :
+        volume ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)))
+          ≤ volume (((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)) ∩ Sᶜ)) := by
+      simpa [Set.inter_comm]
+    have hB :
+        volume ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ)
+          ≤ volume ((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ) := by
+      exact measure_mono (by
+        intro x hx; exact hx.2)
+    have hμ :
+        volume
+          ( ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))) ∪
+            ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ) )
+          ≤ volume (((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)) ∩ Sᶜ))
+            + volume ((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ) :=
+      le_trans hμ0 (add_le_add hA hB)
     -- Convert the RHS via commutativity of intersections
     conv_lhs => rw [hEq]
     exact hμ
@@ -797,7 +807,7 @@ theorem ae_nonneg_from_unitWhitney_local
         ≤ volume (((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)) ∩ Sᶜ))
           + volume (((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ)) := h_split
         _ = 0 := h0
-    exact le_antisymm this (measure_nonneg _)
+    exact le_antisymm this (by exact bot_le)
   -- Convert back to an a.e. statement
   have : ∀ᵐ t : ℝ, t ∈ S := by
     simpa [ae_iff, S, Set.compl_setOf] using hSnull
@@ -828,9 +838,9 @@ open MeasureTheory
   have hΔ : (W.t0 + W.len) - (W.t0 - W.len) = 2 * W.len := by ring
   have hnonneg : 0 ≤ (W.t0 + W.len) - (W.t0 - W.len) := by linarith
   unfold RH.RS.length Whitney.length
-  simp [WhitneyInterval.interval, Set.Icc, hΔ]
+  simp [RH.RS.Whitney.WhitneyInterval.interval, Set.Icc, hΔ]
   unfold RH.RS.length
-  simp [RH.Cert.WhitneyInterval.interval, Real.volume_Icc, hle,
+  simp [RH.RS.Whitney.WhitneyInterval.interval, Real.volume_Icc, hle,
         ENNReal.toReal_ofReal, hΔ, hnonneg]
 
 /-- Set-integral lower bound from an a.e. pointwise lower bound by a constant on a
@@ -851,9 +861,10 @@ lemma integral_ge_const_mul_length_of_ae
     exact integral_mono_ae hconst_int hf_int this
   -- Evaluate the constant integral as c * length(I)
   have hconst : (∫ t in I, (fun _ => c) t) = c * RH.RS.length I := by
-    -- integral_const over a set
-    have := integral_const (μ := volume) (s := I) c
-    -- `length I = (volume I).toReal`
+    -- Evaluate via the restricted measure form
+    have : (∫ _ : ℝ, c ∂(volume.restrict I)) = c * (volume I).toReal := by
+      simpa using MeasureTheory.integral_const (μ := volume.restrict I) c
+    -- By definition, the set integral equals the integral under the restricted measure
     simpa [RH.RS.length] using this
   -- Conclude
   simpa [hconst]
@@ -877,28 +888,31 @@ lemma sigma_over_sigma2_add_sq_core_lower
   σ / (σ^2 + x^2) ≥ (4 / 5) * (1 / σ) := by
   -- Maximize the denominator over |x| ≤ σ/2, which occurs at |x| = σ/2
   have hx2_le : x^2 ≤ (σ / 2)^2 := by
-    have := sq_le_sq.mpr hcore
-    simpa [sq_abs] using this
+    -- strengthen |x| ≤ σ/2 to |x| ≤ |σ/2| and square both sides
+    have hσ2_nonneg : 0 ≤ σ / 2 := by
+      exact div_nonneg hσ.le (by norm_num)
+    have habs : |x| ≤ |σ / 2| := by
+      simpa [abs_of_nonneg hσ2_nonneg] using hcore
+    simpa [sq_abs] using (sq_le_sq.mpr habs)
   have hden_le : σ^2 + x^2 ≤ σ^2 + (σ / 2)^2 := by
     exact add_le_add_left hx2_le _
   have hden_ge0 : 0 ≤ σ^2 + x^2 := by nlinarith [sq_nonneg σ, sq_nonneg x]
   -- Use monotonicity of a↦σ/a on a≥0 to get a lower bound when denominator decreases
   have hposσ : 0 < σ := hσ
   have hposden' : 0 < σ^2 + (σ / 2)^2 := by
-    have : 0 < σ^2 := by exact mul_pos_of_pos_of_pos hσ hσ
-    have : 0 < σ^2 + (σ / 2)^2 := by nlinarith [this, sq_nonneg (σ / 2)]
+    have hσ2 : 0 < σ ^ 2 := by simpa using pow_pos hσ 2
+    have : 0 < σ^2 + (σ / 2)^2 := by nlinarith [hσ2, sq_nonneg (σ / 2)]
     simpa using this
   have hfrac_mono : σ / (σ^2 + (σ / 2)^2) ≤ σ / (σ^2 + x^2) := by
     -- since σ^2 + x^2 ≤ σ^2 + (σ/2)^2, invert inequality on positives
     have hle := hden_le
-    have hpos_denom : 0 < σ^2 + x^2 := lt_of_le_of_lt (le_of_lt hσ) (by
-      have : σ^2 + x^2 ≤ σ^2 + (σ / 2)^2 := hden_le
-      exact lt_of_le_of_lt (lt_of_le_of_lt (by
-        have : 0 < σ^2 := by exact mul_pos_of_pos_of_pos hσ hσ
-        have : 0 < σ^2 + 0 := by simpa using this
-        exact this) (lt_of_le_of_lt (le_of_eq rfl) hposden')) hposden')
+    have hpos_denom : 0 < σ^2 + x^2 := by
+      have hσ2 : 0 < σ ^ 2 := by simpa using pow_pos hσ 2
+      have hx2 : 0 ≤ x ^ 2 := sq_nonneg _
+      have : 0 < σ ^ 2 + x ^ 2 := add_pos_of_pos_of_nonneg hσ2 hx2
+      simpa [pow_two] using this
     -- Use (a ≤ b, a,b>0) ⇒ σ/b ≤ σ/a
-    have := (div_le_div_of_nonneg_left (by exact le_of_lt hposσ) hpos_denom.le hle)
+    have := (div_le_div_of_nonneg_left (by exact le_of_lt hposσ) hpos_denom hle)
     -- Rearrange sides
     simpa [mul_comm, mul_left_comm, mul_assoc] using this
   -- Evaluate the left side explicitly

@@ -571,10 +571,10 @@ theorem RiemannHypothesis_from_poisson_and_pinned'
             ∃ z, z ∈ U ∧ z ≠ ρ ∧ (_root_.RH.RS.Θ_pinch_of _root_.RH.RS.det2 (Classical.choose hOuter)) z ≠ 1)
     : RiemannHypothesis := by
   classical
-  -- Ingredient 1: restrict Poisson positivity to the off-zeros set
-  let hRe_offXi : ∀ z ∈ (RH.RS.Ω \ {z | riemannXi_ext z = 0}),
+  -- Ingredient 1: restrict Poisson positivity to the AF off-zeros set
+  let hRe_offXi : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
         0 ≤ ((2 : ℂ) * (_root_.RH.RS.J_pinch _root_.RH.RS.det2 (Classical.choose hOuter) z)).re :=
-    fun z hz => hPoisson z hz.1
+    fun z hz => hPoisson z (RH.AcademicFramework.HalfPlaneOuterV2.offXi_subset_Ω hz)
   -- Ingredient 2: package pinned data into a removable-extension assignment
   let hRemXi : ∀ ρ, ρ ∈ RH.RS.Ω → riemannXi_ext ρ = 0 →
         ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ RH.RS.Ω ∧ ρ ∈ U ∧

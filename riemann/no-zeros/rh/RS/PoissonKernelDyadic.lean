@@ -58,6 +58,24 @@ lemma Ksigma_le_sigma_div_sq {σ x : ℝ} (hσ : 0 ≤ σ) (hx : x ≠ 0) :
 
 -- (aliases provided via the analysis shim if needed)
 
+/-! Auxiliary monotonicity facts for powers of constants ≥ 1. -/
+
+lemma one_le_const_pow {a : ℝ} (ha : 1 ≤ a) : ∀ n : ℕ, (1 : ℝ) ≤ a ^ n := by
+  intro n
+  induction' n with n ih
+  · simp
+  · have hnnonneg : 0 ≤ a ^ n :=
+      pow_nonneg (le_trans (by norm_num : (0 : ℝ) ≤ 1) ha) _
+    have hstep : (1 : ℝ) ≤ a * a ^ n :=
+      mul_le_mul_of_nonneg_right ha hnnonneg
+    simpa [pow_succ, mul_comm] using hstep
+
+lemma one_le_two_pow (n : ℕ) : (1 : ℝ) ≤ (2 : ℝ) ^ n :=
+  one_le_const_pow (by norm_num) n
+
+lemma one_le_four_pow (n : ℕ) : (1 : ℝ) ≤ (4 : ℝ) ^ n :=
+  one_le_const_pow (by norm_num) n
+
 lemma Ksigma_add_bound_of_dyadic_sep
   {σ τ sep L : ℝ} (hσ : 0 < σ) (hτ : 0 < τ) (hsep : 0 < sep) (hL : 0 < L)
   {a b : ℝ} {d : ℕ}
@@ -127,7 +145,11 @@ lemma conv_upper_bound_4decay_of_sep
     (sep := sep) (L := L) hσ hτ hsep hL (a := a) (b := b) (d := d) hsepAB
   have hπpos : 0 ≤ Real.pi := Real.pi_pos.le
   have hπKs := mul_le_mul_of_nonneg_left hKs hπpos
-  simpa [hconv, mul_assoc, mul_left_comm, mul_comm] using hπKs
+  calc
+    (∫ t, Ksigma σ (t - a) * Ksigma τ (t - b))
+        = Real.pi * Ksigma (σ + τ) (a - b) := hconv
+    _ ≤ Real.pi * ((σ + τ) / (sep ^ 2 * L ^ 2)) * ((4 : ℝ) ^ d)⁻¹ := by
+      simpa [mul_assoc, mul_left_comm, mul_comm] using hπKs
 
 -- move monotonicity lemma above first use
 lemma Ksigma_pos {σ x : ℝ} (hσ : 0 < σ) : 0 < Ksigma σ x := by
@@ -286,10 +308,8 @@ lemma sep_from_base_of_annulus
           using pow_add (2 : ℝ) (k - 1) 1
       have hnonneg : 0 ≤ (2 : ℝ) ^ (k - 1) := pow_nonneg (by norm_num) _
       have : 2 * (2 : ℝ) ^ (k - 1) - 1 ≥ (2 : ℝ) ^ (k - 1) := by
-      have : (2 : ℝ) ^ (k - 1) - 1 ≥ 0 := by
-          have := one_le_pow₀ (by norm_num : (1 : ℝ) ≤ 2) (k - 1)
-          linarith
-        linarith
+        have hge : (1 : ℝ) ≤ (2 : ℝ) ^ (k - 1) := one_le_two_pow (k - 1)
+        linarith [hge]
       simpa [hkpow] using this
     have := mul_le_mul_of_nonneg_right hk' hposL
     simpa [mul_sub] using this
@@ -352,8 +372,8 @@ lemma sep_between_annuli_gap_ge_two
       exact sub_le_iff_le_add'.mpr this
       have hx' : (2 : ℝ) ^ j * ((2 : ℝ) ^ (k - j) - 2) ≥ (2 : ℝ) ^ (k - j - 1) := by
       have hnonneg : 0 ≤ (2 : ℝ) ^ j := pow_nonneg (by norm_num) _
-      have := one_le_pow₀ (by norm_num : (1 : ℝ) ≤ 2) j
-      have := mul_le_mul_of_nonneg_left hgeom this
+      have hge : (1 : ℝ) ≤ (2 : ℝ) ^ j := one_le_two_pow j
+      have := mul_le_mul_of_nonneg_left hgeom hge
       simpa using this
     have : |x - y| ≥ (2 : ℝ) ^ (k - j - 1) * L :=
       le_trans hx (by exact mul_le_mul_of_nonneg_right hx' (le_of_lt hL))
@@ -464,7 +484,7 @@ lemma row_bound_4decay
       ((4 : ℝ) ^ (Nat.dist k j))⁻¹ ≤ 1 := by
     intro j hj
     have hge : (1 : ℝ) ≤ (4 : ℝ) ^ (Nat.dist k j) := by
-      exact one_le_pow₀ (by norm_num : (1 : ℝ) ≤ 4) _
+      simpa using one_le_four_pow (Nat.dist k j)
     have : 1 / (4 : ℝ) ^ (Nat.dist k j) ≤ 1 / 1 :=
       one_div_le_one_div_of_le (by norm_num) hge
     simpa [one_div] using this
