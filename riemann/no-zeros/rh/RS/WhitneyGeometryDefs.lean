@@ -833,15 +833,18 @@ open MeasureTheory
 @[simp] lemma WhitneyInterval_interval_length
   (W : RH.Cert.WhitneyInterval) :
   RH.RS.length (W.interval) = 2 * W.len := by
-  have hlen : 0 ≤ W.len := W.len_pos.le
-  have hle : W.t0 - W.len ≤ W.t0 + W.len := by linarith
+  have hle : W.t0 - W.len ≤ W.t0 + W.len := by linarith [W.len_pos.le]
   have hΔ : (W.t0 + W.len) - (W.t0 - W.len) = 2 * W.len := by ring
-  have hnonneg : 0 ≤ (W.t0 + W.len) - (W.t0 - W.len) := by linarith
-  unfold RH.RS.length Whitney.length
-  simp [RH.RS.Whitney.WhitneyInterval.interval, Set.Icc, hΔ]
-  unfold RH.RS.length
-  simp [RH.RS.Whitney.WhitneyInterval.interval, Real.volume_Icc, hle,
-        ENNReal.toReal_ofReal, hΔ, hnonneg]
+  have hnonnegΔ : 0 ≤ (W.t0 + W.len) - (W.t0 - W.len) := by linarith [W.len_pos.le]
+  have hlen_nonneg : 0 ≤ W.len := W.len_pos.le
+  -- Compute the length for the concrete Icc, then rewrite `W.interval`
+  have hIcc_len :
+      RH.RS.length (Set.Icc (W.t0 - W.len) (W.t0 + W.len)) = 2 * W.len := by
+    have : (volume (Set.Icc (W.t0 - W.len) (W.t0 + W.len))).toReal
+        = (ENNReal.ofReal ((W.t0 + W.len) - (W.t0 - W.len))).toReal := by
+      simpa [Real.volume_Icc, hle]
+    simpa [RH.RS.length, Whitney.length, this, ENNReal.toReal_ofReal, hΔ, hnonnegΔ, hlen_nonneg]
+  simpa [RH.RS.Whitney.WhitneyInterval.interval] using hIcc_len
 
 /-- Set-integral lower bound from an a.e. pointwise lower bound by a constant on a
 measurable set of finite measure. Specialized for `ℝ` with Lebesgue measure.
@@ -861,14 +864,16 @@ lemma integral_ge_const_mul_length_of_ae
     exact integral_mono_ae hconst_int hf_int this
   -- Evaluate the constant integral as c * length(I)
   have hconst : (∫ t in I, (fun _ => c) t) = c * RH.RS.length I := by
-    -- Evaluate via the restricted measure form
-    have : (∫ _ : ℝ, c ∂(volume.restrict I)) = c * (volume I).toReal := by
-      simpa using MeasureTheory.integral_const (μ := volume.restrict I) c
-    -- By definition, the set integral equals the integral under the restricted measure
-    simpa [RH.RS.length] using this
+    calc
+      (∫ t in I, (fun _ => c) t)
+          = (∫ _ : ℝ, c ∂(volume.restrict I)) := rfl
+      _ = c * (volume I).toReal := by
+            simpa using MeasureTheory.integral_const (μ := volume.restrict I) c
+      _ = c * RH.RS.length I := by simp [RH.RS.length]
   -- Conclude
-  simpa [hconst]
-    using hmono
+  have : c * RH.RS.length I ≤ (∫ t in I, f t) := by
+    simpa [hconst] using hmono
+  exact this
 
 end RS
 end RH
@@ -916,17 +921,37 @@ lemma sigma_over_sigma2_add_sq_core_lower
     -- Rearrange sides
     simpa [mul_comm, mul_left_comm, mul_assoc] using this
   -- Evaluate the left side explicitly
-  have hEval : σ / (σ^2 + (σ / 2)^2) = (4 / 5) * (1 / σ) := by
-    field_simp [pow_two] at *
-    -- compute σ / (σ^2 + σ^2/4) = σ / ((5/4)σ^2) = (4/5) * (1/σ)
-    have : σ / (σ^2 + σ^2 / 4) = σ / ((5 / 4) * σ^2) := by ring
-    have hσne : (σ : ℝ) ≠ 0 := ne_of_gt hσ
-    have hσ2ne : σ^2 ≠ 0 := pow_ne_zero 2 hσne
-    have : σ / (σ^2 + (σ / 2)^2) = (4 / 5) * (1 / σ) := by
-      field_simp [hσne, hσ2ne]
+  have hσ2eq : σ ^ 2 + (σ / 2) ^ 2 = (5 / 4) * σ ^ 2 := by
+    have hx : σ ^ 2 + (σ / 2) ^ 2 = σ ^ 2 + σ ^ 2 / 4 := by
+      simp [pow_two, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+    have hx' : σ ^ 2 + σ ^ 2 / 4 = (5 / 4) * σ ^ 2 := by
       ring
+    simpa [hx'] using hx
+  have hEval : σ / (σ^2 + (σ / 2)^2) = (4 / 5) * (1 / σ) := by
+    have hσne : (σ : ℝ) ≠ 0 := ne_of_gt hσ
+    calc
+      σ / (σ ^ 2 + (σ / 2) ^ 2)
+          = σ / ((5 / 4) * σ ^ 2) := by simpa [hσ2eq]
+      _ = (σ / σ ^ 2) / (5 / 4) := by
+          have : ((5 / 4) * σ ^ 2) = σ ^ 2 * (5 / 4) := by ring
+          simp [this, div_mul_eq_div_div, mul_comm, mul_left_comm, mul_assoc]
+      _ = (1 / σ) / (5 / 4) := by
+          have hdiv : σ / σ ^ 2 = 1 / σ := by
+            have : σ ^ 2 = σ * σ := by simp [pow_two]
+            have hσnz : σ ≠ 0 := hσne
+            calc
+              σ / σ ^ 2 = σ / (σ * σ) := by simpa [this]
+              _ = (σ / σ) / σ := by simpa using (div_mul_eq_div_div σ σ σ)
+              _ = 1 / σ := by simp [hσnz]
+          simpa [hdiv]
+      _ = (4 / 5 : ℝ) * (1 / σ) := by
+          simp [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
   -- Conclude the desired bound
   exact le_trans (by simpa [hEval]) hfrac_mono
+
+-- Tiny numeric identity used implicitly by field_simp at times
+lemma inv2_mul_inv2_eq_inv4 : (2 : ℝ)⁻¹ * (2 : ℝ)⁻¹ = (4 : ℝ)⁻¹ := by
+  norm_num
 
 end RS
 end RH

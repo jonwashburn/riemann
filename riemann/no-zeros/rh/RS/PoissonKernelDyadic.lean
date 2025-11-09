@@ -64,10 +64,10 @@ lemma one_le_const_pow {a : ℝ} (ha : 1 ≤ a) : ∀ n : ℕ, (1 : ℝ) ≤ a ^
   intro n
   induction' n with n ih
   · simp
-  · have hnnonneg : 0 ≤ a ^ n :=
-      pow_nonneg (le_trans (by norm_num : (0 : ℝ) ≤ 1) ha) _
-    have hstep : (1 : ℝ) ≤ a * a ^ n :=
-      mul_le_mul_of_nonneg_right ha hnnonneg
+  · have ha_nonneg : 0 ≤ a := le_trans (by norm_num) ha
+    have hn_nonneg : 0 ≤ a ^ n := pow_nonneg ha_nonneg _
+    have hstep : (1 : ℝ) * (1 : ℝ) ≤ a * a ^ n :=
+      mul_le_mul ha ih (by norm_num) ha_nonneg
     simpa [pow_succ, mul_comm] using hstep
 
 lemma one_le_two_pow (n : ℕ) : (1 : ℝ) ≤ (2 : ℝ) ^ n :=
