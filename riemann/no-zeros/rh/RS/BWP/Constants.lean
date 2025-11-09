@@ -3,7 +3,7 @@ import rh.RS.PoissonKernelDyadic
 import rh.RS.SchurGlobalization
 import rh.RS.PaperWindow
 import rh.Cert.KxiPPlus
-import rh.Cert.KxiWhitney_RvM
+--import rh.Cert.KxiWhitney_RvM
 import rh.academic_framework.HalfPlaneOuterV2
 import rh.academic_framework.CompletedXi
 import rh.RS.WhitneyAeCore
@@ -46,9 +46,10 @@ end Real
 namespace RH.RS.BoundaryWedgeProof
 
 open Real Complex
-open RH.Cert.KxiWhitneyRvM
+--open RH.Cert.KxiWhitneyRvM
 
 /-! ## Preliminary Bounds on arctan and pi -/
+
 
 
 theorem arctan_two_gt_one_point_one : (1.1 : ℝ) < Real.arctan 2 := by
