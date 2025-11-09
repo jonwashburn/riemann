@@ -907,68 +907,57 @@ lemma sigma_over_sigma2_add_sq_core_lower
     have hσ2pos : 0 < σ ^ 2 := by simpa using pow_pos hσ 2
     have hx2nn : 0 ≤ x ^ 2 := sq_nonneg _
     exact add_pos_of_pos_of_nonneg hσ2pos hx2nn
-  -- Identify the numeric bound σ^2 + (σ/2)^2 = (5/4) σ^2
+  -- Identify the numeric bound σ^2 + (σ/2)^2 = (5/4) σ^2 without cancellations
+  have hx2pow : (σ / 2) ^ 2 = σ ^ 2 / (2 : ℝ) ^ 2 := by
+    simpa using (div_pow σ (2 : ℝ) 2)
+  have htwo : (2 : ℝ) ^ 2 = 4 := by norm_num
   have hden_calc : σ ^ 2 + (σ / 2) ^ 2 = (5 / 4) * σ ^ 2 := by
-    -- (σ/2)^2 = σ^2 * (1/2)^2 = σ^2 / 4
-    have hx2 : (σ / 2) ^ 2 = σ ^ 2 * (1 / 2 : ℝ) ^ 2 := by
-      simpa [div_eq_mul_inv] using (mul_pow σ (1 / 2 : ℝ) 2)
-    have h12 : (1 / 2 : ℝ) ^ 2 = 1 / 4 := by norm_num
     calc
       σ ^ 2 + (σ / 2) ^ 2
-          = σ ^ 2 + σ ^ 2 * (1 / 2 : ℝ) ^ 2 := by simpa [hx2]
-      _ = σ ^ 2 + σ ^ 2 * (1 / 4) := by simpa [h12]
+          = σ ^ 2 + σ ^ 2 / (2 : ℝ) ^ 2 := by simpa [hx2pow]
+      _ = σ ^ 2 + σ ^ 2 / 4 := by simpa [htwo]
       _ = (5 / 4) * σ ^ 2 := by ring
-  -- From |x| ≤ σ/2, get x^2 ≤ σ^2 / 4
-  have hx2_sq : (σ / 2) ^ 2 = σ ^ 2 * (1 / 2 : ℝ) ^ 2 := by
-    simpa [div_eq_mul_inv] using (mul_pow σ (1 / 2 : ℝ) 2)
-  have hx2_sq' : (σ / 2) ^ 2 = σ ^ 2 / 4 := by
-    have h12 : (1 / 2 : ℝ) ^ 2 = 1 / 4 := by norm_num
-    simpa [hx2_sq, h12, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
-  have hx2_le' : x ^ 2 ≤ σ ^ 2 / 4 := by
-    simpa [hx2_sq'] using hx2_le
-  -- Scale monotone to obtain (4/5)*(σ^2 + x^2) ≤ σ^2
+  -- From σ^2 + x^2 ≤ (5/4)σ^2, scale by 4/5 to get a clean bound
+  have hden_bound : σ ^ 2 + x ^ 2 ≤ (5 / 4) * σ ^ 2 := by
+    simpa [hden_calc] using hden_le
   have hscaled :
       (4 / 5 : ℝ) * (σ ^ 2 + x ^ 2) ≤ σ ^ 2 := by
-    have hmono_add : σ ^ 2 + x ^ 2 ≤ σ ^ 2 + σ ^ 2 / 4 :=
-      add_le_add_left hx2_le' _
-    have hstep :
-        (4 / 5 : ℝ) * (σ ^ 2 + x ^ 2)
-          ≤ (4 / 5 : ℝ) * (σ ^ 2 + σ ^ 2 / 4) :=
-      mul_le_mul_of_nonneg_left hmono_add (by norm_num : 0 ≤ (4 / 5 : ℝ))
-    have hconst : (4 / 5 : ℝ) * (σ ^ 2 + σ ^ 2 / 4) = σ ^ 2 := by
-      ring
-    simpa [hconst] using hstep
+    have h : (4 / 5 : ℝ) * (σ ^ 2 + x ^ 2)
+             ≤ (4 / 5 : ℝ) * ((5 / 4) * σ ^ 2) :=
+      mul_le_mul_of_nonneg_left hden_bound (by norm_num : 0 ≤ (4 / 5 : ℝ))
+    have hconst : (4 / 5 : ℝ) * ((5 / 4) * σ ^ 2) = σ ^ 2 := by
+      have : (4 / 5 : ℝ) * (5 / 4) = 1 := by norm_num
+      simpa [mul_comm, mul_left_comm, mul_assoc, this]
+    simpa [hconst] using h
   -- Divide by the positive denominator to get 4/5 ≤ σ^2 / (σ^2 + x^2)
   have hσsq_over : (4 / 5 : ℝ) ≤ σ ^ 2 / (σ ^ 2 + x ^ 2) := by
     -- (4/5) ≤ σ^2 / (σ^2 + x^2) ↔ (4/5) * (σ^2 + x^2) ≤ σ^2  (since σ^2 + x^2 > 0)
-    have := (le_div_iff (show 0 < σ ^ 2 + x ^ 2 from hden_pos)).mpr hscaled
+    have := (le_div_iff₀ (show 0 < σ ^ 2 + x ^ 2 from hden_pos)).mpr hscaled
     simpa using this
-  -- Multiply both sides by 1/σ (>0) to conclude
-  have hpos_invσ : 0 < (1 / σ : ℝ) := by
-    simpa using inv_pos.mpr hσ
-  have htemp :
-      σ⁻¹ * (4 / 5 : ℝ)
-        ≤ (σ ^ 2 / (σ ^ 2 + x ^ 2)) * σ⁻¹ :=
-    by
-      simpa [mul_comm] using
-        (mul_le_mul_of_nonneg_right hσsq_over (le_of_lt hpos_invσ))
-  -- Simplify RHS to σ / (σ^2 + x^2)
+  -- Multiply both sides by 1/σ (>0) and simplify to the desired shape
+  have hpos_invσ : 0 < (1 / σ : ℝ) := by simpa using inv_pos.mpr hσ
+  have hscaled2 :
+      (4 / 5 : ℝ) * (1 / σ)
+        ≤ (σ ^ 2 / (σ ^ 2 + x ^ 2)) * (1 / σ) :=
+    mul_le_mul_of_nonneg_right hσsq_over (le_of_lt hpos_invσ)
   have hσne : (σ : ℝ) ≠ 0 := ne_of_gt hσ
-  have hR :
-      (σ ^ 2 / (σ ^ 2 + x ^ 2)) * σ⁻¹ = σ / (σ ^ 2 + x ^ 2) := by
-    have : σ⁻¹ * σ ^ 2 = σ := by
-      simp [pow_two, hσne, mul_comm, mul_left_comm, mul_assoc]
+  have htarget :
+      (σ ^ 2 / (σ ^ 2 + x ^ 2)) * (1 / σ) = σ * (σ ^ 2 + x ^ 2)⁻¹ := by
     calc
-      (σ ^ 2 / (σ ^ 2 + x ^ 2)) * σ⁻¹
+      (σ ^ 2 / (σ ^ 2 + x ^ 2)) * (1 / σ)
           = (σ ^ 2 * (σ ^ 2 + x ^ 2)⁻¹) * σ⁻¹ := by
               simp [div_eq_mul_inv]
-      _ = (σ⁻¹ * σ ^ 2) * (σ ^ 2 + x ^ 2)⁻¹ := by
-              simp [mul_comm, mul_left_comm, mul_assoc]
+      _ = (σ ^ 2 * σ⁻¹) * (σ ^ 2 + x ^ 2)⁻¹ := by
+              ac_rfl
       _ = σ * (σ ^ 2 + x ^ 2)⁻¹ := by
-              simpa [this]
-  have : σ⁻¹ * (4 / 5 : ℝ) ≤ σ * (σ ^ 2 + x ^ 2)⁻¹ := by
-    simpa [hR, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using htemp
-  simpa [div_eq_mul_inv, mul_comm] using this
+              simp [pow_two, hσne]
+  have hfinal :
+      (4 / 5 : ℝ) * (1 / σ) ≤ σ * (σ ^ 2 + x ^ 2)⁻¹ := by
+    calc
+      (4 / 5 : ℝ) * (1 / σ)
+          ≤ (σ ^ 2 / (σ ^ 2 + x ^ 2)) * (1 / σ) := hscaled2
+      _ = σ * (σ ^ 2 + x ^ 2)⁻¹ := htarget
+  simpa [div_eq_mul_inv, mul_comm] using hfinal
 
 end RS
 end RH
