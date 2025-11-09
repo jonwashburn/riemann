@@ -35,6 +35,10 @@ open scoped BigOperators MeasureTheory
 
 namespace RH
 namespace RS
+
+-- Tiny numeric identity used implicitly by field_simp at times
+lemma inv2_mul_inv2_eq_inv4 : (2 : ℝ)⁻¹ * (2 : ℝ)⁻¹ = (4 : ℝ)⁻¹ := by
+  norm_num
 namespace Whitney
 
 /-! Use the canonical Whitney interval from the certificate layer. -/
@@ -862,18 +866,19 @@ lemma integral_ge_const_mul_length_of_ae
   have hmono : (∫ t in I, (fun _ => c) t) ≤ (∫ t in I, f t) := by
     have : ∀ᵐ t ∂(volume.restrict I), (fun _ => c) t ≤ f t := by simpa using h_lower
     exact integral_mono_ae hconst_int hf_int this
-  -- Evaluate the constant integral as c * length(I)
-  have hconst : (∫ t in I, (fun _ => c) t) = c * RH.RS.length I := by
-    calc
-      (∫ t in I, (fun _ => c) t)
-          = (∫ _ : ℝ, c ∂(volume.restrict I)) := rfl
-      _ = c * (volume I).toReal := by
-            simpa using MeasureTheory.integral_const (μ := volume.restrict I) c
-      _ = c * RH.RS.length I := by simp [RH.RS.length]
-  -- Conclude
-  have : c * RH.RS.length I ≤ (∫ t in I, f t) := by
-    simpa [hconst] using hmono
-  exact this
+  -- Evaluate the constant integral in two steps to avoid goal-shape drift
+  have hconst_left :
+      (∫ t in I, (fun _ => c) t) = (volume I).toReal * c := by
+    simpa using (MeasureTheory.integral_const (μ := volume.restrict I) c)
+  have hbound' : (volume I).toReal * c ≤ (∫ t in I, f t) := by
+    simpa [hconst_left]
+      using hmono
+  -- Rewrite (c * length I) and conclude without cancellation side-conditions
+  have hfinal' : c * (volume I).toReal ≤ (∫ t in I, f t) := by
+    simpa [mul_comm] using hbound'
+  have hfinal : c * RH.RS.length I ≤ (∫ t in I, f t) := by
+    simpa [RH.RS.length] using hfinal'
+  exact hfinal
 
 end RS
 end RH
@@ -891,67 +896,79 @@ namespace RS
 lemma sigma_over_sigma2_add_sq_core_lower
   {σ x : ℝ} (hσ : 0 < σ) (hcore : |x| ≤ σ / 2) :
   σ / (σ^2 + x^2) ≥ (4 / 5) * (1 / σ) := by
-  -- Maximize the denominator over |x| ≤ σ/2, which occurs at |x| = σ/2
-  have hx2_le : x^2 ≤ (σ / 2)^2 := by
-    -- strengthen |x| ≤ σ/2 to |x| ≤ |σ/2| and square both sides
-    have hσ2_nonneg : 0 ≤ σ / 2 := by
-      exact div_nonneg hσ.le (by norm_num)
-    have habs : |x| ≤ |σ / 2| := by
-      simpa [abs_of_nonneg hσ2_nonneg] using hcore
+  -- Compare denominators via |x| ≤ σ/2
+  have hx2_le : x ^ 2 ≤ (σ / 2) ^ 2 := by
+    have hσ2_nonneg : 0 ≤ σ / 2 := by exact div_nonneg hσ.le (by norm_num)
+    have habs : |x| ≤ |σ / 2| := by simpa [abs_of_nonneg hσ2_nonneg] using hcore
     simpa [sq_abs] using (sq_le_sq.mpr habs)
-  have hden_le : σ^2 + x^2 ≤ σ^2 + (σ / 2)^2 := by
+  have hden_le : σ ^ 2 + x ^ 2 ≤ σ ^ 2 + (σ / 2) ^ 2 := by
     exact add_le_add_left hx2_le _
-  have hden_ge0 : 0 ≤ σ^2 + x^2 := by nlinarith [sq_nonneg σ, sq_nonneg x]
-  -- Use monotonicity of a↦σ/a on a≥0 to get a lower bound when denominator decreases
-  have hposσ : 0 < σ := hσ
-  have hposden' : 0 < σ^2 + (σ / 2)^2 := by
-    have hσ2 : 0 < σ ^ 2 := by simpa using pow_pos hσ 2
-    have : 0 < σ^2 + (σ / 2)^2 := by nlinarith [hσ2, sq_nonneg (σ / 2)]
-    simpa using this
-  have hfrac_mono : σ / (σ^2 + (σ / 2)^2) ≤ σ / (σ^2 + x^2) := by
-    -- since σ^2 + x^2 ≤ σ^2 + (σ/2)^2, invert inequality on positives
-    have hle := hden_le
-    have hpos_denom : 0 < σ^2 + x^2 := by
-      have hσ2 : 0 < σ ^ 2 := by simpa using pow_pos hσ 2
-      have hx2 : 0 ≤ x ^ 2 := sq_nonneg _
-      have : 0 < σ ^ 2 + x ^ 2 := add_pos_of_pos_of_nonneg hσ2 hx2
-      simpa [pow_two] using this
-    -- Use (a ≤ b, a,b>0) ⇒ σ/b ≤ σ/a
-    have := (div_le_div_of_nonneg_left (by exact le_of_lt hposσ) hpos_denom hle)
-    -- Rearrange sides
-    simpa [mul_comm, mul_left_comm, mul_assoc] using this
-  -- Evaluate the left side explicitly
-  have hσ2eq : σ ^ 2 + (σ / 2) ^ 2 = (5 / 4) * σ ^ 2 := by
-    have hx : σ ^ 2 + (σ / 2) ^ 2 = σ ^ 2 + σ ^ 2 / 4 := by
-      simp [pow_two, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
-    have hx' : σ ^ 2 + σ ^ 2 / 4 = (5 / 4) * σ ^ 2 := by
-      ring
-    simpa [hx'] using hx
-  have hEval : σ / (σ^2 + (σ / 2)^2) = (4 / 5) * (1 / σ) := by
-    have hσne : (σ : ℝ) ≠ 0 := ne_of_gt hσ
+  have hden_pos : 0 < σ ^ 2 + x ^ 2 := by
+    have hσ2pos : 0 < σ ^ 2 := by simpa using pow_pos hσ 2
+    have hx2nn : 0 ≤ x ^ 2 := sq_nonneg _
+    exact add_pos_of_pos_of_nonneg hσ2pos hx2nn
+  -- Identify the numeric bound σ^2 + (σ/2)^2 = (5/4) σ^2
+  have hden_calc : σ ^ 2 + (σ / 2) ^ 2 = (5 / 4) * σ ^ 2 := by
+    -- (σ/2)^2 = σ^2 * (1/2)^2 = σ^2 / 4
+    have hx2 : (σ / 2) ^ 2 = σ ^ 2 * (1 / 2 : ℝ) ^ 2 := by
+      simpa [div_eq_mul_inv] using (mul_pow σ (1 / 2 : ℝ) 2)
+    have h12 : (1 / 2 : ℝ) ^ 2 = 1 / 4 := by norm_num
     calc
-      σ / (σ ^ 2 + (σ / 2) ^ 2)
-          = σ / ((5 / 4) * σ ^ 2) := by simpa [hσ2eq]
-      _ = (σ / σ ^ 2) / (5 / 4) := by
-          have : ((5 / 4) * σ ^ 2) = σ ^ 2 * (5 / 4) := by ring
-          simp [this, div_mul_eq_div_div, mul_comm, mul_left_comm, mul_assoc]
-      _ = (1 / σ) / (5 / 4) := by
-          have hdiv : σ / σ ^ 2 = 1 / σ := by
-            have : σ ^ 2 = σ * σ := by simp [pow_two]
-            have hσnz : σ ≠ 0 := hσne
-            calc
-              σ / σ ^ 2 = σ / (σ * σ) := by simpa [this]
-              _ = (σ / σ) / σ := by simpa using (div_mul_eq_div_div σ σ σ)
-              _ = 1 / σ := by simp [hσnz]
-          simpa [hdiv]
-      _ = (4 / 5 : ℝ) * (1 / σ) := by
-          simp [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
-  -- Conclude the desired bound
-  exact le_trans (by simpa [hEval]) hfrac_mono
-
--- Tiny numeric identity used implicitly by field_simp at times
-lemma inv2_mul_inv2_eq_inv4 : (2 : ℝ)⁻¹ * (2 : ℝ)⁻¹ = (4 : ℝ)⁻¹ := by
-  norm_num
+      σ ^ 2 + (σ / 2) ^ 2
+          = σ ^ 2 + σ ^ 2 * (1 / 2 : ℝ) ^ 2 := by simpa [hx2]
+      _ = σ ^ 2 + σ ^ 2 * (1 / 4) := by simpa [h12]
+      _ = (5 / 4) * σ ^ 2 := by ring
+  -- From |x| ≤ σ/2, get x^2 ≤ σ^2 / 4
+  have hx2_sq : (σ / 2) ^ 2 = σ ^ 2 * (1 / 2 : ℝ) ^ 2 := by
+    simpa [div_eq_mul_inv] using (mul_pow σ (1 / 2 : ℝ) 2)
+  have hx2_sq' : (σ / 2) ^ 2 = σ ^ 2 / 4 := by
+    have h12 : (1 / 2 : ℝ) ^ 2 = 1 / 4 := by norm_num
+    simpa [hx2_sq, h12, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+  have hx2_le' : x ^ 2 ≤ σ ^ 2 / 4 := by
+    simpa [hx2_sq'] using hx2_le
+  -- Scale monotone to obtain (4/5)*(σ^2 + x^2) ≤ σ^2
+  have hscaled :
+      (4 / 5 : ℝ) * (σ ^ 2 + x ^ 2) ≤ σ ^ 2 := by
+    have hmono_add : σ ^ 2 + x ^ 2 ≤ σ ^ 2 + σ ^ 2 / 4 :=
+      add_le_add_left hx2_le' _
+    have hstep :
+        (4 / 5 : ℝ) * (σ ^ 2 + x ^ 2)
+          ≤ (4 / 5 : ℝ) * (σ ^ 2 + σ ^ 2 / 4) :=
+      mul_le_mul_of_nonneg_left hmono_add (by norm_num : 0 ≤ (4 / 5 : ℝ))
+    have hconst : (4 / 5 : ℝ) * (σ ^ 2 + σ ^ 2 / 4) = σ ^ 2 := by
+      ring
+    simpa [hconst] using hstep
+  -- Divide by the positive denominator to get 4/5 ≤ σ^2 / (σ^2 + x^2)
+  have hσsq_over : (4 / 5 : ℝ) ≤ σ ^ 2 / (σ ^ 2 + x ^ 2) := by
+    -- (4/5) ≤ σ^2 / (σ^2 + x^2) ↔ (4/5) * (σ^2 + x^2) ≤ σ^2  (since σ^2 + x^2 > 0)
+    have := (le_div_iff (show 0 < σ ^ 2 + x ^ 2 from hden_pos)).mpr hscaled
+    simpa using this
+  -- Multiply both sides by 1/σ (>0) to conclude
+  have hpos_invσ : 0 < (1 / σ : ℝ) := by
+    simpa using inv_pos.mpr hσ
+  have htemp :
+      σ⁻¹ * (4 / 5 : ℝ)
+        ≤ (σ ^ 2 / (σ ^ 2 + x ^ 2)) * σ⁻¹ :=
+    by
+      simpa [mul_comm] using
+        (mul_le_mul_of_nonneg_right hσsq_over (le_of_lt hpos_invσ))
+  -- Simplify RHS to σ / (σ^2 + x^2)
+  have hσne : (σ : ℝ) ≠ 0 := ne_of_gt hσ
+  have hR :
+      (σ ^ 2 / (σ ^ 2 + x ^ 2)) * σ⁻¹ = σ / (σ ^ 2 + x ^ 2) := by
+    have : σ⁻¹ * σ ^ 2 = σ := by
+      simp [pow_two, hσne, mul_comm, mul_left_comm, mul_assoc]
+    calc
+      (σ ^ 2 / (σ ^ 2 + x ^ 2)) * σ⁻¹
+          = (σ ^ 2 * (σ ^ 2 + x ^ 2)⁻¹) * σ⁻¹ := by
+              simp [div_eq_mul_inv]
+      _ = (σ⁻¹ * σ ^ 2) * (σ ^ 2 + x ^ 2)⁻¹ := by
+              simp [mul_comm, mul_left_comm, mul_assoc]
+      _ = σ * (σ ^ 2 + x ^ 2)⁻¹ := by
+              simpa [this]
+  have : σ⁻¹ * (4 / 5 : ℝ) ≤ σ * (σ ^ 2 + x ^ 2)⁻¹ := by
+    simpa [hR, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using htemp
+  simpa [div_eq_mul_inv, mul_comm] using this
 
 end RS
 end RH
