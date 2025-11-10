@@ -490,16 +490,33 @@ lemma exp_I_two_arctan_ratio (y : ℝ) :
           / (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ)) := by
       simp [div_eq_mul_inv, hnum', hden', mul_comm, mul_left_comm, mul_assoc]
     exact hLratio.trans (hreduce.trans hRratio.symm)
-  -- Direct Möbius normalization using cancellation of the nonzero factor `c`
+  -- Direct Möbius normalization using the distribution and ratio identities
   have hMobius :
       ((1 : ℂ) + Complex.I * y) / ((1 : ℂ) - Complex.I * y)
         = ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s) := by
-    have hc0 : (c : ℂ) ≠ 0 := hcC
-    calc
+    have h1 :
       ((1 : ℂ) + Complex.I * y) / ((1 : ℂ) - Complex.I * y)
-          = ((c : ℂ) * (1 + Complex.I * (y : ℂ))) / ((c : ℂ) * (1 - Complex.I * (y : ℂ))) := by ring
-      _ = ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s) := by
-            simpa [hnumfac, hdenfac, div_eq_mul_inv, hc0, mul_comm, mul_left_comm, mul_assoc]
+        = (Complex.I * (y : ℂ) + 1) * (1 - Complex.I * (y : ℂ))⁻¹ := by
+          simp [div_eq_mul_inv, add_comm, add_left_comm, add_assoc]
+    have h2 :
+      (Complex.I * (y : ℂ) + 1) * (1 - Complex.I * (y : ℂ))⁻¹
+        = (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
+            * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹ := by
+          simpa [div_eq_mul_inv, add_comm, add_left_comm, add_assoc,
+            mul_comm, mul_left_comm, mul_assoc] using hratio_use
+    have h3 :
+      (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
+        * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹
+        = ((c : ℂ) + Complex.I * ((y : ℂ) * (c : ℂ)))
+            * ((c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))))⁻¹ := by
+          simpa [sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc,
+            add_comm, add_left_comm, add_assoc] using hsum_close
+    have h4 :
+      ((c : ℂ) + Complex.I * ((y : ℂ) * (c : ℂ)))
+            * ((c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))))⁻¹
+        = ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s) := by
+          simp [div_eq_mul_inv, sub_eq_add_neg, hnumfac, hdenfac]
+    exact h1.trans (h2.trans (h3.trans h4))
   -- Expand to cos/sin(2a)
   have hden_sq : ((c : ℂ) - Complex.I * s) * ((c : ℂ) + Complex.I * s)
       = Complex.ofReal (c ^ 2 + s ^ 2) := by
