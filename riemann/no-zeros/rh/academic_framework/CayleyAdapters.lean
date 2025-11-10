@@ -374,6 +374,13 @@ lemma exp_I_two_arctan_ratio (y : ℝ) :
   have hc_ne : (c : ℝ) ≠ 0 := by
     have hpos : 0 < Real.sqrt (1 + y^2) := Real.sqrt_pos.mpr (by positivity)
     simpa [hc_val] using one_div_ne_zero (ne_of_gt hpos)
+  -- Harmless disjunction that some algebraic normalizers may request; we close it explicitly
+  have _hdisj : (Real.sqrt (1 + y ^ 2))⁻¹ = Real.cos a ∨ y = 0 := by
+    left
+    have hinv : (Real.sqrt (1 + y ^ 2))⁻¹ = 1 / Real.sqrt (1 + y ^ 2) := by simp
+    have hone_over : (1 / Real.sqrt (1 + y ^ 2)) = Real.cos a := by
+      simpa [hc] using hc_val.symm
+    simpa [hinv, hone_over]
   have hs_rel : s = y * c := by
     calc
       s = y / Real.sqrt (1 + y^2) := by simpa [hs, ha] using Real.sin_arctan y
@@ -394,6 +401,38 @@ lemma exp_I_two_arctan_ratio (y : ℝ) :
       (c : ℂ) - Complex.I * s
           = (c : ℂ) - Complex.I * ((y : ℂ) * (c : ℂ)) := by simpa [hscC]
       _ = (c : ℂ) * (1 - Complex.I * (y : ℂ)) := by ring
+  -- Normalize the common-denominator sums into single fractions and cancel the factor `c`
+  have hden' :
+      (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))
+        = (c : ℂ) * (1 - Complex.I * (y : ℂ)) := by ring
+  have hnum' :
+      (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
+        = (c : ℂ) * (Complex.I * (y : ℂ) + 1) := by ring
+  have hcancel_c :
+      Complex.I * (y : ℂ) * (1 - Complex.I * (y : ℂ))⁻¹ + (1 - Complex.I * (y : ℂ))⁻¹
+        =
+      Complex.I * (y : ℂ) * (c : ℂ) * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹
+        + (c : ℂ) * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹ := by
+    -- Convert both sides to ratios and use the factored forms
+    have hL :
+        Complex.I * (y : ℂ) * (1 - Complex.I * (y : ℂ))⁻¹ + (1 - Complex.I * (y : ℂ))⁻¹
+          = (Complex.I * (y : ℂ) + 1) / (1 - Complex.I * (y : ℂ)) := by
+      simp [div_eq_mul_inv, mul_add, add_comm, add_left_comm, add_assoc]
+    have hR :
+        Complex.I * (y : ℂ) * (c : ℂ) * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹
+            + (c : ℂ) * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹
+          = (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
+              / (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ)) := by
+      simp [div_eq_mul_inv, mul_add, add_comm, add_left_comm, add_assoc,
+            mul_comm, mul_left_comm, mul_assoc]
+    have hFrac :
+        (Complex.I * (y : ℂ) + 1) / (1 - Complex.I * (y : ℂ))
+          =
+        (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
+          / (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ)) := by
+      -- Multiply numerator and denominator by `c`
+      simp [div_eq_mul_inv, hnum', hden', mul_comm, mul_left_comm, mul_assoc]
+    simpa [hL, hR] using hFrac
   have hMobius :
       ((1 : ℂ) + Complex.I * y) / ((1 : ℂ) - Complex.I * y)
         = ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s) := by
@@ -429,7 +468,7 @@ lemma exp_I_two_arctan_ratio (y : ℝ) :
     have : _ = Complex.ofReal (c ^ 2 - s ^ 2) + Complex.I * Complex.ofReal (2 * c * s) := by
       simpa [hcs]
     -- small cartesian rearrangement
-    have hrfix :
+    have _hrfix :
         Complex.I * ((c : ℂ) * (s : ℂ) + (c : ℂ) * (s : ℂ)) + (c : ℂ) * (c : ℂ) + -((s : ℂ) * (s : ℂ))
         = Complex.I * ((c : ℂ) * (s : ℂ) + (c : ℂ) * (s : ℂ)) + ((c : ℂ) * (c : ℂ) - (s : ℂ) * (s : ℂ)) := by
       ring_nf
@@ -460,7 +499,8 @@ lemma exp_negI_two_arctan_ratio (y : ℝ) :
           simpa using Complex.exp_neg (Complex.I * (2 * Real.arctan y))
     _ = (((1 : ℝ) + Complex.I * y) / ((1 : ℝ) - Complex.I * y))⁻¹ := by simpa [hpos]
     _ = ((1 : ℝ) - Complex.I * y) / ((1 : ℝ) + Complex.I * y) := by
-          field_simp
+          -- invert a ratio explicitly, avoiding side-conditions
+          simp [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
 
 /-- Parametrization identity along the boundary circle. -/
 lemma boundaryToDisk_param (t : ℝ) :
@@ -516,7 +556,10 @@ lemma memΩ_ne_zero {z : ℂ} (hz : z ∈ HalfPlaneOuterV2.Ω) : z ≠ 0 := by
   intro h0
   have hzRe : (1/2 : ℝ) < z.re := by
     simpa [HalfPlaneOuterV2.Ω, Set.mem_setOf_eq] using hz
-  simpa [h0, Complex.zero_re] using hzRe
+  have hlt : (1/2 : ℝ) < 0 := by
+    simpa [h0, Complex.zero_re] using hzRe
+  have hnot : ¬ ((1/2 : ℝ) < 0) := by norm_num
+  exact hnot hlt
 
 /-- `toDisk` is analytic on Ω. -/
 lemma toDisk_analyticOn_Ω : AnalyticOn ℂ toDisk HalfPlaneOuterV2.Ω := by
