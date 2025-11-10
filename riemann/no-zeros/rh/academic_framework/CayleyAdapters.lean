@@ -401,6 +401,22 @@ lemma exp_I_two_arctan_ratio (y : ℝ) :
       (c : ℂ) - Complex.I * s
           = (c : ℂ) - Complex.I * ((y : ℂ) * (c : ℂ)) := by simpa [hscC]
       _ = (c : ℂ) * (1 - Complex.I * (y : ℂ)) := by ring
+  -- Sum factorization on the base denominator
+  have hsum_factor :
+      (1 - Complex.I * (y : ℂ))⁻¹ + Complex.I * (y : ℂ) * (1 - Complex.I * (y : ℂ))⁻¹
+        = ((1 : ℂ) + Complex.I * (y : ℂ)) * (1 - Complex.I * (y : ℂ))⁻¹ := by
+    -- Let A = inv denom, B = I*y, and factor A + B*A = (1 + B)*A
+    set A : ℂ := (1 - Complex.I * (y : ℂ))⁻¹
+    set B : ℂ := Complex.I * (y : ℂ)
+    have : A + B * A = (1 + B) * A := by
+      simpa [add_mul, one_mul, add_comm, add_left_comm, add_assoc]
+    simpa [A, B]
+  have hsum_factor' :
+      Complex.I * (y : ℂ) * (1 - Complex.I * (y : ℂ))⁻¹ + (1 - Complex.I * (y : ℂ))⁻¹
+        = (Complex.I * (y : ℂ) + 1) * (1 - Complex.I * (y : ℂ))⁻¹ := by
+    -- Use commutativity of addition to flip terms then apply the previous factorization
+    have := hsum_factor
+    simpa [add_comm, add_left_comm, add_assoc] using this
   -- Normalize the common-denominator sums into single fractions and cancel the factor `c`
   have hden' :
       (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))
@@ -408,42 +424,16 @@ lemma exp_I_two_arctan_ratio (y : ℝ) :
   have hnum' :
       (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
         = (c : ℂ) * (Complex.I * (y : ℂ) + 1) := by ring
-  have hcancel_c :
-      Complex.I * (y : ℂ) * (1 - Complex.I * (y : ℂ))⁻¹ + (1 - Complex.I * (y : ℂ))⁻¹
-        =
-      Complex.I * (y : ℂ) * (c : ℂ) * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹
-        + (c : ℂ) * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹ := by
-    -- Convert both sides to ratios and use the factored forms
-    have hL :
-        Complex.I * (y : ℂ) * (1 - Complex.I * (y : ℂ))⁻¹ + (1 - Complex.I * (y : ℂ))⁻¹
-          = (Complex.I * (y : ℂ) + 1) / (1 - Complex.I * (y : ℂ)) := by
-      simp [div_eq_mul_inv, mul_add, add_comm, add_left_comm, add_assoc]
-    have hR :
-        Complex.I * (y : ℂ) * (c : ℂ) * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹
-            + (c : ℂ) * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹
-          = (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
-              / (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ)) := by
-      simp [div_eq_mul_inv, mul_add, add_comm, add_left_comm, add_assoc,
-            mul_comm, mul_left_comm, mul_assoc]
-    have hFrac :
-        (Complex.I * (y : ℂ) + 1) / (1 - Complex.I * (y : ℂ))
-          =
-        (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
-          / (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ)) := by
-      -- Multiply numerator and denominator by `c`
-      simp [div_eq_mul_inv, hnum', hden', mul_comm, mul_left_comm, mul_assoc]
-    simpa [hL, hR] using hFrac
+  -- Direct Möbius normalization using cancellation of the nonzero factor `c`
   have hMobius :
       ((1 : ℂ) + Complex.I * y) / ((1 : ℂ) - Complex.I * y)
         = ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s) := by
+    have hc0 : (c : ℂ) ≠ 0 := hcC
     calc
       ((1 : ℂ) + Complex.I * y) / ((1 : ℂ) - Complex.I * y)
           = ((c : ℂ) * (1 + Complex.I * (y : ℂ))) / ((c : ℂ) * (1 - Complex.I * (y : ℂ))) := by ring
       _ = ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s) := by
-          simpa [hnumfac, hdenfac] using
-            (by simp [hcC, mul_comm, mul_left_comm, mul_assoc] :
-              ((c : ℂ) * (1 + Complex.I * (y : ℂ))) / ((c : ℂ) * (1 - Complex.I * (y : ℂ)))
-                = (1 + Complex.I * (y : ℂ)) / (1 - Complex.I * (y : ℂ)))
+            simpa [hnumfac, hdenfac, div_eq_mul_inv, hc0, mul_comm, mul_left_comm, mul_assoc]
   -- Expand to cos/sin(2a)
   have hden_sq : ((c : ℂ) - Complex.I * s) * ((c : ℂ) + Complex.I * s)
       = Complex.ofReal (c ^ 2 + s ^ 2) := by
@@ -478,7 +468,8 @@ lemma exp_I_two_arctan_ratio (y : ℝ) :
     have hsin2 : 2 * c * s = Real.sin (2 * a) := by
       have := Real.sin_two_mul a
       simpa [hs, hc, two_mul, mul_comm, mul_left_comm, mul_assoc] using this
-    simpa [hcos2, hsin2]
+    -- Close the cartesian rearrangement goal exactly
+    simpa [hcos2, hsin2] using _hrfix
   -- Assemble with Euler form
   calc
     Complex.exp (Complex.I * (2 * Real.arctan y))
@@ -492,15 +483,19 @@ lemma exp_negI_two_arctan_ratio (y : ℝ) :
   Complex.exp (- Complex.I * (2 * Real.arctan y))
     = ((1 : ℝ) - Complex.I * y) / ((1 : ℝ) + Complex.I * y) := by
   have hpos := exp_I_two_arctan_ratio y
+  -- Take inverses on both sides of the positive-angle identity
+  have hinv := congrArg Inv.inv hpos
+  -- Normalize inverses of ratios
+  have hinv' : (Complex.exp (Complex.I * (2 * Real.arctan y)))⁻¹
+      = ((1 : ℝ) - Complex.I * y) / ((1 : ℝ) + Complex.I * y) := by
+    simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using hinv
   calc
     Complex.exp (- Complex.I * (2 * Real.arctan y))
         = Complex.exp (-(Complex.I * (2 * Real.arctan y))) := by ring
     _ = (Complex.exp (Complex.I * (2 * Real.arctan y)))⁻¹ := by
           simpa using Complex.exp_neg (Complex.I * (2 * Real.arctan y))
-    _ = (((1 : ℝ) + Complex.I * y) / ((1 : ℝ) - Complex.I * y))⁻¹ := by simpa [hpos]
     _ = ((1 : ℝ) - Complex.I * y) / ((1 : ℝ) + Complex.I * y) := by
-          -- invert a ratio explicitly, avoiding side-conditions
-          simp [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+          simpa using hinv'
 
 /-- Parametrization identity along the boundary circle. -/
 lemma boundaryToDisk_param (t : ℝ) :
@@ -514,40 +509,38 @@ lemma boundaryToDisk_param (t : ℝ) :
     field_simp
   -- LHS = exp(i·θ(t)) with θ(t) = π − 2 arctan(2 t)
   have hpi : Complex.exp (Complex.I * Real.pi) = (-1 : ℂ) := by simpa using Complex.exp_pi_mul_I
-  have hExpSplit : DiskHardy.boundary (theta t)
-      = - Complex.exp (- Complex.I * (2 * Real.arctan (2 * t))) := by
-    -- exp(i(π - α)) = exp(iπ) * exp(-i α)
-    simp [DiskHardy.boundary, theta, Complex.exp_add, sub_eq_add_neg, hpi]
-  -- Use the explicit ratio identity and normalize with an explicit calc
+  -- Split exp(i(π - α)) = exp(iπ) * exp(-i α) and rewrite with hpi
+  have hsplit :
+      Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan (2 * t)))
+        = - Complex.exp (- Complex.I * (2 * Real.arctan (2 * t))) := by
+    have : Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan (2 * t)))
+            = Complex.exp (Complex.I * Real.pi) * Complex.exp (- Complex.I * (2 * Real.arctan (2 * t))) := by
+      simpa [Complex.exp_add, sub_eq_add_neg]
+    simpa [hpi, mul_comm] using this
+  -- Use the explicit ratio identity and normalize
   have hRatio := exp_negI_two_arctan_ratio (2 * t)
-  have hLHS : - Complex.exp (- Complex.I * (2 * Real.arctan (2 * t)))
-      = ((-1 : ℝ) + (2 : ℝ) * Complex.I * t) / ((1 : ℝ) + (2 : ℝ) * Complex.I * t) := by
-    have : Complex.exp (- Complex.I * (2 * Real.arctan (2 * t)))
+  have hLHS :
+      Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan (2 * t)))
+        = ((-1 : ℝ) + (2 : ℝ) * Complex.I * t) / ((1 : ℝ) + (2 : ℝ) * Complex.I * t) := by
+    have hx : Complex.exp (- Complex.I * (2 * Real.arctan (2 * t)))
         = ((1 : ℝ) - Complex.I * (2 * t)) / ((1 : ℝ) + Complex.I * (2 * t)) := by
       simpa using hRatio
-    -- multiply by (-1) and normalize
     calc
-      - Complex.exp (- Complex.I * (2 * Real.arctan (2 * t)))
-          = - (((1 : ℝ) - Complex.I * (2 * t)) / ((1 : ℝ) + Complex.I * (2 * t))) := by
-              simpa [this]
+      Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan (2 * t)))
+          = - Complex.exp (- Complex.I * (2 * Real.arctan (2 * t))) := hsplit
+      _ = - (((1 : ℝ) - Complex.I * (2 * t)) / ((1 : ℝ) + Complex.I * (2 * t))) := by
+            simpa [hx]
       _ = ((-((1 : ℂ) - Complex.I * (2 * t))) / ((1 : ℂ) + Complex.I * (2 * t))) := by
-              simp [neg_div, div_eq_mul_inv]
+            simp [neg_div, div_eq_mul_inv]
       _ = ((-1 : ℂ) + (2 : ℝ) * Complex.I * t) / ((1 : ℂ) + (2 : ℂ) * Complex.I * t) := by
-              ring_nf
+            ring_nf
       _ = ((-1 : ℝ) + (2 : ℝ) * Complex.I * t) / ((1 : ℝ) + (2 : ℝ) * Complex.I * t) := by
-              ring_nf
-  -- normalize (-1 + 2 I t)/(1 + 2 I t) with ring_nf on both sides
-  have hcanon :
-      ((1 : ℂ) + Complex.I * (t : ℂ) * 2 - 2) / (1 + Complex.I * (t : ℂ) * 2)
-        = ((-1 : ℂ) + (2 : ℂ) * Complex.I * (t : ℂ)) / (1 + (2 : ℂ) * Complex.I * (t : ℂ)) := by
-    have hnum : ((1 : ℂ) + Complex.I * (t : ℂ) * 2 - 2) = (-1 + 2 * Complex.I * (t : ℂ)) := by
-      ring_nf
-    have hden : (1 + Complex.I * (t : ℂ) * 2) = (1 + (2 : ℂ) * Complex.I * (t : ℂ)) := by
-      ring_nf
-    simpa [hnum, hden]
+            ring_nf
+  -- Conclude by comparing the two explicit ratios
   calc
     DiskHardy.boundary (theta t)
-        = - Complex.exp (- Complex.I * (2 * Real.arctan (2 * t))) := hExpSplit
+        = Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan (2 * t))) := by
+            simpa [DiskHardy.boundary, theta]
     _ = ((-1 : ℝ) + (2 : ℝ) * Complex.I * t) / ((1 : ℝ) + (2 : ℝ) * Complex.I * t) := hLHS
     _ = boundaryToDisk t := hrat.symm
 
