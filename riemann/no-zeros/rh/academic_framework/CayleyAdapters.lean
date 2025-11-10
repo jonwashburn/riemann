@@ -424,6 +424,72 @@ lemma exp_I_two_arctan_ratio (y : ℝ) :
   have hnum' :
       (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
         = (c : ℂ) * (Complex.I * (y : ℂ) + 1) := by ring
+  -- Sum→product distribution at a factored denominator: c·D + (I y)·(c·D) = (c + (I y)c)·D
+  have hsum_to_prod :
+      (c : ℂ) * ( (c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))) )⁻¹
+        + Complex.I * ((y : ℂ) * ((c : ℂ) * ( (c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))) )⁻¹))
+        =
+      ((c : ℂ) + Complex.I * ((y : ℂ) * (c : ℂ)))
+        * ( (c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))) )⁻¹ := by
+    set D : ℂ := ((c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))))⁻¹
+    have : (c : ℂ) * D + (Complex.I * (y : ℂ)) * ((c : ℂ) * D)
+            = ((c : ℂ) + (Complex.I * (y : ℂ)) * (c : ℂ)) * D := by
+      ring_nf
+    simpa [D, mul_comm, mul_left_comm, mul_assoc]
+  -- In-place closure of the distribution goal
+  have hsum_close :
+      (c : ℂ) * ( (c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))) )⁻¹
+        + Complex.I * ((y : ℂ) * ((c : ℂ) * ( (c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))) )⁻¹))
+        =
+      ((c : ℂ) + Complex.I * ((y : ℂ) * (c : ℂ)))
+        * ( (c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))) )⁻¹ := by
+    simpa [sub_eq_add_neg] using hsum_to_prod
+  -- Ratio alignment in mul_inv form via div_eq_mul_inv and cancellation of c
+  have hratio_align :
+      (Complex.I * (y : ℂ) + 1) * (1 - Complex.I * (y : ℂ))⁻¹
+        =
+      (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
+        * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹ := by
+    have : ((Complex.I * (y : ℂ) + 1) / (1 - Complex.I * (y : ℂ)))
+            =
+           ((Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
+              / (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))) := by
+      simp [div_eq_mul_inv, hnum', hden', mul_comm, mul_left_comm, mul_assoc]
+    simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using this
+  -- Use the ratio alignment directly where needed
+  have hratio_use :
+      (Complex.I * (y : ℂ) + 1) * (1 - Complex.I * (y : ℂ))⁻¹
+        =
+      (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
+        * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹ := by
+    simpa using hratio_align
+  -- Sum equals product over factored denominator (ratio form and cancellation of `c`)
+  have hcancel_c :
+      Complex.I * (y : ℂ) * (1 - Complex.I * (y : ℂ))⁻¹ + (1 - Complex.I * (y : ℂ))⁻¹
+        =
+      Complex.I * (y : ℂ) * (c : ℂ) * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹
+        + (c : ℂ) * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹ := by
+    -- Left side to ratio
+    have hLratio :
+        Complex.I * (y : ℂ) * (1 - Complex.I * (y : ℂ))⁻¹ + (1 - Complex.I * (y : ℂ))⁻¹
+          = ((Complex.I * (y : ℂ) + 1) / (1 - Complex.I * (y : ℂ))) := by
+      simpa [div_eq_mul_inv] using hsum_factor'
+    -- Right side to ratio
+    have hRratio :
+        Complex.I * (y : ℂ) * (c : ℂ) * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹
+            + (c : ℂ) * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹
+          = (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
+              / (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ)) := by
+      simp [div_eq_mul_inv, mul_add, add_comm, add_left_comm, add_assoc,
+            mul_comm, mul_left_comm, mul_assoc]
+    -- Cancel `c` from numerator and denominator
+    have hreduce :
+        ((Complex.I * (y : ℂ) + 1) / (1 - Complex.I * (y : ℂ)))
+          =
+        (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
+          / (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ)) := by
+      simp [div_eq_mul_inv, hnum', hden', mul_comm, mul_left_comm, mul_assoc]
+    exact hLratio.trans (hreduce.trans hRratio.symm)
   -- Direct Möbius normalization using cancellation of the nonzero factor `c`
   have hMobius :
       ((1 : ℂ) + Complex.I * y) / ((1 : ℂ) - Complex.I * y)
@@ -448,28 +514,32 @@ lemma exp_I_two_arctan_ratio (y : ℝ) :
         = Complex.ofReal (Real.cos (2 * a))
           + Complex.I * Complex.ofReal (Real.sin (2 * a)) := by
     -- Convert to squared form and use double-angle identities
-    have : ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s)
-        = (((c : ℂ) + Complex.I * s) * ((c : ℂ) + Complex.I * s)) /
-            (((c : ℂ) - Complex.I * s) * ((c : ℂ) + Complex.I * s)) := by
-      field_simp
-    have : _ = (Complex.ofReal (c ^ 2 - s ^ 2) + Complex.I * Complex.ofReal (2 * c * s)) /
-                Complex.ofReal (c ^ 2 + s ^ 2) := by
-      simpa [hnum_sq, hden_sq]
-    have : _ = Complex.ofReal (c ^ 2 - s ^ 2) + Complex.I * Complex.ofReal (2 * c * s) := by
-      simpa [hcs]
-    -- small cartesian rearrangement
-    have _hrfix :
-        Complex.I * ((c : ℂ) * (s : ℂ) + (c : ℂ) * (s : ℂ)) + (c : ℂ) * (c : ℂ) + -((s : ℂ) * (s : ℂ))
-        = Complex.I * ((c : ℂ) * (s : ℂ) + (c : ℂ) * (s : ℂ)) + ((c : ℂ) * (c : ℂ) - (s : ℂ) * (s : ℂ)) := by
-      ring_nf
+    have hfrac :
+        ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s)
+          =
+        (Complex.ofReal (c ^ 2 - s ^ 2) + Complex.I * Complex.ofReal (2 * c * s))
+          / Complex.ofReal (c ^ 2 + s ^ 2) := by
+      have : ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s)
+          = (((c : ℂ) + Complex.I * s) * ((c : ℂ) + Complex.I * s))
+              / (((c : ℂ) - Complex.I * s) * ((c : ℂ) + Complex.I * s)) := by
+        field_simp
+      have : _ = (Complex.ofReal (c ^ 2 - s ^ 2) + Complex.I * Complex.ofReal (2 * c * s))
+                    / Complex.ofReal (c ^ 2 + s ^ 2) := by
+        simpa [hnum_sq, hden_sq]
+      exact this
+    have hstep :
+        ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s)
+          =
+        Complex.ofReal (c ^ 2 - s ^ 2) + Complex.I * Complex.ofReal (2 * c * s) := by
+      simpa [hcs] using hfrac
     -- identify with cos/sin(2a)
     have hcos2 : c ^ 2 - s ^ 2 = Real.cos (2 * a) := by
       simpa [hc, hs, pow_two] using (Real.cos_two_mul a)
     have hsin2 : 2 * c * s = Real.sin (2 * a) := by
       have := Real.sin_two_mul a
       simpa [hs, hc, two_mul, mul_comm, mul_left_comm, mul_assoc] using this
-    -- Close the cartesian rearrangement goal exactly
-    simpa [hcos2, hsin2] using _hrfix
+    -- Close the cartesian step
+    simpa [hcos2, hsin2] using hstep
   -- Assemble with Euler form
   calc
     Complex.exp (Complex.I * (2 * Real.arctan y))
