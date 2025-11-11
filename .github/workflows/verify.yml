@@ -17,7 +17,7 @@ jobs:
       - name: Set up Lean toolchain
         uses: leanprover/lean-action@v1
         with:
-          toolchain: leanprover/lean4:v4.13.0
+          lake-package-directory: riemann/no-zeros
 
       - name: Update Lake dependencies
         working-directory: riemann/no-zeros
