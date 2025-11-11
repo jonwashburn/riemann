@@ -36,7 +36,7 @@ open scoped BigOperators MeasureTheory
 namespace RH
 namespace RS
 
--- Tiny numeric identity used implicitly by field_simp at times
+/-- Simple numeric helper: `(1/2)·(1/2) = 1/4`. -/
 lemma inv2_mul_inv2_eq_inv4 : (2 : ℝ)⁻¹ * (2 : ℝ)⁻¹ = (4 : ℝ)⁻¹ := by
   norm_num
 namespace Whitney
@@ -507,14 +507,16 @@ theorem unitWhitney_cover_univ :
     -- Choose m = ⌊t⌋, then t ∈ Icc (m, m+1)
     set m : ℤ := Int.floor t
     have hL : (m : ℝ) ≤ t := by
-      simpa [m] using (Int.floor_le t)
+      have h := Int.floor_le t
+      simpa [m] using h
     have hR : t ≤ (m : ℝ) + 1 := by
-      have : t < (m : ℝ) + 1 := by
-        simpa [m] using (Int.lt_floor_add_one t)
-      exact le_of_lt this
+      have h := Int.lt_floor_add_one t
+      have h' : t < (m : ℝ) + 1 := by
+        convert h using 1 <;> simp [m]
+      exact le_of_lt h'
     have ht : t ∈ Set.Icc (m : ℝ) ((m : ℝ) + 1) := ⟨hL, hR⟩
     have ht' : t ∈ WhitneyInterval.interval (unitWhitney m) := by
-      simpa [unitWhitney_interval] using ht
+      convert ht using 1 <;> simp [unitWhitney_interval]
     exact Set.mem_iUnion.mpr ⟨m, ht'⟩
 
 /-- As a corollary, the unit Whitney intervals cover ℝ almost everywhere. -/
@@ -670,10 +672,13 @@ lemma unitWhitney_endpoints_null :
   classical
   -- Each singleton `{m}` has zero Lebesgue measure on `ℝ`.
   have h0 : ∀ m : ℤ, volume ({(m : ℝ)} : Set ℝ) = 0 := by
-    intro m; simpa using measure_singleton (a := (m : ℝ))
+    intro m
+    simp
   -- Countable union of null sets is null (ℤ is encodable/countable).
-  simpa using (measure_iUnion_null (μ := volume)
-    (s := fun m : ℤ => ({(m : ℝ)} : Set ℝ)) h0)
+  have hUnion :=
+    measure_iUnion_null (μ := volume)
+      (s := fun m : ℤ => ({(m : ℝ)} : Set ℝ)) h0
+  simpa using hUnion
 
 /-- Pointwise overlap control for the canonical `unitWhitney` base cover:
 for any `t : ℝ`, if `t ∈ (unitWhitney m).interval = [m, m+1]`, then necessarily
@@ -781,7 +786,7 @@ theorem ae_nonneg_from_unitWhitney_local
     have hA :
         volume ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)))
           ≤ volume (((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m)) ∩ Sᶜ)) := by
-      simpa [Set.inter_comm]
+      simp [Set.inter_comm]
     have hB :
         volume ((Sᶜ) ∩ (⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ)
           ≤ volume ((⋃ m : ℤ, WhitneyInterval.interval (unitWhitney m))ᶜ) := by
@@ -846,16 +851,34 @@ open MeasureTheory
       RH.RS.length (Set.Icc (W.t0 - W.len) (W.t0 + W.len)) = 2 * W.len := by
     have : (volume (Set.Icc (W.t0 - W.len) (W.t0 + W.len))).toReal
         = (ENNReal.ofReal ((W.t0 + W.len) - (W.t0 - W.len))).toReal := by
-      simpa [Real.volume_Icc, hle]
-    simpa [RH.RS.length, Whitney.length, this, ENNReal.toReal_ofReal, hΔ, hnonnegΔ, hlen_nonneg]
-  simpa [RH.RS.Whitney.WhitneyInterval.interval] using hIcc_len
+      simp [Real.volume_Icc, hle]
+    simp [RH.RS.length, Whitney.length, this, ENNReal.toReal_ofReal, hΔ, hnonnegΔ, hlen_nonneg]
+  have hIcc_len' := hIcc_len
+  simp [RH.RS.Whitney.WhitneyInterval.interval] at hIcc_len'
+  exact hIcc_len'
+
+@[simp] lemma WhitneyInterval_interval_volume_toReal
+  (W : RH.Cert.WhitneyInterval) :
+  (volume W.interval).toReal = 2 * W.len := by
+  simpa [RH.RS.length] using (WhitneyInterval_interval_length (W := W))
+
+lemma volume_Ioc_zero_lt_top (x : ℝ) : volume (Set.Ioc (0 : ℝ) x) < ⊤ := by
+  have : volume (Set.Ioc (0 : ℝ) x) ≠ ⊤ := by
+    simpa [Real.volume_Ioc] using
+      (ENNReal.ofReal_ne_top : ENNReal.ofReal (((x - 0) ⊔ 0)) ≠ (⊤ : ENNReal))
+  exact (lt_top_iff_ne_top).2 this
+
+@[simp] lemma volume_Ioc_zero_toReal_of_nonneg {x : ℝ} (hx : 0 ≤ x) :
+  (volume (Set.Ioc (0 : ℝ) x)).toReal = x := by
+  have hx' : 0 ≤ x := hx
+  simp [Real.volume_Ioc, sup_eq_max, sub_eq_add_neg, hx', ENNReal.toReal_ofReal, hx']
 
 /-- Set-integral lower bound from an a.e. pointwise lower bound by a constant on a
 measurable set of finite measure. Specialized for `ℝ` with Lebesgue measure.
 If `f ≥ c` a.e. on `I` and both sides are integrable, then `∫_I f ≥ c * length I`. -/
 lemma integral_ge_const_mul_length_of_ae
   {f : ℝ → ℝ} {I : Set ℝ} {c : ℝ}
-  (hI : MeasurableSet I) (hIfin : volume I < ⊤)
+  (hIfin : volume I < ⊤)
   (hf_int : IntegrableOn f I volume)
   (h_lower : ∀ᵐ t ∂(volume.restrict I), c ≤ f t) :
   (∫ t in I, f t) ≥ c * RH.RS.length I := by
@@ -871,8 +894,7 @@ lemma integral_ge_const_mul_length_of_ae
       (∫ t in I, (fun _ => c) t) = (volume I).toReal * c := by
     simpa using (MeasureTheory.integral_const (μ := volume.restrict I) c)
   have hbound' : (volume I).toReal * c ≤ (∫ t in I, f t) := by
-    simpa [hconst_left]
-      using hmono
+    simpa [hconst_left] using hmono
   -- Rewrite (c * length I) and conclude without cancellation side-conditions
   have hfinal' : c * (volume I).toReal ≤ (∫ t in I, f t) := by
     simpa [mul_comm] using hbound'
@@ -914,12 +936,13 @@ lemma sigma_over_sigma2_add_sq_core_lower
   have hden_calc : σ ^ 2 + (σ / 2) ^ 2 = (5 / 4) * σ ^ 2 := by
     calc
       σ ^ 2 + (σ / 2) ^ 2
-          = σ ^ 2 + σ ^ 2 / (2 : ℝ) ^ 2 := by simpa [hx2pow]
-      _ = σ ^ 2 + σ ^ 2 / 4 := by simpa [htwo]
+          = σ ^ 2 + σ ^ 2 / (2 : ℝ) ^ 2 := by simp [hx2pow]
+      _ = σ ^ 2 + σ ^ 2 / 4 := by simp [htwo]
       _ = (5 / 4) * σ ^ 2 := by ring
   -- From σ^2 + x^2 ≤ (5/4)σ^2, scale by 4/5 to get a clean bound
   have hden_bound : σ ^ 2 + x ^ 2 ≤ (5 / 4) * σ ^ 2 := by
-    simpa [hden_calc] using hden_le
+    have := hden_le
+    simpa [hden_calc] using this
   have hscaled :
       (4 / 5 : ℝ) * (σ ^ 2 + x ^ 2) ≤ σ ^ 2 := by
     have h : (4 / 5 : ℝ) * (σ ^ 2 + x ^ 2)
@@ -927,7 +950,7 @@ lemma sigma_over_sigma2_add_sq_core_lower
       mul_le_mul_of_nonneg_left hden_bound (by norm_num : 0 ≤ (4 / 5 : ℝ))
     have hconst : (4 / 5 : ℝ) * ((5 / 4) * σ ^ 2) = σ ^ 2 := by
       have : (4 / 5 : ℝ) * (5 / 4) = 1 := by norm_num
-      simpa [mul_comm, mul_left_comm, mul_assoc, this]
+      simp [mul_comm, mul_left_comm, mul_assoc, this]
     simpa [hconst] using h
   -- Divide by the positive denominator to get 4/5 ≤ σ^2 / (σ^2 + x^2)
   have hσsq_over : (4 / 5 : ℝ) ≤ σ ^ 2 / (σ ^ 2 + x ^ 2) := by

@@ -1,6 +1,7 @@
 import rh.academic_framework.DiskHardy
 -- (no additional mathlib imports needed here)
 import rh.academic_framework.HalfPlaneOuterV2
+import rh.academic_framework.ComplexAlgebraNorms
 import Mathlib.Tactic
 import Mathlib.Analysis.Calculus.Deriv.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
@@ -11,6 +12,12 @@ import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Data.Complex.Exponential
 
 @[simp] lemma two_sq_real : (2 : ℝ) ^ 2 = (4 : ℝ) := by norm_num
+
+@[local simp] lemma two_coe : ((2 : ℝ) : ℂ) = (2 : ℂ) := by norm_cast
+@[local simp] lemma neg_one_cast : ((-1 : ℝ) : ℂ) = (-1 : ℂ) := rfl
+@[local simp] lemma I_two_mul (t : ℝ) : Complex.I * (t : ℂ) * 2 = (2 : ℂ) * Complex.I * (t : ℂ) := by
+  ring_nf
+@[local simp] lemma neg_one_sub (X : ℂ) : -((1 : ℂ) - X) = X - 1 := by ring_nf
 
 noncomputable section
 
@@ -374,150 +381,41 @@ lemma exp_I_two_arctan_ratio (y : ℝ) :
   have hc_ne : (c : ℝ) ≠ 0 := by
     have hpos : 0 < Real.sqrt (1 + y^2) := Real.sqrt_pos.mpr (by positivity)
     simpa [hc_val] using one_div_ne_zero (ne_of_gt hpos)
-  -- Harmless disjunction that some algebraic normalizers may request; we close it explicitly
-  have _hdisj : (Real.sqrt (1 + y ^ 2))⁻¹ = Real.cos a ∨ y = 0 := by
-    left
-    have hinv : (Real.sqrt (1 + y ^ 2))⁻¹ = 1 / Real.sqrt (1 + y ^ 2) := by simp
-    have hone_over : (1 / Real.sqrt (1 + y ^ 2)) = Real.cos a := by
-      simpa [hc] using hc_val.symm
-    simpa [hinv, hone_over]
+  -- express s via y * c
   have hs_rel : s = y * c := by
     calc
       s = y / Real.sqrt (1 + y^2) := by simpa [hs, ha] using Real.sin_arctan y
       _ = y * (1 / Real.sqrt (1 + y^2)) := by ring
       _ = y * c := by simpa [hc, hc_val]
+  -- helper disjunction sometimes requested by field_simp: close deterministically
+  have hpos : 0 < Real.sqrt (1 + y ^ 2) := Real.sqrt_pos.mpr (by positivity)
+  have hinv : (Real.sqrt (1 + y ^ 2))⁻¹ = 1 / Real.sqrt (1 + y ^ 2) := by simp
+  have hone : 1 / Real.sqrt (1 + y ^ 2) = Real.cos a := by simpa [hc] using hc_val.symm
+  have _hdisj : (Real.sqrt (1 + y ^ 2))⁻¹ = Real.cos a ∨ y = 0 := by
+    left; simpa [hinv, hone]
+  -- factor out c in numerator and denominator and cancel
   have hcC : (c : ℂ) ≠ 0 := by exact_mod_cast hc_ne
-  -- Factor out c in the Möbius ratio and cancel it
-  have hscC : (s : ℂ) = (y : ℂ) * (c : ℂ) := by
-    have : (s : ℝ) = y * c := hs_rel
-    simpa [Complex.ofReal_mul] using congrArg Complex.ofReal this
   have hnumfac : ((c : ℂ) + Complex.I * s) = (c : ℂ) * (1 + Complex.I * (y : ℂ)) := by
     calc
       (c : ℂ) + Complex.I * s
-          = (c : ℂ) + Complex.I * ((y : ℂ) * (c : ℂ)) := by simpa [hscC]
+          = (c : ℂ) + Complex.I * ((y : ℂ) * (c : ℂ)) := by simpa [hs_rel, Complex.ofReal_mul]
       _ = (c : ℂ) * (1 + Complex.I * (y : ℂ)) := by ring
   have hdenfac : ((c : ℂ) - Complex.I * s) = (c : ℂ) * (1 - Complex.I * (y : ℂ)) := by
     calc
       (c : ℂ) - Complex.I * s
-          = (c : ℂ) - Complex.I * ((y : ℂ) * (c : ℂ)) := by simpa [hscC]
+          = (c : ℂ) - Complex.I * ((y : ℂ) * (c : ℂ)) := by simpa [hs_rel, Complex.ofReal_mul]
       _ = (c : ℂ) * (1 - Complex.I * (y : ℂ)) := by ring
-  -- Sum factorization on the base denominator
-  have hsum_factor :
-      (1 - Complex.I * (y : ℂ))⁻¹ + Complex.I * (y : ℂ) * (1 - Complex.I * (y : ℂ))⁻¹
-        = ((1 : ℂ) + Complex.I * (y : ℂ)) * (1 - Complex.I * (y : ℂ))⁻¹ := by
-    -- Let A = inv denom, B = I*y, and factor A + B*A = (1 + B)*A
-    set A : ℂ := (1 - Complex.I * (y : ℂ))⁻¹
-    set B : ℂ := Complex.I * (y : ℂ)
-    have : A + B * A = (1 + B) * A := by
-      simpa [add_mul, one_mul, add_comm, add_left_comm, add_assoc]
-    simpa [A, B]
-  have hsum_factor' :
-      Complex.I * (y : ℂ) * (1 - Complex.I * (y : ℂ))⁻¹ + (1 - Complex.I * (y : ℂ))⁻¹
-        = (Complex.I * (y : ℂ) + 1) * (1 - Complex.I * (y : ℂ))⁻¹ := by
-    -- Use commutativity of addition to flip terms then apply the previous factorization
-    have := hsum_factor
-    simpa [add_comm, add_left_comm, add_assoc] using this
-  -- Normalize the common-denominator sums into single fractions and cancel the factor `c`
-  have hden' :
-      (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))
-        = (c : ℂ) * (1 - Complex.I * (y : ℂ)) := by ring
-  have hnum' :
-      (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
-        = (c : ℂ) * (Complex.I * (y : ℂ) + 1) := by ring
-  -- Sum→product distribution at a factored denominator: c·D + (I y)·(c·D) = (c + (I y)c)·D
-  have hsum_to_prod :
-      (c : ℂ) * ( (c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))) )⁻¹
-        + Complex.I * ((y : ℂ) * ((c : ℂ) * ( (c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))) )⁻¹))
-        =
-      ((c : ℂ) + Complex.I * ((y : ℂ) * (c : ℂ)))
-        * ( (c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))) )⁻¹ := by
-    set D : ℂ := ((c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))))⁻¹
-    have : (c : ℂ) * D + (Complex.I * (y : ℂ)) * ((c : ℂ) * D)
-            = ((c : ℂ) + (Complex.I * (y : ℂ)) * (c : ℂ)) * D := by
-      ring_nf
-    simpa [D, mul_comm, mul_left_comm, mul_assoc]
-  -- In-place closure of the distribution goal
-  have hsum_close :
-      (c : ℂ) * ( (c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))) )⁻¹
-        + Complex.I * ((y : ℂ) * ((c : ℂ) * ( (c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))) )⁻¹))
-        =
-      ((c : ℂ) + Complex.I * ((y : ℂ) * (c : ℂ)))
-        * ( (c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))) )⁻¹ := by
-    simpa [sub_eq_add_neg] using hsum_to_prod
-  -- Ratio alignment in mul_inv form via div_eq_mul_inv and cancellation of c
-  have hratio_align :
-      (Complex.I * (y : ℂ) + 1) * (1 - Complex.I * (y : ℂ))⁻¹
-        =
-      (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
-        * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹ := by
-    have : ((Complex.I * (y : ℂ) + 1) / (1 - Complex.I * (y : ℂ)))
-            =
-           ((Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
-              / (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))) := by
-      simp [div_eq_mul_inv, hnum', hden', mul_comm, mul_left_comm, mul_assoc]
-    simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using this
-  -- Use the ratio alignment directly where needed
-  have hratio_use :
-      (Complex.I * (y : ℂ) + 1) * (1 - Complex.I * (y : ℂ))⁻¹
-        =
-      (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
-        * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹ := by
-    simpa using hratio_align
-  -- Sum equals product over factored denominator (ratio form and cancellation of `c`)
-  have hcancel_c :
-      Complex.I * (y : ℂ) * (1 - Complex.I * (y : ℂ))⁻¹ + (1 - Complex.I * (y : ℂ))⁻¹
-        =
-      Complex.I * (y : ℂ) * (c : ℂ) * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹
-        + (c : ℂ) * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹ := by
-    -- Left side to ratio
-    have hLratio :
-        Complex.I * (y : ℂ) * (1 - Complex.I * (y : ℂ))⁻¹ + (1 - Complex.I * (y : ℂ))⁻¹
-          = ((Complex.I * (y : ℂ) + 1) / (1 - Complex.I * (y : ℂ))) := by
-      simpa [div_eq_mul_inv] using hsum_factor'
-    -- Right side to ratio
-    have hRratio :
-        Complex.I * (y : ℂ) * (c : ℂ) * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹
-            + (c : ℂ) * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹
-          = (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
-              / (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ)) := by
-      simp [div_eq_mul_inv, mul_add, add_comm, add_left_comm, add_assoc,
-            mul_comm, mul_left_comm, mul_assoc]
-    -- Cancel `c` from numerator and denominator
-    have hreduce :
-        ((Complex.I * (y : ℂ) + 1) / (1 - Complex.I * (y : ℂ)))
-          =
-        (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
-          / (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ)) := by
-      simp [div_eq_mul_inv, hnum', hden', mul_comm, mul_left_comm, mul_assoc]
-    exact hLratio.trans (hreduce.trans hRratio.symm)
-  -- Direct Möbius normalization using the distribution and ratio identities
-  have hMobius :
-      ((1 : ℂ) + Complex.I * y) / ((1 : ℂ) - Complex.I * y)
-        = ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s) := by
-    have h1 :
-      ((1 : ℂ) + Complex.I * y) / ((1 : ℂ) - Complex.I * y)
-        = (Complex.I * (y : ℂ) + 1) * (1 - Complex.I * (y : ℂ))⁻¹ := by
-          simp [div_eq_mul_inv, add_comm, add_left_comm, add_assoc]
-    have h2 :
-      (Complex.I * (y : ℂ) + 1) * (1 - Complex.I * (y : ℂ))⁻¹
-        = (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
-            * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹ := by
-          simpa [div_eq_mul_inv, add_comm, add_left_comm, add_assoc,
-            mul_comm, mul_left_comm, mul_assoc] using hratio_use
-    have h3 :
-      (Complex.I * (y : ℂ) * (c : ℂ) + (c : ℂ))
-        * (-(Complex.I * (y : ℂ) * (c : ℂ)) + (c : ℂ))⁻¹
-        = ((c : ℂ) + Complex.I * ((y : ℂ) * (c : ℂ)))
-            * ((c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))))⁻¹ := by
-          simpa [sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc,
-            add_comm, add_left_comm, add_assoc] using hsum_close
-    have h4 :
-      ((c : ℂ) + Complex.I * ((y : ℂ) * (c : ℂ)))
-            * ((c : ℂ) + -(Complex.I * ((y : ℂ) * (c : ℂ))))⁻¹
-        = ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s) := by
-          simp [div_eq_mul_inv, sub_eq_add_neg, hnumfac, hdenfac]
-    exact h1.trans (h2.trans (h3.trans h4))
-  -- Expand to cos/sin(2a)
+  have hratio_cancel :
+      ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s)
+        = ((1 : ℂ) + Complex.I * (y : ℂ)) / ((1 : ℂ) - Complex.I * (y : ℂ)) := by
+    have hcancel :=
+      RH.AcademicFramework.ComplexAlgebraNorms.ratio_scale_cancel
+        (c := (c : ℂ))
+        (a := ((1 : ℂ) + Complex.I * (y : ℂ)))
+        (b := ((1 : ℂ) - Complex.I * (y : ℂ))) hcC
+    simpa [hnumfac, hdenfac, sub_eq_add_neg, add_comm, add_left_comm, add_assoc,
+           mul_comm, mul_left_comm, mul_assoc] using hcancel.symm
+  -- compute ((c + i s)/(c - i s)) in cartesian form and match cos/sin(2a)
   have hden_sq : ((c : ℂ) - Complex.I * s) * ((c : ℂ) + Complex.I * s)
       = Complex.ofReal (c ^ 2 + s ^ 2) := by
     ring_nf; simp [Complex.I_sq, Complex.ofReal_add, Complex.ofReal_mul, pow_two]
@@ -530,7 +428,13 @@ lemma exp_I_two_arctan_ratio (y : ℝ) :
       ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s)
         = Complex.ofReal (Real.cos (2 * a))
           + Complex.I * Complex.ofReal (Real.sin (2 * a)) := by
-    -- Convert to squared form and use double-angle identities
+    -- helper disjunction sometimes requested by field_simp
+    have _hdisj : (Real.sqrt (1 + y ^ 2))⁻¹ = Real.cos a ∨ y = 0 := by
+      left
+      have hinv : (Real.sqrt (1 + y ^ 2))⁻¹ = 1 / Real.sqrt (1 + y ^ 2) := by simp
+      have hone_over : (1 / Real.sqrt (1 + y ^ 2)) = Real.cos a := by
+        simpa [hc] using hc_val.symm
+      simpa [hinv, hone_over]
     have hfrac :
         ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s)
           =
@@ -542,44 +446,44 @@ lemma exp_I_two_arctan_ratio (y : ℝ) :
         field_simp
       have : _ = (Complex.ofReal (c ^ 2 - s ^ 2) + Complex.I * Complex.ofReal (2 * c * s))
                     / Complex.ofReal (c ^ 2 + s ^ 2) := by
-        simpa [hnum_sq, hden_sq]
+        simpa [hnum_sq, hden_sq, sub_eq_add_neg]
       exact this
     have hstep :
         ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s)
           =
         Complex.ofReal (c ^ 2 - s ^ 2) + Complex.I * Complex.ofReal (2 * c * s) := by
       simpa [hcs] using hfrac
-    -- identify with cos/sin(2a)
+    -- cartesian regrouping and two-angle identities
+    have hcart :
+        Complex.I * ((c : ℂ) * s + (c : ℂ) * s) + (c : ℂ) * (c : ℂ) + -((s : ℂ) * s)
+          = Complex.I * ((c : ℂ) * s + (c : ℂ) * s) + ((c : ℂ) * (c : ℂ) - (s : ℂ) * s) := by
+      ring_nf
+    -- orient the double-angle identities to match target
     have hcos2 : c ^ 2 - s ^ 2 = Real.cos (2 * a) := by
-      simpa [hc, hs, pow_two] using (Real.cos_two_mul a)
+      simpa [hc, hs, pow_two] using (Real.cos_two_mul a).symm
     have hsin2 : 2 * c * s = Real.sin (2 * a) := by
-      have := Real.sin_two_mul a
-      simpa [hs, hc, two_mul, mul_comm, mul_left_comm, mul_assoc] using this
-    -- Close the cartesian step
-    simpa [hcos2, hsin2] using hstep
-  -- Assemble with Euler form
+      simpa [hs, hc, two_mul, mul_comm, mul_left_comm, mul_assoc] using (Real.sin_two_mul a).symm
+    simpa [hcart, hcos2, hsin2] using hstep
+  -- assemble
   calc
     Complex.exp (Complex.I * (2 * Real.arctan y))
         = Complex.exp (Complex.I * (2 * a)) := by simpa [ha]
     _ = Complex.ofReal (Real.cos (2 * a)) + Complex.I * Complex.ofReal (Real.sin (2 * a)) := hEuler
-    _ = ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s) := hR.symm
-    _ = ((1 : ℂ) + Complex.I * y) / ((1 : ℂ) - Complex.I * y) := hMobius.symm
+    _ = ((c : ℂ) + Complex.I * s) / ((c : ℂ) - Complex.I * s) := by simpa using hR.symm
+    _ = ((1 : ℂ) + Complex.I * y) / ((1 : ℂ) - Complex.I * y) := hratio_cancel
 
 /-- Conjugated identity: `exp(-i·(2·arctan y)) = (1 - i y)/(1 + i y)`. -/
 lemma exp_negI_two_arctan_ratio (y : ℝ) :
   Complex.exp (- Complex.I * (2 * Real.arctan y))
     = ((1 : ℝ) - Complex.I * y) / ((1 : ℝ) + Complex.I * y) := by
-  have hpos := exp_I_two_arctan_ratio y
-  -- Take inverses on both sides of the positive-angle identity
-  have hinv := congrArg Inv.inv hpos
-  -- Normalize inverses of ratios
+  -- Inverse of the positive-angle identity
+  have h := congrArg Inv.inv (exp_I_two_arctan_ratio y)
   have hinv' : (Complex.exp (Complex.I * (2 * Real.arctan y)))⁻¹
       = ((1 : ℝ) - Complex.I * y) / ((1 : ℝ) + Complex.I * y) := by
-    simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using hinv
+    simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using h
   calc
     Complex.exp (- Complex.I * (2 * Real.arctan y))
-        = Complex.exp (-(Complex.I * (2 * Real.arctan y))) := by ring
-    _ = (Complex.exp (Complex.I * (2 * Real.arctan y)))⁻¹ := by
+        = (Complex.exp (Complex.I * (2 * Real.arctan y)))⁻¹ := by
           simpa using Complex.exp_neg (Complex.I * (2 * Real.arctan y))
     _ = ((1 : ℝ) - Complex.I * y) / ((1 : ℝ) + Complex.I * y) := by
           simpa using hinv'
@@ -594,31 +498,32 @@ lemma boundaryToDisk_param (t : ℝ) :
       = ((-1 : ℝ) + (2 : ℝ) * Complex.I * t) / ((1 : ℝ) + (2 : ℝ) * Complex.I * t) := by
     simp [boundaryToDisk, toDisk, hs, div_eq_mul_inv]
     field_simp
+    ring_nf
   -- LHS = exp(i·θ(t)) with θ(t) = π − 2 arctan(2 t)
   have hpi : Complex.exp (Complex.I * Real.pi) = (-1 : ℂ) := by simpa using Complex.exp_pi_mul_I
-  -- Split exp(i(π - α)) = exp(iπ) * exp(-i α) and rewrite with hpi
-  have hsplit :
-      Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan (2 * t)))
-        = - Complex.exp (- Complex.I * (2 * Real.arctan (2 * t))) := by
-    have : Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan (2 * t)))
-            = Complex.exp (Complex.I * Real.pi) * Complex.exp (- Complex.I * (2 * Real.arctan (2 * t))) := by
-      simpa [Complex.exp_add, sub_eq_add_neg]
-    simpa [hpi, mul_comm] using this
-  -- Use the explicit ratio identity and normalize
-  have hRatio := exp_negI_two_arctan_ratio (2 * t)
+  -- Inverse identity for the ratio at 2t
+  have hinv := congrArg Inv.inv (exp_I_two_arctan_ratio (2 * t))
+  have hinv' :
+      Complex.exp (-Complex.I * (2 * Real.arctan (2 * t)))
+        = ((1 : ℝ) - Complex.I * (2 * t)) / ((1 : ℝ) + Complex.I * (2 * t)) := by
+    simpa [div_eq_mul_inv] using hinv
+  -- Expand exp(i(π - α)) and normalize with ring_nf
   have hLHS :
       Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan (2 * t)))
         = ((-1 : ℝ) + (2 : ℝ) * Complex.I * t) / ((1 : ℝ) + (2 : ℝ) * Complex.I * t) := by
-    have hx : Complex.exp (- Complex.I * (2 * Real.arctan (2 * t)))
-        = ((1 : ℝ) - Complex.I * (2 * t)) / ((1 : ℝ) + Complex.I * (2 * t)) := by
-      simpa using hRatio
+    have hsplit :
+        Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan (2 * t)))
+          = Complex.exp (Complex.I * Real.pi) * Complex.exp (-Complex.I * (2 * Real.arctan (2 * t))) := by
+      simpa [Complex.exp_add, sub_eq_add_neg]
     calc
       Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan (2 * t)))
-          = - Complex.exp (- Complex.I * (2 * Real.arctan (2 * t))) := hsplit
-      _ = - (((1 : ℝ) - Complex.I * (2 * t)) / ((1 : ℝ) + Complex.I * (2 * t))) := by
-            simpa [hx]
-      _ = ((-((1 : ℂ) - Complex.I * (2 * t))) / ((1 : ℂ) + Complex.I * (2 * t))) := by
-            simp [neg_div, div_eq_mul_inv]
+          = Complex.exp (Complex.I * Real.pi) * Complex.exp (-Complex.I * (2 * Real.arctan (2 * t))) := hsplit
+      _ = (-1 : ℂ) * (((1 : ℝ) - Complex.I * (2 * t)) / ((1 : ℝ) + Complex.I * (2 * t))) := by
+            simpa [hpi, hinv']
+      _ = (Complex.I * (2 * (t : ℝ)) - 1) / ((1 : ℂ) + Complex.I * (2 * t)) := by
+            -- use -(1 - X) = X - 1
+            simp [div_eq_mul_inv, neg_one_sub,
+                  mul_comm, mul_left_comm, mul_assoc]
       _ = ((-1 : ℂ) + (2 : ℝ) * Complex.I * t) / ((1 : ℂ) + (2 : ℂ) * Complex.I * t) := by
             ring_nf
       _ = ((-1 : ℝ) + (2 : ℝ) * Complex.I * t) / ((1 : ℝ) + (2 : ℝ) * Complex.I * t) := by

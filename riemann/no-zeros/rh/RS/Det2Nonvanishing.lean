@@ -43,7 +43,9 @@ only on the real part of `s`. This follows from the general `abs_cpow` identity.
 lemma norm_prime_cpow_neg (p : Nat.Primes) :
     ‖(p : ℂ) ^ (-s)‖ = (p : ℝ) ^ (-s.re) := by
   have hp : 0 < (p : ℝ) := by exact_mod_cast p.property.pos
-  simpa [Complex.norm_eq_abs] using (Complex.abs_cpow_eq_rpow_re_of_pos hp (-s))
+  calc
+    ‖(p : ℂ) ^ (-s)‖ = Complex.abs ((p : ℂ) ^ (-s)) := by simp [Complex.norm_eq_abs]
+    _ = (p : ℝ) ^ (-s.re) := Complex.abs_cpow_eq_rpow_re_of_pos hp (-s)
 
 -- Removed specialized smallness bound; general bounds below suffice for current use
 
@@ -58,30 +60,64 @@ lemma norm_det2EulerFactor_le (p : Nat.Primes) (s : ℂ) :
   dsimp [det2EulerFactor]
   set lam : ℂ := (p : ℂ) ^ (-s)
   set Z : ℂ := lam + lam ^ 2 / 2
-  have h1 : ‖1 - lam‖ ≤ 1 + ‖lam‖ := by
-    have := norm_add_le (1 : ℂ) (-lam)
-    simpa [sub_eq_add_neg, add_comm] using this
-  have hZ : ‖Z‖ ≤ ‖lam‖ + ‖lam‖ ^ 2 / 2 := by
-    have := norm_add_le lam (lam ^ 2 / 2)
-    have hdiv : ‖lam ^ 2 / 2‖ = (‖lam‖ ^ 2) / 2 := by
-      have : ‖lam ^ 2‖ = ‖lam‖ ^ 2 := by simpa using Complex.norm_pow lam 2
-      simp [div_eq_mul_inv, this]
-    simpa [Z, hdiv, mul_comm] using this
-  have hexp : ‖Complex.exp Z‖ ≤ Real.exp ‖Z‖ := by
-    have : Z.re ≤ ‖Z‖ := by
-      have : |Z.re| ≤ ‖Z‖ := Complex.abs_re_le_abs Z
-      exact le_trans (le_abs_self _) this
-    have := Real.exp_le_exp.mpr this
-    simpa [Complex.norm_eq_abs, Complex.abs_exp] using this
-  have hprod : ‖(1 - lam) * Complex.exp Z‖ ≤ (1 + ‖lam‖) * Real.exp ‖Z‖ := by
-    have := mul_le_mul h1 hexp (by positivity) (by positivity)
-    simpa
-  have hmono : Real.exp ‖Z‖ ≤ Real.exp (‖lam‖ + ‖lam‖ ^ 2 / 2) :=
+  have hlam_nonneg : 0 ≤ Complex.abs lam := by
+    simpa using (Complex.abs.nonneg lam)
+  have h1 :
+      Complex.abs (1 - lam) ≤ 1 + Complex.abs lam := by
+    have h := norm_add_le (1 : ℂ) (-lam)
+    simpa [Complex.norm_eq_abs, sub_eq_add_neg] using h
+  have hlam_sq : Complex.abs (lam ^ 2) = Complex.abs lam ^ 2 := by
+    simpa [pow_two] using (Complex.abs.map_mul lam lam)
+  have hdiv :
+      Complex.abs (lam ^ 2 / 2) = Complex.abs lam ^ 2 / 2 := by
+    simpa [abs_div, hlam_sq] using (abs_div (lam ^ 2) (2 : ℂ))
+  have hZ :
+      Complex.abs Z ≤ Complex.abs lam + Complex.abs lam ^ 2 / 2 := by
+    have h := norm_add_le lam (lam ^ 2 / 2)
+    simpa [Complex.norm_eq_abs, Z, hdiv, add_comm, add_left_comm, add_assoc] using h
+  have hz_re_le : Z.re ≤ Complex.abs Z := by
+    have : |Z.re| ≤ Complex.abs Z := Complex.abs_re_le_abs Z
+    exact le_trans (le_abs_self _) this
+  have hexp :
+      Complex.abs (Complex.exp Z) ≤ Real.exp (Complex.abs Z) := by
+    have := Real.exp_le_exp.mpr hz_re_le
+    simpa [Complex.abs_exp] using this
+  have hprod :
+      Complex.abs ((1 - lam) * Complex.exp Z)
+        ≤ (1 + Complex.abs lam) * Real.exp (Complex.abs Z) := by
+    have hmul :
+        Complex.abs ((1 - lam) * Complex.exp Z)
+          = Complex.abs (1 - lam) * Complex.abs (Complex.exp Z) := by
+      simpa using Complex.abs_mul (1 - lam) (Complex.exp Z)
+    have htemp :
+        Complex.abs (1 - lam) * Complex.abs (Complex.exp Z)
+          ≤ (1 + Complex.abs lam) * Complex.abs (Complex.exp Z) :=
+      mul_le_mul_of_nonneg_right h1 (Complex.abs.nonneg _)
+    have htemp' :
+        (1 + Complex.abs lam) * Complex.abs (Complex.exp Z)
+          ≤ (1 + Complex.abs lam) * Real.exp (Complex.abs Z) :=
+      mul_le_mul_of_nonneg_left hexp (add_nonneg (show 0 ≤ (1 : ℝ) by norm_num) hlam_nonneg)
+    have : Complex.abs (1 - lam) * Complex.abs (Complex.exp Z)
+        ≤ (1 + Complex.abs lam) * Real.exp (Complex.abs Z) :=
+      le_trans htemp htemp'
+    simpa [hmul] using this
+  have hmono :
+      Real.exp (Complex.abs Z)
+        ≤ Real.exp (Complex.abs lam + Complex.abs lam ^ 2 / 2) :=
     Real.exp_le_exp.mpr hZ
-  have := mul_le_mul_of_nonneg_left hmono (by positivity : 0 ≤ 1 + ‖lam‖)
-  have htarget : (1 + ‖lam‖) * Real.exp ‖Z‖ ≤ (1 + ‖lam‖) * Real.exp (‖lam‖ + ‖lam‖ ^ 2 / 2) := by
-    simpa [mul_comm, mul_left_comm, mul_assoc] using this
-  exact le_trans hprod htarget
+  have htarget :
+      (1 + Complex.abs lam) * Real.exp (Complex.abs Z)
+        ≤ (1 + Complex.abs lam) *
+            Real.exp
+              (Complex.abs lam + Complex.abs lam ^ 2 / 2) :=
+    mul_le_mul_of_nonneg_left hmono (add_nonneg (show 0 ≤ (1 : ℝ) by norm_num) hlam_nonneg)
+  have hfinal :
+      Complex.abs ((1 - lam) * Complex.exp Z)
+        ≤ (1 + Complex.abs lam) *
+            Real.exp
+              (Complex.abs lam + Complex.abs lam ^ 2 / 2) :=
+    le_trans hprod htarget
+  simpa [Complex.norm_eq_abs, Z, lam] using hfinal
 
 /-- Quantitative remainder control: `det2EulerFactor s p` stays within a linear
 bound of `1`, which already suffices to initiate the summability estimates.  The
@@ -100,7 +136,8 @@ lemma norm_det2EulerFactor_sub_one_bound
         Real.exp (‖(p : ℂ) ^ (-s)‖ + (‖(p : ℂ) ^ (-s)‖) ^ 2 / 2) :=
     hbound
   have h1 : ‖det2EulerFactor s p - 1‖
-      ≤ ‖det2EulerFactor s p‖ + 1 := by simpa using h
+      ≤ ‖det2EulerFactor s p‖ + 1 := by
+    convert h using 1 <;> simp
   exact le_trans h1 (by
     exact add_le_add_right this 1)
 

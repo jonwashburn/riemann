@@ -101,7 +101,7 @@ lemma Θ_pinch_Schur_offXi (P : PinchOuterExt) :
 - an existence-style removable extension of `Θ := Θ_of_J J` across each `ξ_ext` zero. -/
 structure PinchCertificateExt where
   J : ℂ → ℂ
-  hRe_offXi : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi, 0 ≤ ((2 : ℂ) * J z).re
+  hRe_offXi : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}), 0 ≤ ((2 : ℂ) * J z).re
   existsRemXi : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
     ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
       (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
@@ -111,11 +111,33 @@ structure PinchCertificateExt where
 /-- Θ attached to a pinch certificate. -/
 def Θ_cert (C : PinchCertificateExt) : ℂ → ℂ := Theta_of_J C.J
 
-/-- Schur bound on `offXi` from the certificate. -/
+/-- Schur bound on `Ω \\ {ξ_ext = 0}` from the certificate. -/
 lemma Θ_cert_Schur_offXi (C : PinchCertificateExt) :
-    IsSchurOn (Θ_cert C) RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
-  exact Theta_Schur_of_Re_nonneg_on (S := RH.AcademicFramework.HalfPlaneOuterV2.offXi)
-    (hRe := C.hRe_offXi)
+    IsSchurOn (Θ_cert C) (Ω \ {z | riemannXi_ext z = 0}) := by
+  exact Theta_Schur_of_Re_nonneg_on (J := C.J)
+    (S := (Ω \ {z | riemannXi_ext z = 0})) (hRe := C.hRe_offXi)
+
+/-- Lift Schur from `offXi` to `Ω \\ {ξ_ext = 0}` by adding the guard at `1`. -/
+lemma Θ_cert_Schur_offZeros_with_one (C : PinchCertificateExt)
+    (hRe_one : 0 ≤ ((2 : ℂ) * C.J 1).re) :
+    IsSchurOn (Θ_cert C) (Ω \ {z | riemannXi_ext z = 0}) := by
+  -- Build the Re(2·J) ≥ 0 hypothesis on S := Ω \ {ξ = 0}
+  have hRe_S : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}), 0 ≤ ((2 : ℂ) * C.J z).re := by
+    intro z hz
+    rcases hz with ⟨hzΩ, hzNotZero⟩
+    by_cases h1 : z = (1 : ℂ)
+    · simpa [h1] using hRe_one
+    · -- otherwise z ∈ offXi, use certificate guard there
+      have hzOffXi : z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
+        refine And.intro hzΩ ?h
+        refine And.intro ?hne1 ?hxi
+        · exact h1
+        · intro h0
+          exact hzNotZero (by simpa [Set.mem_setOf_eq] using h0)
+      exact C.hRe_offXi z hzOffXi
+  -- Apply Cayley positivity→Schur on S
+  exact Theta_Schur_of_Re_nonneg_on (J := C.J)
+    (S := (Ω \ {z | riemannXi_ext z = 0})) hRe_S
 
 /-! (Further certificate constructions omitted; not needed for current build.) -/
 

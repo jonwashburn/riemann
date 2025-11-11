@@ -295,11 +295,15 @@ lemma integrable_boundedBoundary
   have habs_le : |u t| ≤ max M 0 := le_trans (hBound t) (le_max_left _ _)
   have hcoef : ‖u t‖ ≤ ‖max M 0‖ := by
     have hbase : ‖u t‖ ≤ max M 0 := by
-      simpa [Real.norm_eq_abs] using habs_le
-    have h0 : 0 ≤ max M 0 := by simpa [max_comm] using (le_max_left (0 : ℝ) M)
+      calc
+        ‖u t‖ = |u t| := by simp [Real.norm_eq_abs]
+        _ ≤ max M 0 := habs_le
+    have h0 : 0 ≤ max M 0 :=
+      le_max_of_le_right (show 0 ≤ (0 : ℝ) from le_rfl)
     have hnorm_max : ‖max M 0‖ = max M 0 := by
-      simpa [Real.norm_eq_abs, _root_.abs_of_nonneg h0]
-    simpa [hnorm_max] using hbase
+      simp [Real.norm_eq_abs, _root_.abs_of_nonneg h0]
+    have hrew : max M 0 = ‖max M 0‖ := by simp [hnorm_max]
+    exact hrew ▸ hbase
   have : ‖u t * poissonKernel z t‖ ≤ ‖(‖max M 0‖) * poissonKernel z t‖ := by
     have : ‖u t‖ ≤ ‖max M 0‖ := hcoef
     have hmul : ‖u t‖ * ‖poissonKernel z t‖ ≤ ‖max M 0‖ * ‖poissonKernel z t‖ :=
@@ -382,7 +386,7 @@ lemma J_pinch_analyticOn_offXi
   have hQuot : AnalyticOn ℂ (fun z => det2 z * (O z * riemannXi_ext z)⁻¹) S := by
     simpa using hDet2_S.mul hInv
   refine (hQuot.congr ?_)
-  intro z hz; simp [J_pinch, div_eq_mul_inv]
+  intro z _; simp [J_pinch, div_eq_mul_inv]
 
 /-- Analyticity of `F_pinch` on `offXi`. -/
 lemma F_pinch_analyticOn_offXi
@@ -424,7 +428,7 @@ lemma J_pinch_analyticOn_offXi_of_analytic
   have hQuot : AnalyticOn ℂ (fun z => det2 z * (O z * riemannXi_ext z)⁻¹) S := by
     simpa using hDet2_S.mul hInv
   refine (hQuot.congr ?_)
-  intro z hz; simp [J_pinch, div_eq_mul_inv]
+  intro z _; simp [J_pinch, div_eq_mul_inv]
 
 /-- Analyticity of `F_pinch` on `offXi` assuming only analyticity of `det2` on `Ω`. -/
 lemma F_pinch_analyticOn_offXi_of_analytic
@@ -515,11 +519,6 @@ lemma F_pinch_analyticOn_offZeros
 
 /-! ### Boundary absolute-value control for the pinch field -/
 
-/-- On the boundary line Re s = 1/2, assuming the boundary modulus equality
-`|O(1/2+it)| = |det2/ξ_ext(1/2+it)|`, the pinch field has unit modulus:
-`|J_pinch det2 O (1/2+it)| = 1`, provided `O(1/2+it)` and `ξ_ext(1/2+it)` are nonzero. -/
--- Removed AF alias detours; proofs below avoid `det2_AF`.
-
 lemma boundary_abs_J_pinch_eq_one
   {O : ℂ → ℂ}
   (hBME : BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
@@ -539,36 +538,37 @@ lemma boundary_abs_J_pinch_eq_one
     calc
       Complex.abs (O z) * Complex.abs (riemannXi_ext z)
           = Complex.abs (det2 z / riemannXi_ext z) * Complex.abs (riemannXi_ext z) := by
-                simpa [hOabs]
-      _ = Complex.abs ((det2 z / riemannXi_ext z) * (riemannXi_ext z)) := by
-                simpa using (Complex.abs.map_mul (det2 z / riemannXi_ext z) (riemannXi_ext z)).symm
+                simp [hOabs]
+      _ = Complex.abs ((det2 z / riemannXi_ext z) * (riemannXi_ext z)) :=
+        (Complex.abs.map_mul (det2 z / riemannXi_ext z) (riemannXi_ext z)).symm
       _ = Complex.abs (det2 z) := by
         have hxinv : (riemannXi_ext z)⁻¹ * (riemannXi_ext z) = (1 : ℂ) := inv_mul_cancel₀ hXi0
         calc
           Complex.abs ((det2 z / riemannXi_ext z) * (riemannXi_ext z))
               = Complex.abs (det2 z * ((riemannXi_ext z)⁻¹ * (riemannXi_ext z))) := by
                     simp [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
-          _ = Complex.abs (det2 z * 1) := by simpa [hxinv]
+      _ = Complex.abs (det2 z * 1) := by
+        simp [hxinv]
           _ = Complex.abs (det2 z) := by simp
   -- |J| = |det2| / (|O|·|ξ|) = 1
-  have hJabs : Complex.abs (J_pinch det2 O z)
-      = Complex.abs (det2 z) / (Complex.abs (O z) * Complex.abs (riemannXi_ext z)) := by
-    -- Start from the quotient form of J_pinch and push abs through division and multiplication
-    have hdiv : Complex.abs (det2 z / (O z * riemannXi_ext z))
-        = Complex.abs (det2 z) / Complex.abs (O z * riemannXi_ext z) := by
-      simpa using Complex.abs.map_div (det2 z) (O z * riemannXi_ext z)
-    have hmul : Complex.abs (O z * riemannXi_ext z)
-        = Complex.abs (O z) * Complex.abs (riemannXi_ext z) := by
-      simpa using Complex.abs.map_mul (O z) (riemannXi_ext z)
-    simpa [J_pinch, hdiv, hmul]
   have hden_pos : 0 < Complex.abs (O z) * Complex.abs (riemannXi_ext z) := by
     have h1 : 0 < Complex.abs (O z) := Complex.abs.pos_iff.mpr hO0
     have h2 : 0 < Complex.abs (riemannXi_ext z) := Complex.abs.pos_iff.mpr hXi0
     exact mul_pos h1 h2
-  have hden_ne : (Complex.abs (O z) * Complex.abs (riemannXi_ext z)) ≠ 0 := ne_of_gt hden_pos
-  have hratio : Complex.abs (J_pinch det2 O z)
+  have hden_ne : Complex.abs (O z) * Complex.abs (riemannXi_ext z) ≠ 0 :=
+    ne_of_gt hden_pos
+  have hJabs : Complex.abs (J_pinch det2 O z)
       = Complex.abs (det2 z) / (Complex.abs (O z) * Complex.abs (riemannXi_ext z)) := by
-    simpa using hJabs
+    calc
+      Complex.abs (J_pinch det2 O z)
+          = Complex.abs (det2 z / (O z * riemannXi_ext z)) := by
+              simp [J_pinch]
+      _ = Complex.abs (det2 z) / Complex.abs (O z * riemannXi_ext z) := by
+              simpa using Complex.abs_div (det2 z) (O z * riemannXi_ext z)
+      _ = Complex.abs (det2 z) / (Complex.abs (O z) * Complex.abs (riemannXi_ext z)) := by
+              simp [abs_mul]
+  have hratio : Complex.abs (J_pinch det2 O z)
+      = Complex.abs (det2 z) / (Complex.abs (O z) * Complex.abs (riemannXi_ext z)) := hJabs
   have hJ_abs_det2 : Complex.abs (J_pinch det2 O z) = 1 := by
     -- |det2| / (|O|·|ξ|) = 1 from boundary modulus
     have : Complex.abs (det2 z)
@@ -653,9 +653,9 @@ theorem pinch_poissonRepOn_offZeros
     (hDet_meas : Measurable (fun t => det2 (boundary t)))
     (hO_meas   : Measurable (fun t => O (boundary t)))
     (hXi_meas  : Measurable (fun t => riemannXi_ext (boundary t))) :
-    ∀ (hFormula : ∀ z ∈ offXi,
+    (∀ z ∈ offXi,
       (F_pinch det2 O z).re =
-        poissonIntegral (fun t => (F_pinch det2 O (boundary t)).re) z),
+        poissonIntegral (fun t => (F_pinch det2 O (boundary t)).re) z) →
     HasPoissonRepOn (F_pinch det2 O) offXi := by
   intro hFormula
   constructor

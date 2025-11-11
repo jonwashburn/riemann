@@ -78,11 +78,9 @@ lemma log_remainder_additive_bound_of_Re_ge_sigma
   -- monotonicity in exponent via exp/log
   have hle_sigma : (p.1 : ℝ) ^ (-s.re) ≤ (p.1 : ℝ) ^ (-σ) := by
     have hx : (p.1 : ℝ) ^ (-s.re) = Real.exp ((-s.re) * Real.log (p.1 : ℝ)) := by
-      simpa [Real.rpow_def_of_pos hp_pos, mul_comm] using
-        (rfl : (p.1 : ℝ) ^ (-s.re) = Real.exp (Real.log (p.1 : ℝ) * (-s.re)))
+      simp [Real.rpow_def_of_pos hp_pos, mul_comm]
     have hy : (p.1 : ℝ) ^ (-σ) = Real.exp ((-σ) * Real.log (p.1 : ℝ)) := by
-      simpa [Real.rpow_def_of_pos hp_pos, mul_comm] using
-        (rfl : (p.1 : ℝ) ^ (-σ) = Real.exp (Real.log (p.1 : ℝ) * (-σ)))
+      simp [Real.rpow_def_of_pos hp_pos, mul_comm]
     have hlogpos : 0 < Real.log (p.1 : ℝ) := by
       have : (1 : ℝ) < (p.1 : ℝ) := by exact_mod_cast (p.property.one_lt)
       simpa using Real.log_pos this
@@ -127,12 +125,12 @@ lemma log_remainder_additive_bound_of_Re_ge_sigma
     simpa [sub_eq_add_neg, norm_neg] using
       Complex.norm_log_one_add_sub_self_le (z := -lam) (by simpa [norm_neg] using hlam_lt_one)
   have hhalf : ‖lam ^ 2 / 2‖ = (1 / 2 : ℝ) * ‖lam‖ ^ 2 := by
-    have : ‖lam ^ 2‖ = ‖lam‖ ^ 2 := by simpa using (norm_pow _ 2)
-    simpa [this, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+    have hnorm_sq : ‖lam ^ 2‖ = ‖lam‖ ^ 2 := norm_pow _ 2
+    simp [hnorm_sq, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
   have hsum : ‖Complex.log (1 - lam) + lam + lam ^ 2 / 2‖
       ≤ ‖lam‖ ^ 2 * (1 - ‖lam‖)⁻¹ / 2 + (1 / 2 : ℝ) * ‖lam‖ ^ 2 := by
     refine (norm_add_le _ _).trans ?_
-    exact add_le_add hquad (by simpa [hhalf])
+    exact add_le_add hquad (by simp [hhalf])
   -- denominator comparison via one_div
   have hden : (1 - ‖lam‖)⁻¹ ≤ (1 - (2 : ℝ) ^ (-σ))⁻¹ := by
     have hσpos : 0 < σ := lt_trans (by norm_num : (0 : ℝ) < 1 / 2) hσ
@@ -240,8 +238,7 @@ theorem det2EulerFactor_ne_zero_of_posRe {s : ℂ}
     have hmul : (-s.re) * Real.log (p.1 : ℝ) < 0 :=
       (mul_neg_of_neg_of_pos hxneg hlogpos)
     have hrw : (p.1 : ℝ) ^ (-s.re) = Real.exp ((-s.re) * Real.log (p.1 : ℝ)) := by
-      simpa [Real.rpow_def_of_pos hp_pos, mul_comm]
-        using (rfl : (p.1 : ℝ) ^ (-s.re) = Real.exp (Real.log (p.1 : ℝ) * (-s.re)))
+      simp [Real.rpow_def_of_pos hp_pos, mul_comm]
     have : Real.exp ((-s.re) * Real.log (p.1 : ℝ)) < Real.exp 0 :=
       Real.exp_lt_exp.mpr hmul
     have : (p.1 : ℝ) ^ (-s.re) < 1 := by simpa [hrw, Real.exp_zero] using this
@@ -252,7 +249,8 @@ theorem det2EulerFactor_ne_zero_of_posRe {s : ℂ}
     have hlam : 1 = lam := sub_eq_zero.mp h
     -- Hence ‖lam‖ = 1, contradicting ‖lam‖ < 1
     have hnorm1 : ‖lam‖ = 1 := by
-      simpa [hlam.symm] using (norm_one : ‖(1 : ℂ)‖ = 1)
+      have h := congrArg (fun z : ℂ => ‖z‖) hlam.symm
+      exact h.trans norm_one
     exact (ne_of_lt hlt) hnorm1
   exact mul_ne_zero h1 hexp
 
@@ -333,10 +331,11 @@ theorem det2_AF_analytic_on_halfPlaneReGtHalf :
         have habs : Complex.abs ((p.1 : ℂ) ^ (-s)) = (p.1 : ℝ) ^ (-s.re) :=
           Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s)
         rw [Complex.norm_eq_abs, habs]
-        have hneg : -s.re < 0 := by linarith [hs_pos]
-        have hrw : (p.1 : ℝ) ^ (-s.re) = Real.exp ((-s.re) * Real.log (p.1 : ℝ)) := by
-          simpa [Real.rpow_def_of_pos hp_pos, mul_comm]
+        have hneg : -s.re < 0 := by
+          linarith [hs_pos]
         have hlogpos : 0 < Real.log (p.1 : ℝ) := Real.log_pos hp_gt_one
+        have hrw : (p.1 : ℝ) ^ (-s.re) = Real.exp ((-s.re) * Real.log (p.1 : ℝ)) := by
+          simp [Real.rpow_def_of_pos hp_pos, mul_comm]
         have : Real.exp ((-s.re) * Real.log (p.1 : ℝ)) < Real.exp 0 :=
           Real.exp_lt_exp.mpr (mul_neg_of_neg_of_pos hneg hlogpos)
         simpa [hrw, Real.exp_zero]
@@ -344,56 +343,6 @@ theorem det2_AF_analytic_on_halfPlaneReGtHalf :
     simp only [det2_AF, tprod_congr this]
   have h_eq_exp : ∀ᶠ s in 𝓝 s0, det2_AF s = Complex.exp (∑' (p : Prime), a p s) :=
     (h_det_as_prod.and h_prod_eq_exp).mono (by intro s hs; simpa [hs.1] using hs.2)
-  -- analyticAt via equality on neighborhood: each term is analytic
-  have hterm_analytic : ∀ p, AnalyticAt ℂ (fun s => a p s) s0 := by
-    intro p
-    have hpne : (p.1 : ℂ) ≠ 0 := by exact_mod_cast (ne_of_gt (Nat.Prime.pos p.property))
-    have hlam : AnalyticAt ℂ (fun s => (p.1 : ℂ) ^ (-s)) s0 := by
-      -- cpow via composition s ↦ -s, then multiply by constant, then exp
-      -- In v4.13: z^w = exp(w * log(z)) when z ≠ 0
-      have hlin : AnalyticAt ℂ (fun s : ℂ => -s) s0 := analyticAt_id.neg
-      have hmul : AnalyticAt ℂ (fun s => (-s) * Complex.log (p.1 : ℂ)) s0 :=
-        hlin.mul analyticAt_const
-      have heq : (fun s => (p.1 : ℂ) ^ (-s)) = (fun s => Complex.exp ((-s) * Complex.log (p.1 : ℂ))) := by
-        ext s
-        rw [Complex.cpow_def_of_ne_zero hpne, mul_comm]
-      rw [heq]
-      exact hmul.cexp
-    have hlog : AnalyticAt ℂ (fun s => Complex.log (1 - (p.1 : ℂ) ^ (-s))) s0 := by
-      have hsub : AnalyticAt ℂ (fun s => 1 - (p.1 : ℂ) ^ (-s)) s0 := analyticAt_const.sub hlam
-      have h_slit : 1 - (p.1 : ℂ) ^ (-s0) ∈ Complex.slitPlane := by
-        -- Since ‖p^{-s0}‖ < 1, we have Re(1 - p^{-s0}) ≥ 1 - ‖p^{-s0}‖ > 0
-        left
-        have hp_pos : 0 < (p.1 : ℝ) := Nat.cast_pos.mpr (Nat.Prime.pos p.property)
-        have hp_gt_one : 1 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.one_lt p.property)
-        have hlam_norm : ‖(p.1 : ℂ) ^ (-s0)‖ = (p.1 : ℝ) ^ (-s0.re) := by
-          rw [Complex.norm_eq_abs]
-          exact Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s0)
-        have hspos : 0 < s0.re := lt_trans (by norm_num : (0 : ℝ) < 1/2) hs0
-        have hlt1 : (p.1 : ℝ) ^ (-s0.re) < 1 := by
-          have hgt : 1 < (p.1 : ℝ) ^ (s0.re) := Real.one_lt_rpow hp_gt_one hspos
-          have : ((p.1 : ℝ) ^ (s0.re))⁻¹ < 1 := inv_lt_one_of_one_lt₀ hgt
-          simpa [Real.rpow_neg (le_of_lt hp_pos)] using this
-        have hre_pos : 0 < (1 : ℝ) - ‖(p.1 : ℂ) ^ (-s0)‖ := by
-          simpa [hlam_norm] using sub_pos.mpr hlt1
-        have h_re_le : ((1 : ℝ) - ‖(p.1 : ℂ) ^ (-s0)‖) ≤ (1 - (p.1 : ℂ) ^ (-s0)).re := by
-          have : ((p.1 : ℂ) ^ (-s0)).re ≤ ‖(p.1 : ℂ) ^ (-s0)‖ := Complex.re_le_abs _
-          have := sub_le_sub_left this 1
-          simpa [sub_eq_add_neg] using this
-        have : 0 < (1 - (p.1 : ℂ) ^ (-s0)).re := lt_of_lt_of_le hre_pos h_re_le
-        simpa using this
-      exact AnalyticAt.clog hsub h_slit
-    have hsq : AnalyticAt ℂ (fun s => ((p.1 : ℂ) ^ (-s)) ^ 2) s0 := hlam.pow 2
-    have hlincomb : AnalyticAt ℂ (fun s => (p.1 : ℂ) ^ (-s) + ((p.1 : ℂ) ^ (-s)) ^ 2 / 2) s0 := by
-      have hhalf : AnalyticAt ℂ (fun _ => (1 / 2 : ℂ)) s0 := analyticAt_const
-      have := hlam.add (hsq.mul hhalf)
-      simpa [div_eq_mul_inv] using this
-    -- combine into a single analytic function s ↦ a p s
-    have hsum : AnalyticAt ℂ (fun s => Complex.log (1 - (p.1 : ℂ) ^ (-s)) +
-        ((p.1 : ℂ) ^ (-s) + ((p.1 : ℂ) ^ (-s)) ^ 2 / 2)) s0 := hlog.add hlincomb
-    convert hsum using 1
-    ext s
-    simp only [a, add_assoc]
   -- Now prove analyticity of the tsum using Weierstrass M-test
   -- Strategy: Use differentiableOn_tsum_of_summable_norm + DifferentiableOn.analyticAt
   have h_tsum_analytic : AnalyticAt ℂ (fun s => ∑' (p : Prime), a p s) s0 := by
@@ -554,27 +503,28 @@ theorem det2_AF_nonzero_on_halfPlaneReGtHalf :
       have hp_pos : 0 < (p.1 : ℝ) := Nat.cast_pos.mpr (Nat.Prime.pos p.property)
       have hlam_lt : ‖lam‖ < 1 := by
         have hlam_abs : Complex.abs lam = (p.1 : ℝ) ^ (-s.re) := by
-          simpa [lam, Complex.norm_eq_abs] using
-            (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s))
-        have hneg : -s.re < 0 := by
-          have hspos : 0 < s.re := lt_trans (by norm_num : (0 : ℝ) < 1/2) (lt_trans hσhalf hσ)
-          linarith
-        have hlogpos : 0 < Real.log (p.1 : ℝ) := by
-          have hp_gt_one : (1 : ℝ) < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.one_lt p.property)
-          simpa using Real.log_pos hp_gt_one
+          simpa [lam] using (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s))
+        have hs_re : (1 / 2 : ℝ) < s.re := by
+          simpa [Set.mem_setOf_eq] using hs
+        have hneg : -s.re < 0 := by linarith [hs_re]
+        have hlogpos : 0 < Real.log (p.1 : ℝ) :=
+          Real.log_pos (by exact_mod_cast (Nat.Prime.one_lt p.property))
         have hrw : (p.1 : ℝ) ^ (-s.re) = Real.exp ((-s.re) * Real.log (p.1 : ℝ)) := by
-          simpa [Real.rpow_def_of_pos hp_pos, mul_comm]
+          simp [Real.rpow_def_of_pos hp_pos, mul_comm]
         have : (p.1 : ℝ) ^ (-s.re) < 1 := by
           have := Real.exp_lt_exp.mpr (mul_neg_of_neg_of_pos hneg hlogpos)
           simpa [hrw, Real.exp_zero]
-        simpa [Complex.norm_eq_abs, hlam_abs]
-      have : det2EulerFactor s p = Complex.exp (Complex.log (1 - lam) + lam + lam ^ 2 / 2) := by
-        simpa [det2EulerFactor, a, lam] using eulerFactor_as_exp_log lam hlam_lt
-      simpa [a, lam] using this
-    simpa [det2_AF, hfactor]
-  -- Conclude nonvanishing
-  have : det2_AF s = Complex.exp (∑' (p : Prime), a p) := by simpa [hId] using hprod
-  simpa [this] using Complex.exp_ne_zero _
+        simpa [Complex.norm_eq_abs, hlam_abs] using this
+      simpa [det2EulerFactor, a, lam, eulerFactor_as_exp_log] using eulerFactor_as_exp_log lam hlam_lt
+    simp [det2_AF, hfactor]
+  have hdet_exp : det2_AF s = Complex.exp (∑' (p : Prime), a p) := by
+    calc
+      det2_AF s = ∏' (p : Prime), Complex.exp (a p) := hId
+      _ = Complex.exp (∑' (p : Prime), a p) := hprod
+  have : det2_AF s ≠ 0 := by
+    have hexp : Complex.exp (∑' (p : Prime), a p) ≠ 0 := Complex.exp_ne_zero _
+    exact hdet_exp.symm ▸ hexp
+  exact this
 
 /-- Nonvanishing of det₂ on the critical line Re(s) = 1/2. -/
 theorem det2_AF_nonzero_on_critical_line :
@@ -695,11 +645,11 @@ theorem det2_AF_nonzero_on_critical_line :
       have hlam_lt : ‖lam‖ < 1 := by
         rw [Complex.norm_eq_abs]
         have hlam_abs : Complex.abs lam = (p.1 : ℝ) ^ (-s.re) := by
-          simpa [lam] using (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s))
+          simpa [lam, Complex.norm_eq_abs] using
+            (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-s))
         have hsre : s.re = (1 / 2 : ℝ) := by
-          simp only [s, Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.I_re, zero_mul,
-            Complex.I_im, Complex.ofReal_im, mul_zero, sub_self, add_zero]
-        rw [hlam_abs, hsre]
+          simp [s, Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.I_re, Complex.I_im,
+            Complex.ofReal_im]
         have : (p.1 : ℝ) ^ (-(1/2 : ℝ)) < 1 := by
           have h_eq : (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) = ((p.1 : ℝ) ^ (1 / 2 : ℝ))⁻¹ :=
             Real.rpow_neg (le_of_lt hp_pos) (1 / 2)
@@ -710,12 +660,17 @@ theorem det2_AF_nonzero_on_critical_line :
           have hpow_gt_one : 1 < (p.1 : ℝ) ^ (1/2 : ℝ) := by
             exact Real.one_lt_rpow hp_gt_one (by norm_num : (0 : ℝ) < 1 / 2)
           exact inv_lt_one_of_one_lt₀ hpow_gt_one
-        exact this
+        simpa [Complex.norm_eq_abs, hlam_abs, hsre]
+          using this
       simpa [det2EulerFactor, a, lam, eulerFactor_as_exp_log] using eulerFactor_as_exp_log lam hlam_lt
-    simpa [det2_AF, hfactor]
-  calc det2_AF s
-      = ∏' (p : Prime), Complex.exp (a p) := hId
-    _ = Complex.exp (∑' (p : Prime), a p) := hprod
-    _ ≠ 0 := Complex.exp_ne_zero _
+    simp [det2_AF, hfactor]
+  have hdet_exp : det2_AF s = Complex.exp (∑' (p : Prime), a p) := by
+    calc
+      det2_AF s = ∏' (p : Prime), Complex.exp (a p) := hId
+      _ = Complex.exp (∑' (p : Prime), a p) := hprod
+  have : det2_AF s ≠ 0 := by
+    have hexp : Complex.exp (∑' (p : Prime), a p) ≠ 0 := Complex.exp_ne_zero _
+    exact hdet_exp.symm ▸ hexp
+  exact this
 
 end RH.AcademicFramework.DiagonalFredholm

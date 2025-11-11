@@ -52,8 +52,8 @@ lemma O_simple_outer :
       analyticOn_const
     refine (AnalyticOn.congr hconst ?_)
     intro s hs; simp [O_simple, hs]
-  · intro s hs; have : O_simple s = 1 := by simpa [O_simple, hs]
-    simpa [this]
+  · intro s hs; have : O_simple s = 1 := by simp [O_simple, hs]
+    simp [this]
 
 lemma O_simple_boundary_modulus :
     RH.AcademicFramework.HalfPlaneOuterV2.BoundaryModulusEq O_simple
@@ -66,28 +66,36 @@ lemma O_simple_boundary_modulus :
     unfold O_simple
     simp [RH.AcademicFramework.HalfPlaneOuterV2.Ω,
       RH.AcademicFramework.HalfPlaneOuterV2.boundary, Set.mem_setOf_eq, z]
-  -- Compare absolute values, rewriting through `abs.map_div` and `det2_eq_AF` where needed
+  -- Compare absolute values by normalizing both sides to the `abs_div` form.
+  have hAbs_left :
+      Complex.abs (O_simple z)
+        = Complex.abs (RH.RS.det2 z) /
+            Complex.abs (RH.AcademicFramework.CompletedXi.riemannXi_ext z) := by
+    have := congrArg Complex.abs hEq
+    have hdiv :
+        Complex.abs (RH.RS.det2 z /
+            RH.AcademicFramework.CompletedXi.riemannXi_ext z)
+          = Complex.abs (RH.RS.det2 z) /
+              Complex.abs (RH.AcademicFramework.CompletedXi.riemannXi_ext z) := by
+      simpa using
+        abs_div (RH.RS.det2 z)
+          (RH.AcademicFramework.CompletedXi.riemannXi_ext z)
+    exact this.trans hdiv
+  have hAbs_right :
+      Complex.abs ((fun s =>
+        RH.RS.det2 s / RH.AcademicFramework.CompletedXi.riemannXi_ext s) z)
+        = Complex.abs (RH.RS.det2 z) /
+            Complex.abs (RH.AcademicFramework.CompletedXi.riemannXi_ext z) := by
+    dsimp only
+    simpa using
+      abs_div (RH.RS.det2 z)
+        (RH.AcademicFramework.CompletedXi.riemannXi_ext z)
   calc
     Complex.abs (O_simple z)
-        = Complex.abs (RH.RS.det2 z /
-            RH.AcademicFramework.CompletedXi.riemannXi_ext z) := by
-              simpa [hEq]
-    _ = Complex.abs (RH.RS.det2 z) /
-          Complex.abs (RH.AcademicFramework.CompletedXi.riemannXi_ext z) := by
-              simpa using
-                (Complex.abs.map_div (RH.RS.det2 z)
-                  (RH.AcademicFramework.CompletedXi.riemannXi_ext z))
-    _ = Complex.abs (RH.AcademicFramework.DiagonalFredholm.det2_AF z) /
-          Complex.abs (RH.AcademicFramework.CompletedXi.riemannXi_ext z) := by
-              simpa [RH.RS.det2_eq_AF]
-    _ = Complex.abs (RH.RS.det2 z) /
-          Complex.abs (RH.AcademicFramework.CompletedXi.riemannXi_ext z) := by
-              simpa [RH.RS.det2_eq_AF]
-    _ = Complex.abs (RH.RS.det2 z /
-            RH.AcademicFramework.CompletedXi.riemannXi_ext z) := by
-              simpa using
-                (Complex.abs.map_div (RH.RS.det2 z)
-                  (RH.AcademicFramework.CompletedXi.riemannXi_ext z)).symm
+        = Complex.abs (RH.RS.det2 z) /
+            Complex.abs (RH.AcademicFramework.CompletedXi.riemannXi_ext z) := hAbs_left
+    _ = Complex.abs ((fun s =>
+        RH.RS.det2 s / RH.AcademicFramework.CompletedXi.riemannXi_ext s) z) := hAbs_right.symm
 
 /-- Optional boundary real datum for Poisson build: log of the target modulus.
 We use a tame variant `log (u+1)` to avoid `log 0`; the canonical A.2 limit will
@@ -131,7 +139,7 @@ lemma O_construct_outer {G : ℂ → ℂ}
     have hDef : O_construct G s = Complex.exp (G s) := by
       simp [O_construct, hs]
     have : Complex.exp (G s) ≠ 0 := Complex.exp_ne_zero _
-    simpa [hDef]
+    simp [hDef]
 
 lemma O_construct_boundary_modulus {G : ℂ → ℂ} :
     RH.AcademicFramework.HalfPlaneOuterV2.BoundaryModulusEq (O_construct G)
@@ -140,24 +148,49 @@ lemma O_construct_boundary_modulus {G : ℂ → ℂ} :
   intro t
   -- On the boundary Re = 1/2, the Ω-test is false; take the ratio branch
   set z : ℂ := RH.AcademicFramework.HalfPlaneOuterV2.boundary t
-  have hcond : ¬ ((1/2 : ℝ) < z.re) := by simpa [z, RH.AcademicFramework.HalfPlaneOuterV2.boundary]
+  have hcond : ¬ ((1 / 2 : ℝ) < z.re) := by
+    simp [z, RH.AcademicFramework.HalfPlaneOuterV2.boundary]
+  have hzle : z.re ≤ (1 / 2 : ℝ) := le_of_not_gt hcond
   have hmem : z ∉ RH.AcademicFramework.HalfPlaneOuterV2.Ω := by
-    simpa [RH.AcademicFramework.HalfPlaneOuterV2.Ω, Set.mem_setOf_eq] using hcond
+    intro hz
+    have hz' := hz
+    simp [RH.AcademicFramework.HalfPlaneOuterV2.Ω, Set.mem_setOf_eq] at hz'
+    have hzlt : (1 / 2 : ℝ) < z.re := by
+      simpa using hz'
+    have hzlt' : (1 / 2 : ℝ) < (1 / 2 : ℝ) := hzlt.trans_le hzle
+    exact (lt_irrefl (1 / 2 : ℝ)) hzlt'
   have hEq : O_construct G z = RH.RS.det2 z / RH.AcademicFramework.CompletedXi.riemannXi_ext z := by
     simp [O_construct, hmem]
-  -- Take absolute values; align numerator with det2_AF and finish in the target shape
+  -- Take absolute values and compare both sides via `abs_div` normalization.
+  have hAbs_left :
+      Complex.abs (O_construct G z)
+        = Complex.abs (RH.RS.det2 z) /
+            Complex.abs (RH.AcademicFramework.CompletedXi.riemannXi_ext z) := by
+    have := congrArg Complex.abs hEq
+    have hdiv :
+        Complex.abs (RH.RS.det2 z /
+            RH.AcademicFramework.CompletedXi.riemannXi_ext z)
+          = Complex.abs (RH.RS.det2 z) /
+              Complex.abs (RH.AcademicFramework.CompletedXi.riemannXi_ext z) := by
+      simpa using
+        abs_div (RH.RS.det2 z)
+          (RH.AcademicFramework.CompletedXi.riemannXi_ext z)
+    exact this.trans hdiv
+  have hAbs_right :
+      Complex.abs ((fun s =>
+        RH.RS.det2 s / RH.AcademicFramework.CompletedXi.riemannXi_ext s) z)
+        = Complex.abs (RH.RS.det2 z) /
+            Complex.abs (RH.AcademicFramework.CompletedXi.riemannXi_ext z) := by
+    dsimp only
+    simpa using
+      abs_div (RH.RS.det2 z)
+        (RH.AcademicFramework.CompletedXi.riemannXi_ext z)
   calc
     Complex.abs (O_construct G z)
-        = Complex.abs (RH.RS.det2 z / RH.AcademicFramework.CompletedXi.riemannXi_ext z) := by
-          simpa [hEq]
-    _ = Complex.abs (RH.RS.det2 z) / Complex.abs (RH.AcademicFramework.CompletedXi.riemannXi_ext z) := by
-          simpa using (Complex.abs.map_div (RH.RS.det2 z) (RH.AcademicFramework.CompletedXi.riemannXi_ext z))
-    _ = Complex.abs (RH.AcademicFramework.DiagonalFredholm.det2_AF z) / Complex.abs (RH.AcademicFramework.CompletedXi.riemannXi_ext z) := by
-          simpa [RH.RS.det2_eq_AF]
-    _ = Complex.abs ((fun s => RH.RS.det2 s / RH.AcademicFramework.CompletedXi.riemannXi_ext s) z) := by
-          -- rewrite back to the abs-of-division form to match the RHS target
-          simpa using
-            (Complex.abs.map_div (RH.RS.det2 z) (RH.AcademicFramework.CompletedXi.riemannXi_ext z)).symm
+        = Complex.abs (RH.RS.det2 z) /
+            Complex.abs (RH.AcademicFramework.CompletedXi.riemannXi_ext z) := hAbs_left
+    _ = Complex.abs ((fun s =>
+        RH.RS.det2 s / RH.AcademicFramework.CompletedXi.riemannXi_ext s) z) := hAbs_right.symm
 
 /-- From any Poisson potential `G` (analytic on Ω), the piecewise `O_construct G`
 witnesses the required AF outer existence with boundary modulus `|det₂/ξ_ext|`. -/

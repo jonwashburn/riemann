@@ -3,6 +3,7 @@ import Mathlib.Data.Real.Sqrt
 import Mathlib.Algebra.Algebra.Tower
 import Mathlib.Data.Complex.Basic
 import rh.Cert.KxiPPlus
+import rh.academic_framework.MeasureHelpers
 -- lightweight interface; depends only on Cert types
 
 /-!
@@ -64,8 +65,9 @@ lemma UEnergy_le_boxBound
   (F : ℂ → ℂ) (I : WhitneyInterval) (K : ℝ) :
   Real.sqrt (UEnergyOnBox F I) ≤ Real.sqrt ((mkWhitneyBoxEnergy I K).bound) := by
   have h0 : Real.sqrt (UEnergyOnBox F I) = 0 := by simp [UEnergyOnBox]
-  have : 0 ≤ Real.sqrt ((mkWhitneyBoxEnergy I K).bound) := Real.sqrt_nonneg _
-  simpa [h0]
+  have hnonneg : 0 ≤ Real.sqrt ((mkWhitneyBoxEnergy I K).bound) := Real.sqrt_nonneg _
+  rw [h0]
+  exact hnonneg
 
 /-- CR–Green pairing on Whitney boxes with a numeric Poisson–gradient hypothesis.
 
@@ -88,14 +90,13 @@ lemma CRGreen_pairing_whitney_L2_proved
   (F : ℂ → ℂ) (I : WhitneyInterval) :
   CRGreen_pairing_whitney_L2 F I := by
   refine ⟨(1 : ℝ), by norm_num, ?_⟩
-  intro φ _ K hK
+  intro φ _ K _hK
   have habs : |boundaryPhasePairing F φ I| = 0 := by
     simp [boundaryPhasePairing]
   have hsqrt_nonneg : 0 ≤ Real.sqrt ((RH.Cert.mkWhitneyBoxEnergy I K).bound) :=
     Real.sqrt_nonneg _
-  have hRHS_nonneg : 0 ≤ (1 : ℝ) * Real.sqrt ((RH.Cert.mkWhitneyBoxEnergy I K).bound) := by
-    simpa [one_mul] using hsqrt_nonneg
-  simpa [habs, one_mul] using hRHS_nonneg
+  rw [habs, one_mul]
+  exact hsqrt_nonneg
 
 end RS
 end RH

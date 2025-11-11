@@ -8,9 +8,29 @@ import rh.academic_framework.CompletedXi
 -- keep this self-contained without importing Proof.Main to avoid cycles
 
 /-!
-Minimal active-track proof assembly avoiding heavy modules. This file
-re-implements the generic RH wrappers needed for the active track without
-importing CRGreenOuter, PoissonCayley, or WhitneyGeometryDefs.
+# Active Proof Assembly
+
+This file collects the minimal RH wrapper lemmas needed on the "active" proof
+track. It re-implements the essential nonvanishing-to-critical-line arguments
+without importing the heavier `CRGreenOuter`, `PoissonCayley`, or
+`WhitneyGeometryDefs` modules so that downstream users can depend on a thin
+interface.
+
+## Main results
+
+* `RH_core` — abstract symmetry lemma converting right-half nonvanishing into
+  critical-line support.
+* `Assembly.RH_riemannXi_from_RS_offZeros` — shows RH for a custom `riemannXi`
+  given the RS Schur assign data.
+* `Final.RiemannHypothesis_from_pinch_ext_assign` — specialization to the
+  completed zeta together with an export version for mathlib.
+
+## Design notes
+
+All analytic and Schur hypotheses are passed in as parameters. This keeps the
+file declarative: callers provide the invariants (factorizations, Schur
+assignments, removable singularity data) and the lemmas merely orchestrate the
+deduction.
 -/
 
 namespace RH

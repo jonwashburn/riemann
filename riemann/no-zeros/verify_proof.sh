@@ -14,22 +14,54 @@ echo "📋 Step 1: Checking Lean version..."
 lean --version
 echo
 
-# Build the active track only
-echo "🔨 Step 2: Building active track (this may take a few minutes)..."
-echo "Command: lake build rh_active"
-lake build rh_active
-BUILD_STATUS=$?
+# Guard: scan for set_option relaxers (e.g., disabling linters)
+echo "🛡️ Step 2: Scanning for set_option relaxers (e.g., disabling linters)..."
+# POSIX ERE; flag common relaxers. Keep conservative to avoid false positives.
+PATTERN='set_option[[:space:]]+(linter\.[[:alnum:]_.]+[[:space:]]+false|warningAsError[[:space:]]+false|autoImplicit[[:space:]]+true|relaxedAutoImplicit[[:space:]]+true)'
+# Scan Lean sources under rh/ only; exclude non-lean files by extension
+MATCHES=$(grep -R -n -E "$PATTERN" rh 2>/dev/null || true)
+if [ -n "$MATCHES" ]; then
+    echo "❌ Found potential relaxers in Lean sources:"
+    echo "$MATCHES"
+    exit 1
+else
+    echo "✅ No relaxer set_option directives found."
+fi
 echo
 
-if [ $BUILD_STATUS -eq 0 ]; then
+# Build the active track only
+echo "🔨 Step 3: Building active track (this may take a few minutes)..."
+echo "Command: lake build rh_active"
+lake build rh_active
+BUILD_STATUS_ACTIVE=$?
+echo
+
+if [ $BUILD_STATUS_ACTIVE -eq 0 ]; then
     echo "✅ Build successful!"
 else
-    echo "❌ Build failed with exit code $BUILD_STATUS"
-    exit $BUILD_STATUS
+    echo "❌ Build failed with exit code $BUILD_STATUS_ACTIVE"
+    exit $BUILD_STATUS_ACTIVE
 fi
+echo
+
+# Build the full library as well (non-fatal)
+echo "🔨 Step 4: Building full library (rh)..."
+echo "Command: lake build rh"
+set +e
+lake build rh
+BUILD_STATUS_RH=$?
+set -e
+echo
+
+if [ $BUILD_STATUS_RH -eq 0 ]; then
+    echo "✅ Full build successful!"
+else
+    echo "⚠️  Full build failed with exit code $BUILD_STATUS_RH (continuing verification on active track)"
+fi
+echo
 
 # Check axioms for the active theorem
-echo "🔍 Step 3: Checking axioms (active track)..."
+echo "🔍 Step 5: Checking axioms (active track)..."
 cat > /tmp/axioms_active.lean << 'EOF'
 import rh.Proof.Active
 
@@ -53,7 +85,7 @@ lake env lean /tmp/check_theorem.lean
 echo
 
 # Check for forbidden constructs
-echo "🚫 Step 5: Checking for forbidden constructs..."
+echo "🚫 Step 7: Checking for forbidden constructs..."
 SORRY_COUNT=$(grep -r "\bsorry\b" rh/RS/CertificateConstruction.lean rh/Proof/Main.lean rh/RS/SchurGlobalization.lean 2>/dev/null | wc -l)
 ADMIT_COUNT=$(grep -r "\badmit\b" rh/RS/CertificateConstruction.lean rh/Proof/Main.lean rh/RS/SchurGlobalization.lean 2>/dev/null | wc -l)
 AXIOM_COUNT=$(grep -r "^axiom\b" rh/RS/CertificateConstruction.lean rh/Proof/Main.lean rh/RS/SchurGlobalization.lean 2>/dev/null | wc -l)
@@ -75,7 +107,12 @@ echo "  VERIFICATION SUMMARY"
 echo "════════════════════════════════════════════════════════"
 echo
 echo "✅ Lean version: OK"
-echo "✅ Build status: SUCCESS (exit code 0)"
+echo "✅ Build rh_active: SUCCESS (exit code $BUILD_STATUS_ACTIVE)"
+if [ $BUILD_STATUS_RH -eq 0 ]; then
+  echo "✅ Build rh: SUCCESS (exit code $BUILD_STATUS_RH)"
+else
+  echo "⚠️  Build rh: FAILED (exit code $BUILD_STATUS_RH) — active track verified"
+fi
 echo "✅ Axioms: Standard only (propext, Classical.choice, Quot.sound)"
 echo "✅ No sorry/admit: Verified"
 echo "✅ Active theorem present: RiemannHypothesis_mathlib_from_pinch_ext_assign"

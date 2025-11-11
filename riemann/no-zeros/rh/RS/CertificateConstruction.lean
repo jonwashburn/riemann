@@ -59,21 +59,41 @@ lemma interior_positive_with_certificate_outer :
   -- Route B provides (P+) and a Poisson representation on the off-zeros set
   have hP : RH.Cert.PPlus (fun z => (2 : ℂ) * J_pinch det2 (RH.RS.RouteB.O) z) :=
     RH.RS.RouteB.boundary_positive
+  -- Convert (P+) to AF boundary positivity for F_pinch det2 O
+  have hcert : ∀ᵐ t : ℝ,
+      0 ≤ ((fun z => (2 : ℂ) * J_pinch det2 (RH.RS.RouteB.O) z)
+            (Complex.mk (1/2) t)).re := hP
+  have mk_eq : ∀ t, Complex.mk (1/2) t = (1/2 : ℝ) + Complex.I * (t : ℂ) := by
+    intro t; apply Complex.ext <;> simp
+  have hbd : ∀ᵐ t : ℝ,
+      0 ≤ ((fun z => (2 : ℂ) * J_pinch det2 (RH.RS.RouteB.O) z)
+            (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
+    refine hcert.mono ?_
+    intro t ht
+    have hb : RH.AcademicFramework.HalfPlaneOuterV2.boundary t
+        = (1/2 : ℝ) + Complex.I * (t : ℂ) := rfl
+    have ht' : 0 ≤ ((fun z => (2 : ℂ) * J_pinch det2 (RH.RS.RouteB.O) z)
+                      ((1/2 : ℝ) + Complex.I * (t : ℂ))).re := by
+      simpa [mk_eq t] using ht
+    simpa [hb] using ht'
+  have hBP : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
+      (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 (RH.RS.RouteB.O)) := by
+    simpa [RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive,
+           RH.AcademicFramework.HalfPlaneOuterV2.F_pinch, hChoose]
+      using hbd
+  -- Poisson representation on the off-zeros set (Route B export)
   have hRep : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
       (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 (RH.RS.RouteB.O))
       (Ω \ {z | riemannXi_ext z = 0}) := RH.RS.RouteB.F_pinch_has_poisson_rep
-  -- Transport boundary positivity to the interior on the off-zeros set
-  have hTrans := RH.RS.hRe_offXi_from_PPlus_via_transport
-    (hOuter := outer_exists_for_certificate) (hRepOn := by
-      -- specialize to the same outer using definitional equality
-      simpa [RH.AcademicFramework.HalfPlaneOuterV2.F_pinch, hChoose]
-        using hRep)
-    (hPPlus := by
-      -- coerce (P+) to the RS predicate expected by the wrapper
-      simpa [hChoose] using hP)
-  -- Conclude the pointwise interior positivity
+  -- Transport boundary positivity to interior positivity on Ω \ {ξ = 0}
+  have hTrans :=
+    RH.AcademicFramework.HalfPlaneOuterV2.poissonTransportOn
+      (F := RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 (RH.RS.RouteB.O))
+      hRep hBP
   intro z hz
-  simpa [hChoose] using hTrans z hz
+  -- Evaluate transport at z and rewrite F_pinch with the chosen outer
+  simpa [RH.AcademicFramework.HalfPlaneOuterV2.F_pinch, hChoose]
+    using hTrans z hz
 
 /-! ## Section 2: Outer Existence Witness
 

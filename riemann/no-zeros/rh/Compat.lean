@@ -101,10 +101,9 @@ lemma mem_slitPlane_of_ne_zero_of_im_ne {z : ℂ} (_hne : z ≠ 0) (h_im : z.im 
 
 -- arithmetic helper
 lemma two_pow_two_mul_eq_four_pow (d : ℕ) : (2 : ℝ) ^ (2 * d) = (4 : ℝ) ^ d := by
-  have h : (2 : ℝ) ^ (2 * d) = ((2 : ℝ) ^ 2) ^ d := by
-    simpa [pow_mul] using (pow_mul (2 : ℝ) (2 : ℕ) d)
+  have h : (2 : ℝ) ^ (2 * d) = ((2 : ℝ) ^ 2) ^ d := pow_mul (2 : ℝ) 2 d
   have h2 : ((2 : ℝ) ^ 2) = (4 : ℝ) := by norm_num
-  exact h.trans (by simpa using congrArg (fun z : ℝ => z ^ d) h2)
+  exact h.trans (congrArg (fun z : ℝ => z ^ d) h2)
 
 end
 

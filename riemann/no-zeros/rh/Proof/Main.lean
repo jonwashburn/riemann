@@ -83,8 +83,7 @@ namespace RH.Proof
 
 open Complex Set Filter
 
--- Avoid global simp loops from the functional equation inside this file
-attribute [-simp] RH.AcademicFramework.CompletedXi.xi_ext_functional_equation
+-- Use explicit rewrites with `xi_ext_functional_equation` instead of toggling simp attributes.
 
 /-- Core symmetry step: from zero‑symmetry and right‑half‑plane nonvanishing
 for `Ξ`, conclude zeros lie on `Re = 1/2`. -/
@@ -293,6 +292,7 @@ open RH.AcademicFramework.CompletedXi
 
 /-- Disjunction transport at `1-ρ`: if `Ξ(ρ)=0` and `Ξ=G·ζ`, then `G(1-ρ)=0 ∨ ζ(1-ρ)=0`. -/
 lemma disj_at_one_sub_of_xi_zero
+    (riemannXi G : ℂ → ℂ)
     (hXiEq : ∀ s, riemannXi s = G s * riemannZeta s)
     (symXi : ∀ s, riemannXi s = 0 → riemannXi (1 - s) = 0)
     (ρ : ℂ) (hXi0 : riemannXi ρ = 0)
@@ -304,6 +304,7 @@ lemma disj_at_one_sub_of_xi_zero
 
 /-- RH for a supplied `riemannXi` using FE, Schur bound, assignment, and `G ≠ 0` on Ω. -/
 theorem RH_xi_from_supplied_RS
+    (riemannXi G : ℂ → ℂ)
     (fe : ∀ s, riemannXi s = riemannXi (1 - s))
     (Θ : ℂ → ℂ)
     (hSchur : RH.RS.IsSchurOn Θ (RH.RS.Ω \ {z | riemannZeta z = 0}))
@@ -312,6 +313,7 @@ theorem RH_xi_from_supplied_RS
         (U ∩ {z | riemannZeta z = 0}) = ({ρ} : Set ℂ) ∧
         ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧ AnalyticOn ℂ Θ (U \ {ρ}) ∧
           Set.EqOn Θ g (U \ {ρ}) ∧ g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1)
+    (hXiEq : ∀ s, riemannXi s = G s * riemannZeta s)
     (hGnz : ∀ ρ ∈ RH.RS.Ω, G ρ ≠ 0)
     : ∀ ρ, riemannXi ρ = 0 → ρ.re = (1 / 2 : ℝ) := by
   -- Derive zero-symmetry from the supplied functional equation locally
@@ -325,7 +327,9 @@ theorem RH_xi_from_supplied_RS
     intro ρ hΩ
     have hG := hGnz ρ hΩ
     have hZ := hζnz ρ hΩ
-    simpa [xi_factorization ρ] using mul_ne_zero hG hZ
+    have hEq : riemannXi ρ = G ρ * riemannZeta ρ := hXiEq ρ
+    have : G ρ * riemannZeta ρ ≠ 0 := mul_ne_zero hG hZ
+    intro hXi0; rw [hEq] at hXi0; exact this hXi0
   -- Conclude RH for Ξ by symmetry wrapper
   exact RH_riemannXi riemannXi hΞnz symXi
 
@@ -352,7 +356,9 @@ theorem RH_mathlib_from_xi_ext
   intro s hζ _hneTriv _
   have hne0 : s ≠ 0 := by
     intro h0
-    simpa [h0, riemannZeta_zero] using hζ
+    have hzeta_ne : riemannZeta s ≠ 0 := by
+      simpa [h0, riemannZeta_zero]
+    exact hzeta_ne hζ
   have hζdef : riemannZeta s = completedRiemannZeta s / s.Gammaℝ :=
     riemannZeta_def_of_ne_zero hne0
   have hNoPole : ∀ n : ℕ, s / 2 ≠ - (n : ℂ) := by
@@ -429,7 +435,7 @@ theorem no_right_zeros_from_pinch_assign
     intro x hx
     have hxU : x ∈ U := hx.1
     have hxNe : x ≠ ρ := by
-      intro h; exact hx.2 (by simpa [h])
+      intro h; exact hx.2 (by simp [h])
     have hxNotZ : x ∉ ({z | Ξ z = 0} : Set ℂ) := by
       intro hxZ
       have hxInCap : x ∈ (U ∩ {z | Ξ z = 0}) := ⟨hxU, hxZ⟩
@@ -480,9 +486,11 @@ theorem RiemannHypothesis_from_pinch_ext_assign
         ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧ AnalyticOn ℂ Θ (U \ {ρ}) ∧
           Set.EqOn Θ g (U \ {ρ}) ∧ g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1)
     : ∀ ρ, riemannXi_ext ρ = 0 → ρ.re = (1 / 2 : ℝ) := by
-  -- FE for Ξ_ext and symmetry
-  have fe : ∀ s, riemannXi_ext s = riemannXi_ext (1 - s) :=
-    fun s => RH.AcademicFramework.CompletedXi.xi_ext_functional_equation s
+  -- FE for Ξ_ext and symmetry (explicit lemma binding; avoid relying on `[simp]`)
+  have hξ := RH.AcademicFramework.CompletedXi.xi_ext_functional_equation
+  have fe : ∀ s, riemannXi_ext s = riemannXi_ext (1 - s) := by
+    intro s
+    simpa using hξ s
   have symXi : ∀ ρ, riemannXi_ext ρ = 0 → riemannXi_ext (1 - ρ) = 0 :=
     RH.AcademicFramework.CompletedXi.zero_symmetry_from_fe riemannXi_ext fe
   exact RH.Proof.poissonIntegralinch.RH_from_pinch_assign riemannXi_ext Θ symXi hSchur assign
@@ -503,19 +511,38 @@ theorem RiemannHypothesis_mathlib_from_pinch_ext_assign
 
 end RH.Proof.Final
 
-/-- Final theorem: build the `Ξ` assignment from a certificate and conclude RH. -/
-theorem RH_from_pinch_certificate (C : RH.RS.PinchCertificateExt) : RiemannHypothesis := by
+/-- Final theorem: build the `Ξ` assignment from a certificate and conclude RH.
+Requires a guard at `1`: `0 ≤ Re(2·J 1)` to lift Schur from `offXi` to `Ω \\ {ξ=0}`. -/
+theorem RH_from_pinch_certificate (C : RH.RS.PinchCertificateExt)
+    (hRe_one : 0 ≤ ((2 : ℂ) * C.J 1).re) : RiemannHypothesis := by
   -- Θ from certificate and its Schur bound off Z(Ξ_ext)
   have hSchur : RH.RS.IsSchurOn (RH.RS.Θ_cert C)
-      (RH.RS.Ω \ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}) :=
-    RH.RS.Θ_cert_Schur_offXi C
+      (RH.RS.Ω \ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}) := by
+    -- Build Re(2·J) ≥ 0 on S := Ω \ {ξ_ext = 0} using the guard at 1 and certificate positivity on offXi
+    have hRe_S : ∀ z ∈ (RH.RS.Ω \ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}),
+        0 ≤ ((2 : ℂ) * C.J z).re := by
+      intro z hz
+      rcases hz with ⟨hzΩ, hzNotZero⟩
+      by_cases h1 : z = (1 : ℂ)
+      · simpa [h1] using hRe_one
+      · -- otherwise, z ∈ offXi; use the certificate positivity there
+        have hzOffXi : z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
+          refine And.intro hzΩ ?h
+          refine And.intro ?hne1 ?hxi
+          · exact h1
+          · intro h0
+            exact hzNotZero (by simpa [Set.mem_setOf_eq] using h0)
+        exact C.hRe_offXi z hzOffXi
+    -- Apply Cayley positivity→Schur on S
+    exact RH.RS.Theta_Schur_of_Re_nonneg_on (J := C.J)
+      (S := (RH.RS.Ω \ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0})) hRe_S
   -- Xi-assign from the certificate's removable existence
   let assignXi : ∀ ρ, ρ ∈ RH.RS.Ω → RH.AcademicFramework.CompletedXi.riemannXi_ext ρ = 0 →
       ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ RH.RS.Ω ∧ ρ ∈ U ∧
         (U ∩ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
         ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧ AnalyticOn ℂ (RH.RS.Θ_cert C) (U \ ({ρ} : Set ℂ)) ∧
           Set.EqOn (RH.RS.Θ_cert C) g (U \ ({ρ} : Set ℂ)) ∧ g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1 :=
-    fun ρ hΩ hXi => C.existsRemXi ρ hΩ hXi
+     fun ρ hΩ hXi => C.existsRemXi ρ hΩ hXi
   -- Conclude via the assign-based pinch on Ξ_ext
   exact RH.Proof.Final.RiemannHypothesis_mathlib_from_pinch_ext_assign
       (Θ := RH.RS.Θ_cert C) hSchur assignXi
@@ -530,18 +557,20 @@ These provide the top-level interface for the Riemann Hypothesis proof.
 -/
 
 /-- Final Riemann Hypothesis theorem consuming a pinch certificate. -/
-theorem RiemannHypothesis_final (C : RH.RS.PinchCertificateExt) : RiemannHypothesis :=
-  RH_from_pinch_certificate C
+theorem RiemannHypothesis_final (C : RH.RS.PinchCertificateExt)
+    (hRe_one : 0 ≤ ((2 : ℂ) * C.J 1).re) : RiemannHypothesis :=
+  RH_from_pinch_certificate C hRe_one
 
 /-- Convenience alias of the final theorem. -/
-theorem RH (C : RH.RS.PinchCertificateExt) : RiemannHypothesis :=
-  RiemannHypothesis_final C
+theorem RH (C : RH.RS.PinchCertificateExt)
+    (hRe_one : 0 ≤ ((2 : ℂ) * C.J 1).re) : RiemannHypothesis :=
+  RiemannHypothesis_final C hRe_one
 
 /-- Clean pinch‑ingredients route from outer existence, interior positivity, and pinned data. -/
 theorem RiemannHypothesis_from_pinch_ingredients
     (hOuter : ∃ O : ℂ → ℂ, _root_.RH.RS.OuterHalfPlane O ∧
         _root_.RH.RS.BoundaryModulusEq O (fun s => _root_.RH.RS.det2 s / riemannXi_ext s))
-    (hRe_offXi : ∀ z ∈ (_root_.RH.RS.Ω \ {z | riemannXi_ext z = 0}),
+    (hRe_offZeros : ∀ z ∈ (_root_.RH.RS.Ω \ {z | riemannXi_ext z = 0}),
         0 ≤ ((2 : ℂ) * (_root_.RH.RS.J_pinch _root_.RH.RS.det2 (Classical.choose hOuter) z)).re)
     (hRemXi : ∀ ρ, ρ ∈ _root_.RH.RS.Ω → riemannXi_ext ρ = 0 →
         ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ _root_.RH.RS.Ω ∧ ρ ∈ U ∧
@@ -551,8 +580,16 @@ theorem RiemannHypothesis_from_pinch_ingredients
             Set.EqOn (_root_.RH.RS.Θ_pinch_of _root_.RH.RS.det2 (Classical.choose hOuter)) g (U \ {ρ}) ∧
             g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1)
     : RiemannHypothesis := by
-  exact RH_from_pinch_certificate
-    (RH.RS.certificate_from_pinch_ingredients hOuter hRe_offXi hRemXi)
+  -- Work directly with Θ := Θ_pinch_of det2 O and the Schur bound on Ω \ {ξ=0}
+  classical
+  let O : ℂ → ℂ := Classical.choose hOuter
+  let Θ : ℂ → ℂ := _root_.RH.RS.Θ_pinch_of _root_.RH.RS.det2 O
+  have hSchur : RH.RS.IsSchurOn Θ (_root_.RH.RS.Ω \ {z | riemannXi_ext z = 0}) := by
+    -- apply Cayley positivity→Schur using the supplied interior positivity
+    exact RH.RS.Theta_Schur_of_Re_nonneg_on_Ω_offXi (J := _root_.RH.RS.J_pinch _root_.RH.RS.det2 O)
+      (hRe := hRe_offZeros)
+  -- Conclude via the assign-based pinch on Ξ_ext
+  exact RH.Proof.Final.RiemannHypothesis_mathlib_from_pinch_ext_assign (Θ := Θ) hSchur hRemXi
 
 /-- Poisson+pinned route producing the pinch ingredients and concluding RH. -/
 theorem RiemannHypothesis_from_poisson_and_pinned'
@@ -574,7 +611,11 @@ theorem RiemannHypothesis_from_poisson_and_pinned'
   -- Ingredient 1: restrict Poisson positivity to the AF off-zeros set
   let hRe_offXi : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
         0 ≤ ((2 : ℂ) * (_root_.RH.RS.J_pinch _root_.RH.RS.det2 (Classical.choose hOuter) z)).re :=
-    fun z hz => hPoisson z (RH.AcademicFramework.HalfPlaneOuterV2.offXi_subset_Ω hz)
+    fun z hz => hPoisson z hz.1
+  -- Interior positivity on Ω \ {ξ=0} (stronger set) from hPoisson
+  let hRe_offZeros : ∀ z ∈ RH.RS.Ω \ {z | riemannXi_ext z = 0},
+        0 ≤ ((2 : ℂ) * (_root_.RH.RS.J_pinch _root_.RH.RS.det2 (Classical.choose hOuter) z)).re :=
+    fun z hz => hPoisson z hz.1
   -- Ingredient 2: package pinned data into a removable-extension assignment
   let hRemXi : ∀ ρ, ρ ∈ RH.RS.Ω → riemannXi_ext ρ = 0 →
         ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ RH.RS.Ω ∧ ρ ∈ U ∧
@@ -613,14 +654,13 @@ theorem RiemannHypothesis_from_poisson_and_pinned'
     intro hg1
     have : Θ z0 = 1 := by
       -- z0 ≠ ρ, so update leaves value unchanged
-      have : g z0 = Θ z0 := by
+      have hgz0 : g z0 = Θ z0 := by
         change Function.update Θ ρ (1 : ℂ) z0 = Θ z0
         simp [g, hz0ne]
-      simpa [this] using hg1
+      have hg1' := hg1
+      simp [hgz0] at hg1'
+      exact hg1'
     exact hΘz0 this
-  -- Build certificate and conclude
-  let C : RH.RS.PinchCertificateExt :=
-    RH.RS.buildPinchCertificate hOuter hRe_offXi hRemXi
-  exact RH_from_pinch_certificate C
-
+  -- Conclude via the pinch-ingredients route
+  exact RiemannHypothesis_from_pinch_ingredients hOuter hRe_offZeros hRemXi
 -- (Cayley-transport variant omitted pending dedicated transport identities.)

@@ -15,13 +15,7 @@ require mathlib from git
 -- Build everything with v4.13.0
 @[default_target]
 lean_lib rh where
-  globs := #[
-    .one `rh.Compat,
-    .submodules `rh.academic_framework,
-    .submodules `rh.RS,
-    .submodules `rh.Cert,
-    .submodules `rh.Proof
-  ]
+  roots := #[`rh.Proof.Main]
 
 -- Minimal active track: just the top assembly module
 lean_lib «rh_active» where

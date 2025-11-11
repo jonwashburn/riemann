@@ -49,17 +49,16 @@ lemma eulerFactor_as_exp_log (z : ℂ) (hz : ‖z‖ < (1 : ℝ)) :
     intro h
     have hz1 : ‖z‖ = 1 := by
       have : 1 = z := sub_eq_zero.mp h
-      simpa [this.symm]
+      simp [this.symm]
     exact (ne_of_lt hz) hz1
   calc
     (1 - z) * Complex.exp (z + z ^ 2 / 2)
         = Complex.exp (Complex.log (1 - z)) * Complex.exp (z + z ^ 2 / 2) := by
-          simpa [Complex.exp_log hne]
+          simp [Complex.exp_log hne]
     _   = Complex.exp (Complex.log (1 - z) + (z + z ^ 2 / 2)) := by
-          simpa [Complex.exp_add] using
-            (Complex.exp_add (Complex.log (1 - z)) (z + z ^ 2 / 2)).symm
+          simp [Complex.exp_add]
     _   = Complex.exp (Complex.log (1 - z) + z + z ^ 2 / 2) := by
-          simpa [add_comm, add_left_comm, add_assoc]
+          simp [add_comm, add_left_comm, add_assoc]
 
 /-- Log bound for `log(1 - z)` via the modern `log(1 + z)` inequality. -/
 lemma norm_log_one_sub_le_of_lt_one {z : ℂ} (hz : ‖z‖ < (1 : ℝ)) :
@@ -93,12 +92,6 @@ lemma log_one_sub_plus_z_plus_sq_cubic_tail
     have h23 : ((2 : ℝ) + 1) = 3 := by norm_num
     simpa [Nat.cast_add, Nat.cast_one, h23] using h
   -- Rewrite the left-hand side as the Taylor remainder and simplify
-  have hLT1 : Complex.logTaylor 1 (-z) = 0 := by
-    have h := congrArg (fun f : (ℂ → ℂ) => f (-z)) (Complex.logTaylor_succ 0)
-    simpa [Complex.logTaylor_zero, pow_zero, one_div] using h
-  have hLT2 : Complex.logTaylor 2 (-z) = -z := by
-    have h := congrArg (fun f : (ℂ → ℂ) => f (-z)) (Complex.logTaylor_succ 1)
-    simpa [hLT1, pow_one, one_div, inv_one] using h
   have hLT3 : Complex.logTaylor 3 (-z) = -z - z ^ 2 / 2 := by
     -- Manually expand: logTaylor 3 w = ∑_{j=0}^{2} (-1)^j * w^{j+1} / (j+1)
     -- For j=0: (-1)^0 * w^1 / 1 = w
@@ -112,10 +105,10 @@ lemma log_one_sub_plus_z_plus_sq_cubic_tail
     ring
   have hEq_inside : Complex.log (1 + (-z)) - Complex.logTaylor 3 (-z)
       = Complex.log (1 - z) + z + z ^ 2 / 2 := by
-    simpa [sub_eq_add_neg, hLT3, add_comm, add_left_comm, add_assoc]
+    simp [sub_eq_add_neg, hLT3, add_comm, add_left_comm, add_assoc]
   have hEq : ‖Complex.log (1 - z) + z + z ^ 2 / 2‖
       = ‖Complex.log (1 + (-z)) - Complex.logTaylor 3 (-z)‖ := by
-    simpa [hEq_inside]
+    simp [hEq_inside]
   have hstep : ‖Complex.log (1 - z) + z + z ^ 2 / 2‖
       ≤ ‖z‖ ^ 3 * (1 - ‖z‖)⁻¹ / 3 := by
     simpa [hEq, norm_neg] using hmain

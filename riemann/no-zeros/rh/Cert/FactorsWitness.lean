@@ -52,7 +52,7 @@ def FEFactors_from_Hderiv (h : UniformHDerivBound) : FunctionalEquationStripFact
       -- Linear budget at Whitney scale. We expose exactly the interface used
       -- by the certificate: a `BoxEnergy` built with slope `B` is bounded by
       -- `B * (2 * |I|/2) = B * (2 * W.len)`.
-      simpa [RH.Cert.mkWhitneyBoxEnergy] }
+      simp [RH.Cert.mkWhitneyBoxEnergy] }
 
 /-- Build a `UniformHDerivBound` record from the Prop-level `FΓ′` bound. -/
 noncomputable def UniformHDerivBound.of_FGammaPrime
@@ -81,7 +81,7 @@ theorem carleson_of_uniformHDerivBound (h : UniformHDerivBound) :
   -- `FEFactors_from_Hderiv`.
   refine And.intro h.hC ?ineq
   intro W
-  simpa [RH.Cert.mkWhitneyBoxEnergy]
+  simp [RH.Cert.mkWhitneyBoxEnergy]
 
 
 /-- Analytic H′-based concrete witness: instantiate the abstract H′ interface

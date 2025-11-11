@@ -30,7 +30,8 @@ private lemma isOpen_Ω : IsOpen RH.RS.Ω := by
 /-- Differentiability of `riemannXi_ext` away from `0` and `1`. -/
 lemma differentiableAt_riemannXi_ext {s : ℂ} (hs0 : s ≠ 0) (hs1 : s ≠ 1) :
   DifferentiableAt ℂ riemannXi_ext s := by
-  simpa [riemannXi_ext] using differentiableAt_completedZeta (s := s) hs0 hs1
+  change DifferentiableAt ℂ completedRiemannZeta s
+  exact differentiableAt_completedZeta (s := s) hs0 hs1
 
 /-- Differentiability of `riemannXi_ext` on Ω \ {1}. -/
 theorem riemannXi_ext_differentiable_on_RSΩ_minus_one :
@@ -41,9 +42,16 @@ theorem riemannXi_ext_differentiable_on_RSΩ_minus_one :
     simpa [RH.RS.Ω, Set.mem_setOf_eq] using hz.1
   have hz0 : z ≠ 0 := by
     intro h0
-    have : (0 : ℝ) < z.re := lt_trans (by norm_num : (0 : ℝ) < 1 / 2) hzΩ
-    simpa [h0, Complex.zero_re] using this
-  have hz1 : z ≠ 1 := by simpa using hz.2
+    have hzRe : (0 : ℝ) < z.re := lt_trans (by norm_num : (0 : ℝ) < 1 / 2) hzΩ
+    have hzre0 := congrArg Complex.re h0
+    simp [Complex.zero_re] at hzre0
+    have hzRe' := hzRe
+    rw [hzre0] at hzRe'
+    exact (lt_irrefl (0 : ℝ)) hzRe'
+  have hz1 : z ≠ 1 := by
+    have h := hz.2
+    simp [Set.mem_singleton_iff] at h
+    exact h
   exact (differentiableAt_riemannXi_ext (s := z) hz0 hz1).differentiableWithinAt
 
 /-- Analyticity of `riemannXi_ext` on Ω \ {1}``, via open-set equivalence. -/
@@ -74,7 +82,11 @@ lemma xi_ext_zeros_eq_zeta_zeros_on_Ω :
     riemannZeta_def_of_ne_zero (s := z) (by
       intro h0
       have hnot : ¬ ((1 / 2 : ℝ) < 0) := by norm_num
-      exact hnot (by simpa [h0, Complex.zero_re] using hhalf))
+      have hzre := congrArg Complex.re h0
+      simp [Complex.zero_re] at hzre
+      have h := hhalf
+      rw [hzre] at h
+      exact hnot h)
   constructor
   · intro hXi
     -- Λ z = 0 ⇒ ζ z = 0

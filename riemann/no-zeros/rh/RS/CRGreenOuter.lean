@@ -41,6 +41,7 @@ import rh.Cert.KxiPPlus
 import rh.academic_framework.CompletedXi
 import rh.RS.Det2Outer
 import rh.academic_framework.HalfPlaneOuterV2
+import rh.academic_framework.MeasureHelpers
 import Mathlib.Topology.Filter
 
 
@@ -61,10 +62,18 @@ variable {α : Type*} [MeasurableSpace α]
 theorem abs_integral_add_le'
   {μ : Measure α} {f g : α → ℝ} (hf : Integrable f μ) (hg : Integrable g μ) :
   |∫ x, f x + g x ∂μ| ≤ |∫ x, f x ∂μ| + |∫ x, g x ∂μ| := by
-  have hsum : Integrable (fun x => f x + g x) μ := hf.add hg
-  have : ∫ x, f x + g x ∂μ = (∫ x, f x ∂μ) + (∫ x, g x ∂μ) :=
+  have h_eq :
+      ∫ x, f x + g x ∂μ = (∫ x, f x ∂μ) + (∫ x, g x ∂μ) :=
     integral_add hf hg
-  simpa [this] using (abs_add (∫ x, f x ∂μ) (∫ x, g x ∂μ))
+  have h_triangle :
+      |(∫ x, f x ∂μ) + (∫ x, g x ∂μ)| ≤
+        |∫ x, f x ∂μ| + |∫ x, g x ∂μ| :=
+    abs_add _ _
+  calc
+    |∫ x, f x + g x ∂μ|
+        = |(∫ x, f x ∂μ) + (∫ x, g x ∂μ)| := by
+            simp [h_eq]
+    _ ≤ |∫ x, f x ∂μ| + |∫ x, g x ∂μ| := h_triangle
 
 -- L2 pairing bound via Hölder p=q=2 in ENNReal, translated to ℝ
 -- Snapshot-stable note: we avoid encoding a local L² Hölder lemma here.
@@ -117,8 +126,7 @@ def outer_exists : OuterOnOmega := by
   let spec := RH.RS.OuterHalfPlane.choose_outer_spec h
   have h_pointwise : ∀ t : ℝ,
       Complex.abs (O (boundary t)) =
-      Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) := fun t => by
-        simpa using spec.2 t
+      Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) := fun t => spec.2 t
   refine {
     outer := O
   , analytic := spec.1.analytic
@@ -614,12 +622,17 @@ theorem pairing_L2_CauchySchwarz_restrict
   -- Triangle inequality on integrals via integral_add and abs_add
   have hIntAdd :
       ∫ x, f1 x * g1 x + f2 x * g2 x ∂μ
-        = (∫ x, f1 x * g1 x ∂μ) + (∫ x, f2 x * g2 x ∂μ) := by
-    simpa using (integral_add (μ := μ) hInt1 hInt2)
+        = (∫ x, f1 x * g1 x ∂μ) + (∫ x, f2 x * g2 x ∂μ) :=
+    integral_add (μ := μ) hInt1 hInt2
   have htri :
-    |∫ x, f1 x * g1 x + f2 x * g2 x ∂μ|
-      ≤ |∫ x, f1 x * g1 x ∂μ| + |∫ x, f2 x * g2 x ∂μ| := by
-    simpa [hIntAdd] using (abs_add (∫ x, f1 x * g1 x ∂μ) (∫ x, f2 x * g2 x ∂μ))
+      |∫ x, f1 x * g1 x + f2 x * g2 x ∂μ|
+        ≤ |∫ x, f1 x * g1 x ∂μ| + |∫ x, f2 x * g2 x ∂μ| := by
+    calc
+      |∫ x, f1 x * g1 x + f2 x * g2 x ∂μ|
+          = |(∫ x, f1 x * g1 x ∂μ) + (∫ x, f2 x * g2 x ∂μ)| := by
+              simp [hIntAdd]
+      _ ≤ |∫ x, f1 x * g1 x ∂μ| + |∫ x, f2 x * g2 x ∂μ| :=
+        abs_add _ _
   -- Hölder (p=q=2) on each coordinate (assumed as inputs hCS1, hCS2)
   have hCS1' :
     |∫ x, f1 x * g1 x ∂μ|
