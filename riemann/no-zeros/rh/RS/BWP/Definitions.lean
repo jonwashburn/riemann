@@ -162,8 +162,11 @@ lemma pi_mul_poisson_balayage_eq_core (I : WhitneyInterval) :
   rw [← integral_mul_left]
   congr 1
   ext t
-  field_simp
-  rw [mul_div_mul_left I.len _ Real.pi_pos.ne']
+  ring_nf
+  rw [mul_assoc Real.pi I.len, mul_comm I.len, ← mul_assoc, mul_assoc]
+  have : Real.pi * Real.pi⁻¹ = 1 := by
+    rw [← div_eq_mul_inv, div_self Real.pi_ne_zero]
+  rw [this, one_mul]
 
 /-! ### Wiring rectangle interior remainder to Poisson via the core kernel
 
