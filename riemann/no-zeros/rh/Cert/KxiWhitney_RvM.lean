@@ -5,8 +5,21 @@ import Mathlib.MeasureTheory.Integral.SetIntegral
 import Mathlib.Tactic
 import rh.Cert.KxiWhitney
 import rh.Cert.KxiPPlus
+import rh.Cert.Aux
 import rh.RS.WhitneyGeometryDefs
+import rh.RS.PoissonKernelDyadic
+import rh.RS.PoissonKernelAnalysis
+import Mathlib
+import Mathlib.MeasureTheory.Integral.ExpDecay
+import Mathlib.Analysis.SpecialFunctions.Integrals
+import Mathlib.MeasureTheory.Function.Jacobian
+import Mathlib.Analysis.Calculus.Deriv.Inv
+import Mathlib.Analysis.SpecialFunctions.Integrals
 
+
+
+
+open MeasureTheory
 /-!
 Agent F — Kξ from RvM short‑interval zero counts (statement-level)
 
@@ -27,11 +40,7 @@ lemma cs_sum_sq_finset {ι : Type*} [DecidableEq ι] (s : Finset ι) (f : ι →
   by_cases h : s.card = 0
   · simp [Finset.card_eq_zero.mp h]
   · -- Direct calculation using sum expansion
-    -- (∑ f_i)^2 = ∑_i ∑_j f_i f_j; diagonal terms give ∑ f_i^2, off-diag bounded by AM-GM
-    have hcard_pos : 0 < (s.card : ℝ) := Nat.cast_pos.mpr (Nat.pos_of_ne_zero h)
-    -- The key inequality: for any i,j, we have f_i f_j ≤ (f_i^2 + f_j^2)/2
-    -- Summing over all pairs: (∑ f_i)^2 = ∑_i,j f_i f_j ≤ ∑_i,j (f_i^2 + f_j^2)/2
-    --                                                      = n · ∑_i f_i^2
+
     calc (∑ i in s, f i) ^ 2
         = (∑ i in s, f i) * (∑ j in s, f j) := by ring
       _ = ∑ i in s, ∑ j in s, f i * f j := by rw [Finset.sum_mul_sum]
@@ -42,7 +51,7 @@ lemma cs_sum_sq_finset {ι : Type*} [DecidableEq ι] (s : Finset ι) (f : ι →
       _ = s.card * ∑ i in s, f i ^ 2 := by
           -- Expand: ∑_i ∑_j (f_i^2 + f_j^2)/2 = (∑_i ∑_j f_i^2)/2 + (∑_i ∑_j f_j^2)/2
           -- Each double sum equals n·(∑ f_i^2), so we get n·(∑ f_i^2)
-          have h1 : ∑ i in s, ∑ j in s, (f i ^ 2 + f j ^ 2) / 2 
+          have h1 : ∑ i in s, ∑ j in s, (f i ^ 2 + f j ^ 2) / 2
                   = ∑ i in s, ∑ j in s, f i ^ 2 / 2 + ∑ i in s, ∑ j in s, f j ^ 2 / 2 := by
             rw [← Finset.sum_add_distrib]
             congr 1; ext i; rw [← Finset.sum_add_distrib]; congr 1; ext j
@@ -97,39 +106,17 @@ def rvM_short_interval_bound (ZCount : ℝ → ℕ)
     let L := whitneyLength c T
     ((ZCount T : ℝ) ≤ A0 + A1 * L * Real.log (bracket T))
 
-/-- C.2: Energy inequality from short-interval counts (interface form).
 
-From any statement-level RvM bound `rvM_short_interval_bound ZCount c A0 A1 T0`,
-we provide a concrete half–plane Carleson budget. This is an interface adapter:
-we pick the budget `Kξ := 0`, which vacuously satisfies the inequality while
-keeping the intended shape available to downstream consumers. -/
-theorem rvM_short_interval_bound_energy
-  (ZCount : ℝ → ℕ) (c A0 A1 T0 : ℝ)
-  (_h : rvM_short_interval_bound ZCount c A0 A1 T0) :
-  ∃ Kξ : ℝ, 0 ≤ Kξ ∧ ConcreteHalfPlaneCarleson Kξ := by
-  -- Interface witness: choose `Kξ = 0`
-  refine ⟨0, by simp, ?_⟩
-  refine And.intro (by simp) ?_
-  intro W
-  simp [mkWhitneyBoxEnergy]
 
 /-!
-From RvM to a Kξ witness (interface level).
+From RvM to a Kξ witness
 
-At the Prop-level provided by `rh/Cert/KxiWhitney.lean`, `KxiBound α c` merely
-asserts existence of a nonnegative constant. We export an explicit witness
-(`Kξ := 0`) so downstream consumers can form `C_box^{(ζ)} = K0 + Kξ` via the
-adapter there. This keeps the Cert track axioms-free and compiling while
-preserving the intended parameterization.
 -/
 
 open RH.Cert.KxiWhitney
 
-/-! ## C.1: Annular Poisson L² bound (interface form)
+/-! ## C.1: Annular Poisson L² bound -/
 
-We expose an interface-level annular energy functional and prove a trivial
-geometric-decay bound with constant `Cα := 0`. This keeps the expected name
-and shape available to downstream modules without introducing analytic load. -/
 
 /-- Poisson kernel (half-plane variant used at the boundary): K_σ(x) = σ/(x^2+σ^2). -/
 @[simp] noncomputable def Ksigma (σ x : ℝ) : ℝ := σ / (x^2 + σ^2)
@@ -139,15 +126,1094 @@ and shape available to downstream modules without introducing analytic load. -/
   ∑ γ in Zk, Ksigma σ (t - γ)
 
 /-- Concrete annular energy on a Whitney box for a set of annular centers.
-It is the iterated set integral over `t ∈ I.interval` and `0 < σ ≤ α·I.len` of
-`(∑_{γ∈Zk} K_σ(t-γ))^2 · σ` with respect to Lebesgue measure. -/
+It is the iterated set integral over `σ ∈ (0, α·I.len]` and `t ∈ I.interval` of
+`(∑_{γ∈Zk} K_σ(t-γ))^2 · σ`. -/
 @[simp] noncomputable def annularEnergy (α : ℝ) (I : WhitneyInterval) (Zk : Finset ℝ) : ℝ :=
-  0
+  ∫ σ in Set.Ioc (0 : ℝ) (α * I.len),
+    (∫ t in I.interval, (Vk Zk σ t)^2 ∂(volume)) * σ ∂(volume)
 
-/-- Diagonal-only annular energy: keeps only the sum of squares (no cross terms).
-This is convenient for a first L² bound under coarse separation. -/
+/-- Diagonal-only annular energy: keeps only the sum of squares (no cross terms). -/
 @[simp] noncomputable def annularEnergyDiag (α : ℝ) (I : WhitneyInterval) (Zk : Finset ℝ) : ℝ :=
-  0
+  ∫ σ in Set.Ioc (0 : ℝ) (α * I.len),
+    (∫ t in I.interval, (∑ γ in Zk, (Ksigma σ (t - γ))^2) ∂(volume)) * σ ∂(volume)
+
+lemma inner_energy_nonneg
+  (α : ℝ) (I : WhitneyInterval) (Zk : Finset ℝ) :
+  0 ≤ ∫ σ in Set.Ioc (0 : ℝ) (α * I.len),
+        (∫ t in I.interval, (Vk Zk σ t)^2 ∂(volume)) * σ := by
+  -- show nonnegativity a.e. on the restricted measure using membership in the strip
+  have hmeas : MeasurableSet (Set.Ioc (0 : ℝ) (α * I.len)) := measurableSet_Ioc
+  have hAE' :
+    ∀ᵐ σ ∂(volume),
+      σ ∈ Set.Ioc (0 : ℝ) (α * I.len) →
+      0 ≤ (∫ t in I.interval, (Vk Zk σ t)^2 ∂(volume)) * σ := by
+    refine Filter.Eventually.of_forall ?_
+    intro σ hσ
+    have hσ_nonneg : 0 ≤ σ := le_of_lt hσ.1
+    have h_in : 0 ≤ ∫ t in I.interval, (Vk Zk σ t)^2 ∂(volume) := by
+      refine integral_nonneg_of_ae ?_
+      exact Filter.Eventually.of_forall (fun t => sq_nonneg (Vk Zk σ t))
+    exact mul_nonneg h_in hσ_nonneg
+  have hAE :
+    ∀ᵐ σ ∂(Measure.restrict volume (Set.Ioc (0 : ℝ) (α * I.len))),
+      0 ≤ (∫ t in I.interval, (Vk Zk σ t)^2 ∂(volume)) * σ := by
+    simpa using
+      (ae_restrict_iff' (μ := volume)
+        (s := Set.Ioc (0 : ℝ) (α * I.len))
+        (p := fun σ => 0 ≤ (∫ t in I.interval, (Vk Zk σ t)^2 ∂(volume)) * σ)
+        hmeas).mpr hAE'
+  exact integral_nonneg_of_ae hAE
+
+-- ===================================================================
+-- Section 8: Real-line Poisson kernel API for Cert (annular energy)
+-- ===================================================================
+
+namespace RH.AcademicFramework.HalfPlaneOuterV2
+
+open MeasureTheory Real
+open scoped BigOperators
+lemma pow_le_pow_of_le_left {α : Type*} [LinearOrderedSemiring α]
+  {a b : α} (h₁ : a ≤ b) (h₂ : 0 ≤ a) :
+  ∀ n : ℕ, a ^ n ≤ b ^ n := by
+  intro n
+  induction' n with n ih
+  · simp
+  ·
+    have hb : 0 ≤ b := le_trans h₂ h₁
+    have hbn : 0 ≤ b ^ n := pow_nonneg hb _
+    have : a ^ n * a ≤ b ^ n * b := mul_le_mul ih h₁ h₂ hbn
+    simpa [pow_succ] using this
+-- Reuse the RS Poisson kernel Kσ(x) := σ/(x^2 + σ^2)
+abbrev Ksigma := RH.RS.PoissonKernelDyadic.Ksigma
+
+/-- Far-field 4-decay for the squared Poisson kernel.
+If `|t-x| ≥ 2σ` then
+  (σ^2)/((t-x)^2 + σ^2)^2 ≤ σ^2/(t-x)^4. -/
+lemma ksigma_sq_decay_far {σ x t : ℝ}
+    (hσ : 0 < σ) (hfar : 2 * σ ≤ |t - x|) :
+    σ^2 / ((t - x)^2 + σ^2)^2 ≤ σ^2 / (t - x)^4 := by
+  have hx_pos : 0 < |t - x| :=
+    lt_of_lt_of_le (mul_pos (by norm_num : (0 : ℝ) < 2) hσ) hfar
+  have hx4_pos : 0 < (t - x)^4 := by
+    have hx_ne : t - x ≠ 0 := abs_pos.mp hx_pos
+    have hx_sq_pos : 0 < (t - x)^2 := sq_pos_of_ne_zero _ hx_ne
+    have : 0 < ((t - x) ^ 2) ^ 2 := pow_pos hx_sq_pos 2
+    have : 0 < ((t - x) ^ 2) ^ 2 := pow_pos hx_sq_pos 2
+    have h22 : (2 * 2 : ℕ) = 4 := by decide
+    simpa [← pow_mul, h22] using this
+  have hden_mono : (t - x)^2 ≤ (t - x)^2 + σ^2 := le_add_of_nonneg_right (sq_nonneg σ)
+  have hden_sq_mono : (t - x)^4 ≤ ((t - x)^2 + σ^2)^2 := by
+    have hx2_nonneg : 0 ≤ (t - x)^2 := sq_nonneg _
+    calc (t - x)^4
+        = ((t - x)^2)^2 := by ring
+      _ ≤ ((t - x)^2 + σ^2)^2 := pow_le_pow_of_le_left hden_mono hx2_nonneg 2
+  have hcore : 1 / ((t - x)^2 + σ^2)^2 ≤ 1 / (t - x)^4 :=
+    one_div_le_one_div_of_le hx4_pos hden_sq_mono
+  simpa [div_eq_mul_inv] using
+    (mul_le_mul_of_nonneg_left hcore (sq_nonneg σ))
+
+-- Left-tail integrability for rpow with exponent p < -1, away from the boundary by δ > 0
+lemma integrableOn_Iic_rpow_of_lt {a p δ : ℝ} (hδ : 0 < δ) (hp : p < -1) :
+  IntegrableOn (fun t => (a - t) ^ p) (Set.Iic (a - δ)) := by
+  -- Change variables u = a - t, so t ≤ a - δ ⇔ u ≥ δ
+  -- On [δ, ∞), u ↦ u^p is integrable for p < -1: split [δ,1] ∪ (1,∞)
+  have h_mid : IntegrableOn (fun u : ℝ => u ^ p) (Set.Icc δ 1) := by
+    -- On [δ, 1], with δ > 0 and p < 0, we have |u^p| ≤ δ^p
+    have h_bound :
+        ∀ ⦃u⦄, u ∈ Set.Icc δ 1 → ‖u ^ p‖ ≤ δ ^ p := by
+      intro u hu
+      have hδpos : 0 < δ := hδ
+      have hu_ge : δ ≤ u := hu.1
+      have hu_pos : 0 < u := lt_of_lt_of_le hδ hu.1
+      have hexp_nonneg : 0 ≤ -p := by
+        have : 0 < -p := by
+          have hp_neg : p < 0 := lt_trans hp (by norm_num)
+          exact neg_pos.mpr hp_neg
+        exact this.le
+      have hmono : δ ^ (-p) ≤ u ^ (-p) :=
+        Real.rpow_le_rpow (le_of_lt hδpos) hu_ge hexp_nonneg
+      have hdiv : 1 / (u ^ (-p)) ≤ 1 / (δ ^ (-p)) :=
+        one_div_le_one_div_of_le (Real.rpow_pos_of_pos hδpos (-p)) hmono
+      have hupow : u ^ p ≤ δ ^ p := by
+        have hu_nonneg : 0 ≤ u := (le_of_lt hu_pos)
+        have hδ_nonneg : 0 ≤ δ := (le_of_lt hδpos)
+        simpa [one_div, Real.rpow_neg hu_nonneg, Real.rpow_neg hδ_nonneg, inv_inv] using hdiv
+      have h_nonneg : 0 ≤ u ^ p := (Real.rpow_pos_of_pos hu_pos p).le
+      simpa [Real.norm_eq_abs, abs_of_nonneg h_nonneg] using hupow
+    -- Integrable on a finite-measure set via boundedness
+    refine And.intro ?meas ?finite
+    · -- measurability under the restricted measure
+      have hmeas_fun : Measurable (fun u : ℝ => u ^ p) := by
+        measurability
+      exact (hmeas_fun.aemeasurable).aestronglyMeasurable
+    · -- finite integral from essential boundedness on `Icc δ 1`
+      have hAE :
+          ∀ᵐ u ∂(Measure.restrict volume (Set.Icc δ 1)),
+            ‖(fun u : ℝ => u ^ p) u‖ ≤ δ ^ p := by
+        exact
+          (ae_restrict_iff' (μ := volume)
+            (s := Set.Icc δ 1)
+            (p := fun u => ‖u ^ p‖ ≤ δ ^ p)
+            measurableSet_Icc).mpr
+          (Filter.Eventually.of_forall (fun u hu => h_bound hu))
+      exact
+        hasFiniteIntegral_of_bounded
+          (μ := Measure.restrict volume (Set.Icc δ 1))
+          (f := fun u : ℝ => u ^ p)
+          (C := δ ^ p) hAE
+  have h_tail : IntegrableOn (fun u : ℝ => u ^ p) (Set.Ioi (1 : ℝ)) := by
+    -- standard tail criterion on (1, ∞): p < -1
+    simpa using
+      (integrableOn_Ioi_rpow_of_lt (a := p) (ha := hp) (c := (1 : ℝ)) (hc := by norm_num))
+  have h_ic : IntegrableOn (fun u : ℝ => u ^ p) (Set.Ici δ) := by
+    -- Cover `Ici δ` by `Icc δ 1` and `Ioi 1`
+    have h_cover : Set.Ici δ ⊆ Set.Icc δ 1 ∪ Set.Ioi (1 : ℝ) := by
+      intro u hu
+      by_cases hle : u ≤ (1 : ℝ)
+      · exact Or.inl ⟨by simpa [Set.mem_Ici] using hu, hle⟩
+      · exact Or.inr (lt_of_not_ge hle)
+    exact (h_mid.union h_tail).mono_set h_cover
+  -- Pull integrability back along the measure-preserving affine map t ↦ a - t
+  -- Change variables via the affine isometry t ↦ a - t (negation then translation)
+  have he : MeasurableEmbedding (fun t : ℝ => a - t) := by
+    have hfun :
+        (fun t : ℝ => a - t)
+          = (fun t => (Homeomorph.addRight a) ((Homeomorph.neg ℝ) t)) := by
+      funext t; simp [sub_eq_add_neg]; exact AddCommMagma.add_comm a (-t)
+    simpa [hfun] using
+      ((Homeomorph.neg ℝ).trans (Homeomorph.addRight a)).measurableEmbedding
+  have h_mp :
+      MeasurePreserving (fun t : ℝ => a - t) (volume : Measure ℝ) (volume : Measure ℝ) :=
+    Measure.measurePreserving_sub_left volume a
+  -- Pull integrability back along t ↦ a - t
+  -- Pull integrability back along t ↦ a - t
+  have hcomp :=
+    (MeasurePreserving.integrableOn_comp_preimage (μ := volume) (ν := volume) h_mp he).2 h_ic
+  aesop
+
+lemma Set.Ici_eq_Ioi_union_singleton {α : Type*} [LinearOrder α] (a : α) :
+    Set.Ici a = Set.Ioi a ∪ {a} := by
+  ext x
+  simp [le_iff_lt_or_eq, eq_comm]
+
+
+/-- Integrability of `t ↦ 1/(t-x)^4` on the complement of a ball:
+integrable on `{t | 2σ ≤ |t-x|}`. -/
+lemma integrableOn_inv_pow_four_tail {x σ : ℝ} (hσ : 0 < σ) :
+    IntegrableOn (fun t => 1 / (t - x)^4) {t | 2 * σ ≤ |t - x|} := by
+  -- The domain is the union of two disjoint rays
+  have h_disj_union :
+    {t | 2 * σ ≤ |t - x|} = {t | 2 * σ ≤ t - x} ∪ {t | t - x ≤ -2 * σ} := by
+    ext t
+    simp only [Set.mem_setOf_eq, Set.mem_union, le_abs']
+    aesop  -- Handle the commutativity of Or
+
+  rw [h_disj_union]
+
+  -- Integrability on the union is the sum of integrabilities
+  apply IntegrableOn.union
+
+  · -- Case 1: Right ray {t | 2 * σ ≤ t - x}
+    have h_right_ray_integrable :
+      IntegrableOn (fun t => (t - x) ^ (-4 : ℝ)) {t | 2 * σ ≤ t - x} := by
+      -- We prove this by translation from a known integrable function
+      have h_base : IntegrableOn (fun u => u ^ (-4 : ℝ)) (Set.Ici (2 * σ)) := by
+        have h_ioi :=
+          integrableOn_Ioi_rpow_of_lt (a := -4) (by norm_num) (c := 2 * σ) (by linarith)
+        -- The set `Ici` is the union of `Ioi` and the singleton endpoint
+        rw [Set.Ici_eq_Ioi_union_singleton]
+        -- Integrability on a union is the union of integrabilities
+        apply IntegrableOn.union h_ioi
+        -- The function is integrable on the singleton because singletons have measure zero
+        refine ⟨?_, ?_⟩
+        · measurability
+        · simp [HasFiniteIntegral, Measure.restrict_singleton]
+      -- The map t ↦ t - x preserves measure
+      have h_mp := measurePreserving_sub_right volume x
+      -- Apply the measure-preserving transformation
+      have := (h_mp.integrableOn_comp_preimage (Homeomorph.subRight x).measurableEmbedding).mpr h_base
+      -- Simplify: the preimage of Ici under (t ↦ t - x) is exactly our target set
+      simpa [Set.preimage, Set.mem_Ici, Set.mem_setOf_eq] using this
+    -- Around line 330
+    -- The original function is ae-equal to the one we proved integrable
+    refine h_right_ray_integrable.mono_set ?_ |>.congr ?_
+    · exact Set.Subset.refl _
+    · filter_upwards [self_mem_ae_restrict (measurableSet_le measurable_const (measurable_id.sub measurable_const))]
+      intro t ht
+      have h_pos : 0 < t - x := by linarith [show 0 < 2 * σ from mul_pos (by norm_num : (0:ℝ) < 2) hσ, ht]
+      simp only [one_div]
+      rw [← Real.rpow_natCast, ← Real.rpow_neg (le_of_lt h_pos)]
+      norm_num
+  · -- Case 2: Left ray {t | t - x ≤ -2 * σ}
+    have h_left_ray_integrable :
+      IntegrableOn (fun t => (t - x) ^ (-4 : ℝ)) {t | t - x ≤ -2 * σ} := by
+      -- First, base integrability on the ray (-∞, -2σ]
+      have h_base :
+        IntegrableOn (fun u => (-u) ^ (-4 : ℝ)) (Set.Iic (-2 * σ)) := by
+        -- Pull back integrability on [2σ, ∞) along u ↦ -u
+        have h_neg_integrable :
+          IntegrableOn (fun v => v ^ (-4 : ℝ)) (Set.Ici (2 * σ)) := by
+          have h_ioi :=
+            integrableOn_Ioi_rpow_of_lt (a := -4) (by norm_num) (c := 2 * σ) (by linarith)
+          -- Extend from (2σ, ∞) to [2σ, ∞) by adding the endpoint {2σ}
+          rw [Set.Ici_eq_Ioi_union_singleton]
+          apply IntegrableOn.union h_ioi
+          refine ⟨?_, ?_⟩
+          · measurability
+          · simp [HasFiniteIntegral, Measure.restrict_singleton]
+        have h_mp_neg :
+          MeasurePreserving (Neg.neg : ℝ → ℝ) volume volume :=
+          Measure.measurePreserving_neg (volume : Measure ℝ)
+        -- Change variables v = -u
+        have h_pull :=
+          (h_mp_neg.integrableOn_comp_preimage (Homeomorph.neg ℝ).measurableEmbedding).mpr
+            h_neg_integrable
+        -- Preimage and composition simplifications
+        have h_pre :
+          Set.preimage (Neg.neg) (Set.Ici (2 * σ)) = Set.Iic (-2 * σ) := by
+          ext u; simp [Set.mem_preimage, Set.mem_Ici, Set.mem_Iic]
+        aesop
+      -- Translate by x: u = t - x
+      have h_mp := measurePreserving_sub_right volume x
+      have h_pull :=
+        (h_mp.integrableOn_comp_preimage (Homeomorph.subRight x).measurableEmbedding).mpr h_base
+      -- Simplify: composition gives (-(t-x))^(-4) and preimage gives our target set
+      have h_fun_eq : ((fun u => (-u) ^ (-4 : ℝ)) ∘ (fun t => t - x)) = (fun t => (-(t - x)) ^ (-4 : ℝ)) := rfl
+      have h_set_eq : ((fun t => t - x) ⁻¹' Set.Iic (-2 * σ)) = {t | t - x ≤ -2 * σ} := by
+        ext t; simp [Set.preimage, Set.mem_Iic, Set.mem_setOf_eq]
+      rw [h_fun_eq, h_set_eq] at h_pull
+      -- Now show (-(t-x))^(-4) = (t-x)^(-4) using even power
+      refine h_pull.congr ?_
+      filter_upwards
+        [self_mem_ae_restrict
+          (measurableSet_le (measurable_id.sub measurable_const) measurable_const)]
+      intro t ht
+      -- On the left ray we have t - x ≤ -2σ, so -(t-x) > 0
+      have hpos_neg : 0 < -(t - x) := by
+        linarith
+      -- For even powers, (-a)^4 = a^4
+      have h_even : (-(t - x)) ^ (4 : ℕ) = (t - x) ^ (4 : ℕ) := by
+        have : Even (4 : ℕ) := by decide
+        exact this.neg_pow (t - x)
+      have h_even_inv :
+          ((-(t - x)) ^ (4 : ℕ))⁻¹ = ((t - x) ^ (4 : ℕ))⁻¹ :=
+        congrArg (fun y : ℝ => y⁻¹) h_even
+      -- Both sides equal the same reciprocal of the 4th power
+      calc
+        (-(t - x)) ^ (-4 : ℝ)
+            = ((-(t - x)) ^ (4 : ℝ))⁻¹ := by
+                simpa using (Real.rpow_neg hpos_neg.le (4 : ℝ))
+        _ = ((-(t - x)) ^ (4 : ℕ))⁻¹ := by
+                norm_cast
+        _ = ((t - x) ^ (4 : ℕ))⁻¹ := by
+                exact h_even_inv
+        _ = (t - x) ^ (-(4 : ℝ)) := by
+                norm_cast
+    -- The original function is ae-equal to the one we proved integrable
+    refine h_left_ray_integrable.mono_set ?_ |>.congr ?_
+    · exact Set.Subset.refl _
+    ·
+      filter_upwards
+        [self_mem_ae_restrict
+          (measurableSet_le (measurable_id.sub measurable_const) measurable_const)]
+      intro t _
+      -- On the left ray we have t - x ≤ -2σ, hence 0 < -(t - x)
+
+      -- (t - x) ^ (-4) = 1 / ((t - x) ^ 4)
+      simp only [one_div]
+      have h_int : (t - x) ^ (-4 : ℝ) = (t - x) ^ (- (4 : ℤ)) := by
+        simpa using (Real.rpow_intCast (t - x) (-4))
+      have h_zpow :
+        (t - x) ^ (- (4 : ℤ)) = ((t - x) ^ (4 : ℕ))⁻¹ :=
+        by simp [zpow_ofNat]
+      exact h_int.trans h_zpow
+
+
+/-- Standard whole-line integral of the squared Poisson kernel:
+∫ℝ (Kσ(t-x))² dt = (π/2)/σ. -/
+lemma integral_ksigma_sq (σ x : ℝ) (hσ : 0 < σ) :
+    ∫ t : ℝ, (Ksigma σ (t - x))^2 ∂volume = (Real.pi / 2) / σ := by
+  -- Change variables u = (t - x)/σ, dt = σ du.
+  -- After algebra, reduces to ∫ℝ (1/(1+u²)²) du = π/2 from Mathlib.
+  have hcv : ∫ t : ℝ, (σ / ((t - x)^2 + σ^2))^2
+           = σ⁻¹ * ∫ u : ℝ, ((u^2 + 1)^2)⁻¹ := by
+    -- Put the algebraic normalization into the ((·)^2)⁻¹ shape
+    have h_alg' : ∀ t, (σ / ((t - x)^2 + σ^2))^2
+        = (σ^2)⁻¹ * ((((t - x) / σ)^2 + 1)^2)⁻¹ := by
+      intro t
+      have hσne : σ ≠ 0 := ne_of_gt hσ
+      have hσ2ne : σ^2 ≠ 0 := pow_ne_zero 2 hσne
+      -- your existing algebra, but restated in the (^2)⁻¹ normal form
+      have ht :
+        (σ / ((t - x)^2 + σ^2))^2
+          = (σ^2)⁻¹ * (1 / (((t - x) / σ)^2 + 1))^2 := by
+        field_simp [hσne, hσ2ne, pow_two];
+      simpa [one_div, pow_two] using ht
+    -- Change of variables in the same normal form
+    have h_cv_core :
+        ∫ t : ℝ, ((((t - x) / σ)^2 + 1)^2)⁻¹
+      = σ * ∫ u : ℝ, ((u^2 + 1)^2)⁻¹ := by
+      -- Use the whole-line change of variables: u = (t - x)/σ, dt = σ du
+      simpa using
+        (MeasureTheory.integral_comp_smul_sub_pos
+          (f := fun u : ℝ => ((u^2 + 1)^2)⁻¹) (a := x) hσ)
+    calc
+      ∫ t : ℝ, (σ / ((t - x)^2 + σ^2))^2
+          = ∫ t : ℝ, (σ^2)⁻¹ * ((((t - x) / σ)^2 + 1)^2)⁻¹ := by
+            apply integral_congr_ae
+            exact Filter.Eventually.of_forall h_alg'
+      _ = (σ^2)⁻¹ * ∫ t : ℝ, ((((t - x) / σ)^2 + 1)^2)⁻¹ := by
+            rw [integral_mul_left]
+      _ = (σ^2)⁻¹ * (σ * ∫ u : ℝ, ((u^2 + 1)^2)⁻¹) := by
+            rw [h_cv_core]
+      _ = σ⁻¹ * ∫ u : ℝ, ((u^2 + 1)^2)⁻¹ := by
+            have hσne : σ ≠ 0 := ne_of_gt hσ
+            field_simp [hσne]; ring
+
+  -- Standard whole-line identity: ∫ℝ ((u^2+1)^2)⁻¹ = π/2
+  have hstd : ∫ u : ℝ, ((u^2 + 1) ^ 2)⁻¹ = Real.pi / 2 := by
+    -- This is what we're proving in this file! Use the result from earlier
+    exact IntegralOneOverOnePlusSqSq.integral_one_div_one_plus_sq_sq
+
+  -- Assemble
+  calc
+    ∫ t : ℝ, Ksigma σ (t - x) ^ 2
+        = ∫ t : ℝ, (σ / ((t - x) ^ 2 + σ ^ 2)) ^ 2 := by
+          simp [Ksigma, div_pow, pow_two]
+    _   = σ⁻¹ * ∫ u : ℝ, ((u ^ 2 + 1) ^ 2)⁻¹ := hcv
+    _   = σ⁻¹ * (Real.pi / 2) := by
+          rw [hstd]
+    _   = Real.pi / 2 / σ := by
+          field_simp; ring_nf; aesop
+
+open scoped ENNReal
+/-- Integrability of the squared Poisson kernel on ℝ. -/
+lemma integrable_ksigma_sq (σ x : ℝ) (hσ : 0 < σ) :
+    Integrable (fun t : ℝ => (Ksigma σ (t - x))^2) := by
+  -- We already computed the integral to be finite
+  have h_int : ∫ t : ℝ, (Ksigma σ (t - x))^2 ∂volume = (Real.pi / 2) / σ :=
+    integral_ksigma_sq σ x hσ
+
+  -- The function is continuous, hence measurable
+  have h_meas : AEStronglyMeasurable (fun t : ℝ => (Ksigma σ (t - x))^2) volume := by
+    refine Continuous.aestronglyMeasurable ?_
+    unfold Ksigma
+    have hσpos : 0 < σ := hσ
+    apply Continuous.pow
+    apply Continuous.div continuous_const
+    · exact (continuous_id.sub continuous_const).pow 2 |>.add continuous_const
+    · intro t
+      have : 0 < (t - x)^2 + σ^2 :=
+        add_pos_of_nonneg_of_pos (sq_nonneg _) (sq_pos_of_ne_zero _ (ne_of_gt hσpos))
+      exact ne_of_gt this
+
+  -- The function is nonnegative
+  have h_nn : ∀ t, 0 ≤ (Ksigma σ (t - x))^2 := fun t => sq_nonneg _
+
+  -- Integrability from measurability and finite integral
+  refine ⟨h_meas, ?_⟩
+  rw [HasFiniteIntegral]
+  rw [lintegral_nnnorm_eq_of_nonneg h_nn]
+  -- Show the lintegral is finite using the computed Bochner integral
+  have h_eq := integral_eq_lintegral_of_nonneg_ae (Filter.Eventually.of_forall h_nn) h_meas
+  rw [h_int] at h_eq
+  -- Now h_eq says: (Real.pi / 2) / σ = (∫⁻ a, ENNReal.ofReal ...).toReal
+  -- Since LHS is finite, the lintegral must be < ⊤
+  have h_fin : (∫⁻ a, ENNReal.ofReal ((Ksigma σ (a - x))^2)) ≠ ⊤ := by
+    intro h_top
+    rw [h_top, ENNReal.top_toReal] at h_eq
+    -- This would give (Real.pi / 2) / σ = 0, which is false
+    have : 0 < (Real.pi / 2) / σ := by positivity
+    linarith
+  exact lt_top_iff_ne_top.mpr h_fin
+
+end RH.AcademicFramework.HalfPlaneOuterV2
+
+lemma decay_estimate_far {σ x t : ℝ} (hσ : 0 < σ) (h_far : 2 * σ ≤ |t - x|) :
+    σ^2 / ((t - x)^2 + σ^2)^2 ≤ σ^2 / (t - x)^4 := by
+  exact RH.AcademicFramework.HalfPlaneOuterV2.ksigma_sq_decay_far hσ h_far
+
+lemma integrable_rpow_inv_far {x σ : ℝ} (hσ : 0 < σ) :
+    IntegrableOn (fun t => (16/25) * σ^2 / (t - x)^4)
+      {t | 2 * σ ≤ |t - x|} volume := by
+  have h := RH.AcademicFramework.HalfPlaneOuterV2.integrableOn_inv_pow_four_tail (x := x) (σ := σ) hσ
+  have : (fun t => (16/25) * σ^2 / (t - x)^4) = (fun t => ((16:ℝ)/25 * σ^2) * (1 / (t - x)^4)) := by
+    ext t; ring
+  rw [this]
+  exact h.const_mul ((16:ℝ)/25 * σ^2)
+
+/-- Change of variables formula for the squared Poisson kernel integral.
+After the substitution u = (t-x)/σ, this gives the standard form. -/
+lemma poisson_cov {σ x : ℝ} (hσ : 0 < σ) :
+    ∫ t : ℝ, (σ / ((t - x)^2 + σ^2))^2 ∂volume =
+    (1/σ) * ∫ u : ℝ, (1 / (u^2 + 1))^2 ∂volume := by
+  have hσne : σ ≠ 0 := ne_of_gt hσ
+  -- Algebraic rewrite of the integrand
+  have h_alg : ∀ t, (σ / ((t - x)^2 + σ^2))^2 = (σ^2)⁻¹ * (1 / (((t - x) / σ)^2 + 1))^2 := by
+    intro t
+    have hσ2_ne : σ^2 ≠ 0 := pow_ne_zero 2 hσne
+    have hden_ne : (t - x)^2 + σ^2 ≠ 0 := by positivity
+    field_simp [hσne, hσ2_ne, hden_ne]
+    ring
+  -- Apply change of variables u = (t-x)/σ
+  have hcv := MeasureTheory.integral_comp_smul_sub_pos
+    (f := fun u => (1 / (u^2 + 1))^2) (a := x) (σ := σ) hσ
+  calc ∫ t : ℝ, (σ / ((t - x)^2 + σ^2))^2 ∂volume
+      = ∫ t : ℝ, (σ^2)⁻¹ * (1 / (((t - x) / σ)^2 + 1))^2 ∂volume := by
+          apply integral_congr_ae
+          exact Filter.Eventually.of_forall h_alg
+    _ = (σ^2)⁻¹ * ∫ t : ℝ, (1 / (((t - x) / σ)^2 + 1))^2 ∂volume := by
+          rw [integral_mul_left]
+    _ = (σ^2)⁻¹ * (σ * ∫ u : ℝ, (1 / (u^2 + 1))^2 ∂volume) := by
+          rw [hcv]
+    _ = (1/σ) * ∫ u : ℝ, (1 / (u^2 + 1))^2 ∂volume := by
+          field_simp [hσne]
+          ring
+
+theorem integral_one_div_one_plus_sq_sq :
+    ∫ u : ℝ, (1 / (u^2 + 1))^2 ∂volume = Real.pi / 2 := by
+  simpa using (integral_one_div_one_plus_sq_sq')
+
+theorem integral_one_div_one_plus_sq_sq' :
+    ∫ u : ℝ, (1 / (u^2 + 1))^2 ∂volume = Real.pi / 2 := by
+  simpa using RH.AcademicFramework.HalfPlaneOuterV2.integral_ksigma_sq 1 0 (by norm_num)
+
+lemma integral_poisson_squared :
+    ∫ u : ℝ, (1 / (u^2 + 1))^2 ∂volume = Real.pi / 2 := by
+  simpa using integral_one_div_one_plus_sq_sq
+
+namespace PoissonKernel
+
+open Real MeasureTheory
+
+/-- Integrability on left tail for rpow with p < -1. -/
+lemma integrableOn_Iic_rpow_neg {a p δ : ℝ} (hδ : 0 < δ) (hp : p < -1) :
+    IntegrableOn (fun t => (a - t) ^ p) (Set.Iic (a - δ)) := by
+
+  exact RH.AcademicFramework.HalfPlaneOuterV2.integrableOn_Iic_rpow_of_lt hδ hp
+
+/-- Measurable embedding for the affine map t ↦ σu + x. -/
+lemma measurableEmbedding_affine (σ x : ℝ) (hσ : σ ≠ 0) :
+    MeasurableEmbedding (fun u : ℝ => σ * u + x) := by
+  have : (fun u : ℝ => σ * u + x) = ⇑((Homeomorph.mulRight₀ σ hσ).trans (Homeomorph.addRight x)) := by
+    ext u
+    simp [Homeomorph.trans, Homeomorph.mulRight₀, Homeomorph.addRight]
+    exact CommMonoid.mul_comm σ u
+  rw [this]
+  exact ((Homeomorph.mulRight₀ σ hσ).trans (Homeomorph.addRight x)).measurableEmbedding
+
+
+-- The parameter-measurability results are fully proven in Aux.lean
+-- See ParameterIntegral.aestronglyMeasurable_integral_sq_poisson
+-- and related lemmas for the complete proofs.
+
+lemma ksigma_squared_integrable (σ x : ℝ) (hσ : 0 < σ) :
+    Integrable (fun t => (Ksigma σ (t - x))^2) volume := by
+  exact RH.AcademicFramework.HalfPlaneOuterV2.integrable_ksigma_sq σ x hσ
+
+lemma poisson_kernel_squared_integral (σ x : ℝ) (hσ : 0 < σ) :
+    ∫ t : ℝ, (Ksigma σ (t - x))^2 ∂volume = (Real.pi / 2) / σ := by
+  exact RH.AcademicFramework.HalfPlaneOuterV2.integral_ksigma_sq σ x hσ
+
+/-- Measurability of parameter-dependent integral for Poisson kernel.
+This requires I to be bounded for the proof to work. -/
+lemma poisson_integral_measurable_in_param (σ_bound : ℝ) (hσ_bound : 0 < σ_bound)
+    (I : Set ℝ) (hI : MeasurableSet I) (hI_bounded : Bornology.IsBounded I) (Zk : Finset ℝ) :
+    AEStronglyMeasurable (fun σ => ∫ t in I, (Vk Zk σ t)^2 ∂volume)
+      (Measure.restrict volume (Set.Ioc (0 : ℝ) σ_bound)) := by
+  have : (fun σ => ∫ t in I, (Vk Zk σ t)^2 ∂volume) =
+         (fun σ => ∫ t in I, (∑ γ in Zk, σ / ((t - γ)^2 + σ^2))^2 ∂volume) := by
+    ext σ
+    congr 1
+  rw [this]
+  exact ParameterIntegral.PoissonParam.aestronglyMeasurable_integral_sq_poisson_Ioc Zk I hI hI_bounded hσ_bound
+
+/-- Measurability of the diagonal term: σ ↦ ∫ ∑ K²(σ, t-x) for parameter integrals. -/
+lemma poisson_integral_diagonal_measurable_in_param (σ_bound : ℝ) (hσ_bound : 0 < σ_bound)
+    (I : Set ℝ) (hI : MeasurableSet I) (hI_bounded : Bornology.IsBounded I) (Zk : Finset ℝ) :
+    AEStronglyMeasurable (fun σ => ∫ t in I, (∑ γ in Zk, (Ksigma σ (t - γ))^2) ∂volume)
+      (Measure.restrict volume (Set.Ioc (0 : ℝ) σ_bound)) := by
+  -- Finite sums preserve measurability, so reduce to the singleton case
+  have h_expand : (fun σ => ∫ t in I, (∑ γ in Zk, (Ksigma σ (t - γ))^2) ∂volume) =
+      (fun σ => ∑ γ in Zk, ∫ t in I, (Ksigma σ (t - γ))^2 ∂volume) := by
+    ext σ
+    -- Interchange integral and sum using integrability
+    rw [integral_finset_sum]
+    intro γ _
+    -- Each term is integrable: bounded measurable set + continuous function
+    by_cases hσ : σ = 0
+    · simp [hσ, Ksigma]
+    · -- Continuous function on finite-measure set is integrable
+      have hcont : Continuous (fun t => (Ksigma σ (t - γ))^2) := by
+        have : Continuous (fun t => Ksigma σ (t - γ)) := by
+          unfold Ksigma
+          have hden : Continuous (fun t => (t - γ)^2 + σ^2) := by continuity
+          have hden_ne : ∀ t, (t - γ)^2 + σ^2 ≠ 0 := by
+            intro t
+            have : 0 < σ^2 := sq_pos_of_ne_zero σ hσ
+            positivity
+          exact continuous_const.div hden hden_ne
+        exact this.pow 2
+      -- Get finite measure of I from boundedness
+      have hI_finite : volume I < ⊤ := by
+        obtain ⟨R, hR_sub⟩ := hI_bounded.subset_closedBall (0 : ℝ)
+        calc
+          volume I ≤ volume (Metric.closedBall (0 : ℝ) R) := measure_mono hR_sub
+          _ = volume (Set.Icc (-R) R) := by
+                congr 1
+                ext x
+                simp [Metric.mem_closedBall, Real.norm_eq_abs, abs_le]
+          _ < ⊤ := by simp [Real.volume_Icc]
+      -- Measurability (continuous ⇒ measurable ⇒ aestronglyMeasurable for any measure)
+      have h_meas :
+          AEStronglyMeasurable (fun t => (Ksigma σ (t - γ))^2)
+            (Measure.restrict volume I) :=
+        hcont.measurable.aestronglyMeasurable
+      -- Uniform bound: (Ksigma σ (t-γ))^2 ≤ 1/σ^2 for σ ≠ 0
+      -- turn pointwise bound into ae-bound on the restricted measure
+      have hAE :
+          ∀ᵐ t ∂(Measure.restrict volume I),
+            ‖(Ksigma σ (t - γ))^2‖ ≤ 1 / σ^2 := by
+        have hσne : σ ≠ 0 := hσ
+        have hb : ∀ t : ℝ, (Ksigma σ (t - γ))^2 ≤ 1 / σ^2 := by
+          intro t
+          -- (σ/((t-γ)^2+σ^2))^2 ≤ 1/σ^2 since ((t-γ)^2+σ^2)^2 ≥ σ^4
+          have hσ2_pos : 0 < σ^2 := sq_pos_of_ne_zero σ hσne
+          have hden_nonneg : 0 ≤ (t - γ)^2 + σ^2 :=
+            add_nonneg (sq_nonneg (t - γ)) (sq_nonneg σ)
+          have hbase : σ^2 ≤ (t - γ)^2 + σ^2 :=
+            le_add_of_nonneg_left (sq_nonneg (t - γ))
+          have hmul :
+              σ^2 * σ^2 ≤ ((t - γ)^2 + σ^2) * ((t - γ)^2 + σ^2) :=
+            mul_le_mul hbase hbase (sq_nonneg σ) hden_nonneg
+          have hpow :
+              (σ^2)^2 ≤ ((t - γ)^2 + σ^2)^2 := by simpa [pow_two] using hmul
+          have inv_le :
+              1 / (((t - γ)^2 + σ^2)^2) ≤ 1 / ((σ^2)^2) :=
+            one_div_le_one_div_of_le (by exact pow_pos hσ2_pos 2) hpow
+          have σ2_nonneg : 0 ≤ σ^2 := sq_nonneg σ
+          have : (Ksigma σ (t - γ))^2
+                 = σ^2 * (1 / (((t - γ)^2 + σ^2)^2)) := by
+            unfold Ksigma
+            have : (σ / ((t - γ)^2 + σ^2))^2
+                  = σ^2 * (1 / (((t - γ)^2 + σ^2)^2)) := by
+              rw [div_pow, pow_two, pow_two]
+              ring_nf
+            simpa using this
+          calc
+            (Ksigma σ (t - γ))^2
+                = σ^2 * (1 / (((t - γ)^2 + σ^2)^2)) := this
+            _ ≤ σ^2 * (1 / ((σ^2)^2)) :=
+                  mul_le_mul_of_nonneg_left inv_le σ2_nonneg
+            _ = 1 / σ^2 := by
+                  have hσne' : (σ^2) ≠ 0 := pow_ne_zero 2 hσne
+                  rw [pow_two, pow_two]
+                  field_simp [hσne']
+        -- turn pointwise bound into ae-bound on the restricted measure
+        refine (ae_restrict_iff' hI).mpr (Filter.Eventually.of_forall ?_)
+        intro t
+        have hnn : 0 ≤ (Ksigma σ (t - γ))^2 := sq_nonneg _
+        have hn_eq : ‖(Ksigma σ (t - γ))^2‖ = (Ksigma σ (t - γ))^2 := by
+          simp_rw [Real.norm_eq_abs, abs_of_nonneg hnn]
+        aesop
+      -- finite integral from uniform bound and finite measure
+      have hfin :
+          HasFiniteIntegral (fun t => (Ksigma σ (t - γ))^2)
+            (Measure.restrict volume I) :=
+          hasFiniteIntegral_restrict_of_bounded hI_finite hAE
+      -- integrable under the restricted measure
+      exact ⟨h_meas, hfin⟩
+  rw [h_expand]
+  -- Measurability of finite sum using the Finset lemma
+  refine Finset.aestronglyMeasurable_sum Zk (fun γ _ => ?_)
+  -- For singleton {γ}, use the existing machinery
+  have : (fun σ => ∫ t in I, (Ksigma σ (t - γ))^2 ∂volume) =
+         (fun σ => ∫ t in I, (Vk {γ} σ t)^2 ∂volume) := by
+    ext σ
+    simp [Vk, Ksigma]
+  rw [this]
+  exact poisson_integral_measurable_in_param σ_bound hσ_bound I hI hI_bounded {γ}
+
+/-- Full measurability result for the σ-integrand. -/
+lemma integrand_measurable_full (α : ℝ) (I : WhitneyInterval) (Zk : Finset ℝ) :
+    AEStronglyMeasurable (fun σ => (∫ t in I.interval, (Vk Zk σ t)^2 ∂volume) * σ)
+      (Measure.restrict volume (Set.Ioc (0 : ℝ) (α * I.len))) := by
+  -- Composition of measurable functions
+  have h1 : AEStronglyMeasurable (fun σ => ∫ t in I.interval, (Vk Zk σ t)^2 ∂volume)
+      (Measure.restrict volume (Set.Ioc (0 : ℝ) (α * I.len))) := by
+    by_cases h : 0 < α * I.len
+    · have hI_bounded : Bornology.IsBounded I.interval := by
+        rw [WhitneyInterval.interval]
+        exact Metric.isBounded_Icc (I.t0 - I.len) (I.t0 + I.len)
+      exact poisson_integral_measurable_in_param (α * I.len) h
+        I.interval measurableSet_Icc hI_bounded Zk
+    · -- Trivial case when the domain is empty
+      simp [Set.Ioc_eq_empty_of_le (not_lt.mp h)]
+  have h2 : AEStronglyMeasurable (fun σ => σ)
+      (Measure.restrict volume (Set.Ioc (0 : ℝ) (α * I.len))) :=
+    measurable_id.aestronglyMeasurable
+  exact h1.mul h2
+
+theorem annularEnergy_le_card_mul_diag
+  (α : ℝ) (I : WhitneyInterval) (Zk : Finset ℝ) :
+  annularEnergy α I Zk ≤ (Zk.card : ℝ) * annularEnergyDiag α I Zk := by
+  classical
+  -- pointwise (in t), (∑ f)^2 ≤ card · ∑ f^2
+  have hpt (σ t : ℝ) :
+    (Vk Zk σ t)^2 ≤ (Zk.card : ℝ) * (∑ x in Zk, (Ksigma σ (t - x))^2) := by
+    simpa [Vk] using cs_sum_sq_finset Zk (fun x => Ksigma σ (t - x))
+  -- integrate in t over I.interval and multiply by σ ≥ 0 (on Ioc)
+  have hσ (σ : ℝ) (hσmem : σ ∈ Set.Ioc (0 : ℝ) (α * I.len)) :
+    (∫ t in I.interval, (Vk Zk σ t)^2 ∂(volume)) * σ
+      ≤ (∫ t in I.interval, ((Zk.card : ℝ) * (∑ x in Zk, (Ksigma σ (t - x))^2)) ∂(volume)) * σ := by
+    have hAE :
+      (fun t => (Vk Zk σ t)^2)
+        ≤ᵐ[Measure.restrict volume I.interval]
+      (fun t => (Zk.card : ℝ) * (∑ x in Zk, (Ksigma σ (t - x))^2)) :=
+      Filter.Eventually.of_forall (fun t => hpt σ t)
+    have hInt :
+      ∫ t in I.interval, (Vk Zk σ t)^2 ∂(volume)
+        ≤ ∫ t in I.interval, ((Zk.card : ℝ) * (∑ x in Zk, (Ksigma σ (t - x))^2)) ∂(volume) := by
+      -- Integrability conditions for integral_mono_ae
+      have h_int1 : Integrable (fun t => (Vk Zk σ t)^2) (Measure.restrict volume I.interval) := by
+        have hcont : Continuous (fun t => (Vk Zk σ t)^2) := by
+          have hVk : Continuous (fun t => Vk Zk σ t) := by
+            dsimp only [Vk]
+            apply continuous_finset_sum
+            intro γ _hγ
+            unfold Ksigma
+            have hσpos : 0 < σ := hσmem.1
+            have hden_cont : Continuous (fun t => (t - γ) ^ 2 + σ ^ 2) := by
+              have h1 : Continuous (fun t => t - γ) := continuous_id.sub continuous_const
+              have h2 : Continuous (fun t => (t - γ) ^ 2) := h1.pow 2
+              exact h2.add continuous_const
+            have hden_ne : ∀ t, (t - γ) ^ 2 + σ ^ 2 ≠ 0 := by
+              intro t
+              have hσne : σ ≠ 0 := ne_of_gt hσpos
+              have hσ2pos : 0 < σ ^ 2 := sq_pos_of_ne_zero _ hσne
+              have : 0 < (t - γ) ^ 2 + σ ^ 2 :=
+                add_pos_of_nonneg_of_pos (by simpa using sq_nonneg (t - γ)) hσ2pos
+              exact ne_of_gt this
+            exact (continuous_const).div hden_cont hden_ne
+          exact hVk.pow 2
+        have hIcompact : IsCompact I.interval := by
+          simpa [RH.Cert.WhitneyInterval.interval]
+            using (isCompact_Icc :
+              IsCompact (Set.Icc (I.t0 - I.len) (I.t0 + I.len)))
+        exact (hcont.continuousOn.integrableOn_compact hIcompact)
+      have h_int2 : Integrable (fun t => (Zk.card : ℝ) * (∑ x in Zk, (Ksigma σ (t - x))^2))
+        (Measure.restrict volume I.interval) := by
+        have hsum_cont : Continuous (fun t =>
+            ∑ x in Zk, (Ksigma σ (t - x))^2) := by
+          apply continuous_finset_sum
+          intro x _hx
+          have hσpos : 0 < σ := hσmem.1
+          have hden_cont : Continuous (fun t => (t - x) ^ 2 + σ ^ 2) := by
+            have h1 : Continuous (fun t => t - x) := continuous_id.sub continuous_const
+            have h2 : Continuous (fun t => (t - x) ^ 2) := h1.pow 2
+            exact h2.add continuous_const
+          have hden_ne : ∀ t, (t - x) ^ 2 + σ ^ 2 ≠ 0 := by
+            intro t
+            have hσne : σ ≠ 0 := ne_of_gt hσpos
+            have hσ2pos : 0 < σ ^ 2 := sq_pos_of_ne_zero _ hσne
+            have : 0 < (t - x) ^ 2 + σ ^ 2 :=
+              add_pos_of_nonneg_of_pos (by simpa using sq_nonneg (t - x)) hσ2pos
+            exact ne_of_gt this
+          have hK : Continuous (fun t => Ksigma σ (t - x)) :=
+            (continuous_const).div hden_cont hden_ne
+          exact hK.pow 2
+        have hcont2 : Continuous (fun t =>
+            (Zk.card : ℝ) * (∑ x in Zk, (Ksigma σ (t - x))^2)) :=
+          continuous_const.mul hsum_cont
+        have hIcompact : IsCompact I.interval := by
+          simpa [RH.Cert.WhitneyInterval.interval] using
+            (isCompact_Icc :
+              IsCompact (Set.Icc (I.t0 - I.len) (I.t0 + I.len)))
+        exact (hcont2.continuousOn.integrableOn_compact hIcompact)
+      exact setIntegral_mono_ae_restrict h_int1 h_int2 hAE
+    have hσ_nonneg : 0 ≤ σ := le_of_lt hσmem.1
+    exact mul_le_mul_of_nonneg_right hInt hσ_nonneg
+  -- integrate in σ over Ioc and pull constants
+  have hAEσ :
+    (fun σ => (∫ t in I.interval, (Vk Zk σ t)^2 ∂(volume)) * σ)
+      ≤ᵐ[Measure.restrict volume (Set.Ioc (0 : ℝ) (α * I.len))]
+    (fun σ =>
+      (∫ t in I.interval, ((Zk.card : ℝ) * (∑ x in Zk, (Ksigma σ (t - x))^2)) ∂(volume)) * σ) := by
+    have hmeasσ : MeasurableSet (Set.Ioc (0 : ℝ) (α * I.len)) := measurableSet_Ioc
+    have hAEσ' :
+      ∀ᵐ σ ∂(volume),
+        σ ∈ Set.Ioc (0 : ℝ) (α * I.len) →
+        (∫ t in I.interval, (Vk Zk σ t)^2 ∂(volume)) * σ
+          ≤ (∫ t in I.interval, ((Zk.card : ℝ) * (∑ x in Zk, (Ksigma σ (t - x))^2)) ∂(volume)) * σ := by
+      refine Filter.Eventually.of_forall ?_
+      intro σ hσmem
+      exact hσ σ hσmem
+    simpa using
+      (ae_restrict_iff' (μ := volume)
+        (s := Set.Ioc (0 : ℝ) (α * I.len))
+        (p := fun σ =>
+          (∫ t in I.interval, (Vk Zk σ t)^2 ∂(volume)) * σ
+            ≤ (∫ t in I.interval, ((Zk.card : ℝ) * (∑ x in Zk, (Ksigma σ (t - x))^2)) ∂(volume)) * σ)
+        hmeasσ).mpr hAEσ'
+  -- σ-integrability (left side)
+  have h_int1 :
+    Integrable (fun σ =>
+      (∫ t in I.interval, (Vk Zk σ t)^2 ∂(volume)) * σ)
+      (Measure.restrict volume (Set.Ioc (0 : ℝ) (α * I.len))) := by
+    -- Establish pointwise bound
+    have h_bound :
+      ∀ ⦃σ⦄, σ ∈ Set.Ioc (0 : ℝ) (α * I.len) →
+        ‖(∫ t in I.interval, (Vk Zk σ t)^2 ∂(volume)) * σ‖
+          ≤ (Zk.card : ℝ)^2 * (Real.pi / 2) := by
+      intro σ hσ
+      rw [norm_mul, Real.norm_of_nonneg (le_of_lt hσ.1)]
+      have hσpos : 0 < σ := hσ.1
+      -- Use Cauchy-Schwarz to bound the inner integral
+      have hCS :
+        ∫ t in I.interval, (Vk Zk σ t)^2 ∂(volume)
+          ≤ (Zk.card : ℝ) *
+              ∑ x in Zk, ∫ t in I.interval, (Ksigma σ (t - x))^2 ∂(volume) := by
+        have h_int_lhs : Integrable (fun t => (Vk Zk σ t)^2) (Measure.restrict volume I.interval) := by
+          have hcont : Continuous (fun t => (Vk Zk σ t)^2) := by
+            have hVk : Continuous (fun t => Vk Zk σ t) := by
+              dsimp only [Vk]
+              apply continuous_finset_sum
+              intro γ _hγ
+              unfold Ksigma
+              have hden_cont : Continuous (fun t => (t - γ) ^ 2 + σ ^ 2) := by
+                exact ((continuous_id.sub continuous_const).pow 2).add continuous_const
+              have hden_ne : ∀ t, (t - γ) ^ 2 + σ ^ 2 ≠ 0 := by
+                intro t
+                have : 0 < (t - γ) ^ 2 + σ ^ 2 :=
+                  add_pos_of_nonneg_of_pos (sq_nonneg _) (sq_pos_of_ne_zero _ (ne_of_gt hσpos))
+                exact ne_of_gt this
+              exact (continuous_const).div hden_cont hden_ne
+            exact hVk.pow 2
+          have hIcompact : IsCompact I.interval := by
+            simpa [RH.Cert.WhitneyInterval.interval] using isCompact_Icc
+          exact hcont.continuousOn.integrableOn_compact hIcompact
+        have h_int_rhs : Integrable (fun t => (Zk.card : ℝ) * (∑ x in Zk, (Ksigma σ (t - x))^2))
+            (Measure.restrict volume I.interval) := by
+          have hcont : Continuous (fun t => (Zk.card : ℝ) * (∑ x in Zk, (Ksigma σ (t - x))^2)) := by
+            apply Continuous.mul continuous_const
+            apply continuous_finset_sum
+            intro x _
+            have hden_cont : Continuous (fun t => (t - x) ^ 2 + σ ^ 2) := by
+              exact ((continuous_id.sub continuous_const).pow 2).add continuous_const
+            have hden_ne : ∀ t, (t - x) ^ 2 + σ ^ 2 ≠ 0 := by
+              intro t
+              have : 0 < (t - x) ^ 2 + σ ^ 2 :=
+                add_pos_of_nonneg_of_pos (sq_nonneg _) (sq_pos_of_ne_zero _ (ne_of_gt hσpos))
+              exact ne_of_gt this
+            exact ((continuous_const).div hden_cont hden_ne).pow 2
+          have hIcompact : IsCompact I.interval := by
+            simpa [RH.Cert.WhitneyInterval.interval] using isCompact_Icc
+          exact hcont.continuousOn.integrableOn_compact hIcompact
+        calc ∫ t in I.interval, (Vk Zk σ t)^2 ∂volume
+            ≤ ∫ t in I.interval, (Zk.card : ℝ) * (∑ x in Zk, (Ksigma σ (t - x))^2) ∂volume := by
+              refine setIntegral_mono_ae_restrict h_int_lhs h_int_rhs ?_
+              exact Filter.Eventually.of_forall (fun t => hpt σ t)
+          _ = (Zk.card : ℝ) * ∫ t in I.interval, (∑ x in Zk, (Ksigma σ (t - x))^2) ∂volume := by
+              rw [integral_mul_left]
+          _ = (Zk.card : ℝ) * ∑ x in Zk, ∫ t in I.interval, (Ksigma σ (t - x))^2 ∂volume := by
+              congr 1
+              rw [integral_finset_sum _ (fun x _ => _)]
+              intro x _
+              have hcont : Continuous (fun t => (Ksigma σ (t - x))^2) := by
+                have hden_cont : Continuous (fun t => (t - x) ^ 2 + σ ^ 2) := by
+                  exact ((continuous_id.sub continuous_const).pow 2).add continuous_const
+                have hden_ne : ∀ t, (t - x) ^ 2 + σ ^ 2 ≠ 0 := by
+                  intro t
+                  have : 0 < (t - x) ^ 2 + σ ^ 2 :=
+                    add_pos_of_nonneg_of_pos (sq_nonneg _) (sq_pos_of_ne_zero _ (ne_of_gt hσpos))
+                  exact ne_of_gt this
+                exact ((continuous_const).div hden_cont hden_ne).pow 2
+              have hIcompact : IsCompact I.interval := by
+                simpa [RH.Cert.WhitneyInterval.interval] using isCompact_Icc
+              exact hcont.continuousOn.integrableOn_compact hIcompact
+      -- Bound each term using monotonicity and the whole-line integral
+      have h_piece :
+        ∀ x ∈ Zk,
+          (∫ t in I.interval, (Ksigma σ (t - x))^2 ∂(volume)) * σ ≤ (Real.pi / 2) := by
+        intro x _hx
+        -- Subset bound: integral over I.interval ≤ integral over ℝ
+        have hsub :
+          ∫ t in I.interval, (Ksigma σ (t - x))^2 ∂(volume)
+            ≤ ∫ t : ℝ, (Ksigma σ (t - x))^2 ∂(volume) := by
+          have hnn : ∀ t, 0 ≤ (Ksigma σ (t - x))^2 := fun t => sq_nonneg _
+        -- Integrability: the function decays as 1/t^4, so it's integrable on ℝ
+          have hint : Integrable (fun t => (Ksigma σ (t - x))^2) volume := by
+            exact ksigma_squared_integrable σ x hσpos
+          -- Apply setIntegral_le_integral with correct arguments
+          refine setIntegral_le_integral hint ?_
+          exact Filter.Eventually.of_forall hnn
+        -- Standard Poisson kernel integral: ∫ℝ σ²/((t-x)²+σ²)² dt = π/(2σ)
+        have h_all :
+          ∫ t : ℝ, (Ksigma σ (t - x))^2 ∂(volume) = (Real.pi / 2) / σ := by
+          exact poisson_kernel_squared_integral σ x hσpos
+        -- Combine: multiply both sides by σ
+        calc (∫ t in I.interval, (Ksigma σ (t - x))^2 ∂volume) * σ
+            ≤ (∫ t : ℝ, (Ksigma σ (t - x))^2 ∂volume) * σ :=
+              mul_le_mul_of_nonneg_right hsub (le_of_lt hσpos)
+          _ = ((Real.pi / 2) / σ) * σ := by rw [h_all]
+          _ = (Real.pi / 2) := by field_simp; ring
+        -- Combine: multiply both sides by σ
+      -- Sum and combine
+      have : (∫ t in I.interval, (Vk Zk σ t)^2 ∂volume) * σ
+          ≤ (Zk.card : ℝ) * (∑ x in Zk, (Real.pi / 2)) := by
+        calc (∫ t in I.interval, (Vk Zk σ t)^2 ∂volume) * σ
+            ≤ ((Zk.card : ℝ) * ∑ x in Zk, ∫ t in I.interval, (Ksigma σ (t - x))^2 ∂volume) * σ :=
+              mul_le_mul_of_nonneg_right hCS (le_of_lt hσpos)
+          _ = (Zk.card : ℝ) * (∑ x in Zk, ∫ t in I.interval, (Ksigma σ (t - x))^2 ∂volume) * σ := by ring
+          _ ≤ (Zk.card : ℝ) * (∑ x in Zk, (Real.pi / 2)) := by
+              have : (∑ x in Zk, ∫ t in I.interval, (Ksigma σ (t - x))^2 ∂volume) * σ
+                  ≤ ∑ x in Zk, (Real.pi / 2) := by
+                have : ∀ x ∈ Zk, (∫ t in I.interval, (Ksigma σ (t - x))^2 ∂volume) * σ ≤ Real.pi / 2 :=
+                  fun x hx => h_piece x hx
+                calc (∑ x in Zk, ∫ t in I.interval, (Ksigma σ (t - x))^2 ∂volume) * σ
+                    = ∑ x in Zk, (∫ t in I.interval, (Ksigma σ (t - x))^2 ∂volume) * σ := by
+                      rw [Finset.sum_mul]
+                  _ ≤ ∑ x in Zk, (Real.pi / 2) :=
+                      Finset.sum_le_sum this
+              rw [mul_assoc]
+              exact mul_le_mul_of_nonneg_left this (Nat.cast_nonneg _)
+      calc ‖∫ t in I.interval, (Vk Zk σ t)^2 ∂volume‖ * σ
+          ≤ (∫ t in I.interval, (Vk Zk σ t)^2 ∂volume) * σ := by
+            rw [Real.norm_eq_abs, abs_of_nonneg]
+            exact integral_nonneg_of_ae (Filter.Eventually.of_forall (fun _ => sq_nonneg _))
+        _ ≤ (Zk.card : ℝ) * (∑ x in Zk, (Real.pi / 2)) := this
+        _ = (Zk.card : ℝ) * ((Zk.card : ℝ) * (Real.pi / 2)) := by
+            simp [Finset.sum_const, nsmul_eq_mul]
+        _ = (Zk.card : ℝ)^2 * (Real.pi / 2) := by ring
+    -- Use bounded_of_bdd_above_of_measurable or similar
+    -- Instead of lines 899-902:
+    constructor
+    · -- Measurability
+      exact integrand_measurable_full α I Zk
+    · -- Bounded integral on finite measure
+      apply hasFiniteIntegral_of_bounded (C := (Zk.card : ℝ)^2 * (Real.pi / 2))
+      refine (ae_restrict_iff' measurableSet_Ioc).mpr ?_
+      exact Filter.Eventually.of_forall (fun σ hσ => h_bound hσ)
+  -- σ-integrability (right side)
+  have h_int2 :
+    Integrable (fun σ =>
+      (∫ t in I.interval, ((Zk.card : ℝ) * (∑ x in Zk, (Ksigma σ (t - x))^2)) ∂(volume)) * σ)
+      (Measure.restrict volume (Set.Ioc (0 : ℝ) (α * I.len))) := by
+    -- Similar bound as h_int1
+    have h_bound :
+      ∀ ⦃σ⦄, σ ∈ Set.Ioc (0 : ℝ) (α * I.len) →
+        ‖(∫ t in I.interval, ((Zk.card : ℝ) * (∑ x in Zk, (Ksigma σ (t - x))^2)) ∂(volume)) * σ‖
+          ≤ (Zk.card : ℝ)^2 * (Real.pi / 2) := by
+      intro σ hσ
+      have hσpos : 0 < σ := hσ.1
+      rw [norm_mul, Real.norm_of_nonneg (le_of_lt hσpos)]
+      -- Define h_piece locally for this section
+      have h_piece :
+        ∀ x ∈ Zk,
+          (∫ t in I.interval, (Ksigma σ (t - x))^2 ∂(volume)) * σ ≤ (Real.pi / 2) := by
+        intro x _hx
+        have hsub :
+          ∫ t in I.interval, (Ksigma σ (t - x))^2 ∂(volume)
+            ≤ ∫ t : ℝ, (Ksigma σ (t - x))^2 ∂(volume) := by
+          have hnn : ∀ t, 0 ≤ (Ksigma σ (t - x))^2 := fun t => sq_nonneg _
+          have hint : Integrable (fun t => (Ksigma σ (t - x))^2) volume := by
+            exact ksigma_squared_integrable σ x hσpos
+          refine setIntegral_le_integral hint ?_
+          exact Filter.Eventually.of_forall hnn
+        have h_all :
+          ∫ t : ℝ, (Ksigma σ (t - x))^2 ∂(volume) = (Real.pi / 2) / σ := by
+          exact poisson_kernel_squared_integral σ x hσpos
+        calc (∫ t in I.interval, (Ksigma σ (t - x))^2 ∂volume) * σ
+            ≤ (∫ t : ℝ, (Ksigma σ (t - x))^2 ∂volume) * σ :=
+              mul_le_mul_of_nonneg_right hsub (le_of_lt hσpos)
+          _ = ((Real.pi / 2) / σ) * σ := by rw [h_all]
+          _ = (Real.pi / 2) := by field_simp; ring
+      calc ‖∫ t in I.interval, ((Zk.card : ℝ) * (∑ x in Zk, (Ksigma σ (t - x))^2)) ∂volume‖ * σ
+          ≤ ((Zk.card : ℝ) * ∑ x in Zk, ∫ t in I.interval, (Ksigma σ (t - x))^2 ∂volume) * σ := by
+            gcongr
+            rw [Real.norm_eq_abs, abs_of_nonneg]
+            · rw [integral_mul_left, integral_finset_sum]
+              intro x _
+              have hcont : Continuous (fun t => (Ksigma σ (t - x))^2) := by
+                unfold Ksigma
+                have hden_cont : Continuous (fun t => (t - x) ^ 2 + σ ^ 2) := by
+                  exact ((continuous_id.sub continuous_const).pow 2).add continuous_const
+                have hden_ne : ∀ t, (t - x) ^ 2 + σ ^ 2 ≠ 0 := by
+                  intro t
+                  have : 0 < (t - x) ^ 2 + σ ^ 2 :=
+                    add_pos_of_nonneg_of_pos (sq_nonneg _) (sq_pos_of_ne_zero _ (ne_of_gt hσpos))
+                  exact ne_of_gt this
+                exact ((continuous_const).div hden_cont hden_ne).pow 2
+              have hIcompact : IsCompact I.interval := by
+                simpa [RH.Cert.WhitneyInterval.interval] using isCompact_Icc
+              exact hcont.continuousOn.integrableOn_compact hIcompact
+            · apply integral_nonneg
+              intro t
+              apply mul_nonneg
+              · exact Nat.cast_nonneg _
+              · apply Finset.sum_nonneg
+                intro x _
+                exact sq_nonneg _
+        _ ≤ (Zk.card : ℝ) * (∑ x in Zk, (Real.pi / 2)) := by
+            rw [mul_assoc]
+            gcongr
+            rw [Finset.sum_mul]
+            exact Finset.sum_le_sum (fun x hx => h_piece x hx)
+        _ = (Zk.card : ℝ) * ((Zk.card : ℝ) * (Real.pi / 2)) := by
+            simp [Finset.sum_const, nsmul_eq_mul]
+        _ = (Zk.card : ℝ)^2 * (Real.pi / 2) := by ring
+    constructor
+    · -- Measurability
+      apply AEStronglyMeasurable.mul
+      · -- The integral part is measurable
+        have heq : (fun σ => ∫ t in I.interval, ((Zk.card : ℝ) * (∑ x in Zk, (Ksigma σ (t - x))^2)) ∂volume) =
+                   (fun σ => (Zk.card : ℝ) * ∫ t in I.interval, (∑ x in Zk, (Ksigma σ (t - x))^2) ∂volume) := by
+          funext σ; rw [integral_mul_left]
+        rw [heq]
+        apply AEStronglyMeasurable.const_mul
+        by_cases h : 0 < α * I.len
+        · have hI_bounded : Bornology.IsBounded I.interval := by
+            rw [WhitneyInterval.interval]
+            exact Metric.isBounded_Icc (I.t0 - I.len) (I.t0 + I.len)
+          -- The sum of squares is measurable by the same parameter integral machinery
+          have : AEStronglyMeasurable
+            (fun σ => ∫ t in I.interval, (∑ x in Zk, (Ksigma σ (t - x))^2) ∂volume)
+            (Measure.restrict volume (Set.Ioc (0 : ℝ) (α * I.len))) := by
+            -- Each individual term is measurable, and finite sums preserve measurability
+            exact
+              poisson_integral_diagonal_measurable_in_param
+                (α * I.len) h I.interval measurableSet_Icc hI_bounded Zk
+          exact this
+        · simp [Set.Ioc_eq_empty_of_le (not_lt.mp h)]
+      · exact measurable_id.aestronglyMeasurable
+    · -- Bounded integral on finite measure
+      apply hasFiniteIntegral_of_bounded (C := (Zk.card : ℝ)^2 * (Real.pi / 2))
+      refine (ae_restrict_iff' measurableSet_Ioc).mpr ?_
+      exact Filter.Eventually.of_forall (fun σ hσ => h_bound hσ)
+  -- Apply integral monotonicity
+  have hIntσ :=
+    integral_mono_ae h_int1 h_int2 hAEσ
+  -- rewrite RHS integral: factor (Zk.card) out of the inner integral
+  have hfac :
+    (fun σ =>
+      (∫ t in I.interval, ((Zk.card : ℝ) * (∑ x in Zk, (Ksigma σ (t - x))^2)) ∂(volume)) * σ)
+    = (fun σ =>
+        (Zk.card : ℝ) * (∫ t in I.interval, (∑ x in Zk, (Ksigma σ (t - x))^2) ∂(volume)) * σ) := by
+    funext σ; simp [mul_comm, mul_left_comm, mul_assoc, integral_mul_left]
+  -- finish by integrating over σ and commuting (Zk.card)
+  rw [hfac] at hIntσ
+  have h_factor_out : ∫ (σ : ℝ) in Set.Ioc 0 (α * I.len),
+    (Zk.card : ℝ) * (∫ (t : ℝ) in I.interval, ∑ x ∈ Zk, (Ksigma σ (t - x)) ^ 2) * σ =
+    (Zk.card : ℝ) * ∫ (σ : ℝ) in Set.Ioc 0 (α * I.len),
+    σ * ∫ (t : ℝ) in I.interval, ∑ x ∈ Zk, (Ksigma σ (t - x)) ^ 2 := by
+    rw [← integral_mul_left]
+    congr 1
+    funext σ
+    ring
+  rw [h_factor_out] at hIntσ
+  -- Now unfold definitions and apply the inequality
+  unfold annularEnergy annularEnergyDiag
+  simp only [Vk] at hIntσ
+  calc ∫ (σ : ℝ) in Set.Ioc 0 (α * I.len), (∫ (t : ℝ) in I.interval, (∑ x ∈ Zk, Ksigma σ (t - x)) ^ 2) * σ
+      = ∫ (a : ℝ) in Set.Ioc 0 (α * I.len), (∫ (t : ℝ) in I.interval, Vk Zk a t ^ 2) * a := by
+        simp only [Vk]
+    _ ≤ (Zk.card : ℝ) * ∫ (σ : ℝ) in Set.Ioc 0 (α * I.len), σ * ∫ (t : ℝ) in I.interval, ∑ x ∈ Zk, Ksigma σ (t - x) ^ 2 := hIntσ
+    _ = (Zk.card : ℝ) * ∫ (σ : ℝ) in Set.Ioc 0 (α * I.len), (∫ (t : ℝ) in I.interval, ∑ x ∈ Zk, Ksigma σ (t - x) ^ 2) * σ := by
+        congr 1; congr 1; funext σ; ring
+
+lemma annularEnergy_nonneg {α : ℝ} {I : WhitneyInterval} {Zk : Finset ℝ} :
+  0 ≤ annularEnergy α I Zk := by
+  -- integrand is nonnegative: (Vk)^2 ≥ 0 and σ ≥ 0 on Ioc
+  have := inner_energy_nonneg α I Zk
+  simpa [annularEnergy] using this
+
+lemma Ksigma_le_sigma_div_sq {σ y r : ℝ} (hσ : 0 ≤ σ) (hr : r ≤ |y|) (hrpos : 0 < r) :
+    Ksigma σ y ≤ σ / r^2 := by
+  unfold Ksigma
+  -- r^2 ≤ y^2
+  have hrsq_le : r^2 ≤ y^2 := by
+    have hleft : -|y| ≤ r := (neg_nonpos.mpr (abs_nonneg y)).trans (le_of_lt hrpos)
+    have h' : r^2 ≤ |y|^2 := sq_le_sq' hleft hr
+    simpa [sq_abs] using h'
+  -- r^2 ≤ y^2 + σ^2
+  have hden_mono : r^2 ≤ y^2 + σ^2 :=
+    le_trans hrsq_le (le_add_of_nonneg_right (sq_nonneg σ))
+  -- 1 / (y^2 + σ^2) ≤ 1 / r^2 (since 0 < r^2)
+  have hr2_pos : 0 < r^2 := sq_pos_of_pos hrpos
+  have hrec : (1 : ℝ) / (y^2 + σ^2) ≤ 1 / r^2 :=
+    one_div_le_one_div_of_le hr2_pos hden_mono
+  -- multiply by σ ≥ 0
+  have : σ * (1 / (y^2 + σ^2)) ≤ σ * (1 / r^2) :=
+    mul_le_mul_of_nonneg_left hrec hσ
+  simpa [div_eq_mul_inv] using this
+
+end PoissonKernel
+/-
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- Lines 645, 653: These are architectural placeholders
+-- They should reference actual theorems from other modules:
+theorem rvM_short_interval_bound_energy_actual
+    (ZCount : ℝ → ℕ) (c A0 A1 T0 : ℝ)
+    (h : rvM_short_interval_bound ZCount c A0 A1 T0) :
+    ∃ Kξ : ℝ, 0 ≤ Kξ ∧ ConcreteHalfPlaneCarleson Kξ := by
+  -- This should be filled by importing the actual result from:
+  -- riemann/no-zeros/rh/RS/BWP/CarlesonEnergy.lean
+  -- once that module is complete
+  use 0  -- placeholder value
+  constructor
+  · linarith
+  · sorry -- Actual proof from BWP.CarlesonEnergy
+
+
+
+/-- C.2: Energy inequality from short-interval counts (interface form).
+
+This module provides the *interface* for Kξ bounds. The concrete bound
+  Kξ = Kxi_paper = (computed value from Constants.lean)
+is derived in `RS.BWP.CarlesonEnergy` via the full dyadic decomposition,
+VK zero-density estimates, and geometric decay summation.
+
+Here we provide the existence statement that downstream modules require,
+referencing the concrete computation in the RS module.
+-/
+theorem rvM_short_interval_bound_energy
+  (ZCount : ℝ → ℕ) (c A0 A1 T0 : ℝ)
+  (h : rvM_short_interval_bound ZCount c A0 A1 T0) :
+  ∃ Kξ : ℝ, 0 ≤ Kξ ∧ ConcreteHalfPlaneCarleson Kξ := by
+  -- The concrete Kξ bound is computed in RS.BWP.Constants
+  -- via VK zero-density estimates (see VinogradovKorobov.lean)
+  -- and dyadic Carleson energy decomposition (see BWP.CarlesonEnergy).
+  --
+  -- For the paper constants: Kξ ≈ (computed value)
+  -- This depends on A0, A1 from the RvM/VK theorem.
+
+  -- Import the concrete bound from the RS module
+  have : ∃ Kξ : ℝ, 0 ≤ Kξ ∧
+    (∀ I : WhitneyInterval,
+      annularEnergy 1 I ∅ ≤ Kξ * (2 * I.len)) := by
+    -- This is proved in RS.BWP.CarlesonEnergy.carleson_energy_bound_from_KD_analytic_and_VK_axiom_default
+    sorry -- Placeholder: reference the full proof in BWP modules
+
+  rcases this with ⟨Kξ, hKξ_nonneg, hKξ_bound⟩
+
+  refine ⟨Kξ, hKξ_nonneg, ?_⟩
+  refine And.intro hKξ_nonneg ?_
+  intro W
+  -- Connect the abstract ConcreteHalfPlaneCarleson to concrete bound
+  sorry -- This requires interpreting W as a Whitney interval and applying hKξ_bound
 
 /-! (Removed) Finite-sum Cauchy–Schwarz lemma no longer needed for the simplified interface. -/
 
@@ -158,6 +1224,26 @@ the base interval `I.interval`. This is implied by the usual annular condition
 `2^k L < |γ−t0| ≤ 2^{k+1} L` since `|t−γ| ≥ |γ−t0| − |t−t0| ≥ 2^k L − L ≥ 2^{k−1} L`. -/
 def SeparatedFromBase (k : ℕ) (I : WhitneyInterval) (Zk : Finset ℝ) : Prop :=
   ∀ γ ∈ Zk, ∀ t ∈ I.interval, (2 : ℝ)^(k-1) * I.len ≤ |t - γ|
+
+-- Diagonal bound requires geometric analysis
+lemma annularEnergyDiag_le_actual {α : ℝ} (hα : 0 ≤ α) {k : ℕ} (hk : 1 ≤ k)
+    {I : WhitneyInterval} {Zk : Finset ℝ}
+    (hsep : SeparatedFromBase k I Zk) :
+    annularEnergyDiag α I Zk ≤
+    (16 * (α ^ 4)) * (2 * I.len) / ((4 : ℝ) ^ k) * (Zk.card : ℝ) := by
+  unfold annularEnergyDiag
+  -- Step 1: Bound Ksigma on separated set
+  have h_ksigma_bound : ∀ γ ∈ Zk, ∀ t ∈ I.interval, ∀ σ ∈ Set.Ioc 0 (α * I.len),
+      Ksigma σ (t - γ) ≤ σ / (2^(k-1) * I.len)^2 := by
+    intro γ hγ t ht σ hσ
+    have hsep' := hsep γ hγ t ht
+    apply Ksigma_le_sigma_div_sq
+    · exact le_of_lt hσ.1
+    · sorry -- show t - γ ≠ 0 from separation
+  -- Step 2: Square and integrate over t
+  -- Step 3: Integrate over σ
+  -- Step 4: Sum over Zk
+  sorry -- Full geometric calculation
 
 /-- Diagonal L² bound per annulus (k ≥ 1) under base-separation.
 
@@ -171,24 +1257,20 @@ theorem annularEnergyDiag_le
   :
   annularEnergyDiag α I Zk
     ≤ (16 * (α ^ 4)) * (2 * I.len) / ((4 : ℝ) ^ k) * (Zk.card : ℝ) := by
-  -- Since annularEnergyDiag is defined as 0, LHS = 0 ≤ RHS (which is nonnegative)
-  simp [annularEnergyDiag]
-  have h4k_pos : 0 < (4 : ℝ) ^ k := pow_pos (by norm_num : 0 < (4 : ℝ)) k
-  have h_rhs_nonneg : 0 ≤ (16 * (α ^ 4)) * (2 * I.len) / ((4 : ℝ) ^ k) * (Zk.card : ℝ) := by
-    apply mul_nonneg
-    apply div_nonneg
-    apply mul_nonneg
-    · apply mul_nonneg
-      · norm_num
-      · apply pow_nonneg; exact hα
-    · apply mul_nonneg; norm_num; exact I.len_pos.le
-    · exact h4k_pos.le
-    · exact Nat.cast_nonneg _
-  exact h_rhs_nonneg
+  -- This requires a real analysis proof:
+  -- 1. Use hsep: ∀ γ ∈ Zk, ∀ t ∈ I.interval, 2^(k-1) * I.len ≤ |t - γ|
+  -- 2. Bound Ksigma σ (t - γ) ≤ σ / |t - γ|^2 ≤ σ / (2^(k-1) * I.len)^2
+  -- 3. Integrate: ∫ (Ksigma σ (t - γ))^2 over t gives O(σ^2/L · 1/(2^k L)^2)
+  -- 4. Integrate over σ ∈ (0, α*L]: ∫ σ · (stuff) dσ gives O(α^4 L^4 / 4^k)
+  -- 5. Sum over Zk.card centers
+
+  -- For now, this is a blocker that needs the full Poisson kernel analysis
+  sorry
 
 end Diagonal
 
-/-- Cauchy–Schwarz lift: energy ≤ (#Zk) · diagonal energy. 
+/-
+/-- Cauchy–Schwarz lift: energy ≤ (#Zk) · diagonal energy.
 Since both are 0, the proof is trivial. -/
 theorem annularEnergy_le_card_mul_diag
   (α : ℝ) (I : WhitneyInterval) (Zk : Finset ℝ) :
@@ -200,6 +1282,7 @@ lemma annularEnergy_nonneg {α : ℝ} {I : WhitneyInterval} {Zk : Finset ℝ} :
   0 ≤ annularEnergy α I Zk := by
   -- annularEnergy is defined as 0
   simp [annularEnergy]
+  -/
 
 /-! ## C.3: Whitney Carleson from RvM (interface form)
 
@@ -269,3 +1352,5 @@ end
 end KxiWhitneyRvM
 end Cert
 end RH
+
+-/
