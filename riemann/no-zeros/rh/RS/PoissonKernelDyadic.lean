@@ -483,7 +483,7 @@ lemma sep_between_annuli_gap_ge_two
     exact this
 
 lemma row_bound_4decay
-    {σ τ α L c : ℝ} (hσ : 0 < σ) (hτ : 0 < τ) (hL : 0 < L)
+    {σ τ _ L c : ℝ} (hσ : 0 < σ) (hτ : 0 < τ) (hL : 0 < L)
     (S : Set ℝ) (hS : MeasurableSet S)
     (a b : ℕ → ℝ)
     (ha : ∀ k, inDyadicAnnulus c L k (a k))
@@ -540,7 +540,7 @@ lemma row_bound_4decay
       have : (∫ t in S, Ksigma σ (t - a k) * Ksigma τ (t - b j))
           ≤ C_row * ((4 : ℝ) ^ (Nat.dist k j))⁻¹ :=
         le_trans hx hxRow
-      exact fun a_1 ↦ mul_le_mul_of_nonneg_right this hφ_nonneg
+      exact fun _ ↦ mul_le_mul_of_nonneg_right this hφ_nonneg
     · have hle : Nat.dist k j ≤ 1 := Nat.lt_succ_iff.mp (lt_of_not_ge hcase)
       have hWhole :
           (∫ t, Ksigma σ (t - a k) * Ksigma τ (t - b j))
@@ -573,8 +573,6 @@ lemma row_bound_4decay
         have : (Real.pi / (σ + τ)) ≤ C_near * ((4 : ℝ) ^ (Nat.dist k j))⁻¹ := by
           refine le_trans ?_ (mul_le_mul_of_nonneg_left hmono hCpos)
           have : (1 : ℝ) ≤ 4 * (4 : ℝ)⁻¹ := by norm_num
-          have hπpos : 0 ≤ Real.pi / (σ + τ) :=
-            div_nonneg Real.pi_pos.le (add_nonneg hσ.le hτ.le)
           simp [C_near, mul_comm, mul_left_comm, mul_assoc]
         have hCnear_le : C_near ≤ C_row := le_max_right _ _
         have hdec_nonneg : 0 ≤ ((4 : ℝ) ^ (Nat.dist k j))⁻¹ :=
@@ -586,7 +584,7 @@ lemma row_bound_4decay
       have : (∫ t in S, Ksigma σ (t - a k) * Ksigma τ (t - b j))
           ≤ C_row * ((4 : ℝ) ^ (Nat.dist k j))⁻¹ :=
         le_trans hRestr_le hCrow_ge
-      exact fun a_1 ↦ mul_le_mul_of_nonneg_right this hφ_nonneg
+      exact fun _ ↦ mul_le_mul_of_nonneg_right this hφ_nonneg
   have hsum := Finset.sum_le_sum hterm
   have hdec_le_one : ∀ j ∈ Finset.range K,
       ((4 : ℝ) ^ (Nat.dist k j))⁻¹ ≤ 1 := by
