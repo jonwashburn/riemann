@@ -6,7 +6,6 @@ import rh.academic_framework.ConstructiveOuter
 import rh.RS.CRGreenOuter
 import rh.RS.WhitneyAeCore
 import rh.RS.OffZerosBridge
-import rh.RS.PinchWrappers
 import rh.RS.PinchCertificate
 import rh.academic_framework.HalfPlaneOuterV2
 import rh.academic_framework.ConstructiveOuter
@@ -53,7 +52,7 @@ def hOuterWitness := by
         -- We reuse the AF constructive existence and coerce the structure.
         have hAF : RH.AcademicFramework.HalfPlaneOuterV2.ExistsOuterWithModulus
             (fun s => RH.RS.det2 s / RH.AcademicFramework.CompletedXi.riemannXi_ext s) :=
-          RH.AcademicFramework.ConstructiveOuter.outer_exists_with_modulus_det2_over_xi_constructive
+          RH.AcademicFramework.ConstructiveOuter.outer_exists_with_modulus_det2_over_xi
         rcases hAF with ⟨O, hO, hBME⟩
         refine ⟨O, ?hOuterRS, ?hBMErs⟩
         · -- Wrap AF IsOuter into RS OuterHalfPlane (same domain Ω)
@@ -462,7 +461,7 @@ theorem RiemannHypothesis_via_RouteB : RiemannHypothesis := by
     -- AF existence: ∃ O, IsOuter O ∧ BoundaryModulusEq O (det2/xi_ext)
     have hAF : RH.AcademicFramework.HalfPlaneOuterV2.ExistsOuterWithModulus
         (fun s => RH.RS.det2 s / riemannXi_ext s) :=
-      RH.AcademicFramework.ConstructiveOuter.outer_exists_with_modulus_det2_over_xi_constructive
+      RH.AcademicFramework.ConstructiveOuter.outer_exists_with_modulus_det2_over_xi
     rcases hAF with ⟨Oaf, hOaf, hBaf⟩
     -- RS uses an equivalent OuterHalfPlane/BoundaryModulusEq on the same Ω/boundary
     refine ⟨Oaf, ?hOuterRS, ?hBRS⟩

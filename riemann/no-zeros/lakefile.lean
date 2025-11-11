@@ -15,7 +15,41 @@ require mathlib from git
 -- Build everything with v4.13.0
 @[default_target]
 lean_lib rh where
-  roots := #[`rh.Proof.Main]
+  roots := #[
+    `rh.Proof.Main,
+    `rh.RS.SchurGlobalization,
+    `rh.Cert.KxiWhitney,
+    `rh.RS.OffZerosBridge,
+    `rh.RS.Cayley,
+    `rh.RS.PinchCertificate,
+    `rh.RS.PinchIngredients,
+    `rh.RS.XiExtBridge,
+    `rh.RS.Domain,
+    `rh.RS.Det2Outer,
+    `rh.RS.PoissonAI,
+    `rh.RS.CertificateConstruction,
+    `rh.RS.CRGreenOuter,
+    `rh.RS.WhitneyGeometryDefs,
+    `rh.RS.WhitneyAeCore,
+    `rh.Cert.KxiPPlus,
+    `rh.academic_framework.EulerProductMathlib,
+    `rh.academic_framework.EulerProduct.K0Bound,
+    `rh.academic_framework.EulerProduct.PrimeSeries,
+    `rh.academic_framework.ZetaFunctionalEquation,
+    `rh.academic_framework.CompletedXi,
+    `rh.academic_framework.CompletedXiSymmetry,
+    `rh.academic_framework.DiskHardy,
+    `rh.academic_framework.DiagonalFredholm.Determinant,
+    `rh.academic_framework.DiagonalFredholm.WeierstrassProduct,
+    `rh.academic_framework.HalfPlaneOuterV2,
+    `rh.academic_framework.MeasureHelpers,
+    `rh.academic_framework.GammaBounds,
+    `rh.academic_framework.ConstructiveOuter,
+    `rh.academic_framework.PoissonCayley,
+    `rh.academic_framework.CayleyAdapters,
+    `rh.RS.RouteB_Final,
+    `rh.Compat
+  ]
 
 -- Minimal active track: just the top assembly module
 lean_lib «rh_active» where

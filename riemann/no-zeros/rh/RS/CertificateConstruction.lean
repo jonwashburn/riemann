@@ -4,7 +4,6 @@ import rh.RS.Det2Outer
 import rh.RS.OffZerosBridge
 import rh.academic_framework.CompletedXi
 import rh.Proof.Main
-import rh.RS.PinchWrappers
 import Mathlib.Analysis.Analytic.IsolatedZeros
 import Mathlib.Analysis.Complex.RemovableSingularity
 import Mathlib.Topology.Basic
@@ -48,8 +47,6 @@ theorem outer_exists_for_certificate :
   refine ⟨RH.RS.RouteB.O, (RH.RS.RouteB.O_spec).1, (RH.RS.RouteB.O_spec).2⟩
 
 -- Interior positivity for the certificate outer via Route B (P+) + Poisson transport.
--- We avoid depending on the boundary wedge module by using the Route B wiring and
--- the transport helper from `PinchWrappers`.
 lemma interior_positive_with_certificate_outer :
   ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
     0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose outer_exists_for_certificate) z)).re := by

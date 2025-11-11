@@ -88,11 +88,10 @@ lemma Θ_pinch_Schur_offXi (P : PinchOuterExt) :
   have hRe_off : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
       0 ≤ ((2 : ℂ) * P.J z).re := by
     intro z hz
-    have hzOff : z ∈ (Ω \ {z | riemannXi_ext z = 0}) := by
-      refine And.intro hz.1 ?_
-      intro hzero
-      exact hz.2.2 (by simpa [Set.mem_setOf_eq] using hzero)
-    exact P.hRe_offXi z hzOff
+    -- offXi ⊆ Ω \\ {ξ = 0}
+    have hzOffZeros : z ∈ (Ω \ {z | riemannXi_ext z = 0}) :=
+      RH.AcademicFramework.HalfPlaneOuterV2.offXi_subset_offZeros hz
+    exact P.hRe_offXi z hzOffZeros
   exact Theta_Schur_of_Re_nonneg_on (J := P.J)
     (S := RH.AcademicFramework.HalfPlaneOuterV2.offXi) hRe_off
 
@@ -134,7 +133,10 @@ lemma Θ_cert_Schur_offZeros_with_one (C : PinchCertificateExt)
         · exact h1
         · intro h0
           exact hzNotZero (by simpa [Set.mem_setOf_eq] using h0)
-      exact C.hRe_offXi z hzOffXi
+      -- offXi ⊆ Ω \\ {ξ = 0}
+      have hzOffZeros : z ∈ (Ω \ {z | riemannXi_ext z = 0}) :=
+        RH.AcademicFramework.HalfPlaneOuterV2.offXi_subset_offZeros hzOffXi
+      exact C.hRe_offXi z hzOffZeros
   -- Apply Cayley positivity→Schur on S
   exact Theta_Schur_of_Re_nonneg_on (J := C.J)
     (S := (Ω \ {z | riemannXi_ext z = 0})) hRe_S
