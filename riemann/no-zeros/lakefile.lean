@@ -27,7 +27,6 @@ lean_lib rh where
     `rh.RS.Domain,
     `rh.RS.Det2Outer,
     `rh.RS.PoissonAI,
-    `rh.RS.CertificateConstruction,
     `rh.RS.CRGreenOuter,
     `rh.RS.WhitneyGeometryDefs,
     `rh.RS.WhitneyAeCore,
@@ -47,7 +46,6 @@ lean_lib rh where
     `rh.academic_framework.ConstructiveOuter,
     `rh.academic_framework.PoissonCayley,
     `rh.academic_framework.CayleyAdapters,
-    `rh.RS.RouteB_Final,
     `rh.Compat
   ]
 

@@ -135,6 +135,110 @@ lemma fromDisk_toDisk_of_mem_Ω {z : ℂ}
   -- Apply the general inverse identity valid for all nonzero points
   simpa [boundaryToDisk] using fromDisk_toDisk_of_ne_zero (z := HalfPlaneOuterV2.boundary t) hb0
 
+/-- Helper simp: composing `fromDisk` with `toDisk` under a map recovers the original argument. -/
+@[simp] lemma map_fromDisk_toDisk
+    {α : Sort _} (F : ℂ → α) {z : ℂ} (hz : z ∈ HalfPlaneOuterV2.Ω) :
+    F (fromDisk (toDisk z)) = F z := by
+  simpa using congrArg F (fromDisk_toDisk_of_mem_Ω hz)
+
+/-- Helper simp: composing `fromDisk` with `boundaryToDisk` under a map
+recovers the half-plane boundary point. -/
+@[simp] lemma map_fromDisk_boundaryToDisk
+    {α : Sort _} (F : ℂ → α) (t : ℝ) :
+    F (fromDisk (boundaryToDisk t)) = F (HalfPlaneOuterV2.boundary t) := by
+  simpa using congrArg F (fromDisk_boundaryToDisk t)
+
+/-- Transfer a subset half-plane Poisson representation of `F` to the pullback `(H ∘ toDisk)`. -/
+@[simp] lemma pullback_rep_on_from_halfplane_rep
+  (F : ℂ → ℂ) (H : ℂ → ℂ) {S : Set ℂ}
+  (hHdef : ∀ w, H w = F (fromDisk w))
+  (hS : S ⊆ HalfPlaneOuterV2.Ω)
+  (hRepOn : HalfPlaneOuterV2.HasPoissonRepOn F S)
+  : HalfPlaneOuterV2.HasPoissonRepOn (fun z => H (toDisk z)) S := by
+  refine {
+    subset := hS
+    , analytic := ?hA
+    , integrable := ?hI
+    , formula := ?hEq };
+  · -- Analytic on `S` because `(H ∘ toDisk) = F` on `S`.
+    have hEqOn : Set.EqOn (fun z => H (toDisk z)) F S := by
+      intro z hz
+      have h := hHdef (toDisk z)
+      have hzΩ := hS hz
+      rwa [map_fromDisk_toDisk (F := F) hzΩ] at h
+    exact (hRepOn.analytic.congr hEqOn)
+  · intro z hz
+    -- Match integrands pointwise and reuse integrability from `F`.
+    have hEqFun :
+        (fun t : ℝ =>
+          (H (toDisk (HalfPlaneOuterV2.boundary t))).re * HalfPlaneOuterV2.poissonKernel z t)
+        = (fun t : ℝ =>
+          (F (HalfPlaneOuterV2.boundary t)).re * HalfPlaneOuterV2.poissonKernel z t) := by
+      funext t
+      have hBoundRaw : H (boundaryToDisk t) = F (HalfPlaneOuterV2.boundary t) := by
+        simpa only [fromDisk_boundaryToDisk] using hHdef (boundaryToDisk t)
+      have hBound :
+          H (toDisk (HalfPlaneOuterV2.boundary t)) = F (HalfPlaneOuterV2.boundary t) := by
+        simpa [boundaryToDisk] using hBoundRaw
+      have hRe :
+          (H (toDisk (HalfPlaneOuterV2.boundary t))).re
+            = (F (HalfPlaneOuterV2.boundary t)).re := by
+        simpa using congrArg Complex.re hBound
+      have hEq :
+          (H (toDisk (HalfPlaneOuterV2.boundary t))).re * HalfPlaneOuterV2.poissonKernel z t
+            = (F (HalfPlaneOuterV2.boundary t)).re * HalfPlaneOuterV2.poissonKernel z t := by
+        rw [hRe]
+      simpa using hEq
+    convert hRepOn.integrable z hz using 1
+  · intro z hz
+    -- Transport the Poisson formula along interior and boundary identities.
+    have hpointRe :
+        (H (toDisk z)).re = (F z).re := by
+      have h := congrArg Complex.re (hHdef (toDisk z))
+      have hzΩ := hS hz
+      rwa [map_fromDisk_toDisk (F := F) hzΩ] at h
+    have hEqFun :
+        (fun t : ℝ =>
+          (F (HalfPlaneOuterV2.boundary t)).re * HalfPlaneOuterV2.poissonKernel z t)
+        = (fun t : ℝ =>
+          (H (toDisk (HalfPlaneOuterV2.boundary t))).re
+            * HalfPlaneOuterV2.poissonKernel z t) := by
+      funext t
+      have hBoundRaw : H (boundaryToDisk t) = F (HalfPlaneOuterV2.boundary t) := by
+        simpa only [fromDisk_boundaryToDisk] using hHdef (boundaryToDisk t)
+      have hBound :
+          H (toDisk (HalfPlaneOuterV2.boundary t)) = F (HalfPlaneOuterV2.boundary t) := by
+        simpa [boundaryToDisk] using hBoundRaw
+      have hRe :
+          (H (toDisk (HalfPlaneOuterV2.boundary t))).re
+            = (F (HalfPlaneOuterV2.boundary t)).re := by
+        simpa using congrArg Complex.re hBound
+      have hEq :
+          (F (HalfPlaneOuterV2.boundary t)).re * HalfPlaneOuterV2.poissonKernel z t
+            = (H (toDisk (HalfPlaneOuterV2.boundary t))).re * HalfPlaneOuterV2.poissonKernel z t := by
+        rw [hRe]
+      simpa using hEq
+    have hFPI :
+        (F z).re =
+          HalfPlaneOuterV2.poissonIntegral
+            (fun t => (F (HalfPlaneOuterV2.boundary t)).re) z := hRepOn.formula z hz
+    have hHPI1 :
+        (H (toDisk z)).re =
+          HalfPlaneOuterV2.poissonIntegral
+            (fun t => (F (HalfPlaneOuterV2.boundary t)).re) z :=
+      hpointRe.trans hFPI
+    have hSwap :
+        HalfPlaneOuterV2.poissonIntegral
+            (fun t => (F (HalfPlaneOuterV2.boundary t)).re) z
+        = HalfPlaneOuterV2.poissonIntegral
+            (fun t => (H (toDisk (HalfPlaneOuterV2.boundary t))).re) z := by
+      classical
+      dsimp [HalfPlaneOuterV2.poissonIntegral]
+      exact congrArg (fun f => ∫ t, f t) hEqFun
+    -- Combine identities to obtain the target equality.
+    simpa [HalfPlaneOuterV2.poissonIntegral, boundaryToDisk, toDisk] using
+      hHPI1.trans hSwap
+
 -- Note: the boundary image lies on the unit circle; not required downstream here.
 -- lemma boundary_maps_to_unitCircle (t : ℝ) : Complex.abs (boundaryToDisk t) = 1 := by
 --   -- Proof available via direct algebra on abs-squared; omitted since unused.
@@ -456,31 +560,54 @@ lemma exp_negI_two_arctan_ratio (y : ℝ) :
 lemma exp_I_pi_sub_two_arctan (y : ℝ) :
   Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan y))
     = ((-1 : ℝ) + Complex.I * y) / ((1 : ℝ) + Complex.I * y) := by
-  have hpi : Complex.exp (Complex.I * Real.pi) = (-1 : ℂ) := by
-    simpa using Complex.exp_pi_mul_I
   have hsplit :
       Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan y))
         = Complex.exp (Complex.I * Real.pi)
             * Complex.exp (-Complex.I * (2 * Real.arctan y)) := by
     simpa [sub_eq_add_neg, mul_add, add_mul, mul_comm, mul_left_comm, mul_assoc]
       using Complex.exp_add (Complex.I * Real.pi) (-Complex.I * (2 * Real.arctan y))
-  have hnegR :
-      Complex.exp (-Complex.I * (2 * Real.arctan y))
+  have hneg := exp_negI_two_arctan_ratio y
+  have hnegC :
+      Complex.exp (-Complex.I * (2 * Complex.arctan (y : ℂ)))
         = ((1 : ℂ) - Complex.I * y) / ((1 : ℂ) + Complex.I * y) := by
-    simpa [mul_comm, mul_left_comm, mul_assoc] using exp_negI_two_arctan_ratio y
+    simpa [Complex.ofReal_arctan, mul_comm, mul_left_comm, mul_assoc] using hneg
+  set ratio : ℂ := ((1 : ℂ) - Complex.I * y) / ((1 : ℂ) + Complex.I * y)
+  have hden : ((1 : ℂ) + Complex.I * y) ≠ 0 := by
+    intro h
+    have := congrArg Complex.re h
+    simpa using this
+  have hmul_ratio :
+      -ratio
+        = ((-1 : ℂ) + Complex.I * y) / ((1 : ℂ) + Complex.I * y) := by
+    have hdiff :
+        -ratio
+          - ((-1 : ℂ) + Complex.I * y) / ((1 : ℂ) + Complex.I * y) = 0 := by
+      field_simp [ratio, hden, sub_eq_add_neg, add_comm, add_left_comm, add_assoc]
+    exact sub_eq_zero.mp hdiff
+  have hresult :
+      Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan y))
+        = Complex.exp (Complex.I * Real.pi) * ratio := by
+    calc
+      Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan y))
+          = Complex.exp (Complex.I * Real.pi)
+              * Complex.exp (-Complex.I * (2 * Real.arctan y)) := hsplit
+      _ = Complex.exp (Complex.I * Real.pi)
+            * ratio := by
+          simpa [ratio, Complex.ofReal_arctan, mul_comm, mul_left_comm, mul_assoc] using hnegC
+  have hcast :
+      ((-1 : ℂ) + Complex.I * y) / ((1 : ℂ) + Complex.I * y)
+        = ((-1 : ℝ) + Complex.I * y) / ((1 : ℝ) + Complex.I * y) := by
+    simp
+  have hpi_mul :
+      Complex.exp (Complex.I * Real.pi) * ratio = -ratio := by
+    have := congrArg (fun z => z * ratio) Complex.exp_pi_mul_I
+    simpa [ratio, mul_comm, mul_left_comm, mul_assoc] using this
   calc
     Complex.exp (Complex.I * (Real.pi - 2 * Real.arctan y))
-        = Complex.exp (Complex.I * Real.pi)
-            * Complex.exp (-Complex.I * (2 * Real.arctan y)) := hsplit
-    _ = Complex.exp (Complex.I * Real.pi)
-          * (((1 : ℂ) - Complex.I * y) / ((1 : ℂ) + Complex.I * y)) := by
-          simpa [hnegR]
-    _ = (-1 : ℂ) * (((1 : ℂ) - Complex.I * y) / ((1 : ℂ) + Complex.I * y)) := by
-          simpa [hpi]
-    _ = -(( (1 : ℂ) - Complex.I * y) / ((1 : ℂ) + Complex.I * y)) := by
-          simp [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
-    _ = ((-1 : ℂ) + Complex.I * y) / ((1 : ℂ) + Complex.I * y) := by
-          simp [sub_eq_add_neg, add_comm, add_left_comm, add_assoc]
+        = Complex.exp (Complex.I * Real.pi) * ratio := hresult
+    _ = -ratio := hpi_mul
+    _ = ((-1 : ℂ) + Complex.I * y) / ((1 : ℂ) + Complex.I * y) := hmul_ratio
+    _ = ((-1 : ℝ) + Complex.I * y) / ((1 : ℝ) + Complex.I * y) := hcast
 
 /-- Parametrization identity along the boundary circle. -/
 lemma boundaryToDisk_param (t : ℝ) :

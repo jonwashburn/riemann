@@ -7,6 +7,7 @@ import rh.Cert.KxiPPlus
 import rh.academic_framework.HalfPlaneOuterV2
 import rh.academic_framework.CompletedXi
 import rh.RS.WhitneyAeCore
+import rh.RS.WedgeBasics
 import Mathlib.Tactic
 import Mathlib.Analysis.Calculus.Deriv.Basic
 import Mathlib.Data.Real.Pi.Bounds
@@ -38,66 +39,12 @@ open RH.Cert.KxiWhitneyRvM
 
 namespace KxiDiag
 
-/-- Separation from the base interval: if `γ` lies in the k‑th annulus and `k≥1`,
-then for all `t ∈ I.interval` one has `|t−γ| ≥ 2^{k−1}·I.len`. -/
+/-- Separation from the base interval: re-exported wrapper using `WedgeBasics`. -/
 lemma separation_from_base_of_annulus
-  (I : WhitneyInterval) {k : ℕ} (hk : 1 ≤ k) {γ : ℝ}
-  (hA : annulusDyadic I k γ) :
-  ∀ t ∈ I.interval, (2 : ℝ)^(k-1) * I.len ≤ |t - γ| := by
-  intro t ht
-  -- |t−γ| ≥ |γ−t0| − |t−t0|
-  have hdist : |t - γ| ≥ |γ - I.t0| - |t - I.t0| := by
-    -- triangle inequality on ℝ
-    have := abs_sub_le_iff.1 (abs_sub (t) (γ))
-    -- Use |x−z| ≥ |y−z| − |x−y|; here choose y = I.t0
-    -- fallback: standard inequality |x−z| ≥ |y−z| − |x−y|
-    have : |t - γ| ≥ |I.t0 - γ| - |t - I.t0| := by
-      simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc, abs_sub] using
-        (abs_sub_le_iff.1 (by
-          have := abs_sub (t) (γ)
-          exact this))
-    -- |I.t0−γ| = |γ−t0|
-    simpa [abs_sub_comm]
-      using this
-  -- On the base: |t−t0| ≤ I.len
-  have hbase : |t - I.t0| ≤ I.len := by
-    have hL : I.t0 - I.len ≤ t ∧ t ≤ I.t0 + I.len := by
-      simpa [WhitneyInterval.interval] using ht
-    have h1 : -I.len ≤ t - I.t0 := by linarith
-    have h2 : t - I.t0 ≤ I.len := by linarith
-    exact (abs_le.mpr ⟨h1, h2⟩)
-  -- From annulus: |γ−t0| > 2^k·I.len
-  have hAnn_lt : (2 : ℝ)^k * I.len < |γ - I.t0| := by
-    have := hA.left
-    -- |γ−t0| = |t0−γ|
-    simpa [abs_sub_comm] using this
-  -- Combine: |t−γ| ≥ |γ−t0| − |t−t0| > 2^k·I.len − I.len ≥ 2^{k−1}·I.len
-  have hstep : |t - γ| > (2 : ℝ)^k * I.len - I.len :=
-    lt_of_le_of_lt (by exact sub_le_sub_right (le_of_lt hAnn_lt) _) (by
-      have := sub_eq_add_neg ((2 : ℝ)^k * I.len) I.len
-      -- trivial step
-      exact lt_of_le_of_lt (by linarith) (by linarith))
-  -- 2^k·L − L ≥ 2^{k−1}·L for k≥1
-  have hgeom : (2 : ℝ)^k * I.len - I.len ≥ (2 : ℝ)^(k-1) * I.len := by
-    have hposL : 0 ≤ I.len := (le_of_lt I.len_pos)
-    have : (2 : ℝ)^k - 1 ≥ (2 : ℝ)^(k-1) := by
-      have h2pos : (0 : ℝ) ≤ (2 : ℝ) := by norm_num
-      have hpow_mono := pow_le_pow_of_le_left h2pos (by norm_num : (2 : ℝ) ≤ (2 : ℝ)) (k-1)
-      -- crude inequality: 2^k − 1 ≥ 2^{k−1} for k≥1
-      have hk' : (2 : ℝ)^k = (2 : ℝ) * (2 : ℝ)^(k-1) := by
-        simpa [pow_succ] using (by rfl : (2 : ℝ)^k = (2 : ℝ)^(k-1+1))
-      have : (2 : ℝ) * (2 : ℝ)^(k-1) - 1 ≥ (2 : ℝ)^(k-1) := by
-        have : (2 : ℝ) * (2 : ℝ)^(k-1) - 1 - (2 : ℝ)^(k-1) = (2 : ℝ)^(k-1) - 1 := by ring
-        have : (2 : ℝ)^(k-1) - 1 ≥ 0 := by
-          have : (2 : ℝ)^(k-1) ≥ 1 := by simpa using (one_le_pow_of_one_le (by norm_num) (k-1))
-          linarith
-        linarith
-      simpa [hk'] using this
-    -- multiply both sides by L ≥ 0
-    have := mul_le_mul_of_nonneg_right this hposL
-    simpa [mul_sub] using this
-  -- conclude ≥ by weakening strict >
-  exact le_trans (le_of_lt hstep) hgeom
+    (I : WhitneyInterval) {k : ℕ} (hk : 1 ≤ k) {γ : ℝ}
+    (hA : RH.RS.PoissonKernelDyadic.inDyadicAnnulus I.t0 I.len k γ) :
+    ∀ t ∈ I.interval, (2 : ℝ) ^ (k - 1) * I.len ≤ |t - γ| :=
+  RH.RS.WedgeBasics.sep_from_base_of_annulus_Whitney (I := I) (hk := hk) (hAnn := hA)
 
 /-- Diagonal annulus energy bound specialized to a singleton center. -/
 lemma annular_diag_singleton_bound
