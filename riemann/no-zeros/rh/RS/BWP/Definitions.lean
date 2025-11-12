@@ -1,28 +1,183 @@
-import rh.RS.CRGreenOuter
-import rh.RS.SchurGlobalization
-import rh.Cert.KxiPPlus
-import rh.Cert.KxiWhitney_RvM
+import Mathlib.Analysis.CStarAlgebra.Classes
+import Mathlib.Analysis.NormedSpace.Connected
+import Mathlib.Data.Real.StarOrdered
+import Mathlib.NumberTheory.Harmonic.ZetaAsymp
+import Mathlib.Topology.CompletelyRegular
+import Mathlib.Topology.EMetricSpace.Paracompact
 import rh.RS.BWP.Constants
-import Mathlib.Tactic
 
 /-!
 # Boundary Wedge Proof - Basic Definitions
 
 This module contains the fundamental definitions used throughout the boundary wedge proof:
-- Decay functions and dyadic scales
-- Annular decomposition structures
-- Zero counting functions
-- Calibration constants
-
-These definitions are used by the diagonal bounds, Carleson energy estimates,
-and the main wedge closure argument.
+- Auxiliary lemmas
+- Analytic functions
+- Residue bookkeeping
+- Poisson balayage
+- Dyadic annuli and counts
+- Product constant calibration
+- Decay functions and weights
+- Residue bookkeeping
 -/
+
+namespace HasFPowerSeriesAt
+
+variable {𝕜 E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [NormedSpace 𝕜 E] [CompleteSpace E]
+variable {f : 𝕜 → E} {p : FormalMultilinearSeries 𝕜 𝕜 E} {z : 𝕜}
+
+/-- For a function with a power series at `z`, the `n`-th iterated derivative at `z`
+equals `n!` times the `n`-th coefficient (one–variable Taylor’s formula at the center). -/
+lemma iteratedDeriv_eq_coeff (hp : HasFPowerSeriesAt f p z) (n : ℕ) :
+    iteratedDeriv n f z = (Nat.factorial n : 𝕜) • p.coeff n := by
+  -- Extract a ball expansion
+  rcases hp with ⟨r, hr⟩
+  have h :=
+    (hr.factorial_smul (y := (1 : 𝕜)) n)
+  have : ((n.factorial : 𝕜)) • p.coeff n =
+      (iteratedFDeriv 𝕜 n f z) (fun _ => (1 : 𝕜)) := by
+    simpa [one_pow, one_smul,
+      (Nat.cast_smul_eq_nsmul (R := 𝕜) (M := E)),
+      iteratedDeriv_eq_iteratedFDeriv] using h
+  simpa [iteratedDeriv_eq_iteratedFDeriv] using this.symm
+
+end HasFPowerSeriesAt
+namespace AnalyticAt
+
+open Topology Set Filter
+
+variable {𝕜 E : Type*}
+  [RCLike 𝕜] [NormedAddCommGroup E] [NormedSpace 𝕜 E]
+
+-- One-variable evaluation of a formal multilinear series at a constant vector
+lemma apply_eq_pow_smul_coeff
+    {𝕜 E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [NormedSpace 𝕜 E]
+    (p : FormalMultilinearSeries 𝕜 𝕜 E) (n : ℕ) (y : 𝕜) :
+    (p n) (fun _ : Fin n => y) = y ^ n • p.coeff n := by simp
+
+/-- Identity-principle alternative via coefficients:
+for an analytic `f` at `z`, either `f` is eventually `0` near `z`,
+or some power-series coefficient at `z` is nonzero. -/
+lemma eventually_eq_zero_or_exists_coeff_ne_zero
+    {f : 𝕜 → E} {z : 𝕜} (h : AnalyticAt 𝕜 f z) :
+    (∀ᶠ w in 𝓝 z, f w = 0) ∨ ∃ n, (h.choose).coeff n ≠ 0 := by
+  classical
+  let p := h.choose
+  have hp : HasFPowerSeriesAt f p z := h.choose_spec
+  by_cases hAll : ∀ n, p.coeff n = 0
+  · left
+    have hzero : ∀ᶠ y in 𝓝 (0 : 𝕜), f (z + y) = 0 := by
+      filter_upwards [hp.eventually_hasSum] with y hy
+      have hy' : HasSum (fun n => y ^ n • p.coeff n) (f (z + y)) := by
+        simpa [apply_eq_pow_smul_coeff] using hy
+      have hseq0 : (fun n => y ^ n • p.coeff n) = 0 := by
+        funext n; simp [hAll n]
+      have hy0 : HasSum (fun _ : ℕ => 0) (f (z + y)) := by
+        simpa [hseq0] using hy'
+      exact (hasSum_zero.unique hy0).symm
+    rcases (Filter.eventually_iff_exists_mem).1 hzero with ⟨V, hVmem, hV⟩
+    have hcont : ContinuousAt (fun w : 𝕜 => w - z) z := (continuousAt_id.sub continuousAt_const)
+    have hVmem0 : V ∈ 𝓝 (z - z) := by simpa [sub_self] using hVmem
+    have hpre : (fun w : 𝕜 => w - z) ⁻¹' V ∈ 𝓝 z := hcont hVmem0
+    have hzρ : ∀ᶠ w in 𝓝 z, f w = 0 := by
+      refine Filter.mem_of_superset hpre ?_
+      intro w hw
+      have : f (z + (w - z)) = 0 := hV (w - z) hw
+      simpa [add_sub_cancel] using this
+    exact hzρ
+  · right
+    exact not_forall.mp hAll
+
+-- If a non-zero scalar multiplied by a vector is zero, the vector must be zero.
+lemma smul_eq_zero_iff_ne_zero_of_left
+    {R M : Type*} [Semiring R] [AddCommMonoid M] [Module R M] [NoZeroSMulDivisors R M]
+    {r : R} (hr : r ≠ 0) {m : M} :
+    r • m = 0 ↔ m = 0 := by
+  constructor
+  · intro h
+    -- Use the no-zero-smul-divisors property: r • m = 0 implies r = 0 or m = 0.
+    -- Since r ≠ 0, we must have m = 0.
+    have := (smul_eq_zero.mp h).resolve_left hr
+    exact this
+  · intro h
+    simp [h]
+
+/-- Identity-principle alternative via iterated derivatives (derivative form).
+For an analytic `f` at `z`, either `f` is eventually `0` near `z`,
+or some iterated derivative at `z` is nonzero.
+
+Note: this uses the standard relation between the Taylor coefficients and
+iterated derivatives: `iteratedDeriv n f z = (Nat.factorial n) • (coeff n)`. -/
+lemma eventually_eq_zero_or_exists_deriv_ne_zero
+    [CompleteSpace E]
+    {f : 𝕜 → E} {z : 𝕜} (h : AnalyticAt 𝕜 f z) :
+    (∀ᶠ w in 𝓝 z, f w = 0) ∨ ∃ n, iteratedDeriv n f z ≠ 0 := by
+  classical
+  -- Consistently use the power series `p` chosen by the `AnalyticAt` instance `h`.
+  let p := h.choose
+  have hp : HasFPowerSeriesAt f p z := h.choose_spec
+  -- Apply the coefficient-based version of the identity principle.
+  -- Since `p` is definitionally `h.choose`, the result of this lemma is about `p`.
+  have hcoeff := AnalyticAt.eventually_eq_zero_or_exists_coeff_ne_zero h
+  -- If `f` is eventually zero, we are done.
+  refine hcoeff.imp id ?_
+  -- Otherwise, there exists a non-zero coefficient.
+  rintro ⟨n, hn⟩ -- `hn` is `p.coeff n ≠ 0`.
+  -- Use the relation between derivatives and coefficients from mathlib.
+  have hrel : iteratedDeriv n f z = (Nat.factorial n : 𝕜) • p.coeff n :=
+    hp.iteratedDeriv_eq_coeff n
+  -- We now prove the derivative is non-zero, completing the goal.
+  refine ⟨n, ?_⟩
+  intro h_deriv_zero
+  -- If the derivative is zero, the corresponding smul is zero.
+  have h_smul_zero : (Nat.factorial n : 𝕜) • p.coeff n = 0 := by
+    rwa [hrel] at h_deriv_zero
+  -- The factorial is non-zero in a field of characteristic zero.
+  have h_factorial_ne_zero : (Nat.factorial n : 𝕜) ≠ 0 :=
+    by exact_mod_cast Nat.factorial_ne_zero n
+  -- A non-zero scalar times a vector is zero iff the vector is zero.
+  have h_coeff_zero : p.coeff n = 0 :=
+    (smul_eq_zero_iff_ne_zero_of_left h_factorial_ne_zero).mp h_smul_zero
+  -- This creates a contradiction with `hn`.
+  exact hn h_coeff_zero
+end AnalyticAt
+namespace Filter
+open scoped Filter Topology Set
+/-- A property holds eventually in `𝓝[s] a` iff there exists a neighborhood of `a`
+where the property holds for all points in the intersection with `s`. -/
+theorem eventually_nhdsWithin_iff {α : Type*} [TopologicalSpace α]
+    {a : α} {s : Set α} {p : α → Prop} :
+    (∀ᶠ x in 𝓝[s] a, p x) ↔ ∀ᶠ x in 𝓝 a, x ∈ s → p x := by
+  simp [nhdsWithin, eventually_inf_principal]
+
+end Filter
+namespace TopologicalSpace
+/-- A subtype has discrete topology iff every singleton (as a subset of the subtype) is open. -/
+theorem discreteTopology_iff_isOpen_singleton_mem {α : Type*} [TopologicalSpace α] {s : Set α} :
+    DiscreteTopology s ↔ ∀ x : s, IsOpen ({x} : Set s) := by
+  constructor
+  · intro _
+    exact fun _ => isOpen_discrete _
+  · intro h
+    constructor
+    ext U
+    constructor
+    · intro _; trivial
+    · intro _
+      -- Show U is open by showing it's a union of open singletons
+      have : U = ⋃ x ∈ U, {x} := by
+        ext y
+        simp only [Set.mem_iUnion, Set.mem_singleton_iff, exists_prop, exists_eq_right']
+      rw [this]
+      exact isOpen_biUnion (fun x _ => h x)
+end TopologicalSpace
+
+
+/- Convenience alias in the project namespace to match existing calls. -/
 
 namespace RH.RS.BoundaryWedgeProof
 
 open Real Complex
 open MeasureTheory
-open RH.Cert.KxiWhitneyRvM
 
 /-! ## Whitney interval and basic structures -/
 
@@ -40,12 +195,13 @@ boundary and horizontally centered at `I.t0`. -/
 @[simp] lemma zWhitney_im (I : WhitneyInterval) :
     (zWhitney I).im = I.t0 := rfl
 
-/-- U on Whitney half-plane coordinates `(x, y) = (1/2 + σ, t)` built from `U_field`. -/
+/-- Harmonic potential in Whitney half–plane coordinates. For `p = (t, σ)`,
+set `s := (1/2 + σ) + I · t` and return `Re (log (J_canonical s))`. -/
 noncomputable def U_halfplane (p : ℝ × ℝ) : ℝ :=
   let s : ℂ := (((1 / 2 : ℝ) + p.2) : ℂ) + Complex.I * (p.1 : ℂ)
   (Complex.log (J_canonical s)).re
 
-/-- Gradient of `U_halfplane` in Whitney coordinates: `(∂/∂t U, ∂/∂σ U)`. -/
+/-- Gradient of `U_halfplane` with respect to `(t, σ)`, i.e. `(∂ₜ U, ∂ᵪ U)`. -/
 noncomputable def gradU_whitney (p : ℝ × ℝ) : ℝ × ℝ :=
   (deriv (fun t : ℝ => U_halfplane (t, p.2)) p.1,
    deriv (fun σ : ℝ => U_halfplane (p.1, σ)) p.2)
@@ -85,7 +241,7 @@ lemma product_constant_calibration
 @[simp] noncomputable def phi_of_nu (nu : ℕ → ℝ) (k : ℕ) : ℝ := decay4 k * nu k
 
 
-/-! ## Residue bookkeeping scaffolding
+/-! ## Residue bookkeeping
 
 This section introduces a minimal placeholder interface for residue bookkeeping,
 allowing us to encode that residue contributions are a finite nonnegative sum.
@@ -105,14 +261,10 @@ structure ResidueBookkeeping (I : WhitneyInterval) where
   total_nonneg : 0 ≤ total
 
 /-- Residue-based critical atoms total from bookkeeping. -/
-noncomputable def critical_atoms_res
-  (I : WhitneyInterval) (bk : ResidueBookkeeping I) : ℝ := bk.total
+@[simp] noncomputable def critical_atoms_res (I : WhitneyInterval) (bk : ResidueBookkeeping I) : ℝ := bk.total
 
-lemma critical_atoms_res_nonneg
-  (I : WhitneyInterval) (bk : ResidueBookkeeping I) :
-  0 ≤ critical_atoms_res I bk := by
-  simpa [critical_atoms_res]
-    using bk.total_nonneg
+@[simp] lemma critical_atoms_res_nonneg (I : WhitneyInterval) (bk : ResidueBookkeeping I) :
+  0 ≤ critical_atoms_res I bk := bk.total_nonneg
 
 
 @[simp] lemma poissonKernel_zWhitney
@@ -162,8 +314,11 @@ lemma pi_mul_poisson_balayage_eq_core (I : WhitneyInterval) :
   rw [← integral_mul_left]
   congr 1
   ext t
-  field_simp
-  rw [mul_div_mul_left I.len _ Real.pi_pos.ne']
+  ring_nf
+  rw [mul_assoc Real.pi I.len, mul_comm I.len, ← mul_assoc, mul_assoc]
+  have : Real.pi * Real.pi⁻¹ = 1 := by
+    rw [← div_eq_mul_inv, div_self Real.pi_ne_zero]
+  rw [this, one_mul]
 
 /-! ### Wiring rectangle interior remainder to Poisson via the core kernel
 
@@ -226,76 +381,712 @@ lemma nu_dyadic_nonneg (I : WhitneyInterval) (bk : ResidueBookkeeping I) (k : �
 
 /-! ### Canonical residue bookkeeping: finite representation of zeros
 
-This section provides the canonical residue bookkeeping for each Whitney interval `I`,
-encoding the contribution of zeros of the completed zeta function (or more precisely,
-`J_canonical = 2·ξ·J_CR`) within the Whitney box associated to `I`.
+This section defines residue bookkeeping for each Whitney interval `I`. Inside the
+Whitney box, we enumerate zeros of the completed zeta function (more precisely,
+`riemannXi_ext`) and attach to each zero a nonnegative weight proportional to its order
+(e.g. `π · order`). The structure `ResidueBookkeeping I` contains:
 
-**Mathematical Background** (Ahlfors "Complex Analysis", Ch. 5; Koosis "Logarithmic Integral" Vol. II):
+- `atoms`: a finite list of atoms `(ρ, weight, 0 ≤ weight)`;
+- `total`: the total weight, i.e. the finite sum of the atom weights;
+- a proof that `total ≥ 0`.
 
-For an analytic function F with zeros {ρⱼ} in a region, the argument principle gives:
-  ∫_{∂R} arg'(F) dt = 2π · #{zeros in R}
+Finiteness of `atoms` follows from the isolated-zero property of analytic functions
+and compactness of Whitney boxes. See the lemmas on isolated zeros and the proof that
+`zeroSetXi ∩ K` is finite for compact `K`.
 
-In our setting, J_canonical has finitely many zeros in each Whitney box (compact subset
-of the critical strip), and each zero contributes a residue proportional to its order.
-The bookkeeping structure `ResidueBookkeeping I` packages:
-  - `atoms`: finite list of zeros with their nonnegative residue weights
-  - `total`: precomputed sum ∑ⱼ wⱼ (for efficiency)
-  - Proof that `total` is nonnegative (fundamental for wedge closure)
+References:
+- Ahlfors, Complex Analysis (argument principle and residue theorem)
+- Koosis, The Logarithmic Integral
+- Edwards, Riemann's Zeta Function (zeros of ξ)
 
-**Placeholder Implementation**: The current implementation returns an empty atom list,
-which is mathematically sound (representing the case of no zeros) and sufficient for
-completing the proof architecture. The full zero enumeration via Jensen's formula or
-the argument principle will replace this once the analytic framework for J_canonical
-is complete.
+-/
+
+/- Canonical residue bookkeeping for Whitney interval `I`.
+
+We enumerate zeros of `riemannXi_ext` inside the Whitney box associated to `I` and
+assign weight `π · (order at ρ)` to each zero `ρ`. The atoms are obtained via
+`zerosInBox α I` (finite on compact sets) and `zeroOrderAt`. The total weight is
+the finite sum of the nonnegative atom weights.
+
+Type safety: the bookkeeping is indexed by `I`, which keeps atoms associated to
+the correct interval.
+-/
+
+open Complex Filter Set Real Topology RH
+open RH.AcademicFramework.CompletedXi
+open RH.RS.Whitney
+
+/-- Upper half-plane chart `(t,σ) ↦ (1/2 + σ) + i t`. -/
+@[simp] noncomputable def hpChart (p : ℝ × ℝ) : ℂ := ((1 / 2 : ℝ) + p.2) + (Complex.I : ℂ) * p.1
+
+lemma hpChart_continuous : Continuous hpChart := by
+  -- hpChart p = ((1/2 + p.2) : ℂ) + Complex.I * (p.1 : ℝ)
+  unfold hpChart
+  have h12 :
+      Continuous (fun p : ℝ × ℝ => ((2 : ℂ)⁻¹) + ((p.2 : ℝ) : ℂ)) :=
+    continuous_const.add (continuous_ofReal.comp continuous_snd)
+  have h3 :
+      Continuous (fun p : ℝ × ℝ => (Complex.I : ℂ) * ((p.1 : ℝ) : ℂ)) :=
+    continuous_const.mul (continuous_ofReal.comp continuous_fst)
+  simpa [add_assoc] using h12.add h3
+
+
+/-- Complex Whitney box over `I` with aperture `α`: image of `I.interval × [0, α|I|]` by `hpChart`.
+We use the closed strip `[0, α|I|]` to get compactness (the open/half-open version differs by a null boundary). -/
+def whitneyBoxC (α : ℝ) (I : WhitneyInterval) : Set ℂ :=
+  hpChart '' ((I.interval) ×ˢ Set.Icc (0 : ℝ) (α * I.len))
+
+lemma whitneyBoxC_compact (α : ℝ) (I : WhitneyInterval) :
+    IsCompact (whitneyBoxC α I) := by
+  have hIntC : IsCompact (I.interval) := by
+    -- `I.interval` is `Icc`, hence compact
+    simpa [RH.Cert.WhitneyInterval.interval] using isCompact_Icc
+  have hSegC : IsCompact (Set.Icc (0 : ℝ) (α * I.len)) := isCompact_Icc
+  have hProd := hIntC.prod hSegC
+  have hcont : Continuous hpChart := hpChart_continuous
+  simpa [whitneyBoxC] using hProd.image hcont
+
+/-- Zero set of `riemannXi_ext`. -/
+def zeroSetXi : Set ℂ := {z | riemannXi_ext z = 0}
+
+open Set
+
+lemma analyticAt_completedRiemannZeta (s : ℂ) (hs0 : s ≠ 0) (hs1 : s ≠ 1) :
+  AnalyticAt ℂ completedRiemannZeta s := by
+  classical
+  -- Work on the open set U = ℂ \ {0,1}
+  let U : Set ℂ := ({0} : Set ℂ)ᶜ ∩ ({1} : Set ℂ)ᶜ
+  have hU_open : IsOpen U :=
+    (isOpen_compl_iff.mpr isClosed_singleton).inter
+      (isOpen_compl_iff.mpr isClosed_singleton)
+  -- s ∈ U
+  have hsU : s ∈ U := by
+    refine And.intro ?hs0' ?hs1'
+    · change s ∉ ({0} : Set ℂ)
+      simpa [Set.mem_singleton_iff] using hs0
+    · change s ∉ ({1} : Set ℂ)
+      simpa [Set.mem_singleton_iff] using hs1
+  -- Differentiability of completedRiemannZeta on U
+  have hDiffOn : DifferentiableOn ℂ completedRiemannZeta U := by
+    intro z hz
+    have hz0 : z ≠ 0 := by
+      have hnot : z ∉ ({0} : Set ℂ) := hz.1
+      simpa [Set.mem_singleton_iff] using hnot
+    have hz1 : z ≠ 1 := by
+      have hnot : z ∉ ({1} : Set ℂ) := hz.2
+      simpa [Set.mem_singleton_iff] using hnot
+    exact (differentiableAt_completedZeta (s := z) hz0 hz1).differentiableWithinAt
+  -- Analytic on U, hence analytic at s (U is open, s ∈ U)
+  have hAnalOn :
+      AnalyticOn ℂ completedRiemannZeta U :=
+    (analyticOn_iff_differentiableOn
+      (f := completedRiemannZeta) (s := U) hU_open).mpr hDiffOn
+  have hAnalOnNhd :
+      AnalyticOnNhd ℂ completedRiemannZeta U :=
+    (hU_open.analyticOn_iff_analyticOnNhd (𝕜 := ℂ) (f := completedRiemannZeta)).1 hAnalOn
+  exact hAnalOnNhd s hsU
+
+lemma zeroSetXi_relClosed_off_poles :
+    ∃ u : Set ℂ, IsClosed u ∧
+      zeroSetXi ∩ (({0} : Set ℂ)ᶜ ∩ ({1} : Set ℂ)ᶜ)
+        = u ∩ (({0} : Set ℂ)ᶜ ∩ ({1} : Set ℂ)ᶜ) := by
+  -- On ℂ \ {0,1}, riemannXi_ext is continuous, so the preimage of {0} is relatively closed.
+  have hcont : ContinuousOn riemannXi_ext (({0} : Set ℂ)ᶜ ∩ ({1} : Set ℂ)ᶜ) :=
+    RH.AcademicFramework.CompletedXi.riemannXi_ext_continuous_on_compl01
+  obtain ⟨u, hu_closed, hu_eq⟩ :=
+    (continuousOn_iff_isClosed).1 hcont ({0} : Set ℂ) isClosed_singleton
+  refine ⟨u, hu_closed, ?_⟩
+  simpa [zeroSetXi, Set.preimage, Set.mem_setOf_eq, Set.inter_assoc] using hu_eq
+
+theorem summable_one_div_nat_rpow {p : ℝ} :
+    Summable (fun n => 1 / (n : ℝ) ^ p : ℕ → ℝ) ↔ 1 < p := by
+  simp
+
+-- P-series on ℝ: ∑ 1/(n+1)^p converges for p > 1
+lemma summable_one_div_nat_pow (p : ℝ) (hp : 1 < p) :
+  Summable (fun n : ℕ => 1 / (n + 1 : ℝ) ^ p) := by
+  -- Get the p-series (unshifted) and then shift the index by 1
+  have h0 : Summable (fun n : ℕ => 1 / (n : ℝ) ^ p) :=
+    (Real.summable_one_div_nat_rpow (p := p)).mpr hp
+  simpa [Nat.cast_add, Nat.cast_one] using
+    (summable_nat_add_iff (f := fun n : ℕ => 1 / (n : ℝ) ^ p) 1).2 h0
+
+lemma summable_one_div_nat_pow_two :
+  Summable (fun n : ℕ => 1 / (n + 1 : ℝ) ^ 2) := by
+  simpa [Real.rpow_natCast] using summable_one_div_nat_pow 2 (by norm_num)
+
+-- A positive Dirichlet-series value for ζ at 2
+lemma riemannZeta_two_ne_zero : riemannZeta (2 : ℂ) ≠ 0 := by
+  -- On Re s > 1, ζ s = ∑' (n ≥ 1) 1 / n^s; specialize at s = 2
+  have _ : (1 : ℝ) < (2 : ℝ) := by norm_num
+  have hz :
+      riemannZeta (2 : ℂ)
+        = ∑' n : ℕ, (1 : ℂ) / (n + 1 : ℂ) ^ (2 : ℂ) := by
+    simpa using
+      (zeta_eq_tsum_one_div_nat_add_one_cpow (s := (2 : ℂ))
+        (by simp [Complex.ofReal_re]))
+  -- Rewrite RHS as ofReal of a strictly positive real series
+  have hcpow :
+      ∀ n : ℕ, (1 : ℂ) / (n + 1 : ℂ) ^ (2 : ℂ)
+              = Complex.ofReal (1 / (n + 1 : ℝ) ^ 2) := by
+    intro n
+    simp [Complex.cpow_natCast, pow_two, Complex.ofReal_inv, Complex.ofReal_mul]
+  have hz' :
+      riemannZeta (2 : ℂ)
+        = Complex.ofReal (∑' n : ℕ, 1 / (n + 1 : ℝ) ^ 2) := by
+    simp [hz, hcpow, Complex.ofReal_tsum]  -- all terms are real
+  -- The real series is > 0 as its first term is 1 and all terms are ≥ 0.
+  have hpos :
+      0 < (∑' n : ℕ, 1 / (n + 1 : ℝ) ^ 2) := by
+    -- Use tsum decomposition: tsum a = a 0 + tsum (tail)
+    have hdecomp := tsum_eq_zero_add (f := fun n : ℕ => 1 / (n + 1 : ℝ) ^ 2)
+    have htail_nonneg :
+        0 ≤ ∑' n : ℕ, 1 / (n + 2 : ℝ) ^ 2 :=
+      tsum_nonneg (fun n => by
+        have : 0 ≤ 1 / (n + 2 : ℝ) ^ 2 := by
+          have : 0 < (n + 2 : ℝ) := by exact add_pos_of_nonneg_of_pos (by positivity) (by norm_num)
+          have hxpos : 0 < ((n + 2 : ℝ) ^ 2) := by positivity
+          have hinv_nonneg : 0 ≤ ((n + 2 : ℝ) ^ 2)⁻¹ := inv_nonneg.mpr (le_of_lt hxpos)
+          simpa [one_div] using hinv_nonneg
+        simpa [Real.norm_eq_abs, Complex.abs_of_nonneg this] using this)
+    -- tsum = 1 + nonneg tail > 0
+    have hsummable : Summable (fun n : ℕ => 1 / (n + 1 : ℝ) ^ 2) :=
+      summable_one_div_nat_pow_two
+    have heq :
+        (∑' n : ℕ, 1 / (n + 1 : ℝ) ^ 2)
+          = 1 + (∑' n : ℕ, 1 / (n + 2 : ℝ) ^ 2) := by
+      simpa [Nat.cast_add, Nat.cast_one, one_div, one_add_one_eq_two,
+              add_comm, add_left_comm, add_assoc]
+        using hdecomp hsummable
+    have hpos_tail : 0 < 1 + (∑' n : ℕ, 1 / (n + 2 : ℝ) ^ 2) := by
+      exact add_pos_of_pos_of_nonneg (by norm_num) htail_nonneg
+    rw [heq]
+    exact hpos_tail
+  -- Conclude ζ(2) has positive real part, hence ζ(2) ≠ 0
+  have : (riemannZeta (2 : ℂ)).re ≠ 0 := by
+    simpa [hz'] using ne_of_gt hpos
+  exact fun h0 => this (by simp [h0])
+
+-- Completed zeta at 2 is nonzero (use factorization on Ω)
+lemma completedRiemannZeta_two_ne_zero : completedRiemannZeta (2 : ℂ) ≠ 0 := by
+  -- On Ω, Λ = Γℝ · ζ; at 2, Γℝ(2) ≠ 0 and ζ(2) ≠ 0
+  have hΩ : (1 / 2 : ℝ) < (2 : ℝ) := by norm_num
+  have hΓ : Complex.Gammaℝ (2 : ℂ) ≠ 0 :=
+    Complex.Gammaℝ_ne_zero_of_re_pos (by simp)
+  have hfact := RH.AcademicFramework.CompletedXi.xi_ext_factorization_on_Ω
+                  (z := (2 : ℂ)) (by simpa [RH.RS.Ω, Set.mem_setOf_eq] using hΩ)
+  -- riemannXi_ext = completedRiemannZeta; G_ext = Gammaℝ
+  have : completedRiemannZeta (2 : ℂ)
+       = Complex.Gammaℝ (2 : ℂ) * riemannZeta (2 : ℂ) := by
+    simpa [RH.AcademicFramework.CompletedXi.riemannXi_ext,
+           RH.AcademicFramework.CompletedXi.G_ext] using hfact
+  intro hΛ
+  have hprod0 : Complex.Gammaℝ (2 : ℂ) * riemannZeta (2 : ℂ) = 0 := by
+    aesop
+  have hprod_ne : Complex.Gammaℝ (2 : ℂ) * riemannZeta (2 : ℂ) ≠ 0 :=
+    mul_ne_zero hΓ riemannZeta_two_ne_zero
+  exact hprod_ne hprod0
+
+/-! ### Non-vanishing at special points (fully implemented) -/
+
+-- Λ(1) ≠ 0, via the identity Λ(1) = ζ(1) (since Γℝ(1) = 1) and `riemannZeta_one_ne_zero`
+lemma completedRiemannZeta_one_ne_zero : completedRiemannZeta (1 : ℂ) ≠ 0 := by
+  -- From mathlib: `riemannZeta 1 = completedRiemannZeta 1 / Gammaℝ 1`
+  have hdef :
+      riemannZeta (1 : ℂ) = completedRiemannZeta 1 / Complex.Gammaℝ 1 :=
+    by
+      simpa using
+        (riemannZeta_def_of_ne_zero (s := (1 : ℂ)) (by exact one_ne_zero))
+  -- But `Gammaℝ 1 = 1`
+  have hΓ : Complex.Gammaℝ (1 : ℂ) = 1 := by
+    simp
+  -- Hence `riemannZeta 1 = completedRiemannZeta 1`
+  have : riemannZeta (1 : ℂ) = completedRiemannZeta 1 := by
+    simpa [hΓ, div_one] using hdef
+  -- Conclude by `riemannZeta_one_ne_zero` from mathlib
+  exact fun h => riemannZeta_one_ne_zero (by simpa [this] using h)
+
+-- Λ(0) ≠ 0 by the functional equation Λ(0) = Λ(1) and the above
+lemma completedRiemannZeta_zero_ne_zero : completedRiemannZeta (0 : ℂ) ≠ 0 := by
+  -- Functional equation at `s = 1`: `Λ(1 - 1) = Λ(1)`
+  have hFE : completedRiemannZeta (0 : ℂ) = completedRiemannZeta 1 := by
+    simpa using (completedRiemannZeta_one_sub (1 : ℂ))
+  -- Conclude
+  exact fun h0 => completedRiemannZeta_one_ne_zero (by simpa [hFE] using h0)
+
+lemma completedRiemannZeta_not_locally_zero_on_U :
+  ∀ z ∈ (({0} : Set ℂ)ᶜ ∩ ({1} : Set ℂ)ᶜ), ¬ (∀ᶠ w in 𝓝 z, completedRiemannZeta w = 0) := by
+  classical
+  intro z hz heq
+  -- Analytic on U as an open set (from the earlier analyticOn proof)
+  let U : Set ℂ := (({0} : Set ℂ)ᶜ ∩ ({1} : Set ℂ)ᶜ)
+  have hUopen : IsOpen U := by
+    simpa [U] using
+      (IsOpen.inter (isOpen_compl_iff.mpr isClosed_singleton)
+                    (isOpen_compl_iff.mpr isClosed_singleton))
+  have hAnalOnU : AnalyticOn ℂ completedRiemannZeta U := by
+    intro w hw
+    have hw0 : w ≠ 0 := by
+      have : w ∉ ({0} : Set ℂ) := hw.left
+      simpa [Set.mem_singleton_iff] using this
+    have hw1 : w ≠ 1 := by
+      have : w ∉ ({1} : Set ℂ) := hw.2
+      simpa [Set.mem_singleton_iff] using this
+    exact (analyticAt_completedRiemannZeta (s := w) hw0 hw1).analyticWithinAt
+  -- Identity principle: if analytic on a preconnected set and frequently zero near z, then zero on all of U
+  have hfre :
+      ∃ᶠ w in 𝓝[≠] z, completedRiemannZeta w = 0 := by
+    -- from IsolatedZeros: eventually ⇒ frequently on punctured nhds
+    have hzAn : AnalyticAt ℂ completedRiemannZeta z := by
+      -- z ∈ U ⇒ differentiable at z (since z ≠ 0,1)
+      have hz0 : z ≠ 0 := by
+        have : z ∉ ({0} : Set ℂ) := hz.1
+        simpa [Set.mem_singleton_iff] using this
+      have hz1 : z ≠ 1 := by
+        have : z ∉ ({1} : Set ℂ) := hz.2
+        simpa [Set.mem_singleton_iff] using this
+      simpa [AnalyticAt] using
+        (analyticAt_completedRiemannZeta (s := z) hz0 hz1)
+    -- use AnalyticAt.frequently_zero_iff_eventually_zero
+    simpa using
+      (AnalyticAt.frequently_zero_iff_eventually_zero
+        (𝕜 := ℂ) (f := completedRiemannZeta) (w := z) hzAn).mpr heq
+  -- Use identity principle on the preconnected set U (ℂ minus two points is preconnected)
+  have hUpre : IsPreconnected U := by
+    -- ℂ \ finite set is connected when `rank ℝ ℂ > 1`, hence preconnected.
+    have hfin : ({0} ∪ ({1} : Set ℂ)).Finite :=
+      (Set.finite_singleton (0 : ℂ)).union (Set.finite_singleton (1 : ℂ))
+    have hcount : ({0} ∪ ({1} : Set ℂ)).Countable := hfin.countable
+    have hconn :
+        IsConnected (({0} ∪ ({1} : Set ℂ))ᶜ) :=
+      Set.Countable.isConnected_compl_of_one_lt_rank
+        (rank_real_complex ▸ Nat.one_lt_ofNat) hcount
+    have hpre' :
+        IsPreconnected (({0} : Set ℂ)ᶜ ∩ ({1} : Set ℂ)ᶜ) := by
+      rw [← Set.compl_union]
+      exact hconn.isPreconnected
+    simpa [U] using hpre'
+  have hEqOn :
+      EqOn completedRiemannZeta 0 U :=
+    (AnalyticOnNhd.eqOn_zero_of_preconnected_of_frequently_eq_zero
+      (hUopen.analyticOn_iff_analyticOnNhd.mp hAnalOnU) hUpre hz hfre)
+  -- Evaluate at s = 2 ∈ U: contradiction with nonvanishing
+  have h2U : (2 : ℂ) ∈ U := by
+    simp [U, Set.mem_setOf_eq]
+  have : completedRiemannZeta (2 : ℂ) = 0 := hEqOn h2U
+  exact completedRiemannZeta_two_ne_zero this
+
+-- Zeros are finite on compact sets avoiding {0,1}.
+lemma zeroSetXi_inter_compact_finite_on_U
+  {K : Set ℂ} (hK : IsCompact K)
+  (hKU : K ⊆ (({0} : Set ℂ)ᶜ ∩ ({1} : Set ℂ)ᶜ)) :
+  Set.Finite (zeroSetXi ∩ K) := by
+  classical
+  -- Strategy: show each zero in K is isolated, then use compactness
+  let S := zeroSetXi ∩ K
+  -- S is closed in K
+  have hSClosed : IsClosed S := by
+    show IsClosed (zeroSetXi ∩ K)
+    -- zeroSetXi ∩ K is the preimage of {0} under completedRiemannZeta, intersected with K
+    -- Since completedRiemannZeta is continuous on K (which avoids {0,1}), this is closed
+    have : zeroSetXi ∩ K = K ∩ {z | completedRiemannZeta z = 0} := Set.inter_comm _ _
+    rw [this]
+    exact ContinuousOn.preimage_isClosed_of_isClosed
+      (RH.AcademicFramework.CompletedXi.riemannXi_ext_continuous_on_compl01.mono hKU)
+      hK.isClosed isClosed_singleton
+  -- S is compact
+  have hSCompact : IsCompact S := hK.of_isClosed_subset hSClosed (Set.inter_subset_right)
+  -- Each point of S has an isolating neighborhood
+  have hIsolated : ∀ z ∈ S, ∃ V : Set ℂ, IsOpen V ∧ z ∈ V ∧ S ∩ V = {z} := by
+    intro z ⟨hzZero, hzK⟩
+    have hzU : z ∈ (({0} : Set ℂ)ᶜ ∩ ({1} : Set ℂ)ᶜ) := hKU hzK
+    have hz0 : z ≠ 0 := fun h => hzU.1 (h ▸ Set.mem_singleton z)
+    have hz1 : z ≠ 1 := fun h => hzU.2 (h ▸ Set.mem_singleton z)
+    -- Analyticity gives isolated zeros
+    have hAn : AnalyticAt ℂ completedRiemannZeta z :=
+      analyticAt_completedRiemannZeta z hz0 hz1
+    rcases AnalyticAt.eventually_eq_zero_or_eventually_ne_zero hAn with hEqZero | hNeZero
+    · -- Can't be eventually zero (would contradict ζ(2) ≠ 0 by identity principle)
+      exfalso
+      exact completedRiemannZeta_not_locally_zero_on_U z hzU hEqZero
+    · -- Get isolating neighborhood from eventually_ne_zero
+      -- hNeZero : ∀ᶠ (w : ℂ) in 𝓝[≠] z, completedRiemannZeta w ≠ 0
+      -- This means there exists a neighborhood V of z where completedRiemannZeta is nonzero except possibly at z
+      -- From eventually in nhdsWithin, extract a neighborhood where the property holds
+      have hNeZero_nhds : ∀ᶠ x in 𝓝 z, x ≠ z → completedRiemannZeta x ≠ 0 := by
+        exact Filter.eventually_nhdsWithin_iff.mp hNeZero --refine hNeZero.mono fun x hx => ?_
+      obtain ⟨V, hVmem, hVne⟩ : ∃ V ∈ 𝓝 z, ∀ x ∈ V, x ≠ z → completedRiemannZeta x ≠ 0 := by
+        rwa [Filter.eventually_iff_exists_mem] at hNeZero_nhds
+      rcases mem_nhds_iff.mp hVmem with ⟨W, hWV, hWopen, hzW⟩
+      refine ⟨W, hWopen, hzW, ?_⟩
+      ext w
+      simp [Set.mem_inter_iff, Set.mem_singleton_iff, zeroSetXi,
+            RH.AcademicFramework.CompletedXi.riemannXi_ext]
+      constructor
+      · intro ⟨⟨hwZero, _⟩, hwW⟩
+        by_contra hwne
+        have hwV : w ∈ V := hWV hwW
+        have hne0 : completedRiemannZeta w ≠ 0 := hVne w hwV hwne
+        exact hne0 hwZero
+      · intro hw
+        subst hw
+        exact ⟨⟨hzZero, hzK⟩, hzW⟩
+  -- Use compactness to get finiteness
+  -- Each point has an isolating neighborhood, so S is discrete
+  -- A compact discrete space is finite
+  have : DiscreteTopology S := by
+    rw [TopologicalSpace.discreteTopology_iff_isOpen_singleton_mem]
+    intro ⟨z, hzS⟩
+    obtain ⟨V, hVopen, hzV, hSV⟩ := hIsolated z hzS
+    -- Show {⟨z, hzS⟩} is open in S
+    -- Use that V ⊆ ℂ is open and S ∩ V = {z}
+    have : ({⟨z, hzS⟩} : Set S) = (Subtype.val : S → ℂ) ⁻¹' V := by
+      ext ⟨w, hwS⟩
+      simp only [Set.mem_singleton_iff, Set.mem_preimage, Subtype.mk.injEq]
+      constructor
+      · intro hw
+        subst hw
+        exact hzV
+      · intro hwV
+        have hiff : (w ∈ S ∩ V) ↔ w = z := by
+          have : (w ∈ S ∩ V) ↔ w ∈ ({z} : Set ℂ) := by simp [hSV]
+          simp [Set.mem_singleton_iff] at this
+          exact this
+        exact hiff.mp ⟨hwS, hwV⟩
+    rw [this]
+    exact hVopen.preimage continuous_subtype_val
+
+  exact IsCompact.finite hSCompact this
+
+/-
+/-- Zeros of a nontrivial analytic function are isolated: on any compact set they are finite.
+We package the standard result: `zeroSetXi ∩ K` is finite for any compact `K`. -/
+lemma zeroSetXi_inter_compact_finite' {K : Set ℂ} (hK : IsCompact K) :
+    Set.Finite (zeroSetXi ∩ K) := by
+  -- Use: zeros are closed & discrete; closed discrete subset meets a compact set in finitely many points.
+  -- This is `tendsto_cofinite_cocompact_iff` + `IsClosed.tendsto_coe_cofinite_iff`.
+  -- Step 1: zero set is closed (done above). It is discrete by isolated zeros of analytic functions.
+  have hClosed : IsClosed zeroSetXi := zeroSetXi_isClosed
+  -- Discreteness: for each z with `riemannXi_ext z = 0`, analyticity implies an isolated zero (unless identically zero).
+  -- Since `riemannXi_ext 2 ≠ 0`, it is not identically zero on any open set; hence zeros are isolated globally.
+  have hNotIdent : riemannXi_ext 2 ≠ 0 := by
+    -- classical fact: ζ(2) ≠ 0 ⇒ Λ(2) ≠ 0; in mathlib this is standard
+    -- Replace with a direct reference available in your version.
+    admit
+  have hDiscr : DiscreteTopology zeroSetXi := by
+    -- Use `AnalyticAt.eventually_eq_zero_or_eventually_ne_zero` at each zero
+    -- and `AnalyticOnNhd.eqOn_of_preconnected_of_frequently_eq` to exclude the "identically zero" branch.
+    -- This is a standard argument; see Mathlib.Analysis.Analytic.IsolatedZeros.
+    -- We only sketch it here; replace `admit` with the standard proof if desired.
+    admit
+  -- Now apply `IsClosed.tendsto_coe_cofinite_iff` + `tendsto_cofinite_cocompact_iff`
+  -- to conclude: compact sets meet `zeroSetXi` in finitely many points.
+  have hTendsto :
+      Tendsto ((↑) : zeroSetXi → ℂ) cofinite (cocompact ℂ) :=
+    (IsClosed.tendsto_coe_cofinite_iff (X := ℂ) (s := zeroSetXi)).mpr hDiscr
+  -- `tendsto_cofinite_cocompact_iff` gives finite preimages of compact sets
+  have hFinPre := (tendsto_cofinite_cocompact_iff.mp hTendsto) K hK
+  -- Translate to the statement about `zeroSetXi ∩ K`.
+  -- `f ⁻¹' K` for the subtype inclusion is precisely `Subtype.val ⁻¹' K = {x | (x : ℂ) ∈ K}`,
+  -- which corresponds to `zeroSetXi ∩ K`.
+  simpa [Set.preimage, Set.inter_eq_left, Set.mem_setLike, Subtype.coe_prop] using hFinPre
+  -/
+
+/- Finite list of zeros of `riemannXi_ext` in the complex Whitney box.
+
+**Mathematical content**: The intersection `zeroSetXi ∩ whitneyBoxC α I` is finite because:
+1. `whitneyBoxC α I` is compact (closed and bounded image of compact rectangle)
+2. Zeros of an analytic function on a compact set are isolated, hence finite
+3. The zeros automatically avoid {0, 1} (neither is a zero of completedRiemannZeta)
+
+**Proof strategy**: Apply the principle of isolated zeros for analytic functions:
+- `completedRiemannZeta` is analytic on ℂ \ {0, 1}
+- The identity principle shows zeros are isolated (cannot accumulate)
+- On a compact set, an isolated set is finite
 
 **References**:
-  - Residue theorem: Ahlfors §5.2, Theorem 4
-  - Argument principle: Ahlfors §5.3, Theorem 6
-  - Zeros of ξ: Edwards "Riemann's Zeta Function" §6.3
-  - CR-Green decomposition: Koosis Vol. II, Ch. 8
+- Ahlfors, "Complex Analysis" (1979), §5.3 Theorem 6 (isolated zeros)
+- Conway, "Functions of One Complex Variable" (1978), Theorem VII.2.6
+
+**Implementation status**: The full proof requires:
+1. Showing `whitneyBoxC α I ⊆ ℂ \ {0, 1}` (needs architectural constraint α · I.len < 1/2)
+2. Applying `zeroSetXi_inter_compact_finite_on_U` with appropriate hypotheses
+3. We axiomatize the finiteness, as it's a standard consequence of our prior lemmas plus
+   the calibration constraint (α = 0.08, typical I.len ≤ 1 ⇒ α · I.len < 1/2).
 -/
 
-/-- Canonical residue bookkeeping for Whitney interval `I`.
 
-This provides a finite enumeration of zeros of `J_canonical` in the Whitney box
-associated to `I`, with each zero carrying its nonnegative residue weight (from
-the argument principle and Jensen's formula).
+/-- Zeros of `riemannXi_ext` are finite on any compact set (no avoidance hypothesis).
 
-**Current Implementation**: Returns empty atoms list (no zeros), which is sound
-and allows the proof architecture to compile. This will be replaced by genuine
-zero enumeration once the analytic infrastructure for J_canonical is complete.
-
-**Mathematical Content**:
-- Each atom `⟨ρ, w, hw⟩` represents a zero ρ of J_canonical in the box
-- Weight `w = (order of zero) · π` from the argument principle
-- Nonnegativity `hw : 0 ≤ w` is automatic (orders are positive integers)
-- Total `∑ wⱼ` bounds the phase integral contribution from zeros
-
-**Type Safety**: The dependent type `ResidueBookkeeping I` ensures that the
-bookkeeping is specific to interval `I`, preventing mix-ups between different
-Whitney intervals.
-
-**Future Extension**: When J_canonical analytic properties are formalized:
-  1. Enumerate zeros {ρⱼ} in box(I) via zero-counting formula
-  2. Compute order mⱼ at each zero via logarithmic derivative
-  3. Return `atoms := [(ρⱼ, π·mⱼ, proof)]` for each j
+Proof idea:
+- Near `s = 1`, the function `(s - 1) · Λ(s)` extends continuously with value `1`, hence there
+  is a neighborhood `U₁` of `1` free of zeros of `Λ`.
+- Near `s = 0`, the function `s · Λ(s)` extends continuously with value `-1`, hence there is
+  a neighborhood `U₀` of `0` free of zeros of `Λ`.
+- On the compact set `K' = K \ (U₀ ∪ U₁) ⊆ ℂ \ {0,1}`, apply the earlier finiteness lemma
+  `zeroSetXi_inter_compact_finite_on_U`.
+- Since there are no zeros in `U₀ ∪ U₁`, we have `zeroSetXi ∩ K = zeroSetXi ∩ K'`, hence finite.
 -/
+lemma zeroSetXi_inter_compact_finite
+  {K : Set ℂ} (hK : IsCompact K) : Set.Finite (zeroSetXi ∩ K) := by
+  classical
+  -- Define helper functions that are continuous at the special points
+  -- g₁(s) = (s-1)·Λ₀(s) - (s-1)/s + 1 equals (s-1)·Λ(s) for s ≠ 1 and satisfies g₁(1) = 1
+  let g₁ : ℂ → ℂ := fun s => (s - 1) * completedRiemannZeta₀ s - (s - 1) / s + 1
+  -- g₀(s) = s·Λ₀(s) - 1 - s/(1-s) equals s·Λ(s) for s ≠ 0 and satisfies g₀(0) = -1
+  let g₀ : ℂ → ℂ := fun s => s * completedRiemannZeta₀ s - 1 - s / (1 - s)
+  -- Continuity at the special points and evaluation there
+  have hcont₁ : ContinuousAt g₁ 1 := by
+    -- Each term is continuous at 1 (no denominator vanishes at 1)
+    have hΛ0 : ContinuousAt completedRiemannZeta₀ 1 :=
+      (differentiable_completedZeta₀ 1).continuousAt
+    have hlin : ContinuousAt (fun s : ℂ => s - 1) 1 :=
+      (continuousAt_id.sub continuousAt_const)
+    have hmul : ContinuousAt (fun s : ℂ => (s - 1) * completedRiemannZeta₀ s) 1 :=
+      hlin.mul (hΛ0)
+    have hdiv : ContinuousAt (fun s : ℂ => (s - 1) / s) 1 := by
+      -- (s - 1)/s = (s - 1) * (1/s); both factors continuous at 1
+      have hinv : ContinuousAt (fun s : ℂ => s⁻¹) 1 :=
+        (continuousAt_inv₀ (by simp)).comp continuousAt_id
+      exact (hlin.mul hinv)
+    simpa [g₁] using hmul.sub hdiv |>.add continuousAt_const
+  have hg₁_one : g₁ 1 = (1 : ℂ) := by
+    simp [g₁]
+  have hcont₀ : ContinuousAt g₀ 0 := by
+    -- Each term is continuous at 0 (no denominator vanishes at 0 in s/(1-s))
+    have hΛ0 : ContinuousAt completedRiemannZeta₀ 0 :=
+      (differentiable_completedZeta₀ 0).continuousAt
+    have hlin : ContinuousAt (fun s : ℂ => s) 0 := continuousAt_id
+    have hmul : ContinuousAt (fun s : ℂ => s * completedRiemannZeta₀ s) 0 :=
+      hlin.mul hΛ0
+    have hdiv : ContinuousAt (fun s : ℂ => s / (1 - s)) 0 := by
+      -- s/(1-s) = s * (1/(1-s)); denominator ≠ 0 at 0
+      have hden : ContinuousAt (fun s : ℂ => 1 - s) 0 :=
+        (continuousAt_const.sub continuousAt_id)
+      have hden0 : (1 - (0 : ℂ)) ≠ 0 := by simp
+      have hinv : ContinuousAt (fun s : ℂ => (1 - s)⁻¹) 0 :=
+        (continuousAt_inv₀ hden0).comp hden
+      have hmul' : ContinuousAt (fun s : ℂ => s * (1 - s)⁻¹) 0 :=
+        hlin.mul hinv
+      exact (by simpa [div_eq_mul_inv] using hmul')
+    simpa [g₀] using (hmul.sub continuousAt_const).sub hdiv
+  have hg₀_zero : g₀ 0 = (-1 : ℂ) := by
+    simp [g₀]
+  -- Neighborhoods free of zeros near 1 and 0 via continuity and nonvanishing
+  have hU₁ : {z | g₁ z ≠ 0} ∈ 𝓝 (1 : ℂ) := by
+    -- Use that {0}ᶜ is an open neighborhood of g₁ 1
+    have hopen : IsOpen (({0} : Set ℂ)ᶜ) := isOpen_compl_iff.mpr isClosed_singleton
+    have hmem : g₁ 1 ∈ (({0} : Set ℂ)ᶜ) := by simp [hg₁_one]
+    exact hcont₁.preimage_mem_nhds (isOpen_iff_mem_nhds.mp hopen _ hmem)
+  obtain ⟨U₁, hU₁mem, hU₁subset⟩ :
+      ∃ U₁ ∈ 𝓝 (1 : ℂ), U₁ ⊆ {z | g₁ z ≠ 0} := by
+    -- standard nhds extraction
+    aesop--simpa [Filter.eventually_iff_exists_mem] using hU₁
+  have hU₀ : {z | g₀ z ≠ 0} ∈ 𝓝 (0 : ℂ) := by
+    have hopen : IsOpen (({0} : Set ℂ)ᶜ) := isOpen_compl_iff.mpr isClosed_singleton
+    have hmem : g₀ 0 ∈ (({0} : Set ℂ)ᶜ) := by simp [hg₀_zero]
+    exact hcont₀.preimage_mem_nhds (isOpen_iff_mem_nhds.mp hopen _ hmem)
+  obtain ⟨U₀, hU₀mem, hU₀subset⟩ :
+      ∃ U₀ ∈ 𝓝 (0 : ℂ), U₀ ⊆ {z | g₀ z ≠ 0} := by
+    aesop--simpa [Filter.eventually_iff_exists_mem] using hU₀
+  -- On U₁ and U₀ there are no zeros of Λ
+  have hNoZero_U₁ :
+      zeroSetXi ∩ U₁ = (∅ : Set ℂ) := by
+    -- If z ∈ U₁ then g₁ z ≠ 0; for z ≠ 1 it implies Λ z ≠ 0;
+    -- for z = 1 we have `completedRiemannZeta_one_ne_zero`.
+    apply Set.eq_empty_iff_forall_not_mem.mpr
+    intro z hz
+    rcases hz with ⟨hzZero, hzU⟩
+    have hg1_ne : g₁ z ≠ 0 := hU₁subset hzU
+    have hz_not_one_or : z = 1 ∨ z ≠ 1 := em (z = 1)
+    rcases hz_not_one_or with rfl | hzne1
+    · -- z = 1
+      -- zeroSetXi at 1 contradicts nonvanishing at 1
+      have : completedRiemannZeta (1 : ℂ) = 0 := by
+        simpa [zeroSetXi, RH.AcademicFramework.CompletedXi.riemannXi_ext] using hzZero
+      exact completedRiemannZeta_one_ne_zero this
+    · -- z ≠ 1: use that (z-1)·Λ(z) = g₁ z ≠ 0
+      have hΛ_ne : completedRiemannZeta z ≠ 0 := by
+        -- For z ≠ 1, from completedRiemannZeta_eq:
+        -- g₁ z = (z - 1) * completedRiemannZeta z
+        have hg1_eq :
+            g₁ z = (z - 1) * completedRiemannZeta z := by
+          -- expand Λ via Λ₀ and split the (z-1)/(1 - z) term
+          have hΛ :
+              completedRiemannZeta z
+                = completedRiemannZeta₀ z - 1 / z - 1 / (1 - z) := by
+            simpa using completedRiemannZeta_eq z
+          -- denominator is nonzero since z ≠ 1
+          have hz1 : (1 - z) ≠ 0 := sub_ne_zero.mpr (ne_comm.mp hzne1)
+          -- (z - 1)/(1 - z) = -1
+          have hdiv : (z - 1) / (1 - z) = (-1 : ℂ) := by
+            field_simp [hz1]
+          -- compare g₁ with (z - 1) * Λ and use hdiv
+          have : g₁ z - (z - 1) * completedRiemannZeta z
+                = 1 + (z - 1) / (1 - z) := by
+            have :
+                (z - 1) * completedRiemannZeta z
+                  = (z - 1) * completedRiemannZeta₀ z - (z - 1) / z - (z - 1) / (1 - z) := by
+              rw [hΛ]
+              ring
+            calc g₁ z - (z - 1) * completedRiemannZeta z
+                = (z - 1) * completedRiemannZeta₀ z - (z - 1) / z + 1
+                    - ((z - 1) * completedRiemannZeta₀ z - (z - 1) / z - (z - 1) / (1 - z)) := by
+                  simp [g₁, this]
+              _ = 1 + (z - 1) / (1 - z) := by ring
+          have : g₁ z - (z - 1) * completedRiemannZeta z = 0 := by
+            simpa [hdiv] using this
+          exact sub_eq_zero.mp this
+        -- now divide by (z-1) ≠ 0
+        exact fun h0 => hg1_ne (by simp [hg1_eq, h0, hzne1] : g₁ z = 0)
+      -- contradiction with zeroSet definition
+      exact hΛ_ne (by simpa [zeroSetXi, RH.AcademicFramework.CompletedXi.riemannXi_ext] using hzZero)
+  have hNoZero_U₀ :
+      zeroSetXi ∩ U₀ = (∅ : Set ℂ) := by
+    apply Set.eq_empty_iff_forall_not_mem.mpr
+    intro z hz
+    rcases hz with ⟨hzZero, hzU⟩
+    have hg0_ne : g₀ z ≠ 0 := hU₀subset hzU
+    have hz_not_zero_or : z = 0 ∨ z ≠ 0 := em (z = 0)
+    rcases hz_not_zero_or with rfl | hzne0
+    · -- z = 0
+      have : completedRiemannZeta (0 : ℂ) = 0 := by
+        simpa [zeroSetXi, RH.AcademicFramework.CompletedXi.riemannXi_ext] using hzZero
+      exact completedRiemannZeta_zero_ne_zero this
+    · -- z ≠ 0: g₀ z = z * Λ z ≠ 0 ⇒ Λ z ≠ 0
+      have hΛ_ne : completedRiemannZeta z ≠ 0 := by
+        have hg0_eq : g₀ z = z * completedRiemannZeta z := by
+          have : completedRiemannZeta z
+              = completedRiemannZeta₀ z - 1 / z - 1 / (1 - z) := by
+            simpa using completedRiemannZeta_eq z
+          simp [g₀, this, sub_eq_add_neg, add_comm, add_left_comm, add_assoc,
+                mul_add, add_mul, div_eq_mul_inv, hzne0]
+        exact fun h0 => hg0_ne (by simp [hg0_eq, h0, hzne0] : g₀ z = 0)
+      exact hΛ_ne (by simpa [zeroSetXi, RH.AcademicFramework.CompletedXi.riemannXi_ext] using hzZero)
+  -- Remove neighborhoods U₀ ∪ U₁ from K; compact remainder, avoiding {0,1}
+  let K' : Set ℂ := K \ (interior U₀ ∪ interior U₁)
+  have hK' : IsCompact K' := hK.diff (IsOpen.union isOpen_interior isOpen_interior)
+  -- Replace K by K' for zeros
+  have hZeros_eq :
+      zeroSetXi ∩ K = zeroSetXi ∩ K' := by
+    ext z
+    simp only [mem_inter_iff, mem_diff, mem_union, mem_interior]
+    constructor
+    · rintro ⟨h_zero, hK_mem⟩
+      refine ⟨h_zero, hK_mem, ?_⟩
+      by_contra h_in_int
+      rcases h_in_int with (h_in_U₀ | h_in_U₁)
+      · have h_in_U₀' : z ∈ U₀ := interior_subset h_in_U₀
+        have : z ∈ zeroSetXi ∩ U₀ := ⟨h_zero, h_in_U₀'⟩
+        rw [hNoZero_U₀] at this; exact this
+      · have h_in_U₁' : z ∈ U₁ := interior_subset h_in_U₁
+        have : z ∈ zeroSetXi ∩ U₁ := ⟨h_zero, h_in_U₁'⟩
+        rw [hNoZero_U₁] at this; exact this
+    · rintro ⟨h_zero, hK_mem, _⟩
+      exact ⟨h_zero, hK_mem⟩
+  -- K' avoids {0,1}
+  have hK'U : K' ⊆ (({0} : Set ℂ)ᶜ ∩ ({1} : Set ℂ)ᶜ) := by
+    intro z hz
+    have h_not_in_int : z ∉ interior U₀ ∪ interior U₁ := hz.2
+    refine ⟨?_, ?_⟩
+    · intro h_z_eq_0; subst h_z_eq_0
+      exact h_not_in_int (Set.mem_union_left _ (mem_interior_iff_mem_nhds.mpr hU₀mem))
+    · intro h_z_eq_1; subst h_z_eq_1
+      exact h_not_in_int (Set.mem_union_right _ (mem_interior_iff_mem_nhds.mpr hU₁mem))
+  -- Compactness of K' and avoidance allow applying the previous finiteness lemma
+  have hfin' : Set.Finite (zeroSetXi ∩ K') :=
+    zeroSetXi_inter_compact_finite_on_U hK' hK'U
+
+  -- Translate back to K via equality
+  simpa [hZeros_eq] using hfin'
+
+noncomputable def zerosInBox (α : ℝ) (I : WhitneyInterval) : Finset ℂ :=
+  (zeroSetXi_inter_compact_finite (whitneyBoxC_compact α I)).toFinset
+
+lemma mem_zerosInBox_iff {α : ℝ} (I : WhitneyInterval) {ρ : ℂ} :
+    ρ ∈ zerosInBox α I ↔ ρ ∈ zeroSetXi ∧ ρ ∈ whitneyBoxC α I := by
+  simp [zerosInBox, Set.Finite.mem_toFinset]
+
+lemma riemannXi_ext_zero_avoids_poles {ρ : ℂ} (hρ : riemannXi_ext ρ = 0) : ρ ≠ 0 ∧ ρ ≠ 1 := by
+  constructor
+  · rintro rfl; exact completedRiemannZeta_zero_ne_zero hρ
+  · rintro rfl; exact completedRiemannZeta_one_ne_zero hρ
+
+
+open AnalyticAt
+/-- Multiplicity (order) of the zero of `riemannXi_ext` at `ρ`.
+
+This function computes the order of vanishing of `riemannXi_ext` at a point `ρ`.
+If `ρ` is not a zero, the order is 0. Otherwise, it is the smallest `n ≥ 1`
+such that the `n`-th derivative of `riemannXi_ext` at `ρ` is non-zero.
+
+This relies on the identity principle for analytic functions, which guarantees that
+for a non-identically-zero analytic function, any zero is isolated and has a
+finite integer order. We have already proven that `riemannXi_ext` is not identically
+zero on any connected open set of its domain.
+-/
+noncomputable def zeroOrderAt (ρ : ℂ) : ℕ :=
+  if hρ : riemannXi_ext ρ = 0 then
+    let f := riemannXi_ext
+    have h_poles : ρ ≠ 0 ∧ ρ ≠ 1 := riemannXi_ext_zero_avoids_poles hρ
+    have h_an : AnalyticAt ℂ f ρ := analyticAt_completedRiemannZeta ρ h_poles.1 h_poles.2
+    have h_not_locally_zero : ¬ (∀ᶠ w in 𝓝 ρ, f w = 0) :=
+      completedRiemannZeta_not_locally_zero_on_U ρ h_poles
+    have h_exists_deriv_ne_zero : ∃ n, iteratedDeriv n f ρ ≠ 0 :=
+      (h_an.eventually_eq_zero_or_exists_deriv_ne_zero).resolve_left h_not_locally_zero
+    Nat.find h_exists_deriv_ne_zero
+  else
+    0
+
+-- alternate definition using coefficients
+noncomputable def zeroOrderAt' (ρ : ℂ) : ℕ :=
+  if hρ : riemannXi_ext ρ = 0 then
+    let f := riemannXi_ext
+    have h_poles : ρ ≠ 0 ∧ ρ ≠ 1 := riemannXi_ext_zero_avoids_poles hρ
+    have h_an : AnalyticAt ℂ f ρ := analyticAt_completedRiemannZeta ρ h_poles.1 h_poles.2
+    have h_not_locally_zero : ¬ (∀ᶠ w in 𝓝 ρ, f w = 0) :=
+      completedRiemannZeta_not_locally_zero_on_U ρ h_poles
+    have h_exists_coeff_ne_zero : ∃ n, (h_an.choose).coeff n ≠ 0 :=
+      (AnalyticAt.eventually_eq_zero_or_exists_coeff_ne_zero h_an).resolve_left h_not_locally_zero
+    Nat.find h_exists_coeff_ne_zero
+  else
+    0
+
+/-- Analytic, finite zero enumeration packaged as `ResidueBookkeeping`. -/
 noncomputable def residue_bookkeeping (I : WhitneyInterval) : ResidueBookkeeping I :=
-  { atoms := []
-  , total := 0
-  , total_nonneg := by norm_num }
+  let α := (0.08 : ℝ)  -- aperture parameter (matches A_default from Constants)
+  let Z := zerosInBox α I
+  let atoms_list : List ResidueAtom :=
+    Z.toList.map (fun ρ =>
+      { ρ := ρ
+      , weight := (zeroOrderAt ρ : ℝ) * Real.pi
+      , hnonneg := mul_nonneg (Nat.cast_nonneg _) Real.pi_pos.le })
+  { atoms := atoms_list
+  , total := atoms_list.foldl (fun s a => s + a.weight) 0
+  , total_nonneg := by
+      -- The sum of nonnegative weights is nonnegative
+      suffices ∀ (L : List ResidueAtom) (init : ℝ), 0 ≤ init →
+          0 ≤ L.foldl (fun s a => s + a.weight) init by
+        exact this atoms_list 0 (le_refl 0)
+      intro L init h_init
+      induction L generalizing init with
+      | nil => simpa [List.foldl]
+      | cons a t ih =>
+        simp only [List.foldl]
+        exact ih (init + a.weight) (add_nonneg h_init a.hnonneg) }
 
-/-! ### API for residue bookkeeping -/
+/-- The atoms list from residue bookkeeping. -/
+lemma residue_bookkeeping_atoms_def (I : WhitneyInterval) :
+  (residue_bookkeeping I).atoms =
+    (zerosInBox 0.08 I).toList.map (fun ρ =>
+      { ρ := ρ, weight := (zeroOrderAt ρ : ℝ) * Real.pi, hnonneg := mul_nonneg (Nat.cast_nonneg _) Real.pi_pos.le }) := by
+  simp [residue_bookkeeping]
 
-/-- The atoms list from canonical residue bookkeeping. -/
-@[simp]
-lemma residue_bookkeeping_atoms (I : WhitneyInterval) :
-  (residue_bookkeeping I).atoms = [] := rfl
-
-/-- The total weight from canonical residue bookkeeping. -/
-@[simp]
-lemma residue_bookkeeping_total (I : WhitneyInterval) :
-  (residue_bookkeeping I).total = 0 := rfl
+/-- The total weight from residue bookkeeping equals the sum of atom weights. -/
+lemma residue_bookkeeping_total_def (I : WhitneyInterval) :
+  (residue_bookkeeping I).total =
+    (residue_bookkeeping I).atoms.foldl (fun s a => s + a.weight) 0 := by
+  simp [residue_bookkeeping]
 
 /-- Total weight is nonnegative (automatic from structure). -/
 lemma residue_bookkeeping_total_nonneg (I : WhitneyInterval) :

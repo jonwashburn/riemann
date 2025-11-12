@@ -140,5 +140,19 @@ theorem integrable_of_nonneg_of_le
     have hx1 : f x ≤ g x := hx.2
     simpa [Real.norm_eq_abs, abs_of_nonneg hx0] using hx1
   exact Integrable.mono' hg hf_meas hbound
-
 end MeasureTheory
+namespace RH
+lemma pow_le_pow_of_le_left {α : Type*} [LinearOrderedSemiring α]
+  {a b : α} (h₁ : a ≤ b) (h₂ : 0 ≤ a) :
+  ∀ n : ℕ, a ^ n ≤ b ^ n := by
+  intro n
+  induction' n with n ih
+  · simp
+  ·
+    have hb : 0 ≤ b := le_trans h₂ h₁
+    have hbn : 0 ≤ b ^ n := pow_nonneg hb _
+    have : a ^ n * a ≤ b ^ n * b := mul_le_mul ih h₁ h₂ hbn
+    simpa [pow_succ] using this
+--#find_home! pow_le_pow_of_le_left
+
+end RH
