@@ -626,6 +626,154 @@ lemma poisson_integral_measurable_in_param (σ_bound : ℝ) (hσ_bound : 0 < σ_
   rw [this]
   exact ParameterIntegral.PoissonParam.aestronglyMeasurable_integral_sq_poisson_Ioc Zk I hI hI_bounded hσ_bound
 
+/-- Cauchy/Poisson convolution on ℝ:
+    ∫ℝ Kσ(t-a)·Kσ(t-b) dt = π · K_{2σ}(a-b), for σ > 0. -/
+lemma cauchy_convolution (σ a b : ℝ) (hσ : 0 < σ) :
+    ∫ t : ℝ, (Ksigma σ (t - a)) * (Ksigma σ (t - b)) ∂volume
+      = Real.pi * Ksigma (2 * σ) (a - b) := by
+  classical
+  -- change variable u = (t - b)/σ
+  have hcv := MeasureTheory.integral_comp_smul_sub_pos
+                (f := fun u : ℝ =>
+                        (Ksigma σ (σ * u + b - a)) * (Ksigma σ (σ * u + b - b)))
+                (σ := σ) (a := b) hσ
+  -- Rewrite both kernels via u
+  have h_rewrite :
+    (fun u : ℝ =>
+      (Ksigma σ (σ * u + b - a)) * (Ksigma σ (σ * u + b - b)))
+    = (fun u : ℝ =>
+        (1 / σ) * (1 / ((u - ((a - b) / σ)) ^ 2 + 1))
+        * (1 / σ) * (1 / (u ^ 2 + 1))) := by
+    funext u
+    have hσne : σ ≠ 0 := ne_of_gt hσ
+    -- σ*u + b - a = σ*(u - (a-b)/σ)
+    have hlin : σ * u + b - a = σ * (u - ((a - b) / σ)) := by
+      calc
+        σ * u + b - a
+            = σ * u - (a - b) := by ring
+        _   = σ * u - σ * ((a - b) / σ) := by field_simp [hσne]
+        _   = σ * (u - ((a - b) / σ)) := by ring
+    -- (σ*u + b - a)^2 + σ^2 = σ^2 * ((u - (a-b)/σ)^2 + 1)
+    have hden1 :
+        (σ * u + b - a) ^ 2 + σ ^ 2
+          = σ ^ 2 * ((u - ((a - b) / σ)) ^ 2 + 1) := by
+      simpa [hlin, pow_two] using by ring
+    -- (σ*u)^2 + σ^2 = σ^2 * (u^2 + 1)
+    have hden0 : (σ * u) ^ 2 + σ ^ 2 = σ ^ 2 * (u ^ 2 + 1) := by ring
+    -- First kernel
+    have hK1 :
+        Ksigma σ (σ * u + b - a)
+          = (1 / σ) * (1 / ((u - ((a - b) / σ)) ^ 2 + 1)) := by
+      unfold Ksigma
+      calc
+        σ / ((σ * u + b - a) ^ 2 + σ ^ 2)
+            = σ / (σ ^ 2 * ((u - ((a - b) / σ)) ^ 2 + 1)) := by simp [hden1]
+        _   = (1 / σ) * (1 / ((u - ((a - b) / σ)) ^ 2 + 1)) := by
+              field_simp [hσne]; ring
+    -- Second kernel
+    have hK2 :
+        Ksigma σ (σ * u + b - b)
+          = (1 / σ) * (1 / (u ^ 2 + 1)) := by
+      unfold Ksigma
+      have hbb : σ * u + b - b = σ * u := by ring
+      have hden' : (σ * u + b - b) ^ 2 + σ ^ 2 = σ ^ 2 * (u ^ 2 + 1) := by
+        simpa [hbb] using hden0
+      calc
+        σ / ((σ * u + b - b) ^ 2 + σ ^ 2)
+            = σ / (σ ^ 2 * (u ^ 2 + 1)) := by simp_rw [hden']
+        _   = (1 / σ) * (1 / (u ^ 2 + 1)) := by field_simp [hσne]; ring
+    simp_rw [hK1, hK2, mul_comm, mul_left_comm, mul_assoc]
+  -- Now integrate in u: I = (1/σ) ∫ du 1/((u^2+1)((u - ((a-b)/σ))^2 + 1))
+  have hcore :
+    ∫ t : ℝ, (Ksigma σ (t - a)) * (Ksigma σ (t - b)) ∂volume
+      = (1 / σ) * ∫ u : ℝ, 1 / ((u ^ 2 + 1) * ((u - ((a - b) / σ)) ^ 2 + 1)) := by
+    -- First, rewrite the LHS of hcv to the desired (t-a)(t-b) form
+    have hσne : σ ≠ 0 := ne_of_gt hσ
+    have hL : (fun t : ℝ =>
+                  (Ksigma σ (σ * ((t - b) / σ) + b - a))
+                * (Ksigma σ (σ * ((t - b) / σ) + b - b)))
+              = (fun t : ℝ => Ksigma σ (t - a) * Ksigma σ (t - b)) := by
+      funext t
+      have hmul : σ * ((t - b) / σ) = t - b := by field_simp [hσne]
+      aesop
+    -- Apply CoV and simplify the right side using h_rewrite; collect constants
+    have hcv' :
+        ∫ t : ℝ, (Ksigma σ (t - a)) * (Ksigma σ (t - b)) ∂volume
+          = σ * ∫ u : ℝ, (Ksigma σ (σ * u + b - a)) * (Ksigma σ (σ * u + b - b)) ∂volume := by
+      simp [hL]; aesop
+    -- Use the explicit rewrite on the u-integrand to factor out (1/σ)^2
+    have h_simplified :
+        σ * ∫ u : ℝ, (Ksigma σ (σ * u + b - a)) * (Ksigma σ (σ * u + b - b)) ∂volume
+          = (1 / σ) * ∫ u : ℝ, (u ^ 2 + 1)⁻¹ * ((u - ((a - b) / σ)) ^ 2 + 1)⁻¹ ∂volume := by
+      calc σ * ∫ u : ℝ, (Ksigma σ (σ * u + b - a)) * (Ksigma σ (σ * u + b - b)) ∂volume
+          = σ * ∫ u : ℝ, (1 / σ) * (1 / ((u - ((a - b) / σ)) ^ 2 + 1)) * (1 / σ) * (1 / (u ^ 2 + 1)) ∂volume := by
+              congr 1
+              aesop
+        _ = σ * ∫ u : ℝ, (1/σ) * (1/σ) * ((1 / ((u - ((a - b) / σ)) ^ 2 + 1)) * (1 / (u ^ 2 + 1))) ∂volume := by
+              congr 1
+              refine integral_congr_ae ?_
+              exact Filter.Eventually.of_forall (fun u => by
+                simp [h_rewrite, one_div, mul_comm, mul_left_comm, mul_assoc])
+        _ = (1 / σ) * ∫ u : ℝ, (1 / ((u - ((a - b) / σ)) ^ 2 + 1)) * (1 / (u ^ 2 + 1)) ∂volume := by
+              have hσne : σ ≠ 0 := ne_of_gt hσ
+              set A : ℝ → ℝ :=
+                fun u => (1 / ((u - ((a - b) / σ)) ^ 2 + 1)) * (1 / (u ^ 2 + 1))
+              have hpull :
+                σ * ∫ u : ℝ, (1/σ) * (1/σ) * A u
+                  = (1/σ) * ∫ u : ℝ, A u := by
+                calc
+                  σ * ∫ u, (1/σ) * (1/σ) * A u
+                      = σ * ((1/σ) * ∫ u, (1/σ) * A u) := by
+                        simp [integral_mul_left, mul_comm, mul_left_comm, mul_assoc]
+                  _ = (σ * (1/σ)) * ∫ u, (1/σ) * A u := by
+                        ring
+                  _ = ∫ u, (1/σ) * A u := by
+                        field_simp [hσne]
+                  _ = (1/σ) * ∫ u, A u := by
+                        simp [integral_mul_left, mul_comm, mul_left_comm, mul_assoc]
+              simpa [A] using hpull
+        _ = (1 / σ) * ∫ u : ℝ, (u ^ 2 + 1)⁻¹ * ((u - ((a - b) / σ)) ^ 2 + 1)⁻¹ ∂volume := by
+              congr 1
+              refine integral_congr_ae ?_
+              exact Filter.Eventually.of_forall (fun u => by
+                simp [one_div, mul_comm, mul_left_comm, mul_assoc])
+    rw [hcv', h_simplified]
+    -- Rewrite to match the target form
+    congr 1
+    refine integral_congr_ae ?_
+    simp only [one_div]
+    field_simp
+  -- set c = (a - b)/σ for notational clarity
+  set c := (a - b) / σ with hcdef
+  -- base Cauchy–Cauchy integral on ℝ for parameter c
+  have hI :
+      ∫ u : ℝ, 1 / ((u^2 + 1) * ((u - c)^2 + 1)) = Real.pi * (2 / (c^2 + 4)) := by
+    simpa using ParameterIntegral.MeasureTheory.integral_cauchy_prod_shift c
+  -- rewrite the target using hcore and the base integral, then fold into Ksigma (2σ) (a-b)
+  have hσne : σ ≠ 0 := ne_of_gt hσ
+  have hfold :
+      (1 / σ) * (2 / (c^2 + 4)) = (2 * σ) / ((a - b)^2 + (2 * σ)^2) := by
+    -- c = (a-b)/σ ⇒ σ^2 * (c^2 + 4) = (a-b)^2 + (2σ)^2
+    have hc2 : σ ^ 2 * (c ^ 2 + 4) = (a - b) ^ 2 + (2 * σ) ^ 2 := by
+      simp_rw [hcdef, pow_two]; field_simp; ring_nf
+    -- transform (1/σ) * (2/(c^2+4)) to (2σ)/((a-b)^2 + (2σ)^2)
+    have : (1 / σ) * (2 / (c ^ 2 + 4)) = (2 * σ) / (σ ^ 2 * (c ^ 2 + 4)) := by
+      field_simp [hσne] ; ring
+    simpa [this, hc2]
+  have hres :
+      ∫ t : ℝ, Ksigma σ (t - a) * Ksigma σ (t - b)
+        = Real.pi * (2 * σ / ((a - b) ^ 2 + (2 * σ) ^ 2)) := by
+    calc
+      ∫ t, Ksigma σ (t - a) * Ksigma σ (t - b)
+          = (1 / σ) * ∫ u, 1 / ((u ^ 2 + 1) * ((u - c) ^ 2 + 1)) := hcore
+      _   = (1 / σ) * (Real.pi * (2 / (c ^ 2 + 4))) := by simp_rw [hI]
+      _   = Real.pi * ((2 * σ) / ((a - b) ^ 2 + (2 * σ) ^ 2)) := by
+            field_simp [hσne, hfold]; ring_nf; rw [add_right_cancel_iff]; field_simp
+  -- turn the RHS into π · Ksigma (2σ) (a - b)
+  have hK : Ksigma (2 * σ) (a - b) = (2 * σ) / ((a - b) ^ 2 + (2 * σ) ^ 2) := rfl
+  simpa [hK] using hres
+
+
 /-- Measurability of the diagonal term: σ ↦ ∫ ∑ K²(σ, t-x) for parameter integrals. -/
 lemma poisson_integral_diagonal_measurable_in_param (σ_bound : ℝ) (hσ_bound : 0 < σ_bound)
     (I : Set ℝ) (hI : MeasurableSet I) (hI_bounded : Bornology.IsBounded I) (Zk : Finset ℝ) :
