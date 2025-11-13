@@ -41,6 +41,18 @@ lemma sep_from_base_of_annulus_Whitney
     (c := I.t0) (L := I.len) (t := t) (x := γ) (k := k)
     hbase hAnn hk
 
+/-- Wrapper: when two points live in distinct annuli whose indices differ by at least two,
+their separation is controlled uniformly in terms of the annulus size. -/
+lemma sep_between_annuli_gap_ge_two_Whitney
+    (I : RH.Cert.WhitneyInterval) {k j : ℕ} {x y : ℝ}
+    (hAnnX : RH.RS.PoissonKernelDyadic.inDyadicAnnulus I.t0 I.len k x)
+    (hAnnY : RH.RS.PoissonKernelDyadic.inDyadicAnnulus I.t0 I.len j y)
+    (hgap : 2 ≤ Nat.dist k j) :
+    (1 / 2 : ℝ) * (2 : ℝ) ^ (Nat.dist k j) * I.len ≤ |x - y| :=
+  RH.RS.PoissonKernelDyadic.sep_between_annuli_gap_ge_two
+    (c := I.t0) (L := I.len) (x := x) (y := y) (k := k) (j := j)
+    hAnnX hAnnY I.len_pos hgap
+
 end WedgeBasics
 end RS
 end RH

@@ -18,6 +18,9 @@ open Real Complex
 open MeasureTheory
 open RH.AcademicFramework.HalfPlaneOuterV2 (boundary)
 
+/-- Canonical outer function used throughout the Route B wiring. -/
+def O : ℂ → ℂ := outer_exists.outer
+
 /-- Boundary wedge (P+): `Re ((2) * J_CR O (boundary t)) ≥ 0` a.e. -/
 def PPlus_holds (O : OuterOnOmega) : Prop :=
   ∀ᵐ t : ℝ, 0 ≤ ((2 : ℂ) * J_CR O (boundary t)).re

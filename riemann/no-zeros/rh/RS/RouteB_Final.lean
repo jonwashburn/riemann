@@ -30,15 +30,17 @@ local notation "Ω" => RH.RS.Ω
 
 /-! Align the chosen outer with the canonical `outer_exists.outer`. -/
 /-– Fixed witness for outer existence with boundary modulus |det₂/ξ_ext|. -/
-def hOuterWitness := RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext_proved
+def hOuterWitness :
+    RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext :=
+  RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext_proved
 
-/-– The chosen outer function from the fixed witness (canonical from WhitneyAeCore). -/
-def O : ℂ → ℂ := RH.RS.WhitneyAeCore.O
+/-– The chosen outer function from the fixed witness (canonical). -/
+def O : ℂ → ℂ := RH.RS.OuterHalfPlane.choose_outer hOuterWitness
 
-lemma O_spec : RH.RS.OuterHalfPlane O ∧
-  RH.RS.BoundaryModulusEq O (fun s => RH.RS.det2 s / riemannXi_ext s) := by
-  -- Align with the canonical choice used by WhitneyAeCore
-  simpa [O, RH.RS.WhitneyAeCore.O] using
+lemma O_spec :
+    RH.RS.OuterHalfPlane O ∧
+    RH.RS.BoundaryModulusEq O (fun s => RH.RS.det2 s / riemannXi_ext s) := by
+  simpa [O] using
     RH.RS.OuterHalfPlane.choose_outer_spec hOuterWitness
 
 /-! ## Boundary positivity (P+) for F := 2·J_pinch det2 O -/
@@ -49,7 +51,17 @@ theorem boundary_positive_AF
     (fun z => (2 : ℂ) * (RH.RS.J_pinch RH.RS.det2 O z)) := by
   -- Obtain the a.e. boundary inequality for `F_pinch det2 O` from the Whitney facade
   have hAe := RH.RS.WhitneyAeCore.PPlus_canonical_ae hCanon
-  simpa [BoundaryPositive, F_pinch] using hAe
+  have hb :
+      ∀ t : ℝ,
+        ((2 : ℂ) * RH.RS.J_CR RH.RS.outer_exists (boundary t)).re =
+          ((2 : ℂ) * RH.RS.J_pinch RH.RS.det2 O (boundary t)).re := by
+    intro t
+    have hJ := RH.RS.J_CR_eq_J_pinch (boundary t)
+    simp [hJ, O, RH.RS.WhitneyAeCore.O]
+  refine hAe.mono ?_
+  intro t ht
+  have := hb t
+  simpa [BoundaryPositive, F_pinch, this] using ht
 
 /-– Cert‐level (P+) from AF boundary positivity via the mk‐boundary equality. -/
 theorem boundary_positive (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical) : RH.Cert.PPlus
@@ -111,7 +123,7 @@ theorem F_pinch_has_poisson_rep
   have hBME_af : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryModulusEq O (fun s => RH.RS.det2 s / riemannXi_ext s) := by
     intro t; simpa using (O_spec).2 t
   -- apply AF specialization builder (consumes θ‑free identity and measurability inputs)
-  exact RH.AcademicFramework.HalfPlaneOuterV2.F_pinch_hasPoissonRepOn_offXi_from_ReEqOn
+  exact RH.AcademicFramework.HalfPlaneOuterV2.pinch_hasPoissonRepOn_from_cayley
     (hDet2 := hDet2) (hO := (O_spec).1) (hBME := hBME_af) (hXi := hXi)
     (hDet_meas := hDet_meas) (hO_meas := hO_meas) (hXi_meas := hXi_meas)
     (hReEqOn := hReEqOn)

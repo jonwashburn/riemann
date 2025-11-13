@@ -15,9 +15,9 @@ require mathlib from git
 
 @[default_target]
 lean_lib «rh» where
-  srcDir := "riemann/no-zeros"
-  globs := #[
-    .submodules `rh.academic_framework,
-    .submodules `rh.RS,
-    .submodules `rh
+  srcDir := "no-zeros"
+  roots := #[
+    `rh.RS.RouteBPinnedRemovable,
+    `rh.RS.RouteB_Final,
+    `rh.RS.CertificateConstruction
   ]

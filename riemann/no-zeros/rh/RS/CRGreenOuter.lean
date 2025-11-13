@@ -260,11 +260,21 @@ infixl:72 " ⋅ " => dotR2
 /-- squared Euclidean norm on ℝ², written explicitly on pairs. -/
 @[simp] def sqnormR2 (v : ℝ × ℝ) : ℝ := v.1 ^ 2 + v.2 ^ 2
 
+lemma sqnormR2_nonneg (v : ℝ × ℝ) : 0 ≤ sqnormR2 v := by
+  unfold sqnormR2
+  exact add_nonneg (sq_nonneg _) (sq_nonneg _)
 
 /-- The box energy on `Q` for the vector field `∇U` and measure `σ` (CRGreen version). -/
 @[simp] def boxEnergyCRGreen
   (gradU : (ℝ × ℝ) → ℝ × ℝ) (σ : Measure (ℝ × ℝ)) (Q : Set (ℝ × ℝ)) : ℝ :=
   ∫ x in Q, sqnormR2 (gradU x) ∂σ
+
+lemma boxEnergyCRGreen_nonneg (gradU : (ℝ × ℝ) → ℝ × ℝ) (σ : Measure (ℝ × ℝ)) (Q : Set (ℝ × ℝ)) :
+  0 ≤ boxEnergyCRGreen gradU σ Q := by
+  unfold boxEnergyCRGreen
+  apply integral_nonneg
+  intro x
+  exact sqnormR2_nonneg _
 
 -- Alias for compatibility
 local notation "boxEnergy" => boxEnergyCRGreen

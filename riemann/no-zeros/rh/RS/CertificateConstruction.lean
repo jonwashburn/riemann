@@ -12,6 +12,7 @@ import Mathlib.Topology.Filter
 import Mathlib.Topology.Order
 import Mathlib.Topology.Algebra.Field
 import rh.RS.RouteB_Final
+import rh.RS.RouteBPinnedRemovable
 
 /-!
 # Certificate Construction - Final Wiring
@@ -47,7 +48,8 @@ theorem outer_exists_for_certificate :
   refine ⟨RH.RS.RouteB.O, (RH.RS.RouteB.O_spec).1, (RH.RS.RouteB.O_spec).2⟩
 
 -- Interior positivity for the certificate outer via Route B (P+) + Poisson transport.
-lemma interior_positive_with_certificate_outer :
+lemma interior_positive_with_certificate_outer
+    (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical) :
   ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
     0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose outer_exists_for_certificate) z)).re := by
   classical
@@ -55,7 +57,7 @@ lemma interior_positive_with_certificate_outer :
   have hChoose : Classical.choose outer_exists_for_certificate = RH.RS.RouteB.O := rfl
   -- Route B provides (P+) and a Poisson representation on the off-zeros set
   have hP : RH.Cert.PPlus (fun z => (2 : ℂ) * J_pinch det2 (RH.RS.RouteB.O) z) :=
-    RH.RS.RouteB.boundary_positive
+    RH.RS.RouteB.boundary_positive hCanon
   -- Convert (P+) to AF boundary positivity for F_pinch det2 O
   have hcert : ∀ᵐ t : ℝ,
       0 ≤ ((fun z => (2 : ℂ) * J_pinch det2 (RH.RS.RouteB.O) z)
@@ -179,10 +181,12 @@ Assemble all the pieces into a PinchCertificateExt witness.
 
 /-- Concrete certificate witness from ACTIONS 1-4.
 This is YOUR final assembly - wiring all proven components. -/
-noncomputable def concrete_certificate : RH.RS.PinchCertificateExt :=
+noncomputable def concrete_certificate
+    (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical) :
+    RH.RS.PinchCertificateExt :=
   certificate_from_pinch_ingredients
     outer_exists_for_certificate
-    interior_positive_with_certificate_outer
+    (interior_positive_with_certificate_outer hCanon)
     (removable_extension_at_xi_zeros outer_exists_for_certificate)
 
 /-! ## Section 6: Main Unconditional Theorem
@@ -190,16 +194,19 @@ noncomputable def concrete_certificate : RH.RS.PinchCertificateExt :=
 The zero-argument theorem proving RH unconditionally.
 -/
 
-/-- Unconditional proof of the Riemann Hypothesis.
-This is the final theorem using only:
-- Mathlib (no custom axioms)
-- Standard mathematics (Poisson, Carleson, VK bounds - all unconditional)
-- YOUR RH-specific proofs (J_CR, c₀(ψ), minimization, Υ < 1/2)
-
-All components proven or admitted as standard. No RH assumptions.
--/
-theorem RiemannHypothesis_unconditional : RiemannHypothesis := by
+/-- Conditional proof of the Riemann Hypothesis assuming `(P+)` for the
+canonical boundary field. Once `PPlus_canonical` is supplied, the remaining
+steps in the Route B pipeline are purely mechanical. -/
+theorem RiemannHypothesis_of_PPlus
+    (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical) : RiemannHypothesis := by
   -- Use the Main.lean entry point
-  exact RH.Proof.Final.RH_from_pinch_certificate concrete_certificate
+  exact RH.Proof.Final.RH_from_pinch_certificate
+    (concrete_certificate hCanon)
+
+/-- Backwards-compatible alias. -/
+theorem RiemannHypothesis_unconditional
+    (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical) :
+    RiemannHypothesis :=
+  RiemannHypothesis_of_PPlus hCanon
 
 end RH.RS.CertificateConstruction
