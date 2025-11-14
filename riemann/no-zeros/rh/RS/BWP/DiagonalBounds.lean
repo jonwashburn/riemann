@@ -6,6 +6,8 @@ import rh.RS.BWP.Constants
 import rh.RS.BWP.Definitions
 import Mathlib.Tactic
 import Mathlib.MeasureTheory.Integral.SetIntegral
+import Mathlib.MeasureTheory.Integral.DivergenceTheorem
+
 import Mathlib
 
 
@@ -1345,7 +1347,6 @@ lemma annularEnergy_le_S_times_diag
                   rw [← integral_finset_sum Zk h_int_each]
         _ ≤ (∑ γ in Zk, h.S * ∫ t in I.interval, (Ksigma σ (t - γ))^2) * σ :=
               mul_le_mul_of_nonneg_right hsum_le hσnn
-
       -- rewrite the RHS to match the target
       have hsum_pull :
         (∑ γ in Zk, h.S * ∫ t in I.interval, (Ksigma σ (t - γ))^2)
@@ -1379,7 +1380,6 @@ lemma annularEnergy_le_S_times_diag
         _ = h.S * ((∑ γ in Zk, ∫ t in I.interval, (Ksigma σ (t - γ))^2) * σ) := by ring
         _ = h.S * ((∫ t in I.interval, ∑ γ in Zk, (Ksigma σ (t - γ)) ^ 2) * σ) := by
               rw [← hsum_sq]
-
   ring_nf
   calc ∫ σ in Set.Ioc 0 (α * I.len),
           (∫ t in I.interval, (∑ γ in Zk, Ksigma σ (t - γ)) ^ 2) * σ
@@ -1516,7 +1516,437 @@ lemma Ek_bound_calibrated
 
   exact le_trans h0 hrewrite
 
+open scoped Interval
+open MeasureTheory Set intervalIntegral
+
+--namespace RH.RS.BoundaryWedgeProof
+
+/-- Green-style identity on a rectangle, abstracted to a divergence integrand.
+
+Let `f, g : ℝ × ℝ → ℝ` be the coordinate functions of a vector field
+and let `f', g'` be their Fréchet derivatives. Assume the hypotheses of
+`MeasureTheory.integral2_divergence_prod_of_hasFDerivWithinAt_off_countable`
+and suppose the divergence `x ↦ f' x (1,0) + g' x (0,1)` agrees almost
+everywhere on the rectangle with an integrand `F (x,y)`.
+
+Then the integral of `F` over the rectangle is equal to the usual
+four boundary integrals of `f` and `g`.  This is exactly the
+divergence theorem, with the divergence rewritten as `F`.  -/
+theorem green_first_identity_rectangle
+  (f g : ℝ × ℝ → ℝ)
+  (f' g' : ℝ × ℝ → ℝ × ℝ →L[ℝ] ℝ)
+  (a₁ a₂ b₁ b₂ : ℝ) (s : Set (ℝ × ℝ)) (hs : s.Countable)
+  (Hcf : ContinuousOn f ([[a₁, b₁]] ×ˢ [[a₂, b₂]]))
+  (Hcg : ContinuousOn g ([[a₁, b₁]] ×ˢ [[a₂, b₂]]))
+  (Hdf : ∀ x ∈ Ioo (min a₁ b₁) (max a₁ b₁) ×ˢ
+                   Ioo (min a₂ b₂) (max a₂ b₂) \ s,
+    HasFDerivAt f (f' x) x)
+  (Hdg : ∀ x ∈ Ioo (min a₁ b₁) (max a₁ b₁) ×ˢ
+                   Ioo (min a₂ b₂) (max a₂ b₂) \ s,
+    HasFDerivAt g (g' x) x)
+  (Hi_div :
+    IntegrableOn (fun x => f' x (1, 0) + g' x (0, 1))
+      ([[a₁, b₁]] ×ˢ [[a₂, b₂]]))
+  (F : ℝ × ℝ → ℝ)
+  (hF :
+    (fun x => f' x (1, 0) + g' x (0, 1))
+      =ᵐ[volume.restrict ([[a₁, b₁]] ×ˢ [[a₂, b₂]])] F) :
+  ∫ x in a₁..b₁, ∫ y in a₂..b₂, F (x, y)
+    =
+  (((∫ x in a₁..b₁, g (x, b₂)) - ∫ x in a₁..b₁, g (x, a₂)) +
+   ∫ y in a₂..b₂, f (b₁, y)) -
+   ∫ y in a₂..b₂, f (a₁, y) := by
+  -- Step 1: apply the divergence theorem with integrand `f' (1,0)+g' (0,1)`.
+  have hDT :=
+    MeasureTheory.integral2_divergence_prod_of_hasFDerivWithinAt_off_countable
+      f g f' g' a₁ a₂ b₁ b₂ s hs Hcf Hcg Hdf Hdg Hi_div
+  -- The RHS is already the desired boundary expression; we just have to
+  -- replace the LHS integrand by `F` using the a.e. equality `hF`.
+  -- First rewrite the iterated integral as a set integral on the rectangle.
+  have h_iter_to_set :
+      ∫ x in [[a₁, b₁]], ∫ y in [[a₂, b₂]],
+        f' (x, y) (1, 0) + g' (x, y) (0, 1)
+        =
+      ∫ z in [[a₁, b₁]] ×ˢ [[a₂, b₂]],
+        f' z (1, 0) + g' z (0, 1) := by
+    -- exactly your existing proof using `setIntegral_prod`
+    have := (setIntegral_prod
+      (f := fun z : ℝ × ℝ =>
+        f' z (1, 0) + g' z (0, 1))
+      (s := [[a₁, b₁]]) (t := [[a₂, b₂]]) Hi_div).symm
+    simpa using this
+
+  have h_set_to_iter :
+      ∫ z in [[a₁, b₁]] ×ˢ [[a₂, b₂]],
+        F z
+        =
+      ∫ x in [[a₁, b₁]], ∫ y in [[a₂, b₂]], F (x, y) := by
+    -- exactly your existing proof using `setIntegral_prod`
+    have Hi_F :
+        IntegrableOn F ([[a₁, b₁]] ×ˢ [[a₂, b₂]])
+        (volume : Measure (ℝ × ℝ)) :=
+      (Hi_div.congr_fun_ae (f := fun x =>
+          f' x (1, 0) + g' x (0, 1))
+        (g := F) hF)
+    have := (setIntegral_prod
+      (f := fun z : ℝ × ℝ => F z)
+      (s := [[a₁, b₁]]) (t := [[a₂, b₂]]) Hi_F)
+    simpa using this
+  -- Use `hF` to replace the integrand in the set integral.
+  have h_rewrite :
+      ∫ z in [[a₁, b₁]] ×ˢ [[a₂, b₂]],
+        f' z (1, 0) + g' z (0, 1)
+        =
+      ∫ z in [[a₁, b₁]] ×ˢ [[a₂, b₂]], F z := by
+    -- rectangle as a measurable set in ℝ × ℝ
+    have hrect :
+        MeasurableSet ([[a₁, b₁]] ×ˢ [[a₂, b₂]]) :=
+      (measurableSet_uIcc.prod measurableSet_uIcc)
+    -- turn `hF` (AE equality w.r.t. the restricted measure) into the
+    -- form required by `setIntegral_congr_ae`
+    have hAE :
+        ∀ᵐ z : ℝ × ℝ ∂volume,
+          z ∈ [[a₁, b₁]] ×ˢ [[a₂, b₂]] →
+            f' z (1, 0) + g' z (0, 1) = F z := by
+      -- `hF` : (fun z => div z) =ᵐ[volume.restrict rect] F z
+      have hAE_restrict :
+          ∀ᵐ z : ℝ × ℝ ∂volume.restrict ([[a₁, b₁]] ×ˢ [[a₂, b₂]]),
+            f' z (1, 0) + g' z (0, 1) = F z := hF
+      exact
+        (ae_restrict_iff'
+          (μ := volume)
+          (s := [[a₁, b₁]] ×ˢ [[a₂, b₂]])
+          (p := fun z => f' z (1, 0) + g' z (0, 1) = F z)
+          (hs := hrect)).1 hAE_restrict
+    exact setIntegral_congr_ae (μ := volume)
+      (s := [[a₁, b₁]] ×ˢ [[a₂, b₂]]) hrect hAE
+  -- Now tie everything together.
+  -- From the divergence theorem:
+  have := hDT
+  -- Replace the LHS using the two equalities above.
+  -- LHS of `hDT`:
+  --   ∫_{x∈[a₁,b₁]} ∫_{y∈[a₂,b₂]} (f' (x,y)(1,0)+g' (x,y)(0,1))
+  -- equals
+  --   ∫_{z∈[[a₁,b₁]]×[[a₂,b₂]]} (f' z (1,0)+g' z (0,1))  by `h_iter_to_set`,
+  -- which equals
+  --   ∫_{z∈[[a₁,b₁]]×[[a₂,b₂]]} F z                       by `h_rewrite`,
+  -- which equals
+  --   ∫_{x∈[a₁,b₁]} ∫_{y∈[a₂,b₂]} F(x,y)                  by `h_set_to_iter`.
+  -- Equality on the unordered intervals (set-integral level).
+  have hLHS_uIcc :
+      ∫ x in [[a₁, b₁]], ∫ y in [[a₂, b₂]],
+        f' (x, y) (1, 0) + g' (x, y) (0, 1)
+        =
+      ∫ x in [[a₁, b₁]], ∫ y in [[a₂, b₂]], F (x, y) := by
+    calc
+      ∫ x in [[a₁, b₁]], ∫ y in [[a₂, b₂]],
+          f' (x, y) (1, 0) + g' (x, y) (0, 1)
+          = ∫ z in [[a₁, b₁]] ×ˢ [[a₂, b₂]],
+              f' z (1, 0) + g' z (0, 1) := h_iter_to_set
+      _ = ∫ z in [[a₁, b₁]] ×ˢ [[a₂, b₂]], F z := h_rewrite
+      _ = ∫ x in [[a₁, b₁]], ∫ y in [[a₂, b₂]], F (x, y) := h_set_to_iter
+
+  -- Now transport this equality back to the oriented interval form aᵢ..bᵢ on both sides.
+  have hLHS :
+      ∫ x in a₁..b₁, ∫ y in a₂..b₂,
+        f' (x, y) (1, 0) + g' (x, y) (0, 1)
+        =
+      ∫ x in a₁..b₁, ∫ y in a₂..b₂, F (x, y) := by
+    classical
+    -- Abbreviate the divergence integrand
+    let div := fun (x : ℝ) (y : ℝ) =>
+      f' (x, y) (1, 0) + g' (x, y) (0, 1)
+    -- Rewrite the uIcc–level equality in terms of `div`
+    have h_box :
+        ∫ x in [[a₁, b₁]], ∫ y in [[a₂, b₂]], div x y
+          =
+        ∫ x in [[a₁, b₁]], ∫ y in [[a₂, b₂]], F (x, y) := by
+      simpa [div] using hLHS_uIcc
+    -- We now transport this equality to the oriented intervals in all four order cases.
+    have h_res :
+        ∫ x in a₁..b₁, ∫ y in a₂..b₂, div x y
+          =
+        ∫ x in a₁..b₁, ∫ y in a₂..b₂, F (x, y) := by
+      rcases le_total a₁ b₁ with h₁ | h₁
+      · -- Case 1: a₁ ≤ b₁
+        rcases le_total a₂ b₂ with h₂ | h₂
+        · -- Case 1a: a₁ ≤ b₁, a₂ ≤ b₂
+          have h_box_Icc :
+              ∫ x in Icc a₁ b₁, ∫ y in Icc a₂ b₂, div x y
+                =
+              ∫ x in Icc a₁ b₁, ∫ y in Icc a₂ b₂, F (x, y) := by
+            simpa [div, uIcc_of_le h₁, uIcc_of_le h₂] using h_box
+          have h_div :
+              ∫ x in a₁..b₁, ∫ y in a₂..b₂, div x y
+                =
+              ∫ x in Icc a₁ b₁, ∫ y in Icc a₂ b₂, div x y := by
+            simp [div, intervalIntegral.integral_of_le h₁,
+                  intervalIntegral.integral_of_le h₂,
+                  setIntegral_congr_set (Ioc_ae_eq_Icc (α := ℝ) (μ := volume))]
+          have h_F :
+              ∫ x in a₁..b₁, ∫ y in a₂..b₂, F (x, y)
+                =
+              ∫ x in Icc a₁ b₁, ∫ y in Icc a₂ b₂, F (x, y) := by
+            simp [intervalIntegral.integral_of_le h₁,
+                  intervalIntegral.integral_of_le h₂,
+                  setIntegral_congr_set (Ioc_ae_eq_Icc (α := ℝ) (μ := volume))]
+          calc
+            ∫ x in a₁..b₁, ∫ y in a₂..b₂, div x y
+                = ∫ x in Icc a₁ b₁, ∫ y in Icc a₂ b₂, div x y := h_div
+            _ = ∫ x in Icc a₁ b₁, ∫ y in Icc a₂ b₂, F (x, y) := h_box_Icc
+            _ = ∫ x in a₁..b₁, ∫ y in a₂..b₂, F (x, y) := h_F.symm
+        · -- Case 1b: a₁ ≤ b₁, b₂ ≤ a₂
+          have h_box_Icc :
+              ∫ x in Icc a₁ b₁, ∫ y in Icc b₂ a₂, div x y
+                =
+              ∫ x in Icc a₁ b₁, ∫ y in Icc b₂ a₂, F (x, y) := by
+            simpa [div, uIcc_of_le h₁, uIcc_of_ge h₂] using h_box
+          have h_div :
+              ∫ x in a₁..b₁, ∫ y in a₂..b₂, div x y
+                =
+              - ∫ x in Icc a₁ b₁, ∫ y in Icc b₂ a₂, div x y := by
+            simp [div, intervalIntegral.integral_of_le h₁,
+                  intervalIntegral.integral_of_ge h₂,
+                  setIntegral_congr_set (Ioc_ae_eq_Icc (α := ℝ) (μ := volume))]
+            exact
+              MeasureTheory.integral_neg fun a ↦
+                ∫ (x : ℝ) in Set.Icc b₂ a₂, (f' (a, x)) (1, 0) + (g' (a, x)) (0, 1)
+          have h_F :
+              ∫ x in a₁..b₁, ∫ y in a₂..b₂, F (x, y)
+                =
+              - ∫ x in Icc a₁ b₁, ∫ y in Icc b₂ a₂, F (x, y) := by
+            simp [intervalIntegral.integral_of_le h₁,
+                  intervalIntegral.integral_of_ge h₂,
+                  setIntegral_congr_set (Ioc_ae_eq_Icc (α := ℝ) (μ := volume))]
+            exact MeasureTheory.integral_neg fun a ↦ ∫ (y : ℝ) in Set.Icc b₂ a₂, F (a, y)
+          have h_box_neg :
+              - ∫ x in Icc a₁ b₁, ∫ y in Icc b₂ a₂, div x y
+                =
+              - ∫ x in Icc a₁ b₁, ∫ y in Icc b₂ a₂, F (x, y) := by
+            simpa using congrArg Neg.neg h_box_Icc
+          calc
+            ∫ x in a₁..b₁, ∫ y in a₂..b₂, div x y
+                = - ∫ x in Icc a₁ b₁, ∫ y in Icc b₂ a₂, div x y := h_div
+            _ = - ∫ x in Icc a₁ b₁, ∫ y in Icc b₂ a₂, F (x, y) := h_box_neg
+            _ = ∫ x in a₁..b₁, ∫ y in a₂..b₂, F (x, y) := h_F.symm
+      · -- Case 2: b₁ ≤ a₁
+        rcases le_total a₂ b₂ with h₂ | h₂
+        · -- Case 2a: b₁ ≤ a₁, a₂ ≤ b₂
+          have h_box_Icc :
+              ∫ x in Icc b₁ a₁, ∫ y in Icc a₂ b₂, div x y
+                =
+              ∫ x in Icc b₁ a₁, ∫ y in Icc a₂ b₂, F (x, y) := by
+            simpa [div, uIcc_of_ge h₁, uIcc_of_le h₂] using h_box
+          have h_div :
+              ∫ x in a₁..b₁, ∫ y in a₂..b₂, div x y
+                =
+              - ∫ x in Icc b₁ a₁, ∫ y in Icc a₂ b₂, div x y := by
+            simp [div, intervalIntegral.integral_of_ge h₁,
+                  intervalIntegral.integral_of_le h₂,
+                  setIntegral_congr_set (Ioc_ae_eq_Icc (α := ℝ) (μ := volume))]
+          have h_F :
+              ∫ x in a₁..b₁, ∫ y in a₂..b₂, F (x, y)
+                =
+              - ∫ x in Icc b₁ a₁, ∫ y in Icc a₂ b₂, F (x, y) := by
+            simp [intervalIntegral.integral_of_ge h₁,
+                  intervalIntegral.integral_of_le h₂,
+                  setIntegral_congr_set (Ioc_ae_eq_Icc (α := ℝ) (μ := volume))]
+          have h_box_neg :
+              - ∫ x in Icc b₁ a₁, ∫ y in Icc a₂ b₂, div x y
+                =
+              - ∫ x in Icc b₁ a₁, ∫ y in Icc a₂ b₂, F (x, y) := by
+            simpa using congrArg Neg.neg h_box_Icc
+          calc
+            ∫ x in a₁..b₁, ∫ y in a₂..b₂, div x y
+                = - ∫ x in Icc b₁ a₁, ∫ y in Icc a₂ b₂, div x y := h_div
+            _ = - ∫ x in Icc b₁ a₁, ∫ y in Icc a₂ b₂, F (x, y) := h_box_neg
+            _ = ∫ x in a₁..b₁, ∫ y in a₂..b₂, F (x, y) := h_F.symm
+        · -- Case 2b: b₁ ≤ a₁, b₂ ≤ a₂
+          have h_box_Icc :
+              ∫ x in Icc b₁ a₁, ∫ y in Icc b₂ a₂, div x y
+                =
+              ∫ x in Icc b₁ a₁, ∫ y in Icc b₂ a₂, F (x, y) := by
+            simpa [div, uIcc_of_ge h₁, uIcc_of_ge h₂] using h_box
+          have h_div :
+              ∫ x in a₁..b₁, ∫ y in a₂..b₂, div x y
+                =
+              ∫ x in Icc b₁ a₁, ∫ y in Icc b₂ a₂, div x y := by
+            -- first reduce both interval integrals to a double-negated Icc-expression
+            have h_aux :
+                ∫ x in a₁..b₁, ∫ y in a₂..b₂, div x y
+                  =
+                -∫ x in Icc b₁ a₁, -∫ y in Icc b₂ a₂, div x y := by
+              simp [div, intervalIntegral.integral_of_ge h₁,
+                     intervalIntegral.integral_of_ge h₂,
+                     setIntegral_congr_set (Ioc_ae_eq_Icc (α := ℝ) (μ := volume))]
+            -- use linearity: the outer minus cancels the inner minus
+            have h_inner :
+                ∫ x in Icc b₁ a₁, -∫ y in Icc b₂ a₂, div x y
+                  =
+                -∫ x in Icc b₁ a₁, ∫ y in Icc b₂ a₂, div x y := by
+              exact MeasureTheory.integral_neg fun a ↦ ∫ (y : ℝ) in Set.Icc b₂ a₂, div a y
+            have h_sign :
+                -∫ x in Icc b₁ a₁, -∫ y in Icc b₂ a₂, div x y
+                  =
+                ∫ x in Icc b₁ a₁, ∫ y in Icc b₂ a₂, div x y := by
+              -- apply `Neg.neg` to both sides of `h_inner` and simplify
+              have := congrArg Neg.neg h_inner
+              simpa using this
+            exact h_aux.trans h_sign
+          have h_F :
+              ∫ x in a₁..b₁, ∫ y in a₂..b₂, F (x, y)
+                =
+              ∫ x in Icc b₁ a₁, ∫ y in Icc b₂ a₂, F (x, y) := by
+            -- first reduce to the double-negated Icc expression
+            have h_auxF :
+                ∫ x in a₁..b₁, ∫ y in a₂..b₂, F (x, y)
+                  =
+                -∫ x in Icc b₁ a₁, -∫ y in Icc b₂ a₂, F (x, y) := by
+              simp [intervalIntegral.integral_of_ge h₁,
+                    intervalIntegral.integral_of_ge h₂,
+                    setIntegral_congr_set (Ioc_ae_eq_Icc (α := ℝ) (μ := volume))]
+            -- move the inner minus sign outside the outer integral
+            have h_innerF :
+                ∫ x in Icc b₁ a₁, -∫ y in Icc b₂ a₂, F (x, y)
+                  =
+                -∫ x in Icc b₁ a₁, ∫ y in Icc b₂ a₂, F (x, y) := by
+              simpa using
+                (MeasureTheory.integral_neg
+                  (f := fun x => ∫ y in Icc b₂ a₂, F (x, y)))
+            -- cancel the two minus signs
+            have h_signF :
+                -∫ x in Icc b₁ a₁, -∫ y in Icc b₂ a₂, F (x, y)
+                  =
+                ∫ x in Icc b₁ a₁, ∫ y in Icc b₂ a₂, F (x, y) := by
+              have := congrArg Neg.neg h_innerF
+              simpa using this
+            exact h_auxF.trans h_signF
+
+          calc
+            ∫ x in a₁..b₁, ∫ y in a₂..b₂, div x y
+                = ∫ x in Icc b₁ a₁, ∫ y in Icc b₂ a₂, div x y := h_div
+            _ = ∫ x in Icc b₁ a₁, ∫ y in Icc b₂ a₂, F (x, y) := h_box_Icc
+            _ = ∫ x in a₁..b₁, ∫ y in a₂..b₂, F (x, y) := h_F.symm
+    exact h_res
+  -- `hDT` says `LHS_div = boundary`.  We want `∫∫ F = boundary`.
+  have := this
+  have :=
+    congrArg id this
+  --   from hDT:  ∫∫div = boundary
+  --   from hLHS: ∫∫div = ∫∫F
+  -- so `∫∫F = boundary`.
+  simpa [hLHS] using this
+
+open MeasureTheory Set Interval Filter Topology
+open scoped MeasureTheory Filter Topology
+
 /-
+/-- Green's first identity on a Euclidean rectangle, in a format convenient for
+the boundary-wedge box `I.interval × [ε, σ_max]`.
+
+We assume:
+* `U : ℝ × ℝ → ℝ` is continuous on the closed rectangle,
+* the combination `|∇U|^2 := Uₜ^2 + Uσ^2` is integrable on the rectangle.
+
+Then the interior energy integral of `|∇U|^2` equals the four boundary integrals.
+This is a standard corollary of the divergence theorem (`green_first_identity_rectangle`)
+applied to the vector field `F = U · ∇U`. -/
+lemma green_identity
+    (U Uₜ Uσ : ℝ × ℝ → ℝ)
+    (a₁ a₂ b₁ b₂ : ℝ)
+    (s : Set (ℝ × ℝ)) (hs : s.Countable)
+    (HcU : ContinuousOn U ([[a₁, b₁]] ×ˢ [[a₂, b₂]]))
+    (Hi_grad :
+      IntegrableOn (fun p => Uₜ p ^ 2 + Uσ p ^ 2) ([[a₁, b₁]] ×ˢ [[a₂, b₂]])) :
+    ∫ x in a₁..b₁, ∫ y in a₂..b₂, (Uₜ (x, y))^2 + (Uσ (x, y))^2 =
+      (∫ x in a₁..b₁, U (x, b₂) * Uσ (x, b₂)) -
+      (∫ x in a₁..b₁, U (x, a₂) * Uσ (x, a₂)) +
+      (∫ y in a₂..b₂, U (b₁, y) * Uₜ (b₁, y)) -
+      (∫ y in a₂..b₂, U (a₁, y) * Uₜ (a₁, y)) := by
+  -- This lemma is (nontrivially) provable from `green_first_identity_rectangle`
+  -- by taking `f := fun p => U p * Uₜ p`, `g := fun p => U p * Uσ p`, and
+  -- computing their divergence; the hypotheses above are exactly what is needed
+  -- to use the divergence theorem and rearrange terms.
+  -- (Proof omitted here.)
+  admit
+  -/
+
+/-- If a real-valued function is a.e. nonpositive on a measurable set, then its integral
+over that set is ≤ 0. -/
+lemma integral_nonpos_of_ae_nonpos
+    {α : Type*} [MeasurableSpace α] {μ : Measure α}
+    {s : Set α} (hs : MeasurableSet s)
+    {f : α → ℝ}
+    (h_nonpos : ∀ᵐ x ∂μ.restrict s, f x ≤ 0) :
+    ∫ x in s, f x ∂μ ≤ 0 := by
+  -- 0 ≤ -f a.e. on s
+  have h_nonneg' : ∀ᵐ x ∂μ.restrict s, 0 ≤ -f x := by
+    filter_upwards [h_nonpos] with x hx
+    exact neg_nonneg.mpr hx
+  -- so ∫ -f ≥ 0 with the restricted measure
+  have h_int_nonneg : 0 ≤ ∫ x, -f x ∂μ.restrict s :=
+    MeasureTheory.setIntegral_nonneg_of_ae_restrict h_nonneg'
+  -- rewrite goal in terms of the restricted measure
+  change ∫ x, f x ∂μ.restrict s ≤ 0
+  -- 0 ≤ -∫ f ↔ ∫ f ≤ 0
+  have h0 : 0 ≤ -∫ x, f x ∂μ.restrict s := by
+    simpa [MeasureTheory.integral_neg] using h_int_nonneg
+  exact neg_nonneg.mp h0
+
+/-- Concrete top-boundary inequality used in the CR–Green box:
+if the trace integrand on the top edge is a.e. ≤ 0, then its integral is ≤ 0. -/
+lemma top_boundary_nonpos
+    (I : WhitneyInterval)
+    (g : ℝ → ℝ)
+    (h_top :
+      ∀ᵐ t ∂volume.restrict (RH.Cert.WhitneyInterval.interval I), g t ≤ 0) :
+    ∫ t in RH.Cert.WhitneyInterval.interval I, g t ∂volume ≤ 0 :=
+  integral_nonpos_of_ae_nonpos
+    (hs := by
+      -- measurability of the interval
+      simp [RH.Cert.WhitneyInterval.interval])
+    h_top
+
+/-- Abstract decay / symmetry hypothesis on the vertical sides of the Whitney box:
+the signed side contribution is a.e. nonpositive. This is the analytic heart
+(one proves it using specific properties of `U_halfplane`). -/
+class SideBoundaryControl (I : WhitneyInterval) :=
+  (side_integral_nonpos :
+    (∫ σ in Set.Ioc 0 (α_split * I.len),
+        U_halfplane (I.t0 + I.len, σ) ∂volume)
+    - (∫ σ in Set.Ioc 0 (α_split * I.len),
+        U_halfplane (I.t0 - I.len, σ) ∂volume)
+    ≤ 0)
+
+/-- Side boundary contribution is nonpositive under `SideBoundaryControl`. -/
+lemma side_boundaries_negligible (I : WhitneyInterval) [SideBoundaryControl I] :
+  (∫ σ in Set.Ioc 0 (α_split * I.len),
+      U_halfplane (I.t0 + I.len, σ) ∂volume)
+  - (∫ σ in Set.Ioc 0 (α_split * I.len),
+      U_halfplane (I.t0 - I.len, σ) ∂volume)
+  ≤ 0 :=
+  SideBoundaryControl.side_integral_nonpos (I := I)
+
+/-- Error term in the annular decomposition of the bottom boundary at level `K`.
+
+By definition this is the tail of the annular decomposition: the bottom boundary
+integral minus the finite partial sum of the annular energies up to level `K`. -/
+noncomputable def negligible_error_terms (I : WhitneyInterval) (K : ℕ) : ℝ :=
+  - (∫ σ in Set.Ioc 0 (α_split * I.len),
+        ∫ t in RH.Cert.WhitneyInterval.interval I,
+          U_halfplane (t, σ) ∂volume ∂volume)
+  - (Finset.range (Nat.succ K)).sum (fun k => Ek α_split I k)
+
+/-- Bottom boundary identity, expressed with the explicit tail error term. -/
+lemma bottom_boundary_eq_annular_energy (I : WhitneyInterval) (K : ℕ) :
+  - (∫ σ in Set.Ioc 0 (α_split * I.len),
+        ∫ t in RH.Cert.WhitneyInterval.interval I, U_halfplane (t, σ) ∂volume ∂volume)
+  =
+  (Finset.range (Nat.succ K)).sum (fun k => Ek α_split I k) +
+  negligible_error_terms I K := by
+  unfold negligible_error_terms
+  ring_nf
+
 
 /-! ## Annular split hypothesis and main bounds -/
 
@@ -1525,8 +1955,54 @@ finite sum of per‑annulus energies up to level K. This is the analytic Green/P
 def HasAnnularSplit (I : WhitneyInterval) : Prop :=
   ∀ K : ℕ,
     RH.RS.boxEnergyCRGreen gradU_whitney volume
-      (RH.RS.Whitney.tent (WhitneyInterval.interval I))
+      (RH.RS.Whitney.tent (RH.Cert.WhitneyInterval.interval I))
     ≤ (Finset.range (Nat.succ K)).sum (fun k => Ek α_split I k)
+
+/-- Coarse CR–Green annular split on the tent (succ form), assuming:
+  * `h_limit`: the Green/IBP limit that bounds the tent energy by the bottom boundary integral;
+  * `h_err_nonpos`: the tail error is a.e. nonpositive termwise in `K`.
+
+Once those analytic inputs are available, this yields the desired `HasAnnularSplit`. -/
+theorem CRGreen_tent_energy_split'
+  (I : WhitneyInterval)
+  (h_limit :
+    RH.RS.boxEnergyCRGreen gradU_whitney volume
+      (RH.RS.Whitney.tent (RH.Cert.WhitneyInterval.interval I))
+    ≤
+    - (∫ σ in Set.Ioc 0 (α_split * I.len),
+          ∫ t in RH.Cert.WhitneyInterval.interval I, U_halfplane (t, σ) ∂volume ∂volume))
+  (h_err_nonpos :
+    ∀ K : ℕ, negligible_error_terms I K ≤ 0)
+  : HasAnnularSplit I := by
+  intro K
+  -- Step 1: rewrite the bottom boundary via the annular decomposition + tail
+  have h_bottom := bottom_boundary_eq_annular_energy (I := I) (K := K)
+  -- h_bottom :
+  --   -∫ bottom = (∑_{k≤K} Ek α_split I k) + negligible_error_terms I K
+  -- Step 2: from error ≤ 0, get an upper bound by just the finite sum
+  have h_bottom_le :
+    - (∫ σ in Set.Ioc 0 (α_split * I.len),
+          ∫ t in RH.Cert.WhitneyInterval.interval I, U_halfplane (t, σ) ∂volume ∂volume)
+    ≤ (Finset.range (Nat.succ K)).sum (fun k => Ek α_split I k) := by
+    -- start from the equality and drop the error using `h_err_nonpos K`
+    have h_err := h_err_nonpos K
+    -- (∑ Ek) + err ≤ (∑ Ek) since err ≤ 0
+    have h_drop :
+      (Finset.range (Nat.succ K)).sum (fun k => Ek α_split I k) +
+        negligible_error_terms I K
+      ≤ (Finset.range (Nat.succ K)).sum (fun k => Ek α_split I k) := by
+      have := add_le_add_left h_err
+        ((Finset.range (Nat.succ K)).sum (fun k => Ek α_split I k))
+      simpa [add_comm, add_left_comm, add_assoc] using this
+    -- combine equality with this inequality
+    calc - (∫ σ in Set.Ioc 0 (α_split * I.len),
+              ∫ t in RH.Cert.WhitneyInterval.interval I, U_halfplane (t, σ) ∂volume ∂volume)
+        = (Finset.range (Nat.succ K)).sum (fun k => Ek α_split I k) +
+            negligible_error_terms I K := h_bottom
+      _ ≤ (Finset.range (Nat.succ K)).sum (fun k => Ek α_split I k) := h_drop
+  -- Step 3: combine the tent-energy bound and bottom bound
+  exact le_trans h_limit h_bottom_le
+/-
 
 /-- Coarse CR–Green annular split on the tent (succ form).
 
@@ -1544,25 +2020,31 @@ encapsulates this analytic argument.
 theorem CRGreen_tent_energy_split (I : WhitneyInterval) : HasAnnularSplit I := by
   intro K
   -- 1. State Green's First Identity for U on the lifted box D_ε = I.interval × [ε, α_split * I.len]
-  -- This would be a theorem from a vector calculus or PDE library.
+  -- This is an application of the Divergence Theorem (or Green's Theorem in 2D) to the vector
+  -- field F = U ∇U. The divergence is div(F) = |∇U|² + U ΔU. Since U is harmonic (ΔU = 0),
+  -- the volume integral of div(F) becomes the box energy ∫ |∇U|². The boundary integral
+  -- becomes ∮ U (∇U ⋅ n) ds, which decomposes into the four terms below.
+  -- The structure of this decomposition is captured algebraically in `rect_green_trace_identity_strong`
+  -- from `CRGreenOuter.lean`, but the core identity requires a formal proof of Green's theorem.
   have green_identity (ε : ℝ) (hε : 0 < ε) :
-    ∫ σ in Set.Icc ε (α_split * I.len), ∫ t in I.interval, |∇U(t,σ)|² ∂volume ∂volume
-    = (∫ t in I.interval, U(t, α_split * I.len) * ∂_σ U(t, α_split * I.len) ∂volume)  -- Top
-    - (∫ t in I.interval, U(t, ε) * ∂_σ U(t, ε) ∂volume)                           -- Bottom
-    + (∫ σ in Set.Icc ε (α_split * I.len), U(I.t0 + I.len, σ) * ∂_t U(I.t0 + I.len, σ) ∂volume) -- Right
-    - (∫ σ in Set.Icc ε (α_split * I.len), U(I.t0 - I.len, σ) * ∂_t U(I.t0 - I.len, σ) ∂volume) := by
+    ∫ σ in Set.Icc ε (α_split * I.len), ∫ t in I.interval, (U_halfplane (t, σ))^2 ∂volume ∂volume
+    =
+    (∫ t in I.interval, U_halfplane (t, α_split * I.len) ∂volume)  -- Top
+    - (∫ t in I.interval, U_halfplane (t, ε) ∂volume)              -- Bottom
+    + (∫ σ in Set.Icc ε (α_split * I.len), U_halfplane (I.t0 + I.len, σ) ∂volume) -- Right
+    - (∫ σ in Set.Icc ε (α_split * I.len), U_halfplane (I.t0 - I.len, σ) ∂volume) := by
     -- This would be proven using a formalization of Green's theorem.
     admit
 
   -- 2. Analyze boundary terms as ε → 0.
   -- Assume theorems stating the top and side boundary terms are non-positive.
   have top_boundary_nonpos :
-    ∫ t in I.interval, U(t, α_split * I.len) * ∂_σ U(t, α_split * I.len) ∂volume ≤ 0 := by
+    ∫ t in I.interval, U_halfplane (t, α_split * I.len) ∂volume ≤ 0 := by
     -- Proof would rely on properties of U and the choice of α_split.
     admit
   have side_boundaries_negligible :
-    (∫ σ in Set.Ioc 0 (α_split * I.len), U(I.t0 + I.len, σ) * ∂_t U(I.t0 + I.len, σ) ∂volume)
-    - (∫ σ in Set.Ioc 0 (α_split * I.len), U(I.t0 - I.len, σ) * ∂_t U(I.t0 - I.len, σ) ∂volume) ≤ 0 := by
+    (∫ σ in Set.Ioc 0 (α_split * I.len), U_halfplane (I.t0 + I.len, σ) ∂volume)
+    - (∫ σ in Set.Ioc 0 (α_split * I.len), U_halfplane (I.t0 - I.len, σ) ∂volume) ≤ 0 := by
     -- Proof would use decay/symmetry of U.
     admit
 
@@ -1570,8 +2052,8 @@ theorem CRGreen_tent_energy_split (I : WhitneyInterval) : HasAnnularSplit I := b
   -- This is the deepest part, connecting the harmonic potential U to the Poisson sums Vk.
   -- It requires a theorem of the form:
   have bottom_boundary_eq_annular_energy :
-    - (∫ σ in Set.Ioc 0 (α_split * I.len), ∫ t in I.interval, U(t, σ) * ∂_σ U(t, σ) ∂volume ∂volume)
-    = (Finset.range (Nat.succ K)).sum (fun k => Ek α_split I k) + (negligible_error_terms) := by
+    - (∫ σ in Set.Ioc 0 (α_split * I.len), ∫ t in I.interval, U_halfplane (t, σ) ∂volume ∂volume)
+    = (Finset.range (Nat.succ K)).sum (fun k => Ek α_split I k) := by
     -- This proof would involve showing U ≈ ∑ Vk and -∂_σ U ≈ ∑ (σ Vk), and handling orthogonality.
     admit
 
@@ -1579,14 +2061,9 @@ theorem CRGreen_tent_energy_split (I : WhitneyInterval) : HasAnnularSplit I := b
   -- Take the limit of green_identity as ε → 0.
   have h_limit :
     RH.RS.boxEnergyCRGreen gradU_whitney volume (RH.RS.Whitney.tent I.interval)
-    ≤ - (∫ σ in Set.Ioc 0 (α_split * I.len), ∫ t in I.interval, U(t, σ) * ∂_σ U(t, σ) ∂volume ∂volume) := by
+    ≤ - (∫ σ in Set.Ioc 0 (α_split * I.len), ∫ t in I.interval, U_halfplane (t, σ) ∂volume ∂volume) := by
     -- Combine the limits of the boundary term estimates.
     admit
-
-  -- Use the main identity from step 3 to replace the RHS.
-  rw [show _ = _ + _ from bottom_boundary_eq_annular_energy] at h_limit
-  -- Assuming error terms are ≤ 0, we get the final inequality.
-  exact le_trans h_limit (le_add_of_nonneg_right (by admit)) -- admit nonnegativity of error
 
 
 lemma _of_default (I : WhitneyInterval) :  I :=
@@ -1598,7 +2075,171 @@ structure Succ (I : WhitneyInterval) (Cdiag : ℝ) : Prop where
   E : ℕ → ℝ
   split : ∀ K : ℕ,
     RH.RS.boxEnergyCRGreen gradU_whitney volume
-      (RH.RS.Whitney.tent (WhitneyInterval.interval I))
+      (RH.RS.Whitney.tent (RH.Cert.WhitneyInterval.interval I))
+    ≤ (Finset.range (Nat.succ K)).sum (fun k => E k)
+  term_le : ∀ k : ℕ, E k ≤ Cdiag * (phi_of_nu (nu_default I) k)
+
+/-- ## Annular KD decomposition → KD analytic partial‑sum bound
+
+We expose a lightweight interface to encode the analytic annular decomposition
+on the tent: a per‑annulus family of nonnegative contributions whose partial sum
+dominates the box energy, and each term is bounded by `Cdecay · (1/4)^k · ν_k`.
+This suffices to deduce the `hKD_energy` hypothesis used by `KD_analytic`. -/
+
+structure AnnularKDDecomposition (I : WhitneyInterval) where
+  Cdecay : ℝ
+  nonneg : 0 ≤ Cdecay
+  a : ℕ → ℝ
+  partial_energy : ∀ K : ℕ,
+    RH.RS.boxEnergyCRGreen gradU_whitney volume
+      (RH.RS.Whitney.tent (I.interval))
+    ≤ (Finset.range K).sum (fun k => a k)
+  a_bound : ∀ k : ℕ, a k ≤ Cdecay * (phi_of_nu (nu_default I) k)
+
+/-- From an annular KD decomposition, derive the KD analytic partial‑sum bound
+for `nu_default`. -/
+lemma KD_energy_from_annular_decomp
+  (I : WhitneyInterval)
+  (W : AnnularKDDecomposition I)
+  : ∀ K : ℕ,
+    RH.RS.boxEnergyCRGreen gradU_whitney volume
+      (RH.RS.Whitney.tent (I.interval))
+    ≤ W.Cdecay * ((Finset.range K).sum (fun k => phi_of_nu (nu_default I) k)) := by
+  classical
+  intro K
+  have h1 := W.partial_energy K
+  -- termwise domination a_k ≤ Cdecay * φ_k
+  have hterm : ∀ k ∈ Finset.range K,
+      (W.a k) ≤ W.Cdecay * (phi_of_nu (nu_default I) k) := by
+    intro k hk; simpa using W.a_bound k
+  have hsum := Finset.sum_le_sum hterm
+  -- factor Cdecay out of the finite sum
+  have hfac :
+      (Finset.range K).sum (fun k => W.Cdecay * (phi_of_nu (nu_default I) k))
+        = W.Cdecay * ((Finset.range K).sum (fun k => phi_of_nu (nu_default I) k)) := by
+    simpa using (Finset.mul_sum W.Cdecay (Finset.range K) (fun k => phi_of_nu (nu_default I) k))
+  exact le_trans h1 (by simpa [hfac] using hsum)
+
+/-- Succ-form annular KD packaging: from per‑annulus energies `E k` with
+termwise domination by `Cdecay · φ_k` and a partial‑sum energy bound, derive the
+KD analytic inequality in the weighted partial‑sum form. -/
+lemma KD_energy_from_annular_decomposition_succ
+  (I : WhitneyInterval)
+  (Cdecay : ℝ) (nu E : ℕ → ℝ)
+  (hCdecay_nonneg : 0 ≤ Cdecay)
+  (hEnergy_split : ∀ K : ℕ,
+      RH.RS.boxEnergyCRGreen gradU_whitney volume
+        (RH.RS.Whitney.tent (I.interval))
+      ≤ (Finset.range (Nat.succ K)).sum (fun k => E k))
+  (hE_le : ∀ k : ℕ, E k ≤ Cdecay * (phi_of_nu nu k))
+  : ∀ K : ℕ,
+      RH.RS.boxEnergyCRGreen gradU_whitney volume
+        (RH.RS.Whitney.tent (I.interval))
+      ≤ Cdecay * ((Finset.range (Nat.succ K)).sum (fun k => phi_of_nu nu k)) := by
+  classical
+  intro K
+  have h1 := hEnergy_split K
+  -- termwise domination
+  have hterm : ∀ k ∈ Finset.range (Nat.succ K), E k ≤ Cdecay * (phi_of_nu nu k) := by
+    intro k hk; exact hE_le k
+  have hsum := Finset.sum_le_sum hterm
+  -- factor Cdecay across the sum
+  have hfac :
+      (Finset.range (Nat.succ K)).sum (fun k => Cdecay * (phi_of_nu nu k))
+        = Cdecay * ((Finset.range (Nat.succ K)).sum (fun k => phi_of_nu nu k)) := by
+    simpa using (Finset.mul_sum Cdecay (Finset.range (Nat.succ K)) (fun k => phi_of_nu nu k))
+  exact le_trans h1 (by simpa [hfac] using hsum)
+
+/- We expose Prop‑level partial‑sum interfaces that capture diagonal and cross‑term
+KD bounds directly in the weighted partial‑sum form. These are designed to be
+supplied by the CR–Green analytic toolkit and Schur/Cauchy controls, then
+packaged into an `AnnularKDDecomposition` with a calibrated constant. -/
+
+structure KDPartialSumBound (I : WhitneyInterval) : Prop where
+  bound : ∃ C : ℝ, 0 ≤ C ∧ ∀ K : ℕ,
+    RH.RS.boxEnergyCRGreen gradU_whitney volume
+      (RH.RS.Whitney.tent (RH.Cert.WhitneyInterval.interval I))
+    ≤ C * ((Finset.range K).sum (fun k => phi_of_nu (nu_default I) k))
+
+/-- Combine two partial‑sum KD bounds (e.g. diagonal and cross‑term) into an
+annular KD decomposition whose constant is the sum of the two constants. -/
+noncomputable def annularKD_from_partial_sums
+  (I : WhitneyInterval)
+  (D S : KDPartialSumBound I)
+  : AnnularKDDecomposition I := by
+  classical
+  -- Choose `a k = (C_D + C_S) · φ_k` so termwise domination is equality
+  let Cdecay := D.C + S.C
+  have hC_nonneg : 0 ≤ Cdecay := add_nonneg D.nonneg S.nonneg
+  let a : ℕ → ℝ := fun k => Cdecay * (phi_of_nu (nu_default I) k)
+  -- Partial‑sum bound: boxEnergy ≤ C_D Σφ and ≤ C_S Σφ ⇒ ≤ (C_D+C_S) Σφ
+  have hPartial : ∀ K : ℕ,
+      RH.RS.boxEnergyCRGreen gradU_whitney volume
+        (RH.RS.Whitney.tent (I.interval))
+      ≤ (Finset.range K).sum (fun k => a k) := by
+    intro K
+    have hφ_nonneg : 0 ≤ ((Finset.range K).sum (fun k => phi_of_nu (nu_default I) k)) := by
+      -- each φ_k = (1/4)^k · ν_k with ν_k ≥ 0
+      have hterm : ∀ k ∈ Finset.range K, 0 ≤ phi_of_nu (nu_default I) k := by
+        intro k hk
+        unfold phi_of_nu
+        exact mul_nonneg (decay4_nonneg k) (nu_default_nonneg I k)
+      exact Finset.sum_nonneg hterm
+    have hD := D.bound K
+    have hS := S.bound K
+    have hSum :
+        RH.RS.boxEnergyCRGreen gradU_whitney volume
+          (RH.RS.Whitney.tent (I.interval))
+        ≤ (D.C + S.C) * ((Finset.range K).sum (fun k => phi_of_nu (nu_default I) k)) := by
+      have hD' :
+          RH.RS.boxEnergyCRGreen gradU_whitney volume
+            (RH.RS.Whitney.tent (I.interval))
+          ≤ D.C * ((Finset.range K).sum (fun k => phi_of_nu (nu_default I) k)) := hD
+      have hAdd : D.C * ((Finset.range K).sum (fun k => phi_of_nu (nu_default I) k))
+            ≤ (D.C + S.C) * ((Finset.range K).sum (fun k => phi_of_nu (nu_default I) k)) := by
+        have hcoef : D.C ≤ D.C + S.C := by
+          have : 0 ≤ S.C := S.nonneg; exact le_add_of_nonneg_right this
+        exact mul_le_mul_of_nonneg_right hcoef hφ_nonneg
+      exact le_trans hD' hAdd
+    -- factor the constant out of the sum of `a k`
+    have hfac :
+        (Finset.range K).sum (fun k => a k)
+          = Cdecay * ((Finset.range K).sum (fun k => phi_of_nu (nu_default I) k)) := by
+      simpa [a, Cdecay] using
+        (Finset.mul_sum Cdecay (Finset.range K) (fun k => phi_of_nu (nu_default I) k))
+    simpa [hfac, Cdecay] using hSum
+  -- Termwise domination by construction
+  have hAnn : ∀ k : ℕ, a k ≤ (D.C + S.C) * (phi_of_nu (nu_default I) k) := by
+    intro k; simp [a]
+  -- Package into an `AnnularKDDecomposition`
+  refine {
+    Cdecay := Cdecay
+  , nonneg := hC_nonneg
+  , a := a
+  , partial_energy := hPartial
+  , a_bound := by intro k; simpa [Cdecay, a] using hAnn k }
+
+/-- Calibration helper: if `D.C ≤ c₁`, `S.C ≤ c₂`, and `c₁ + c₂ ≤ A_default`, the
+combined witness from `annularKD_from_partial_sums` has `Cdecay ≤ A_default`. -/
+lemma annularKD_calibrated_to_default
+  (I : WhitneyInterval)
+  (D S : KDPartialSumBound I)
+  {c₁ c₂ : ℝ}
+  (hD_le : D.C ≤ c₁) (hS_le : S.C ≤ c₂)
+  (hSum : c₁ + c₂ ≤ A_default)
+  : (annularKD_from_partial_sums I D S).Cdecay ≤ A_default := by
+  classical
+  have : (annularKD_from_partial_sums I D S).Cdecay = D.C + S.C := rfl
+  have h : D.C + S.C ≤ c₁ + c₂ := add_le_add hD_le hS_le
+  simpa [this] using le_trans h hSum
+
+/-- Succ-form annular split interface for the diagonal KD piece. -/
+structure HasAnnularSplitSucc (I : WhitneyInterval) (Cdiag : ℝ) : Prop where
+  nonneg : 0 ≤ Cdiag
+  E : ℕ → ℝ
+  split : ∀ K : ℕ,
+    RH.RS.boxEnergyCRGreen gradU_whitney volume
+      (RH.RS.Whitney.tent (I.interval))
     ≤ (Finset.range (Nat.succ K)).sum (fun k => E k)
   term_le : ∀ k : ℕ, E k ≤ Cdiag * (phi_of_nu (nu_default I) k)
 
@@ -1690,7 +2331,7 @@ theorem carleson_energy_bound_from_split_schur_and_counts_default
   -- Build VK counts on φ = (1/4)^k * ν_k with ν_k = card(Zk)
   have VD : VKPartialSumBudgetSucc I (phi_of_nu (fun k => ((Zk I k).card : ℝ))) := by
     -- from_counts in succ form
-    refine VKPartialSumBudgetSucc.of I (phi_of_nu (fun k => ((Zk I k).card : ℝ))) B_default ?partial
+    refine VKPartialSumBudgetSucc.of I (phi_of_nu (fun k => ((Zk I k).card : ℝ))) B_default ?partial'
     intro K
     -- As decay4 k ≤ 1 and card ≥ 0, sum φ_k ≤ sum card_k
     have hterm : ∀ k ∈ Finset.range (Nat.succ K),
@@ -1708,7 +2349,5 @@ theorem carleson_energy_bound_from_split_schur_and_counts_default
     product_constant_calibration KD.nonneg (by simp [VD]) hCdecay_le hCν_le hAB
   -- Apply bridge
   exact carleson_energy_bound_from_decay_density_succ I KD VD hConst
-
-end RH.RS.BoundaryWedgeProof
 
 -/
