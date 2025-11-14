@@ -2,6 +2,8 @@ import rh.RS.CRGreenOuter
 import rh.academic_framework.HalfPlaneOuterV2
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 
+noncomputable section
+
 /-!
 Core (P+) predicate and Whitney a.e. facade shared by Route B and Boundary proof.
 

@@ -2,6 +2,7 @@ import rh.RS.Cayley
 import rh.RS.Det2Outer
 import rh.RS.PinchCertificate
 import rh.RS.PinchIngredients
+import rh.RS.RouteB_Final
 import rh.academic_framework.CompletedXi
 import rh.Proof.Main
 -- keep packaging decoupled to avoid cycles; consumers can import XiExtBridge directly if needed
@@ -28,6 +29,7 @@ namespace RS
 
 open Complex Set RH.AcademicFramework.CompletedXi
 open RH.AcademicFramework.HalfPlaneOuterV2
+open RH.RS.RouteB
 
 local notation "Ω" => RH.RS.Ω
 
@@ -254,6 +256,67 @@ def RH_from_PPlus_and_pinned
   classical
   let C := pinch_certificate_from_PPlus_and_pinned hOuter _hPPlus hPoisson hPinned
   exact RH.Proof.Final.RH_from_pinch_certificate C
+
+/-
+## Canonical instantiations via Route B exports
+-/
+
+/-- Canonical outer existence witness supplied by Route B. -/
+def canonical_outer_exists :
+    ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
+      BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s) :=
+  ⟨RH.RS.RouteB.O, (RH.RS.RouteB.O_spec).1, (RH.RS.RouteB.O_spec).2⟩
+
+lemma canonical_hasPoissonRepOn :
+    RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
+      (F_pinch det2 (Classical.choose canonical_outer_exists))
+      (Ω \ {z | riemannXi_ext z = 0}) := by
+  have hChoose : Classical.choose canonical_outer_exists = RH.RS.RouteB.O := rfl
+  simpa [canonical_outer_exists, hChoose] using RH.RS.RouteB.F_pinch_has_poisson_rep
+
+lemma canonical_pinned_data
+    (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical) :
+    ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
+      ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
+        (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
+        AnalyticOn ℂ (Θ_pinch_of det2 (Classical.choose canonical_outer_exists)) (U \ {ρ}) ∧
+        ∃ u : ℂ → ℂ,
+          Set.EqOn (Θ_pinch_of det2 (Classical.choose canonical_outer_exists))
+            (fun z => (1 - u z) / (1 + u z)) (U \ {ρ}) ∧
+          Filter.Tendsto u (nhdsWithin ρ (U \ {ρ})) (nhds (0 : ℂ)) ∧
+          ∃ z, z ∈ U ∧ z ≠ ρ ∧ (Θ_pinch_of det2 (Classical.choose canonical_outer_exists)) z ≠ 1 := by
+  classical
+  have hChoose : Classical.choose canonical_outer_exists = RH.RS.RouteB.O := rfl
+  intro ρ hΩ hXi
+  obtain ⟨U, hUopen, hUconn, hUsub, hρU, hIso, hΘU, u, hEq, hu0, z, hzU, hzNe, hΘz⟩ :=
+    RH.RS.RouteB.pinned_removable_data
+      (hRe := RH.RS.RouteB.interior_positive_offXi hCanon)
+      ρ hΩ hXi
+  refine ⟨U, hUopen, hUconn, hUsub, hρU, hIso,
+    ?_, u, ?_, hu0, z, hzU, hzNe, ?_⟩
+  · simpa [canonical_outer_exists, hChoose] using hΘU
+  · simpa [canonical_outer_exists, hChoose] using hEq
+  · simpa [canonical_outer_exists, hChoose] using hΘz
+
+/-- Build the pinch certificate directly from the canonical `(P+)`. -/
+noncomputable def pinch_certificate_from_canonical
+    (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical) :
+    PinchCertificateExt :=
+  pinch_certificate_from_PPlus_transport_and_pinned
+    canonical_outer_exists
+    canonical_hasPoissonRepOn
+    (RH.RS.RouteB.boundary_positive hCanon)
+    (canonical_pinned_data hCanon)
+
+/-- Conclude RH from the canonical `(P+)` witness alone. -/
+def RH_from_PPlus_canonical
+    (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical) :
+    RiemannHypothesis :=
+  RH_from_PPlus_transport_and_pinned
+    canonical_outer_exists
+    canonical_hasPoissonRepOn
+    (RH.RS.RouteB.boundary_positive hCanon)
+    (canonical_pinned_data hCanon)
 
 end RS
 end RH

@@ -53,46 +53,8 @@ lemma interior_positive_with_certificate_outer
   ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
     0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose outer_exists_for_certificate) z)).re := by
   classical
-  -- Align the chosen outer with Route B's fixed choice
   have hChoose : Classical.choose outer_exists_for_certificate = RH.RS.RouteB.O := rfl
-  -- Route B provides (P+) and a Poisson representation on the off-zeros set
-  have hP : RH.Cert.PPlus (fun z => (2 : ℂ) * J_pinch det2 (RH.RS.RouteB.O) z) :=
-    RH.RS.RouteB.boundary_positive hCanon
-  -- Convert (P+) to AF boundary positivity for F_pinch det2 O
-  have hcert : ∀ᵐ t : ℝ,
-      0 ≤ ((fun z => (2 : ℂ) * J_pinch det2 (RH.RS.RouteB.O) z)
-            (Complex.mk (1/2) t)).re := hP
-  have mk_eq : ∀ t, Complex.mk (1/2) t = (1/2 : ℝ) + Complex.I * (t : ℂ) := by
-    intro t; apply Complex.ext <;> simp
-  have hbd : ∀ᵐ t : ℝ,
-      0 ≤ ((fun z => (2 : ℂ) * J_pinch det2 (RH.RS.RouteB.O) z)
-            (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re := by
-    refine hcert.mono ?_
-    intro t ht
-    have hb : RH.AcademicFramework.HalfPlaneOuterV2.boundary t
-        = (1/2 : ℝ) + Complex.I * (t : ℂ) := rfl
-    have ht' : 0 ≤ ((fun z => (2 : ℂ) * J_pinch det2 (RH.RS.RouteB.O) z)
-                      ((1/2 : ℝ) + Complex.I * (t : ℂ))).re := by
-      simpa [mk_eq t] using ht
-    simpa [hb] using ht'
-  have hBP : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive
-      (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 (RH.RS.RouteB.O)) := by
-    simpa [RH.AcademicFramework.HalfPlaneOuterV2.BoundaryPositive,
-           RH.AcademicFramework.HalfPlaneOuterV2.F_pinch, hChoose]
-      using hbd
-  -- Poisson representation on the off-zeros set (Route B export)
-  have hRep : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
-      (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 (RH.RS.RouteB.O))
-      (Ω \ {z | riemannXi_ext z = 0}) := RH.RS.RouteB.F_pinch_has_poisson_rep
-  -- Transport boundary positivity to interior positivity on Ω \ {ξ = 0}
-  have hTrans :=
-    RH.AcademicFramework.HalfPlaneOuterV2.poissonTransportOn
-      (F := RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 (RH.RS.RouteB.O))
-      hRep hBP
-  intro z hz
-  -- Evaluate transport at z and rewrite F_pinch with the chosen outer
-  simpa [RH.AcademicFramework.HalfPlaneOuterV2.F_pinch, hChoose]
-    using hTrans z hz
+  simpa [hChoose] using RH.RS.RouteB.interior_positive_offXi hCanon
 
 /-! ## Section 2: Outer Existence Witness
 
@@ -115,14 +77,17 @@ lemma xi_ext_zero_isolated_on_Ω
   ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
     (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
   classical
-  -- Extract the isolating neighborhood from the Route B pinned data
-  obtain ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi, _, _, _, _, _, _, _⟩ :=
-    RH.RS.RouteB.pinned_removable_data ρ hΩ hξ
-  exact ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi⟩
+  -- Extract the isolating neighborhood directly from Route B's isolating lemma
+  obtain ⟨U, hUopen, hUconn, hUsub, hρU, hIso⟩ :=
+    RH.RS.RouteB.exists_isolating_preconnected_open ρ hΩ hξ
+  exact ⟨U, hUopen, hUconn, hUsub, hρU, hIso⟩
 
 /-- Removable extension across each `ξ_ext` zero for the pinch Θ, built from
 Route B's pinned u–trick packaging and the standard removable-update builder. -/
 theorem removable_extension_at_xi_zeros
+  (hRe :
+    ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+      0 ≤ ((2 : ℂ) * (J_pinch det2 RH.RS.RouteB.O z)).re)
   (O_witness : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
       BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s)) :
   ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
@@ -142,7 +107,7 @@ theorem removable_extension_at_xi_zeros
   -- Pinned data for Θ := Θ_pinch_of det2 O on a neighborhood U of ρ
   obtain ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi, hΘU, u, hEq, hu0, z0, hz0U,
       hz0ne, hΘz0ne⟩ :=
-    (RH.RS.RouteB.pinned_removable_data ρ hΩ hXi)
+    RH.RS.RouteB.pinned_removable_data (hRe := hRe) ρ hΩ hXi
   -- Use the pinned→removable assignment builder to produce the extension `g`
   -- and package into the expected existence shape.
   -- We inline the builder to avoid an extra chooser lambda here.
@@ -187,7 +152,9 @@ noncomputable def concrete_certificate
   certificate_from_pinch_ingredients
     outer_exists_for_certificate
     (interior_positive_with_certificate_outer hCanon)
-    (removable_extension_at_xi_zeros outer_exists_for_certificate)
+    (removable_extension_at_xi_zeros
+      (interior_positive_with_certificate_outer hCanon)
+      outer_exists_for_certificate)
 
 /-! ## Section 6: Main Unconditional Theorem
 

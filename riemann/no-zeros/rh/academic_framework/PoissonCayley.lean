@@ -191,6 +191,23 @@ theorem pinch_ReEqOn_from_pullback
   exact reEq_on_from_disk_via_cayley (F := F_pinch det2 O) (H := H)
     (S := S) hEqInt hEqBd hKernel
 
+/-- θ‑free specialization: if the Cayley pullback `(H ∘ toDisk)` has a subset Poisson
+representation on `offXi` and the pinch field matches `H` along the Cayley
+interior/boundary identifications, then the half-plane Poisson real-part identity
+holds on `offXi`. -/
+theorem pinch_theta_free_ReEqOn_offXi
+  (det2 O H : ℂ → ℂ)
+  (hEqInt :
+    Set.EqOn (F_pinch det2 O) (fun z => H (CayleyAdapters.toDisk z)) offXi)
+  (hEqBd :
+    EqOnBoundary (F_pinch det2 O) H)
+  (hRepPull :
+    HasPoissonRepOn (fun z => H (CayleyAdapters.toDisk z)) offXi)
+  : HasHalfPlanePoissonReEqOn (F_pinch det2 O) offXi := by
+  exact pinch_ReEqOn_from_pullback
+    (det2 := det2) (O := O) (S := offXi) (H := H)
+    (hEqInt := hEqInt) (hEqBd := hEqBd) (hRepPull := hRepPull)
+
 /-- New: Build a subset half‑plane Poisson representation for the Cayley pullback directly
 from a subset half‑plane Poisson representation of the original function `F`.
 

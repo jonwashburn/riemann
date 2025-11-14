@@ -12,7 +12,6 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import rh.academic_framework.CompletedXi
 import rh.academic_framework.DiskHardy
 import rh.RS.Det2Outer
-import rh.RS.PoissonAI
 import Mathlib.NumberTheory.LSeries.RiemannZeta
 
 /-!
@@ -741,6 +740,15 @@ theorem pinch_transport
   poissonTransportOn hRep
 
 /-! ## Section 7: Boundary AI Interface (Statement Level) -/
+
+/-- Boundary real trace for `F` along the canonical parameterisation. -/
+@[simp] noncomputable def boundaryRe (F : ℂ → ℂ) (x : ℝ) : ℝ :=
+  (F (boundary x)).re
+
+/-- Poisson smoothing family on the boundary; used to state the AI property. -/
+@[simp] noncomputable def poissonSmooth (F : ℂ → ℂ) (b x : ℝ) : ℝ :=
+  ∫ t : ℝ,
+    (b / (Real.pi * (b^2 + (x - t)^2))) * boundaryRe F t
 
 /-- Boundary approximate identity property -/
 def BoundaryAI (F : ℂ → ℂ) : Prop :=

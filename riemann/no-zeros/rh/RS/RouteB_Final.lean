@@ -2,8 +2,11 @@
 -- import PinchWrappers themselves if they need its helpers.
 import rh.RS.Det2Outer
 import rh.RS.WhitneyAeCore
+import rh.RS.PoissonAI
 import rh.academic_framework.HalfPlaneOuterV2
 import rh.academic_framework.CompletedXi
+import rh.academic_framework.CayleyAdapters
+import rh.academic_framework.PoissonCayley
 import Mathlib.NumberTheory.LSeries.RiemannZeta
 import Mathlib.Analysis.Analytic.Basic
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
@@ -23,6 +26,7 @@ namespace RH.RS.RouteB
 
 open Complex Set RH.AcademicFramework.CompletedXi
 open RH.AcademicFramework.HalfPlaneOuterV2
+open RH.AcademicFramework.PoissonCayley
 
 local notation "Ω" => RH.RS.Ω
 
@@ -112,10 +116,10 @@ theorem F_pinch_has_poisson_rep
   (hDet_meas : Measurable (fun t : ℝ => RH.RS.det2 (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)))
   (hO_meas   : Measurable (fun t : ℝ => O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)))
   (hXi_meas  : Measurable (fun t : ℝ => riemannXi_ext (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)))
-  (hReEqOn : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
-      (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O z).re
-        = RH.AcademicFramework.HalfPlaneOuterV2.poissonIntegral
-            (fun t : ℝ => (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re) z)
+  (hReEqOn :
+    RH.AcademicFramework.PoissonCayley.HasHalfPlanePoissonReEqOn
+      (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
+      RH.AcademicFramework.HalfPlaneOuterV2.offXi)
   : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
       (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
       RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
@@ -123,9 +127,32 @@ theorem F_pinch_has_poisson_rep
   have hBME_af : RH.AcademicFramework.HalfPlaneOuterV2.BoundaryModulusEq O (fun s => RH.RS.det2 s / riemannXi_ext s) := by
     intro t; simpa using (O_spec).2 t
   -- apply AF specialization builder (consumes θ‑free identity and measurability inputs)
+  have hFormula :
+      ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
+        (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O z).re
+          = RH.AcademicFramework.HalfPlaneOuterV2.poissonIntegral
+              (fun t : ℝ =>
+                (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O
+                  (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)).re) z := by
+    intro z hz; simpa using hReEqOn z hz
   exact RH.AcademicFramework.HalfPlaneOuterV2.pinch_hasPoissonRepOn_from_cayley
     (hDet2 := hDet2) (hO := (O_spec).1) (hBME := hBME_af) (hXi := hXi)
     (hDet_meas := hDet_meas) (hO_meas := hO_meas) (hXi_meas := hXi_meas)
-    (hReEqOn := hReEqOn)
+    (hReEqOn := hFormula)
+
+/-- θ‑free half-plane real-part identity for the canonical pinch field from a pullback
+Poisson representation on `offXi`. -/
+lemma theta_free_ReEqOn_offXi
+  (hRepPull :
+    RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
+      (fun z =>
+        RH.RS.PoissonAI.H_pinch RH.RS.det2 O (RH.AcademicFramework.CayleyAdapters.toDisk z))
+      RH.AcademicFramework.HalfPlaneOuterV2.offXi) :
+  RH.AcademicFramework.PoissonCayley.HasHalfPlanePoissonReEqOn
+    (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
+    RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
+  simpa using
+    RH.RS.PoissonAI.thetaFree_hReEqOn_offXi_from_pullback
+      (det2 := RH.RS.det2) (O := O) hRepPull
 
 end RH.RS.RouteB

@@ -3,6 +3,7 @@ import Mathlib.Analysis.Analytic.Basic
 import Mathlib.Analysis.SpecialFunctions.Complex.Log
 import Mathlib.Tactic
 import Mathlib.NumberTheory.LSeries.RiemannZeta
+import Mathlib.NumberTheory.ZetaValues
 import rh.academic_framework.ZetaFunctionalEquation
 import rh.RS.Domain
 import Mathlib.Topology.Basic
@@ -115,5 +116,60 @@ lemma xi_ext_zeros_eq_zeta_zeros_on_Ω :
     -- Conclude ξ_ext z = 0
     dsimp [riemannXi_ext]
     exact hΛ0
+
+open scoped Real Topology
+
+private def zeta_nat_sq (n : ℕ) : ℝ := (1 : ℝ) / (n : ℝ) ^ 2
+
+lemma riemannZeta_two_ne_zero : riemannZeta (2 : ℂ) ≠ 0 := by
+  classical
+  have hz :
+      riemannZeta (2 : ℂ) = ∑' n : ℕ, 1 / (n : ℂ) ^ 2 :=
+    zeta_nat_eq_tsum_of_gt_one (k := 2) (by decide : 1 < (2 : ℕ))
+  have hf : HasSum (fun n : ℕ => zeta_nat_sq n) (π ^ 2 / 6) := hasSum_zeta_two
+  have hterm :
+      (fun n : ℕ => Complex.ofReal (zeta_nat_sq n)) =
+      fun n : ℕ => (1 : ℂ) / (n : ℂ) ^ 2 := by
+    funext n
+    simp [zeta_nat_sq, Complex.ofReal_div, Complex.ofReal_pow]
+  have hsum_complex :
+      HasSum (fun n : ℕ => (1 : ℂ) / (n : ℂ) ^ 2)
+        (Complex.ofReal (π ^ 2 / 6)) := by
+    simpa [hterm] using (Complex.hasSum_ofReal).2 hf
+  have hfinal :
+      riemannZeta (2 : ℂ) = Complex.ofReal (π ^ 2 / 6) := by
+    simpa [hterm] using hz.trans hsum_complex.tsum_eq
+  have hval : Complex.ofReal (π ^ 2 / 6) ≠ 0 := by
+    have hpos : ((π : ℝ) ^ 2 / 6) ≠ 0 := by
+      refine div_ne_zero (pow_ne_zero _ Real.pi_ne_zero) ?_
+      norm_num
+    simpa using Complex.ofReal_ne_zero.mpr hpos
+  simpa [hfinal] using hval
+
+lemma riemannXi_ext_two_ne_zero : riemannXi_ext (2 : ℂ) ≠ 0 := by
+  classical
+  have h :=
+    completedZeta_eq_tsum_of_one_lt_re (s := (2 : ℂ))
+      (by norm_num : (1 : ℝ) < (2 : ℂ).re)
+  have hz :
+      riemannZeta (2 : ℂ) = ∑' n : ℕ, 1 / (n : ℂ) ^ 2 :=
+    zeta_nat_eq_tsum_of_gt_one (k := 2) (by decide : 1 < (2 : ℕ))
+  have hGamma : Gamma (1 : ℂ) = 1 := by simpa using Complex.Gamma_one
+  have hπ : (π : ℂ) ≠ 0 := by
+    simpa using (Complex.ofReal_ne_zero.mpr Real.pi_ne_zero)
+  have hΓne : Gamma (1 : ℂ) ≠ 0 := by
+    simpa [hGamma] using one_ne_zero
+  have hpow : (π : ℂ) ^ (-(1 : ℂ)) ≠ 0 := by
+    intro hzero
+    have hbase : (π : ℂ) = 0 :=
+      (cpow_eq_zero_iff _ _).1 hzero |>.1
+    exact hπ hbase
+  have hfactor :
+      (π : ℂ) ^ (-(1 : ℂ)) * Gamma (1 : ℂ) ≠ 0 :=
+    mul_ne_zero hpow hΓne
+  have hprod :
+      ( (π : ℂ) ^ (-(1 : ℂ)) * Gamma (1 : ℂ)) * riemannZeta (2 : ℂ) ≠ 0 :=
+    mul_ne_zero hfactor riemannZeta_two_ne_zero
+  simpa [riemannXi_ext, h, hz, hGamma, mul_comm, mul_left_comm, mul_assoc] using hprod
 
 end RH.AcademicFramework.CompletedXi
