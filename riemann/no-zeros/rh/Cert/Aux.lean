@@ -1,7 +1,7 @@
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
+import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
 import Mathlib.Data.Real.StarOrdered
-import Mathlib.MeasureTheory.Integral.IntegralEqImproper
-import Mathlib
+import Mathlib.Order.CompletePartialOrder
+import Mathlib.Topology.CompletelyRegular
 
 namespace MeasureTheory
 
@@ -40,6 +40,17 @@ lemma integral_comp_smul_sub_pos
     simp [this]
   simpa [hrange, Φ, hcomp2, abs_of_pos hσ, setIntegral_univ, integral_mul_left]
     using h
+
+/-- Monotonicity of set integrals: if `f ≤ g` almost everywhere on `s`,
+and both are integrable on `s`, then `∫ x in s, f x ∂μ ≤ ∫ x in s, g x ∂μ`. -/
+lemma set_integral_mono_on_nonneg {α : Type*} [MeasurableSpace α]
+    {μ : MeasureTheory.Measure α}
+    {s : Set α} (hs : MeasurableSet s) {f g : α → ℝ}
+    (hf : MeasureTheory.IntegrableOn f s μ) (hg : MeasureTheory.IntegrableOn g s μ)
+    (h : ∀ᵐ x ∂μ, x ∈ s → f x ≤ g x) :
+    ∫ x in s, f x ∂μ ≤ ∫ x in s, g x ∂μ := by
+  apply MeasureTheory.integral_mono_ae hf hg
+  exact (MeasureTheory.ae_restrict_iff' hs).mpr h
 
 variable {E : Type*} [NormedAddCommGroup E] --[NormedSpace ℝ E]
 variable {μ : Measure ℝ} [IsLocallyFiniteMeasure μ]
@@ -1409,7 +1420,6 @@ rcases cauchy_pf_limits c hc with
         = (B + D) * (Real.pi / 2) - (-(B + D) * (Real.pi / 2)) := hFTC
     _   = Real.pi * (B + D) := by ring
     _   = Real.pi * (2 / (c^2 + 4)) := by simp [hBD]
-
 
 /-- The "base" Cauchy–Cauchy product integral:
     ∫ℝ 1/((u^2+1)((u-c)^2+1)) = π·(2)/(c^2+4). -/

@@ -1273,6 +1273,355 @@ lemma annularEnergy_nonneg {α : ℝ} {I : WhitneyInterval} {Zk : Finset ℝ} :
   have := inner_energy_nonneg α I Zk
   simpa [annularEnergy] using this
 
+/-- Bounding the integral of the squared Poisson kernel on a Whitney interval by the
+whole-line value `(π / 2) / σ`. -/
+lemma integral_Ksigma_sq_mul_sigma_le_pi_over_two
+    (I : WhitneyInterval) {σ : ℝ} (hσ : 0 < σ) (γ : ℝ) :
+    (∫ t in I.interval, (Ksigma σ (t - γ))^2 ∂volume) * σ ≤ Real.pi / 2 := by
+  have hsub :
+      ∫ t in I.interval, (Ksigma σ (t - γ))^2 ∂volume
+        ≤ ∫ t : ℝ, (Ksigma σ (t - γ))^2 ∂volume := by
+    have hnn : ∀ t, 0 ≤ (Ksigma σ (t - γ))^2 := fun _ => sq_nonneg _
+    have hint :
+        Integrable (fun t : ℝ => (Ksigma σ (t - γ))^2) volume :=
+      PoissonKernel.ksigma_squared_integrable σ γ hσ
+    exact
+      setIntegral_le_integral hint (Filter.Eventually.of_forall hnn)
+  have h_all :
+      ∫ t : ℝ, (Ksigma σ (t - γ))^2 ∂volume = (Real.pi / 2) / σ := by
+    simpa using PoissonKernel.poisson_kernel_squared_integral σ γ hσ
+  have hσ_nonneg : 0 ≤ σ := hσ.le
+  calc
+    (∫ t in I.interval, (Ksigma σ (t - γ))^2 ∂volume) * σ
+        ≤ (∫ t : ℝ, (Ksigma σ (t - γ))^2 ∂volume) * σ :=
+          mul_le_mul_of_nonneg_right hsub hσ_nonneg
+    _ = ((Real.pi / 2) / σ) * σ := by simp_rw [h_all]
+    _ = Real.pi / 2 := by field_simp [hσ.ne']; ring
+
+lemma Vk_sq_pointwise_le_card_sum
+    (Zk : Finset ℝ) (σ t : ℝ) :
+    (Vk Zk σ t)^2 ≤ (Zk.card : ℝ) * ∑ γ in Zk, (Ksigma σ (t - γ))^2 := by
+  classical
+  simpa [Vk] using cs_sum_sq_finset Zk (fun γ => Ksigma σ (t - γ))
+
+/-- Pointwise dominance of the squared row kernel by the diagonal sum, integrated over the
+Whitney interval. -/
+lemma Vk_sq_integral_le_card_sum
+    (I : WhitneyInterval) (Zk : Finset ℝ) {σ : ℝ} (hσ : 0 < σ) :
+    ∫ t in I.interval, (Vk Zk σ t)^2 ∂volume
+      ≤ (Zk.card : ℝ) * ∑ γ in Zk, ∫ t in I.interval, (Ksigma σ (t - γ))^2 ∂volume := by
+  classical
+  have hAE :
+      ∀ᵐ x ∂volume,
+        x ∈ I.interval →
+          (Vk Zk σ x)^2
+            ≤ (Zk.card : ℝ) * ∑ γ in Zk, (Ksigma σ (x - γ))^2 := by
+    refine Filter.Eventually.of_forall ?_
+    intro x hx
+    simpa using Vk_sq_pointwise_le_card_sum Zk σ x
+  have hInt₁ :
+      IntegrableOn (fun t => (Vk Zk σ t)^2) I.interval volume := by
+    have hcont :
+        Continuous fun t : ℝ => (Vk Zk σ t)^2 := by
+      have hVk : Continuous fun t : ℝ => Vk Zk σ t := by
+        dsimp only [Vk]
+        apply continuous_finset_sum
+        intro γ _hγ
+        unfold Ksigma
+        have hden : Continuous fun t : ℝ => (t - γ) ^ 2 + σ ^ 2 :=
+          ((continuous_id.sub continuous_const).pow 2).add continuous_const
+        have hden_ne : ∀ t, (t - γ) ^ 2 + σ ^ 2 ≠ 0 := by
+          intro t
+          have hσsq : 0 < σ ^ 2 := sq_pos_of_ne_zero _ (ne_of_gt hσ)
+          exact ne_of_gt (add_pos_of_nonneg_of_pos (sq_nonneg _) hσsq)
+        exact (continuous_const).div hden hden_ne
+      exact hVk.pow 2
+    have hIcompact : IsCompact I.interval := by
+      simpa [RH.Cert.WhitneyInterval.interval]
+        using (isCompact_Icc :
+          IsCompact (Set.Icc (I.t0 - I.len) (I.t0 + I.len)))
+    exact
+      (hcont.continuousOn.integrableOn_compact hIcompact)
+  have hInt₂ :
+      IntegrableOn
+        (fun t =>
+          (Zk.card : ℝ) * ∑ γ in Zk, (Ksigma σ (t - γ))^2)
+        I.interval volume := by
+    have hsum :
+        Continuous fun t : ℝ =>
+          ∑ γ in Zk, (Ksigma σ (t - γ))^2 := by
+      apply continuous_finset_sum
+      intro γ _hγ
+      unfold Ksigma
+      have hden : Continuous fun t : ℝ => (t - γ) ^ 2 + σ ^ 2 :=
+        ((continuous_id.sub continuous_const).pow 2).add continuous_const
+      have hden_ne : ∀ t, (t - γ) ^ 2 + σ ^ 2 ≠ 0 := by
+        intro t
+        have hσsq : 0 < σ ^ 2 := sq_pos_of_ne_zero _ (ne_of_gt hσ)
+        exact ne_of_gt (add_pos_of_nonneg_of_pos (sq_nonneg _) hσsq)
+      have hcontK : Continuous fun t : ℝ => Ksigma σ (t - γ) :=
+        (continuous_const).div hden hden_ne
+      exact (hcontK.pow 2)
+    have hcont :
+        Continuous fun t : ℝ =>
+          (Zk.card : ℝ) * ∑ γ in Zk, (Ksigma σ (t - γ))^2 :=
+      continuous_const.mul hsum
+    have hIcompact : IsCompact I.interval := by
+      simpa [RH.Cert.WhitneyInterval.interval]
+        using (isCompact_Icc :
+          IsCompact (Set.Icc (I.t0 - I.len) (I.t0 + I.len)))
+    exact
+      (hcont.continuousOn.integrableOn_compact hIcompact)
+  have hmono :
+      ∫ t in I.interval, (Vk Zk σ t)^2 ∂volume
+        ≤ ∫ t in I.interval,
+            (Zk.card : ℝ) * ∑ γ in Zk, (Ksigma σ (t - γ))^2 ∂volume :=
+    MeasureTheory.set_integral_mono_on_nonneg
+      (μ := volume)
+      (s := I.interval)
+      (hs := isClosed_Icc.measurableSet)
+      hInt₁ hInt₂ hAE
+
+  have hInt_term :
+      ∀ γ ∈ Zk,
+        Integrable (fun t => (Ksigma σ (t - γ))^2)
+          (Measure.restrict volume I.interval) := by
+    intro γ _
+    have hcont :
+        Continuous fun t : ℝ => (Ksigma σ (t - γ))^2 := by
+      have hden :
+          Continuous fun t : ℝ => (t - γ) ^ 2 + σ ^ 2 :=
+        ((continuous_id.sub continuous_const).pow 2).add continuous_const
+      have hden_ne : ∀ t, (t - γ) ^ 2 + σ ^ 2 ≠ 0 := by
+        intro t
+        have : 0 < σ ^ 2 := sq_pos_of_ne_zero _ (ne_of_gt hσ)
+        exact ne_of_gt (add_pos_of_nonneg_of_pos (sq_nonneg _) this)
+      have hK :
+          Continuous fun t : ℝ => Ksigma σ (t - γ) :=
+        (continuous_const).div hden hden_ne
+      simpa using hK.pow 2
+    have hIcompact : IsCompact I.interval := by
+      simpa [RH.Cert.WhitneyInterval.interval]
+        using (isCompact_Icc : IsCompact (Set.Icc (I.t0 - I.len) (I.t0 + I.len)))
+    have hIntOn :
+        IntegrableOn (fun t => (Ksigma σ (t - γ))^2) I.interval volume :=
+      hcont.continuousOn.integrableOn_compact hIcompact
+    simpa [IntegrableOn] using hIntOn
+
+  have hsum :
+      ∫ t in I.interval, ∑ γ in Zk, (Ksigma σ (t - γ))^2 ∂volume
+        = ∑ γ in Zk, ∫ t in I.interval, (Ksigma σ (t - γ))^2 ∂volume := by
+    classical
+    simpa using
+      (integral_finset_sum
+        (μ := Measure.restrict volume I.interval)
+        (s := Zk)
+        (f := fun γ t => (Ksigma σ (t - γ))^2)
+        (fun γ hγ => hInt_term γ hγ))
+
+  have hswap :
+      (Zk.card : ℝ) *
+          ∑ γ in Zk, ∫ t in I.interval, (Ksigma σ (t - γ))^2 ∂volume
+        = ∫ t in I.interval,
+            (Zk.card : ℝ) * ∑ γ in Zk, (Ksigma σ (t - γ))^2 ∂volume := by
+    simp [hsum, integral_mul_left, mul_comm, mul_left_comm, mul_assoc]
+    aesop
+
+  have hmono' :
+      ∫ t in I.interval, (Vk Zk σ t)^2 ∂volume
+        ≤ (Zk.card : ℝ) *
+            ∑ γ in Zk, ∫ t in I.interval, (Ksigma σ (t - γ))^2 ∂volume := by
+    aesop--simpa [hswap] using hmono
+
+  exact hmono'
+
+/-- Diagonal integrand bound on a Whitney interval: the σ-weighted integral is bounded by
+`(#Zk) · π / 2`. -/
+lemma diag_integral_mul_sigma_le_card_pi
+    (I : WhitneyInterval) (Zk : Finset ℝ) {σ : ℝ} (hσ : 0 < σ) :
+    (∫ t in I.interval, (∑ γ in Zk, (Ksigma σ (t - γ))^2) ∂volume) * σ
+      ≤ (Zk.card : ℝ) * (Real.pi / 2) := by
+  classical
+  have hInt :
+      ∀ γ ∈ Zk,
+        Integrable (fun t => (Ksigma σ (t - γ))^2)
+          (Measure.restrict volume I.interval) := by
+    intro γ _
+    have hcont :
+        Continuous fun t : ℝ => (Ksigma σ (t - γ))^2 := by
+      have hK : Continuous fun t : ℝ => Ksigma σ (t - γ) :=
+        (continuous_const).div
+          (((continuous_id.sub continuous_const).pow 2).add continuous_const)
+          (by
+            intro t
+            have : 0 < σ ^ 2 := sq_pos_of_ne_zero _ (ne_of_gt hσ)
+            exact ne_of_gt
+              (add_pos_of_nonneg_of_pos (sq_nonneg _) this))
+      simpa using hK.pow 2
+    have hIcompact : IsCompact I.interval := by
+      simpa [RH.Cert.WhitneyInterval.interval]
+        using (isCompact_Icc :
+          IsCompact (Set.Icc (I.t0 - I.len) (I.t0 + I.len)))
+    have : IntegrableOn (fun t => (Ksigma σ (t - γ))^2)
+        I.interval volume :=
+      (hcont.continuousOn.integrableOn_compact hIcompact)
+    simpa [IntegrableOn]
+      using this
+  have hswap :
+      (∫ t in I.interval, (∑ γ in Zk, (Ksigma σ (t - γ))^2) ∂volume)
+        = ∑ γ in Zk, ∫ t in I.interval, (Ksigma σ (t - γ))^2 ∂volume := by
+    simpa [integral_finset_sum]
+      using
+        (integral_finset_sum (s := Zk)
+          (f := fun γ t => (Ksigma σ (t - γ))^2) hInt)
+  have hσswap :
+      σ * ∫ t in I.interval, (∑ γ in Zk, (Ksigma σ (t - γ))^2) ∂volume
+        = ∑ γ in Zk, σ * ∫ t in I.interval, (Ksigma σ (t - γ))^2 ∂volume := by
+    classical
+    have h := congrArg (fun z => σ * z) hswap
+    simpa [Finset.mul_sum, mul_comm, mul_left_comm, mul_assoc] using h
+
+  have hpiece :
+      ∀ γ ∈ Zk,
+        ((∫ t in I.interval, (Ksigma σ (t - γ))^2 ∂volume) * σ)
+          ≤ Real.pi / 2 := by
+    intro γ _
+    exact integral_Ksigma_sq_mul_sigma_le_pi_over_two I hσ γ
+  have hσswap' :
+      (∫ t in I.interval, (∑ γ in Zk, (Ksigma σ (t - γ))^2) ∂volume) * σ
+        = ∑ γ in Zk,
+            (∫ t in I.interval, (Ksigma σ (t - γ))^2 ∂volume) * σ := by
+    have := hσswap
+    simpa [mul_comm, mul_left_comm, mul_assoc] using this
+
+  calc
+    (∫ t in I.interval, (∑ γ in Zk, (Ksigma σ (t - γ))^2) ∂volume) * σ
+        = ∑ γ in Zk,
+            ((∫ t in I.interval, (Ksigma σ (t - γ))^2 ∂volume) * σ) := hσswap'
+    _ ≤ ∑ γ in Zk, (Real.pi / 2) :=
+        Finset.sum_le_sum fun γ hγ => hpiece γ hγ
+  aesop
+
+/-- Cross-term integrand bound on a Whitney interval: the σ-weighted row integral is bounded by
+`(#Zk)^2 · π / 2`. -/
+lemma Vk_sq_integral_mul_sigma_le_card_sq_pi
+    (I : WhitneyInterval) (Zk : Finset ℝ) {σ : ℝ} (hσ : 0 < σ) :
+    (∫ t in I.interval, (Vk Zk σ t)^2 ∂volume) * σ
+      ≤ (Zk.card : ℝ)^2 * (Real.pi / 2) := by
+  classical
+  have hσ_nonneg : 0 ≤ σ := hσ.le
+  have hdiag :
+      ((∑ γ in Zk, ∫ t in I.interval, (Ksigma σ (t - γ))^2 ∂volume) * σ)
+        ≤ (Zk.card : ℝ) * (Real.pi / 2) := by
+    have hswap :
+        (∑ γ in Zk, ∫ t in I.interval, (Ksigma σ (t - γ))^2 ∂volume)
+          = ∫ t in I.interval, (∑ γ in Zk, (Ksigma σ (t - γ))^2) ∂volume := by
+      classical
+      have hInt :
+          ∀ γ ∈ Zk,
+            Integrable (fun t => (Ksigma σ (t - γ))^2)
+              (Measure.restrict volume I.interval) := by
+        intro γ _
+        have hcont :
+            Continuous fun t : ℝ => (Ksigma σ (t - γ))^2 := by
+          have hK : Continuous fun t : ℝ => Ksigma σ (t - γ) :=
+            (continuous_const).div
+              (((continuous_id.sub continuous_const).pow 2).add continuous_const)
+              (by
+                intro t
+                have : 0 < σ ^ 2 := sq_pos_of_ne_zero _ (ne_of_gt hσ)
+                exact ne_of_gt
+                  (add_pos_of_nonneg_of_pos (sq_nonneg _) this))
+          simpa using hK.pow 2
+        have hIcompact : IsCompact I.interval := by
+          simpa [RH.Cert.WhitneyInterval.interval]
+            using (isCompact_Icc :
+              IsCompact (Set.Icc (I.t0 - I.len) (I.t0 + I.len)))
+        have : IntegrableOn (fun t => (Ksigma σ (t - γ))^2)
+            I.interval volume :=
+          (hcont.continuousOn.integrableOn_compact hIcompact)
+        simpa [IntegrableOn] using this
+      symm
+      simpa [integral_finset_sum]
+        using
+          (integral_finset_sum (s := Zk)
+            (f := fun γ t => (Ksigma σ (t - γ))^2) hInt)
+    have hdiag_bound := diag_integral_mul_sigma_le_card_pi I Zk hσ
+    aesop
+
+  have hsum :=
+    Vk_sq_integral_le_card_sum (I := I) (Zk := Zk) (σ := σ) hσ
+  calc
+    (∫ t in I.interval, (Vk Zk σ t)^2 ∂volume) * σ
+        ≤ ((Zk.card : ℝ)
+              * ∑ γ in Zk, ∫ t in I.interval, (Ksigma σ (t - γ))^2 ∂volume) * σ :=
+            mul_le_mul_of_nonneg_right hsum hσ_nonneg
+    _ = (Zk.card : ℝ) *
+            ((∑ γ in Zk, ∫ t in I.interval, (Ksigma σ (t - γ))^2 ∂volume) * σ) := by
+          ring
+    _ ≤ (Zk.card : ℝ) * ((Zk.card : ℝ) * (Real.pi / 2)) :=
+          mul_le_mul_of_nonneg_left hdiag (Nat.cast_nonneg _)
+    _ = (Zk.card : ℝ)^2 * (Real.pi / 2) := by ring
+
+/-- Norm bound for the diagonal σ-integrand. -/
+lemma norm_diag_integral_mul_sigma_le_card_pi
+    (I : WhitneyInterval) (Zk : Finset ℝ) {σ : ℝ} (hσ : 0 < σ) :
+    ‖(∫ t in I.interval, (∑ γ in Zk, (Ksigma σ (t - γ))^2) ∂volume) * σ‖
+      ≤ (Zk.card : ℝ) * (Real.pi / 2) := by
+  have h_nonneg :
+      0 ≤ ∫ t in I.interval, (∑ γ in Zk, (Ksigma σ (t - γ))^2) ∂volume :=
+    integral_nonneg_of_ae
+      (Filter.Eventually.of_forall
+        (fun _ =>
+          Finset.sum_nonneg fun _ _ => sq_nonneg _))
+  have hnorm :
+      ‖∫ t in I.interval, (∑ γ in Zk, (Ksigma σ (t - γ))^2) ∂volume‖
+        = ∫ t in I.interval, (∑ γ in Zk, (Ksigma σ (t - γ))^2) ∂volume := by
+    simp [Real.norm_eq_abs, abs_of_nonneg h_nonneg]; exact h_nonneg
+  have hσnorm : ‖σ‖ = σ := abs_of_pos hσ
+  calc
+    ‖(∫ t in I.interval, (∑ γ in Zk, (Ksigma σ (t - γ))^2) ∂volume) * σ‖
+        = ‖∫ t in I.interval, (∑ γ in Zk, (Ksigma σ (t - γ))^2) ∂volume‖
+            * ‖σ‖ := norm_mul _ _
+    _ = (∫ t in I.interval, (∑ γ in Zk, (Ksigma σ (t - γ))^2) ∂volume) * σ := by
+          simp [hnorm, hσnorm]; exact Or.symm (Or.inr h_nonneg)
+    _ ≤ (Zk.card : ℝ) * (Real.pi / 2) :=
+          diag_integral_mul_sigma_le_card_pi I Zk hσ
+
+/-- Norm bound for the σ-integrand with the row sum (gives the same constant as the diagonal). -/
+lemma norm_Vk_sq_integral_mul_sigma_le_card_sq_pi
+    (I : WhitneyInterval) (Zk : Finset ℝ) {σ : ℝ} (hσ : 0 < σ) :
+    ‖(∫ t in I.interval, (Vk Zk σ t)^2 ∂volume) * σ‖
+      ≤ (Zk.card : ℝ)^2 * (Real.pi / 2) := by
+  have h_nonneg :
+      0 ≤ ∫ t in I.interval, (Vk Zk σ t)^2 ∂volume :=
+    integral_nonneg_of_ae
+      (μ := Measure.restrict volume I.interval)
+      (f := fun t => (Vk Zk σ t)^2)
+      (Filter.Eventually.of_forall fun _ => sq_nonneg _)
+
+  have hdiag_nonneg :
+      0 ≤ ∫ t in I.interval, (∑ γ in Zk, (Ksigma σ (t - γ))^2) ∂volume :=
+    integral_nonneg_of_ae
+      (μ := Measure.restrict volume I.interval)
+      (f := fun t => ∑ γ in Zk, (Ksigma σ (t - γ))^2)
+      (Filter.Eventually.of_forall fun _ =>
+        Finset.sum_nonneg fun _ _ => sq_nonneg _)
+
+  have hnorm :
+      ‖∫ t in I.interval, (Vk Zk σ t)^2 ∂volume‖
+        = ∫ t in I.interval, (Vk Zk σ t)^2 ∂volume := by
+    rw [Real.norm_eq_abs, abs_of_nonneg h_nonneg]
+  have hσnorm : ‖σ‖ = σ := abs_of_pos hσ
+  calc
+    ‖(∫ t in I.interval, (Vk Zk σ t)^2 ∂volume) * σ‖
+        = ‖∫ t in I.interval, (Vk Zk σ t)^2 ∂volume‖ * ‖σ‖ :=
+            norm_mul _ _
+    _ = (∫ t in I.interval, (Vk Zk σ t)^2 ∂volume) * σ := by
+          simp [hnorm, hσnorm]; exact Or.symm (Or.inr h_nonneg)
+    _ ≤ (Zk.card : ℝ)^2 * (Real.pi / 2) :=
+          Vk_sq_integral_mul_sigma_le_card_sq_pi I Zk hσ
+
 lemma Ksigma_le_sigma_div_sq {σ y r : ℝ} (hσ : 0 ≤ σ) (hr : r ≤ |y|) (hrpos : 0 < r) :
     Ksigma σ y ≤ σ / r^2 := by
   unfold Ksigma
