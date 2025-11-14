@@ -47,7 +47,6 @@ open Set Finset
 lemma card_le_of_subset {α} [DecidableEq α] {s t : Finset α} (h : s ⊆ t) :
   s.card ≤ t.card := by exact card_le_card h
 
-
 end Finset
 
 lemma sub_lt_sub_of_lt_of_le {α} [LinearOrderedAddCommGroup α]
@@ -1195,14 +1194,12 @@ bounded by `S` times the diagonal annular energy. -/
 lemma annularEnergy_le_S_times_diag
   {α : ℝ} (I : WhitneyInterval) (Zk : Finset ℝ)
   (_ : 0 ≤ α)
-  (h : AnnularSchurRowBound α I Zk)
-  :
+  (h : AnnularSchurRowBound α I Zk) :
   annularEnergy α I Zk
     ≤ h.S * annularEnergyDiag α I Zk := by
   classical
   -- Expand definitions and apply the row bound pointwise in σ
   simp [annularEnergy, annularEnergyDiag]
-
   -- Reduce to proving the integrand inequality for a.e. σ ∈ (0, αL]
   have hmono :
     ∫ σ in Set.Ioc (0 : ℝ) (α * I.len),
@@ -1213,7 +1210,6 @@ lemma annularEnergy_le_S_times_diag
       (hf := ?hfin)
       (hg := ?hfin')
       ?hAE
-
     case hfin =>
       -- hfin: IntegrableOn (LHS) on the σ-strip via measurability + domination by a constant
       have h_meas :
@@ -1222,7 +1218,6 @@ lemma annularEnergy_le_S_times_diag
               (∫ t in I.interval, (∑ γ in Zk, Ksigma σ (t - γ)) ^ 2) * σ)
             (Measure.restrict volume (Set.Ioc (0 : ℝ) (α * I.len))) :=
         RH.Cert.KxiWhitneyRvM.PoissonKernel.integrand_measurable_full α I Zk
-
       -- uniform bound on the strip: C = (card Zk)^2 * (π/2)
       have h_bound :
           ∀ ⦃σ : ℝ⦄, σ ∈ Set.Ioc (0 : ℝ) (α * I.len) →
@@ -1233,7 +1228,6 @@ lemma annularEnergy_le_S_times_diag
         simpa using
           RH.Cert.KxiWhitneyRvM.PoissonKernel.norm_Vk_sq_integral_mul_sigma_le_card_sq_pi
             (I := I) (Zk := Zk) (σ := σ) hσpos
-
       -- integrability via domination by a constant on a finite-measure strip
       exact
         (integrableOn_iff_integrable_restrict).2
@@ -1245,16 +1239,13 @@ lemma annularEnergy_le_S_times_diag
               (C := (Zk.card : ℝ)^2 * (Real.pi / 2))
               ((ae_restrict_iff' measurableSet_Ioc).mpr
                 (Filter.Eventually.of_forall (fun σ hσ => h_bound hσ)))⟩
-
-    ·
-      -- hfin': IntegrableOn (RHS) on the σ-strip: constant multiple of the diagonal integrand
+    · -- hfin': IntegrableOn (RHS) on the σ-strip: constant multiple of the diagonal integrand
       have h_meas :
           AEStronglyMeasurable
             (fun σ =>
               (∫ t in I.interval, (∑ γ in Zk, (Ksigma σ (t - γ)) ^ 2)) * σ)
             (Measure.restrict volume (Set.Ioc (0 : ℝ) (α * I.len))) :=
         RH.Cert.KxiWhitneyRvM.integrand_diagonal_measurable_full α I Zk
-
       -- uniform bound of the diagonal σ-integrand by the same constant
       have h_bound :
           ∀ ⦃σ : ℝ⦄, σ ∈ Set.Ioc (0 : ℝ) (α * I.len) →
@@ -1265,7 +1256,6 @@ lemma annularEnergy_le_S_times_diag
         simpa using
           RH.Cert.KxiWhitneyRvM.PoissonKernel.norm_diag_integral_mul_sigma_le_card_pi
             (I := I) (Zk := Zk) (σ := σ) hσpos
-
       -- first get integrability of the diagonal integrand, then scale by h.S
       have hdiag :
         Integrable
@@ -1281,21 +1271,15 @@ lemma annularEnergy_le_S_times_diag
               (C := (Zk.card : ℝ) * (Real.pi / 2))
               ((ae_restrict_iff' measurableSet_Ioc).mpr
                 (Filter.Eventually.of_forall (fun σ hσ => h_bound hσ)))⟩
-
       exact
         (integrableOn_iff_integrable_restrict).2
           (hdiag.const_mul h.S)
-
-    ·
-      -- hAE: a.e. pointwise inequality on the strip from the row bound
+    · -- hAE: a.e. pointwise inequality on the strip from the row bound
       refine (ae_restrict_iff' measurableSet_Ioc).mpr ?_
       refine Filter.Eventually.of_forall ?ineq
       intro σ hσ
       have hσ_pos : 0 < σ := by simpa [Set.mem_Ioc] using hσ.1
       have hσ_le : σ ≤ α * I.len := by simpa [Set.mem_Ioc] using hσ.2
-
-
-
       -- Apply the row bound termwise, sum, and multiply by σ ≥ 0
       have hsum_le :
         (∑ γ in Zk, ∫ t in I.interval,
@@ -1495,14 +1479,15 @@ lemma Ek_bound_calibrated
   Ek α_split I k ≤ (S_split * (16 * (α_split ^ 4))) * (2 * I.len) / ((4 : ℝ) ^ k) * ((Zk I k).card : ℝ) := by
   classical
   have hα := α_split_nonneg
-  have hRow := hSchur.row k hk
-  have h0 := Ek_bound_from_diag_and_row (I := I) (k := k) hk hα hRow
+  -- Row‑sum Schur bound at level k
+  have h0 :=
+    Ek_bound_from_diag_and_row (I := I) (k := k) hk hα (hSchur.row k hk)
   -- Replace S by S_split using S ≤ S_split and monotonicity
-  have hSle' : hRow.S ≤ S_split := by
-    change (hSchur.row k hk).S ≤ S_split
-    exact hSchur.S_le k hk
+  have hSle' : (hSchur.row k hk).S ≤ S_split :=
+    hSchur.S_le k hk
   have hNonneg :
       0 ≤ ((16 * (α_split ^ 4)) * (2 * I.len) / ((4 : ℝ) ^ k) * ((Zk I k).card : ℝ)) := by
+    -- ... existing nonnegativity proof ...
     have hpos1 : 0 ≤ (16 : ℝ) * (α_split ^ 4) := by
       have : 0 ≤ (α_split ^ 4) := pow_nonneg hα 4
       exact mul_nonneg (by norm_num) this
@@ -1513,7 +1498,6 @@ lemma Ek_bound_calibrated
         exact pow_nonneg this _
       exact one_div_nonneg.mpr this
     have hpos4 : 0 ≤ ((Zk I k).card : ℝ) := Nat.cast_nonneg _
-    -- combine the four nonnegative factors
     have step1 :
         0 ≤ ((16 : ℝ) * (α_split ^ 4)) * (2 * I.len) :=
       mul_nonneg hpos1 hpos2
@@ -1526,7 +1510,7 @@ lemma Ek_bound_calibrated
   have := mul_le_mul_of_nonneg_left hSle' hNonneg
   -- Multiply both sides of `h0` by the common nonnegative scalar to compare S and S_split
   have hrewrite :
-      (hRow.S * (16 * (α_split ^ 4))) * (2 * I.len) / ((4 : ℝ) ^ k) * ((Zk I k).card : ℝ)
+      ((hSchur.row k hk).S * (16 * (α_split ^ 4))) * (2 * I.len) / ((4 : ℝ) ^ k) * ((Zk I k).card : ℝ)
         ≤ (S_split * (16 * (α_split ^ 4))) * (2 * I.len) / ((4 : ℝ) ^ k) * ((Zk I k).card : ℝ) := by
     simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using this
 
