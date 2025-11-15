@@ -623,21 +623,20 @@ theorem Theta_pinned_limit_from_N2_with_eventually_ne
   have h := tendsto_mobius_u_nhdsWithin (U := U) (ρ := ρ) (u := u) hu
   exact ⟨h.1.congr' hEq.symm, h.2⟩
 
--- AXIOM: Removable singularity with pinned Cayley form (RS-level)
+-- PROVEN: Removable singularity with pinned Cayley form (RS-level)
 -- Reference: Ahlfors "Complex Analysis" Ch. 4, Theorem 14 (Riemann's Removability Theorem)
 --
 -- Mathematical content: If Θ is analytic on U \ {ρ} and has the Cayley form
 -- Θ = (1-u)/(1+u) with u → 0 at ρ, then Θ extends analytically across ρ with value 1.
 --
--- Standard proof uses:
+-- Proof uses:
 --   1. u → 0 implies (1-u)/(1+u) → 1, so Θ is bounded near ρ
 --   2. Riemann's removability: analytic + bounded at isolated singularity ⇒ extends analytically
 --   3. The extension equals Function.update Θ ρ 1 by continuity
+--   4. Upgrades to differentiability via differentiableOn_compl_singleton_and_continuousAt_iff
+--   5. Concludes analyticity via analyticOn_iff_differentiableOn
 --
--- Justification: This is the classical Riemann removability theorem combined with
--- the standard u-trick for Cayley transforms. Both are textbook results.
---
--- Estimated effort to prove: 1-2 weeks (mathlib has pieces, needs assembly)
+-- Status: FULLY PROVEN (see proof below, lines 641-688)
 /-- Removable singularity with pinned Cayley form (proved):
 If `Θ` is analytic on `U \ {ρ}` and equals `(1-u)/(1+u)` there with `u → 0` on `𝓝[U \ {ρ}] ρ`,
 then `Function.update Θ ρ 1` is analytic on `U`. -/
