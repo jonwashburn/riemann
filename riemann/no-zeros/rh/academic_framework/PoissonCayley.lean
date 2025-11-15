@@ -208,6 +208,76 @@ theorem pinch_theta_free_ReEqOn_offXi
     (det2 := det2) (O := O) (S := offXi) (H := H)
     (hEqInt := hEqInt) (hEqBd := hEqBd) (hRepPull := hRepPull)
 
+/--
+Canonical Cayley pullback for the pinch field: reuse the `F_pinch` definition
+but precompose with `fromDisk` to land on the unit disk. -/
+def H_pinch (g O : ℂ → ℂ) (w : ℂ) : ℂ :=
+  F_pinch g O (CayleyAdapters.fromDisk w)
+
+@[simp] lemma H_pinch_def (g O : ℂ → ℂ) :
+    ∀ w, H_pinch g O w = F_pinch g O (CayleyAdapters.fromDisk w) := by
+  intro w; rfl
+
+/-- Interior identification on the off-Ξ domain: the pinch field agrees with its
+Cayley pullback composed with `toDisk`. -/
+lemma hEqInterior_pinch
+  (g O : ℂ → ℂ) :
+  Set.EqOn (F_pinch g O)
+    (fun z => H_pinch g O (CayleyAdapters.toDisk z)) offXi := by
+  intro z hz
+  have hzΩ : z ∈ Ω := offXi_subset_Ω hz
+  have h := CayleyAdapters.map_fromDisk_toDisk
+    (F := fun u => F_pinch g O u) hzΩ
+  simpa [H_pinch] using h.symm
+
+/-- Boundary alignment for the pinch field and its Cayley pullback. -/
+lemma hEqBoundary_pinch (g O : ℂ → ℂ) :
+  EqOnBoundary (F_pinch g O) (H_pinch g O) := by
+  intro t
+  have h := CayleyAdapters.map_fromDisk_boundaryToDisk
+    (F := fun u => F_pinch g O u) t
+  simpa [EqOnBoundary, H_pinch] using h.symm
+
+/-- θ-free real-part identity on `offXi` from a pullback Poisson representation. -/
+theorem thetaFree_hReEqOn_offXi_from_pullback
+  (g O : ℂ → ℂ)
+  (hRepPull :
+    HasPoissonRepOn (fun z => H_pinch g O (CayleyAdapters.toDisk z)) offXi) :
+  HasHalfPlanePoissonReEqOn (F_pinch g O) offXi := by
+  have hInt := hEqInterior_pinch (g := g) (O := O)
+  have hBd := hEqBoundary_pinch (g := g) (O := O)
+  exact pinch_theta_free_ReEqOn_offXi
+    (det2 := g) (O := O) (H := H_pinch g O)
+    (hEqInt := hInt) (hEqBd := hBd) (hRepPull := hRepPull)
+
+/-- Package the θ-free identity into a Poisson representation statement on `offXi`. -/
+theorem pinch_hasPoissonRepOn_from_pullback
+    (hDet2 : RH.RS.Det2OnOmega)
+    {O : ℂ → ℂ} (hO : RH.RS.OuterHalfPlane O)
+    (hBME :
+      HalfPlaneOuterV2.BoundaryModulusEq O
+        (fun s => RH.RS.det2 s / CompletedXi.riemannXi_ext s))
+    (hXi : AnalyticOn ℂ CompletedXi.riemannXi_ext (HalfPlaneOuterV2.Ω \ ({1} : Set ℂ)))
+    (hDet_meas : Measurable (fun t : ℝ => RH.RS.det2 (HalfPlaneOuterV2.boundary t)))
+    (hO_meas   : Measurable (fun t : ℝ => O (HalfPlaneOuterV2.boundary t)))
+    (hXi_meas  :
+      Measurable (fun t : ℝ => CompletedXi.riemannXi_ext (HalfPlaneOuterV2.boundary t)))
+    (hRepPull :
+      HasPoissonRepOn
+        (fun z => H_pinch RH.RS.det2 O (CayleyAdapters.toDisk z)) offXi) :
+    HasPoissonRepOn (F_pinch RH.RS.det2 O) offXi := by
+  have hReEqOn :
+      HasHalfPlanePoissonReEqOn (F_pinch RH.RS.det2 O) offXi :=
+    thetaFree_hReEqOn_offXi_from_pullback (g := RH.RS.det2) (O := O) hRepPull
+  have hBME' := hBME
+  have hDet_meas' := hDet_meas
+  have hO_meas' := hO_meas
+  have hXi_meas' := hXi_meas
+  exact HalfPlaneOuterV2.pinch_hasPoissonRepOn_from_cayley
+    (hDet2 := hDet2) (hO := hO) (hBME := hBME') (hXi := hXi)
+    (hDet_meas := hDet_meas') (hO_meas := hO_meas') (hXi_meas := hXi_meas')
+    (hReEqOn := fun z hz => hReEqOn z hz)
+
 /-- New: Build a subset half‑plane Poisson representation for the Cayley pullback directly
 from a subset half‑plane Poisson representation of the original function `F`.
 

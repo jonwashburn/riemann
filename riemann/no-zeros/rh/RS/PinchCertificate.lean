@@ -44,7 +44,7 @@ This is a thin constructor that uses `PinchCertificateExt.of_pinch` under the ho
 def buildPinchCertificate
   (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
       BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
-  (hRe_offXi : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+  (hRe_offXi : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
       0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)).re)
   (hRemXi : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
       ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧

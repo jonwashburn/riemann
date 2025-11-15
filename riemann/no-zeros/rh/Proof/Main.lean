@@ -530,11 +530,7 @@ theorem RH_from_pinch_certificate (C : RH.RS.PinchCertificateExt)
           · exact h1
           · intro h0
             exact hzNotZero (by simpa [Set.mem_setOf_eq] using h0)
-        -- offXi ⊆ Ω \ {ξ_ext = 0}
-        have hzOffZeros :
-            z ∈ (RH.RS.Ω \ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}) :=
-          RH.AcademicFramework.HalfPlaneOuterV2.offXi_subset_offZeros hzOffXi
-        exact C.hRe_offXi z hzOffZeros
+        exact C.hRe_offXi z hzOffXi
     -- Apply Cayley positivity→Schur on S
     exact RH.RS.Theta_Schur_of_Re_nonneg_on (J := C.J)
       (S := (RH.RS.Ω \ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0})) hRe_S

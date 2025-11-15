@@ -49,12 +49,17 @@ theorem outer_exists_for_certificate :
 
 -- Interior positivity for the certificate outer via Route B (P+) + Poisson transport.
 lemma interior_positive_with_certificate_outer
-    (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical) :
-  ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+    (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical)
+    (hRepOn :
+      RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
+        (F_pinch det2 (Classical.choose outer_exists_for_certificate))
+        RH.AcademicFramework.HalfPlaneOuterV2.offXi) :
+  ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
     0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose outer_exists_for_certificate) z)).re := by
   classical
   have hChoose : Classical.choose outer_exists_for_certificate = RH.RS.RouteB.O := rfl
   simpa [hChoose] using RH.RS.RouteB.interior_positive_offXi hCanon
+    (by simpa [outer_exists_for_certificate, hChoose] using hRepOn)
 
 /-! ## Section 2: Outer Existence Witness
 
@@ -78,7 +83,7 @@ lemma xi_ext_zero_isolated_on_Ω
     (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
   classical
   -- Extract the isolating neighborhood directly from Route B's isolating lemma
-  obtain ⟨U, hUopen, hUconn, hUsub, hρU, hIso⟩ :=
+  obtain ⟨U, hUopen, hUconn, hUsub, hρU, hIso, _⟩ :=
     RH.RS.RouteB.exists_isolating_preconnected_open ρ hΩ hξ
   exact ⟨U, hUopen, hUconn, hUsub, hρU, hIso⟩
 
@@ -86,7 +91,7 @@ lemma xi_ext_zero_isolated_on_Ω
 Route B's pinned u–trick packaging and the standard removable-update builder. -/
 theorem removable_extension_at_xi_zeros
   (hRe :
-    ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+    ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
       0 ≤ ((2 : ℂ) * (J_pinch det2 RH.RS.RouteB.O z)).re)
   (O_witness : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
       BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s)) :
@@ -147,13 +152,17 @@ Assemble all the pieces into a PinchCertificateExt witness.
 /-- Concrete certificate witness from ACTIONS 1-4.
 This is YOUR final assembly - wiring all proven components. -/
 noncomputable def concrete_certificate
-    (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical) :
+    (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical)
+    (hRepOn :
+      RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
+        (F_pinch det2 (Classical.choose outer_exists_for_certificate))
+        RH.AcademicFramework.HalfPlaneOuterV2.offXi) :
     RH.RS.PinchCertificateExt :=
   certificate_from_pinch_ingredients
     outer_exists_for_certificate
-    (interior_positive_with_certificate_outer hCanon)
+    (interior_positive_with_certificate_outer hCanon hRepOn)
     (removable_extension_at_xi_zeros
-      (interior_positive_with_certificate_outer hCanon)
+      (interior_positive_with_certificate_outer hCanon hRepOn)
       outer_exists_for_certificate)
 
 /-! ## Section 6: Main Unconditional Theorem
@@ -165,15 +174,29 @@ The zero-argument theorem proving RH unconditionally.
 canonical boundary field. Once `PPlus_canonical` is supplied, the remaining
 steps in the Route B pipeline are purely mechanical. -/
 theorem RiemannHypothesis_of_PPlus
-    (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical) : RiemannHypothesis := by
+    (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical)
+    (hRepOn :
+      RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
+        (F_pinch det2 RH.RS.RouteB.O)
+        RH.AcademicFramework.HalfPlaneOuterV2.offXi)
+    (hRe_one :
+      0 ≤ ((2 : ℂ) * (J_pinch det2 RH.RS.RouteB.O 1)).re) :
+    RiemannHypothesis := by
   -- Use the Main.lean entry point
-  exact RH.Proof.Final.RH_from_pinch_certificate
-    (concrete_certificate hCanon)
+  exact _root_.RH_from_pinch_certificate
+    (concrete_certificate hCanon
+      (by simpa using hRepOn)) hRe_one
 
 /-- Backwards-compatible alias. -/
 theorem RiemannHypothesis_unconditional
-    (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical) :
+    (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical)
+    (hRepOn :
+      RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
+        (F_pinch det2 RH.RS.RouteB.O)
+        RH.AcademicFramework.HalfPlaneOuterV2.offXi)
+    (hRe_one :
+      0 ≤ ((2 : ℂ) * (J_pinch det2 RH.RS.RouteB.O 1)).re) :
     RiemannHypothesis :=
-  RiemannHypothesis_of_PPlus hCanon
+  RiemannHypothesis_of_PPlus hCanon hRepOn hRe_one
 
 end RH.RS.CertificateConstruction

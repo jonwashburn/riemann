@@ -696,9 +696,11 @@ theorem pinch_hasPoissonRepOn_from_cayley
   exact pinch_poissonRepOn_offZeros hDet2 (hO := hO) (hBME := hBME) (hXi := hXi)
     (hDet_meas := hDet_meas) (hO_meas := hO_meas) (hXi_meas := hXi_meas) hReEqOn
 
-/-- Convenience wrapper (Cayley transport, analytic-only det₂): build a Poisson
+/-
+Convenience wrapper (Cayley transport, analytic-only det₂): build a Poisson
 representation witness for the pinch field on the off-zeros set assuming only
-`AnalyticOn det2 Ω` (no det₂ nonvanishing assumed). -/
+`AnalyticOn det2 Ω` (no det₂ nonvanishing assumed).
+-/
 theorem pinch_hasPoissonRepOn_from_cayley_analytic
     (hDet2A : AnalyticOn ℂ det2 Ω)
     {O : ℂ → ℂ} (hO : OuterHalfPlane O)

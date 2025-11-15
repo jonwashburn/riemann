@@ -66,6 +66,38 @@ lemma riemannXi_ext_analytic_on_RSΩ_minus_one :
       (s := RH.RS.Ω \ ({1} : Set ℂ)) hOpen)
   exact h.mpr riemannXi_ext_differentiable_on_RSΩ_minus_one
 
+/-- Measurability of the completed ξ extension on all of `ℂ`. -/
+lemma measurable_riemannXi_ext : Measurable riemannXi_ext := by
+  classical
+  let S : Set ℂ := ({0, 1} : Set ℂ)
+  let Scompl : Set ℂ := {z : ℂ | z ∉ S}
+  have hFinite : S.Finite := by
+    simpa [S] using (finite_singleton (1 : ℂ)).insert 0
+  have hRestr : Measurable (Scompl.restrict riemannXi_ext) := by
+    have hCont : Continuous fun z : Scompl => riemannXi_ext z := by
+      refine continuous_iff_continuousAt.mpr ?_
+      intro z
+      have hzNot : (z : ℂ) ∉ S := by
+        have := z.property
+        dsimp [Scompl] at this
+        exact this
+      have hzMem :
+          (z : ℂ) ≠ 0 ∧ (z : ℂ) ≠ 1 := by
+        simpa [S, Set.mem_insert_iff, Set.mem_singleton_iff, not_or] using hzNot
+      have hz0 : (z : ℂ) ≠ 0 := hzMem.1
+      have hz1 : (z : ℂ) ≠ 1 := hzMem.2
+      have hDiff : DifferentiableAt ℂ riemannXi_ext (z : ℂ) :=
+        differentiableAt_riemannXi_ext (s := (z : ℂ)) hz0 hz1
+      have hContAt : ContinuousAt riemannXi_ext (z : ℂ) := hDiff.continuousAt
+      have hIncl :
+          ContinuousAt (Subtype.val : Scompl → ℂ) z :=
+        continuous_subtype_val.continuousAt
+      exact hContAt.comp hIncl
+    simpa using hCont.measurable
+  have hCompl : Scompl = Sᶜ := by
+    ext z; simp [Scompl, S]
+  simpa [hCompl] using measurable_of_measurable_on_compl_finite S hFinite hRestr
+
 -- symmetry lemmas are provided in CompletedXiSymmetry to avoid duplication
 
 /-- On Ω, zeros of `riemannXi_ext` coincide with zeros of `riemannZeta`. -/

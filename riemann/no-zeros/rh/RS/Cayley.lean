@@ -76,7 +76,8 @@ It supplies a boundary field `J` whose double has nonnegative real part
 on `Ω \ {ξ_ext = 0}`. -/
 structure PinchOuterExt where
   J : ℂ → ℂ
-  hRe_offXi : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}), 0 ≤ ((2 : ℂ) * J z).re
+  hRe_offXi : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
+      0 ≤ ((2 : ℂ) * J z).re
 
 /-- The pinch Θ associated to a `PinchOuterExt` via the Cayley transform. -/
 def Θ_pinch (P : PinchOuterExt) : ℂ → ℂ := Theta_of_J P.J
@@ -84,23 +85,15 @@ def Θ_pinch (P : PinchOuterExt) : ℂ → ℂ := Theta_of_J P.J
 /-- Schur bound for the pinch Θ on `offXi`. -/
 lemma Θ_pinch_Schur_offXi (P : PinchOuterExt) :
     IsSchurOn (Θ_pinch P) RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
-  -- derive Re(2·J) ≥ 0 on offXi by restriction from Ω\{ξ=0}
-  have hRe_off : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
-      0 ≤ ((2 : ℂ) * P.J z).re := by
-    intro z hz
-    -- offXi ⊆ Ω \\ {ξ = 0}
-    have hzOffZeros : z ∈ (Ω \ {z | riemannXi_ext z = 0}) :=
-      RH.AcademicFramework.HalfPlaneOuterV2.offXi_subset_offZeros hz
-    exact P.hRe_offXi z hzOffZeros
-  exact Theta_Schur_of_Re_nonneg_on (J := P.J)
-    (S := RH.AcademicFramework.HalfPlaneOuterV2.offXi) hRe_off
+  exact Theta_Schur_of_Re_nonneg_on_offXi (J := P.J) P.hRe_offXi
 
 /-- Pinch certificate specialized to `riemannXi_ext` on Ω. It records:
 - `J` and the nonnegativity of `Re(2·J)` off `Z(ξ_ext)` (to get Schur)
 - an existence-style removable extension of `Θ := Θ_of_J J` across each `ξ_ext` zero. -/
 structure PinchCertificateExt where
   J : ℂ → ℂ
-  hRe_offXi : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}), 0 ≤ ((2 : ℂ) * J z).re
+  hRe_offXi : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
+      0 ≤ ((2 : ℂ) * J z).re
   existsRemXi : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
     ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
       (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
@@ -112,9 +105,8 @@ def Θ_cert (C : PinchCertificateExt) : ℂ → ℂ := Theta_of_J C.J
 
 /-- Schur bound on `Ω \\ {ξ_ext = 0}` from the certificate. -/
 lemma Θ_cert_Schur_offXi (C : PinchCertificateExt) :
-    IsSchurOn (Θ_cert C) (Ω \ {z | riemannXi_ext z = 0}) := by
-  exact Theta_Schur_of_Re_nonneg_on (J := C.J)
-    (S := (Ω \ {z | riemannXi_ext z = 0})) (hRe := C.hRe_offXi)
+    IsSchurOn (Θ_cert C) RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
+  exact Theta_Schur_of_Re_nonneg_on_offXi (J := C.J) C.hRe_offXi
 
 /-- Lift Schur from `offXi` to `Ω \\ {ξ_ext = 0}` by adding the guard at `1`. -/
 lemma Θ_cert_Schur_offZeros_with_one (C : PinchCertificateExt)
@@ -133,10 +125,7 @@ lemma Θ_cert_Schur_offZeros_with_one (C : PinchCertificateExt)
         · exact h1
         · intro h0
           exact hzNotZero (by simpa [Set.mem_setOf_eq] using h0)
-      -- offXi ⊆ Ω \\ {ξ = 0}
-      have hzOffZeros : z ∈ (Ω \ {z | riemannXi_ext z = 0}) :=
-        RH.AcademicFramework.HalfPlaneOuterV2.offXi_subset_offZeros hzOffXi
-      exact C.hRe_offXi z hzOffZeros
+      exact C.hRe_offXi z hzOffXi
   -- Apply Cayley positivity→Schur on S
   exact Theta_Schur_of_Re_nonneg_on (J := C.J)
     (S := (Ω \ {z | riemannXi_ext z = 0})) hRe_S

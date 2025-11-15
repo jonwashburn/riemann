@@ -34,7 +34,7 @@ and removable-extension assignment at `ξ_ext` zeros. -/
 def certificate_from_pinch_ingredients
   (hOuter : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
       BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s))
-  (hRe_offXi : ∀ z ∈ (Ω \ {z | riemannXi_ext z = 0}),
+  (hRe_offXi : ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
       0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose hOuter) z)).re)
   (hRemXi : ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
       ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧

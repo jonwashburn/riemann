@@ -2,7 +2,6 @@
 -- import PinchWrappers themselves if they need its helpers.
 import rh.RS.Det2Outer
 import rh.RS.WhitneyAeCore
-import rh.RS.PoissonAI
 import rh.academic_framework.HalfPlaneOuterV2
 import rh.academic_framework.CompletedXi
 import rh.academic_framework.CayleyAdapters
@@ -47,6 +46,9 @@ lemma O_spec :
   simpa [O] using
     RH.RS.OuterHalfPlane.choose_outer_spec hOuterWitness
 
+lemma outer_exists_outer_eq_O :
+    RH.RS.outer_exists.outer = O := rfl
+
 /-! ## Boundary positivity (P+) for F := 2·J_pinch det2 O -/
 
 theorem boundary_positive_AF
@@ -60,8 +62,11 @@ theorem boundary_positive_AF
         ((2 : ℂ) * RH.RS.J_CR RH.RS.outer_exists (boundary t)).re =
           ((2 : ℂ) * RH.RS.J_pinch RH.RS.det2 O (boundary t)).re := by
     intro t
-    have hJ := RH.RS.J_CR_eq_J_pinch (boundary t)
-    simp [hJ, O, RH.RS.WhitneyAeCore.O]
+    have hJ :=
+      congrArg Complex.re <|
+        congrArg (fun z => (2 : ℂ) * z)
+          (RH.RS.J_CR_eq_J_pinch (boundary t))
+    simpa [outer_exists_outer_eq_O, O] using hJ
   refine hAe.mono ?_
   intro t ht
   have := hb t
@@ -146,13 +151,14 @@ lemma theta_free_ReEqOn_offXi
   (hRepPull :
     RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
       (fun z =>
-        RH.RS.PoissonAI.H_pinch RH.RS.det2 O (RH.AcademicFramework.CayleyAdapters.toDisk z))
+        RH.AcademicFramework.PoissonCayley.H_pinch RH.RS.det2 O
+          (RH.AcademicFramework.CayleyAdapters.toDisk z))
       RH.AcademicFramework.HalfPlaneOuterV2.offXi) :
   RH.AcademicFramework.PoissonCayley.HasHalfPlanePoissonReEqOn
     (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
     RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
   simpa using
-    RH.RS.PoissonAI.thetaFree_hReEqOn_offXi_from_pullback
-      (det2 := RH.RS.det2) (O := O) hRepPull
+    RH.AcademicFramework.PoissonCayley.thetaFree_hReEqOn_offXi_from_pullback
+      (g := RH.RS.det2) (O := O) hRepPull
 
 end RH.RS.RouteB
