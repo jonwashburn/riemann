@@ -33,6 +33,12 @@ local notation "Ω" => RH.RS.Ω
 /-- Boundary parameterization of the line Re s = 1/2. -/
 @[simp] def boundary (t : ℝ) : ℂ := (1 / 2 : ℂ) + Complex.I * (t : ℂ)
 
+/-- RS boundary agrees with the AF boundary parametrization. -/
+lemma boundary_eq_AF_boundary (t : ℝ) :
+    boundary t = RH.AcademicFramework.DiagonalFredholm.boundaryPoint t := by
+  ext <;> simp [boundary, RH.AcademicFramework.DiagonalFredholm.boundaryPoint,
+    Complex.add_re, Complex.add_im]
+
 /-- RS symbol for det₂ on Ω: the 2-modified Euler product over primes.
 
     det₂(s) = ∏ₚ (1 - p^(-s)) * exp(p^(-s))
@@ -166,6 +172,37 @@ def BoundaryModulusEq (O F : ℂ → ℂ) : Prop :=
 `|det2/ξ_ext|` on the boundary line Re s = 1/2. -/
 def OuterHalfPlane.ofModulus_det2_over_xi_ext : Prop :=
   ∃ O : ℂ → ℂ, OuterHalfPlane O ∧ BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s)
+
+lemma det2_boundary_continuous :
+    Continuous fun t : ℝ => det2 (boundary t) := by
+  have h :=
+    RH.AcademicFramework.DiagonalFredholm.det2_AF_boundary_continuous
+  simpa [det2_eq_AF, boundary_eq_AF_boundary]
+    using h
+
+lemma det2_boundary_measurable :
+    Measurable fun t : ℝ => det2 (boundary t) :=
+  det2_boundary_continuous.measurable
+
+lemma measurable_O :
+    Measurable fun t : ℝ => O_witness (boundary t) := by
+  classical
+  have hPiece :
+      (fun t : ℝ => O_witness (boundary t)) =
+        fun t =>
+          det2 (boundary t) / riemannXi_ext (boundary t) := by
+    funext t
+    have : ¬ ((1 / 2 : ℝ) < (boundary t).re) := by
+      simp [boundary]
+    simp [O_witness, this]
+  have hXi :
+      Measurable fun t : ℝ => riemannXi_ext (boundary t) :=
+    RH.AcademicFramework.HalfPlaneOuterV2.xi_ext_boundary_measurable
+  simpa [hPiece] using det2_boundary_measurable.div hXi
+
+lemma O_boundary_measurable :
+    Measurable fun t : ℝ => O_witness (boundary t) :=
+  measurable_O
 
 /-- Choose an outer witness from the existence statement. -/
 noncomputable def OuterHalfPlane.choose_outer

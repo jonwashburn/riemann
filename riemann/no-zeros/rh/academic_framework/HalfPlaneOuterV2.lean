@@ -332,6 +332,11 @@ lemma measurable_comp_boundary {α} [MeasurableSpace α]
   Measurable (fun t : ℝ => f (boundary t)) :=
   measurable_on_boundary_of_measurable (f := f) hf
 
+lemma xi_ext_boundary_measurable :
+  Measurable (fun t : ℝ => riemannXi_ext (boundary t)) :=
+  measurable_comp_boundary (f := riemannXi_ext)
+    RH.AcademicFramework.CompletedXi.measurable_riemannXi_ext
+
 /-- Adapter: the RS boundary parametrization equals the AF boundary parametrization. -/
 lemma rs_boundary_eq_af (t : ℝ) : RH.RS.boundary t = boundary t := by
   apply Complex.ext

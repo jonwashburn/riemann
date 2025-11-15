@@ -1,2 +1,3 @@
-import rh.academic_framework.PoissonCayley
-#check RH.AcademicFramework.PoissonCayley.H_pinch
+import rh.RS.Det2Outer
+open RH.RS
+#check (by measurability : Measurable fun t : ℝ => det2 (boundary t))

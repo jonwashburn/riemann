@@ -8,6 +8,7 @@ import rh.academic_framework.ZetaFunctionalEquation
 import rh.RS.Domain
 import Mathlib.Topology.Basic
 import Mathlib.Analysis.Complex.CauchyIntegral
+import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 
 /-!
 Completed Riemann ξ function (ext): we use mathlib's `completedRiemannZeta` and
