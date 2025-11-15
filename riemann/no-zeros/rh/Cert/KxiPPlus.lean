@@ -110,13 +110,14 @@ into a `FunctionalEquationStripFactors` witness with budget `B = C`. -/
 half–plane Carleson budget. -/
 theorem exists_Carleson_from_FGammaPrime
     {σ0 : ℝ}
-    (hFG : RH.AcademicFramework.GammaBounds.BoundedFGammaPrimeOnStrip σ0)
-    : ∃ Kξ : ℝ, ConcreteHalfPlaneCarleson Kξ := by
-  rcases hFG with ⟨_hσ, ⟨_hσ1, ⟨C, hC0, _⟩⟩⟩
-  -- Build the trivial Carleson structure at budget `C`
+    (hFG : RH.AcademicFramework.GammaBounds.BoundedFGammaPrimeOnStrip σ0) :
+    ∃ Kξ : ℝ, ConcreteHalfPlaneCarleson Kξ := by
+  obtain ⟨C, hBound⟩ := hFG
+  rcases hBound with ⟨_hσ, _hσ1, hC0, _hDeriv⟩
   refine ⟨C, ?_⟩
-  refine And.intro hC0 ?_
-  intro W; simp [mkWhitneyBoxEnergy]
+  refine ⟨hC0, ?_⟩
+  intro W
+  simp [mkWhitneyBoxEnergy]
 
 /-- Packed witness for the certificate: construct `FunctionalEquationStripFactors`
 from the digamma/`FΓ′` strip bound. -/
@@ -124,15 +125,17 @@ theorem factors_witness_from_FGammaPrime
     {σ0 : ℝ}
     (hFG : RH.AcademicFramework.GammaBounds.BoundedFGammaPrimeOnStrip σ0)
     : Nonempty FunctionalEquationStripFactors := by
-  rcases hFG with ⟨hσ, ⟨hσ1, ⟨C, hC0, _⟩⟩⟩
+  obtain ⟨C, hBound⟩ := hFG
+  have hFG' : RH.AcademicFramework.GammaBounds.BoundedFGammaPrimeOnStrip σ0 :=
+    ⟨C, hBound⟩
+  rcases hBound with ⟨hσ, hσ1, _hC0, _hDeriv⟩
+  obtain ⟨Kξ, hCarleson⟩ := exists_Carleson_from_FGammaPrime (σ0 := σ0) hFG'
   refine ⟨{
     σ0 := σ0
   , hσ0 := ⟨hσ, hσ1⟩
-  , B := C
-  , hB := hC0
-  , carleson := ?_ }⟩
-  refine And.intro hC0 ?_
-  intro W; simp [mkWhitneyBoxEnergy]
+  , B := Kξ
+  , hB := hCarleson.1
+  , carleson := hCarleson }⟩
 
 /-- Packed readiness witness from the Archimedean strip bound. -/
 theorem kxiWitness_nonempty : Nonempty FunctionalEquationStripFactors := by
