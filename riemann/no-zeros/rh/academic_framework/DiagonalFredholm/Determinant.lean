@@ -699,6 +699,12 @@ lemma boundaryPoint_re (t : ℝ) : (boundaryPoint t).re = 1 / 2 := by
 lemma boundaryPoint_im (t : ℝ) : (boundaryPoint t).im = t := by
   simp [boundaryPoint, Complex.add_im]
 
+lemma boundaryPoint_eq_two_inv (t : ℝ) :
+    boundaryPoint t = (2 : ℂ)⁻¹ + Complex.I * (t : ℂ) := by
+  have h : (1 / 2 : ℂ) = (2 : ℂ)⁻¹ := by norm_num
+  have h' := congrArg (fun z : ℂ => z + Complex.I * (t : ℂ)) h
+  simpa [boundaryPoint, h] using h'
+
 def det2_AF_boundary_logSummand (p : Prime) (t : ℝ) : ℂ :=
   let s := boundaryPoint t
   Complex.log (1 - (p.1 : ℂ) ^ (-s)) + (p.1 : ℂ) ^ (-s) + ((p.1 : ℂ) ^ (-s)) ^ 2 / 2
@@ -713,22 +719,21 @@ def det2_AF_boundary_logSummand (p : Prime) (t : ℝ) : ℂ :=
 private def det2_boundary_majorant_const : ℝ :=
   (1 - (2 : ℝ) ^ (-(1 / 2 : ℝ)))⁻¹
 
-private lemma two_pow_neg_half_lt_one :
+private lemma two_pow_neg_two_inv_lt_one :
     (2 : ℝ) ^ (-((2 : ℝ)⁻¹)) < 1 := by
-  -- Show `((2)^(2⁻¹))⁻¹ < 1` via `inv_lt_one_of_one_lt₀`, then rewrite.
   have hy_gt : 1 < (2 : ℝ) ^ ((2 : ℝ)⁻¹) :=
     Real.one_lt_rpow (by norm_num : (1 : ℝ) < 2) (by norm_num : 0 < (2 : ℝ)⁻¹)
   have hinv_lt : ((2 : ℝ) ^ ((2 : ℝ)⁻¹))⁻¹ < 1 := inv_lt_one_of_one_lt₀ hy_gt
-  have hrew : (2 : ℝ) ^ (-((2 : ℝ)⁻¹)) = ((2 : ℝ) ^ ((2 : ℝ)⁻¹))⁻¹ :=
+  have hrew :
+      (2 : ℝ) ^ (-((2 : ℝ)⁻¹)) = ((2 : ℝ) ^ ((2 : ℝ)⁻¹))⁻¹ :=
     Real.rpow_neg (by norm_num : (0 : ℝ) ≤ 2) ((2 : ℝ)⁻¹)
   simpa [hrew] using hinv_lt
 
--- Bridge to the common goal-shape where Lean introduces `2⁻¹` by `one_div`.
-private lemma two_pow_neg_two_inv_lt_one :
-    (2 : ℝ) ^ (-((2 : ℝ)⁻¹)) < 1 := by
-  simpa [two_inv_real] using two_pow_neg_half_lt_one
+private lemma two_pow_neg_one_half_lt_one :
+    (2 : ℝ) ^ (-(1 / 2 : ℝ)) < 1 := by
+  simpa [neg_two_inv_real] using two_pow_neg_two_inv_lt_one
 
-private lemma prime_pow_neg_half_lt_one (p : Prime) :
+private lemma prime_pow_neg_two_inv_lt_one (p : Prime) :
     (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) < 1 := by
   have hp_gt_one : 1 < (p.1 : ℝ) := by exact_mod_cast p.property.one_lt
   have hy_gt : 1 < (p.1 : ℝ) ^ ((2 : ℝ)⁻¹) :=
@@ -739,45 +744,44 @@ private lemma prime_pow_neg_half_lt_one (p : Prime) :
     Real.rpow_neg (le_of_lt (Nat.cast_pos.mpr p.property.pos)) ((2 : ℝ)⁻¹)
   simpa [hrew] using hinv_lt
 
--- Bridge to the common goal-shape where Lean introduces `2⁻¹` by `one_div`.
-private lemma prime_pow_neg_two_inv_lt_one (p : Prime) :
-    (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) < 1 := by
-  simpa [two_inv_real] using prime_pow_neg_half_lt_one p
+private lemma prime_pow_neg_one_half_lt_one (p : Prime) :
+    (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) < 1 := by
+  simpa [neg_two_inv_real] using prime_pow_neg_two_inv_lt_one p
 
 private lemma det2_boundary_majorant_const_pos :
     0 < det2_boundary_majorant_const := by
+  have htwo_lt_one :
+      (2 : ℝ) ^ (-(1 / 2 : ℝ)) < 1 := by
+    simpa [neg_two_inv_real] using two_pow_neg_one_half_lt_one
   have hden :
-      0 < 1 - (2 : ℝ) ^ (-((2 : ℝ)⁻¹)) :=
-    sub_pos.mpr two_pow_neg_half_lt_one
+      0 < 1 - (2 : ℝ) ^ (-(1 / 2 : ℝ)) :=
+    sub_pos.mpr htwo_lt_one
   simpa [det2_boundary_majorant_const] using inv_pos.mpr hden
 
 private lemma boundary_lambda_norm (p : Prime) (t : ℝ) :
-    ‖(p.1 : ℂ) ^ (-(boundaryPoint t))‖ = (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) := by
+    ‖(p.1 : ℂ) ^ (-(boundaryPoint t))‖ = (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) := by
   have hp_pos : 0 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.pos p.property)
   have : (boundaryPoint t).re = 1 / 2 := boundaryPoint_re t
   have hrpow :
-      (p.1 : ℝ) ^ (-(boundaryPoint t).re) = (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) := by
-    simpa [this, two_inv_real]
+      (p.1 : ℝ) ^ (-(boundaryPoint t).re) = (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) := by
+    simpa [this]
   have := Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-(boundaryPoint t))
   simpa [Complex.norm_eq_abs, hrpow]
     using this
 
--- Absolute value of the expanded boundary exponent form.
-private lemma abs_cpow_boundary_expanded (p : Prime) (t : ℝ) :
-    Complex.abs ((p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -(1 / 2 : ℂ)))
-      = (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) := by
-  have hp_pos : 0 < (p.1 : ℝ) := by exact_mod_cast (Nat.Prime.pos p.property)
-  have hre : (-(Complex.I * (t : ℂ)) + -(1 / 2 : ℂ)).re = -(1 / 2 : ℝ) := by
-    simp [add_comm, add_left_comm, add_assoc, Complex.add_re, two_inv_real]
-  simpa [hre, two_inv_real] using
-    (Complex.abs_cpow_eq_rpow_re_of_pos hp_pos (-(Complex.I * (t : ℂ)) + -(1 / 2 : ℂ)))
+private lemma neg_boundaryPoint_eq_expanded_two_inv (t : ℝ) :
+    -(boundaryPoint t) = -(Complex.I * (t : ℂ)) + -((2 : ℂ)⁻¹) := by
+  simp [boundaryPoint, sub_eq_add_neg, add_comm, add_left_comm, add_assoc,
+    neg_two_inv_complex, two_mul, mul_comm, mul_left_comm, mul_assoc]
 
+-- Absolute value of the expanded boundary exponent form.
 private lemma boundary_one_sub_lambda_mem_slitPlane (p : Prime) (t : ℝ) :
     1 - (p.1 : ℂ) ^ (-(boundaryPoint t)) ∈ Complex.slitPlane := by
   have hlam_norm := boundary_lambda_norm (p := p) (t := t)
   have hlam_lt_one :
       ‖(p.1 : ℂ) ^ (-(boundaryPoint t))‖ < 1 := by
-    simpa [hlam_norm] using prime_pow_neg_half_lt_one p
+    have : (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) < 1 := prime_pow_neg_two_inv_lt_one p
+    simpa [hlam_norm, neg_two_inv_real, Complex.norm_eq_abs] using this
   have hRe :
       ((p.1 : ℂ) ^ (-(boundaryPoint t))).re < 1 :=
     lt_of_le_of_lt (Complex.re_le_abs _) hlam_lt_one
@@ -856,22 +860,28 @@ lemma det2_AF_boundary_logSummand_norm_bound (p : Prime) (t : ℝ) :
         ≤ det2_boundary_majorant_const * (p.1 : ℝ) ^ (-((3 : ℝ) / 2)) := by
   classical
   set lam : ℂ := (p.1 : ℂ) ^ (-(boundaryPoint t))
-  -- Expand the boundary exponent to the `(−I t) + (−1/2)` shape to match
-  -- any goals that introduce `2⁻¹` via `one_div` rewrites.
-  have lam_expand :
-      lam = (p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -(1 / 2 : ℂ)) := by
-    simp [lam, boundaryPoint, sub_eq_add_neg, add_comm, add_left_comm, add_assoc,
-      mul_comm, mul_left_comm, mul_assoc, two_inv_complex, neg_two_inv_complex]
-  have abs_lam_expand :
-      Complex.abs lam =
-        Complex.abs ((p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -(1 / 2 : ℂ))) := by
-    simpa [lam_expand]
-  have hlam_abs :
+  have hlam_abs_half :
+      Complex.abs lam = (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) := by
+    simpa [Complex.norm_eq_abs, lam] using
+      boundary_lambda_norm (p := p) (t := t)
+  have hlam_abs_two_inv :
       Complex.abs lam = (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) := by
-    simpa [Complex.norm_eq_abs] using boundary_lambda_norm (p := p) (t := t)
+    simpa [neg_two_inv_real] using hlam_abs_half
+  have hlam_abs_expanded :
+      Complex.abs ((p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -((2 : ℂ)⁻¹)))
+        = Complex.abs lam := by
+    simp [lam, neg_boundaryPoint_eq_expanded_two_inv t]
+  have hlam_abs_expanded_two_inv :
+      Complex.abs ((p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -((2 : ℂ)⁻¹)))
+        = (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) := by
+    simpa [hlam_abs_two_inv] using hlam_abs_expanded
   have hlam_lt_one :
-      Complex.abs lam < 1 :=
-    by simpa [hlam_abs] using prime_pow_neg_half_lt_one p
+      Complex.abs lam < 1 := by
+    have : (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) < 1 := prime_pow_neg_two_inv_lt_one p
+    simpa [hlam_abs_two_inv] using this
+  have hlam_lt_expanded :
+      Complex.abs ((p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -((2 : ℂ)⁻¹))) < 1 := by
+    simpa [hlam_abs_expanded_two_inv] using hlam_lt_one
   have hden :
       (1 - Complex.abs lam)⁻¹ ≤ det2_boundary_majorant_const := by
     have hle_two : (2 : ℝ) ≤ (p.1 : ℝ) :=
@@ -880,18 +890,22 @@ lemma det2_AF_boundary_logSummand_norm_bound (p : Prime) (t : ℝ) :
         (p.1 : ℝ) ^ (1 / 2 : ℝ) ≥ (2 : ℝ) ^ (1 / 2 : ℝ) :=
       Real.rpow_le_rpow (by norm_num) hle_two (by norm_num : (0 : ℝ) ≤ 1 / 2)
     have hlam_le :
-        Complex.abs lam ≤ (2 : ℝ) ^ (-((2 : ℝ)⁻¹)) := by
+        Complex.abs lam ≤ (2 : ℝ) ^ (-(1 / 2 : ℝ)) := by
       have :=
         inv_le_inv_of_le (Real.rpow_pos_of_pos (by norm_num : (0 : ℝ) < 2) _)
           hpow_le
-      simpa [hlam_abs, Real.rpow_neg (le_of_lt (Nat.cast_pos.mpr p.property.pos)),
+      simpa [hlam_abs_half,
+        Real.rpow_neg (le_of_lt (Nat.cast_pos.mpr p.property.pos)),
         Real.rpow_neg (by norm_num : (0 : ℝ) ≤ 2)]
         using this
+    have htwo_lt_one :
+        (2 : ℝ) ^ (-(1 / 2 : ℝ)) < 1 := by
+      simpa using two_pow_neg_one_half_lt_one
     have hpos :
-        0 < 1 - (2 : ℝ) ^ (-((2 : ℝ)⁻¹)) :=
-      sub_pos.mpr two_pow_neg_half_lt_one
+        0 < 1 - (2 : ℝ) ^ (-(1 / 2 : ℝ)) :=
+      sub_pos.mpr htwo_lt_one
     have hineq :
-        1 - (2 : ℝ) ^ (-((2 : ℝ)⁻¹)) ≤ 1 - Complex.abs lam :=
+        1 - (2 : ℝ) ^ (-(1 / 2 : ℝ)) ≤ 1 - Complex.abs lam :=
       sub_le_sub_left hlam_le 1
     have :=
       one_div_le_one_div_of_le hpos hineq
@@ -903,15 +917,11 @@ lemma det2_AF_boundary_logSummand_norm_bound (p : Prime) (t : ℝ) :
       log_one_sub_plus_z_plus_sq_cubic_tail hlam_lt_one
   have hlam_pow :
       (Complex.abs lam) ^ 3 = (p.1 : ℝ) ^ (-((3 : ℝ) / 2)) := by
-    -- Start from the 1/2-shape and rewrite the exponent to `2⁻¹`.
-    have hstd : ((p.1 : ℝ) ^ (-(1 / 2 : ℝ))) ^ 3 =
-        (p.1 : ℝ) ^ (-((3 : ℝ) / 2)) := by
+    have hstd :
+        ((p.1 : ℝ) ^ (-(1 / 2 : ℝ))) ^ 3 = (p.1 : ℝ) ^ (-((3 : ℝ) / 2)) := by
       simp [Real.rpow_mul (le_of_lt (Nat.cast_pos.mpr p.property.pos))
         (-(1 / 2 : ℝ)) (3 : ℝ)]
-    have : ((p.1 : ℝ) ^ (-((2 : ℝ)⁻¹))) ^ 3 =
-        (p.1 : ℝ) ^ (-((3 : ℝ) / 2)) := by
-      simpa [two_inv_real] using hstd
-    simpa [hlam_abs, pow_three] using this
+    simpa [hlam_abs_half] using hstd
   have hbound :
       ‖det2_AF_boundary_logSummand p t‖
         ≤ det2_boundary_majorant_const * (p.1 : ℝ) ^ (-((3 : ℝ) / 2)) := by
@@ -920,14 +930,16 @@ lemma det2_AF_boundary_logSummand_norm_bound (p : Prime) (t : ℝ) :
           ≤ (Complex.abs lam) ^ 3 / (1 - Complex.abs lam) := by
       -- Align any expanded boundary shapes to the local `lam`.
       -- This prevents shape mismatches such as `(p : ℂ) ^ (-(I * t) + -2⁻¹)`.
-      simpa [det2_AF_boundary_logSummand_def, lam_expand] using htail
+      simpa [det2_AF_boundary_logSummand_def, lam] using htail
     refine this.trans ?_
     have :
         (Complex.abs lam) ^ 3 / (1 - Complex.abs lam)
           ≤ det2_boundary_majorant_const * (Complex.abs lam) ^ 3 := by
       have :=
         mul_le_mul_of_nonneg_left hden
-          (by exact pow_two_nonneg _)
+          (by
+            have : 0 ≤ Complex.abs lam := Complex.abs.nonneg _
+            exact pow_nonneg this (3 : ℕ))
       simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
         using this
     have hrewrite :
@@ -973,13 +985,14 @@ lemma det2_AF_boundary_eq_exp_tsum (t : ℝ) :
             Complex.exp (det2_AF_boundary_logSummand p t) := by
     intro p
     set lam : ℂ := (p.1 : ℂ) ^ (-(boundaryPoint t))
+    have hlam_norm := boundary_lambda_norm (p := p) (t := t)
     have hlam_lt : ‖lam‖ < 1 := by
-      have : (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) < 1 := prime_pow_neg_half_lt_one p
-      simpa [Complex.norm_eq_abs, lam, boundary_lambda_norm] using this
+      have : (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) < 1 := prime_pow_neg_two_inv_lt_one p
+      simpa [Complex.norm_eq_abs, lam, hlam_norm, neg_two_inv_real] using this
     simpa [det2EulerFactor, det2_AF_boundary_logSummand_def, lam,
       eulerFactor_as_exp_log]
       using eulerFactor_as_exp_log lam hlam_lt
-  simp [det2_AF, hfactor, hprod]
+  simp [det2_AF, boundaryPoint_eq_two_inv, hfactor, hprod]
 
 lemma det2_AF_boundary_continuous :
     Continuous fun t : ℝ => det2_AF (boundaryPoint t) := by
@@ -1001,7 +1014,7 @@ lemma det2_AF_boundary_continuous :
         fun t =>
           Complex.exp (∑' (p : Prime), det2_AF_boundary_logSummand p t) := by
     funext t; exact det2_AF_boundary_eq_exp_tsum t
-  simpa [hfunext]
+  simpa [hfunext, boundaryPoint_eq_two_inv]
     using hcont
 
 end BoundaryContinuity

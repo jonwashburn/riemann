@@ -12,15 +12,23 @@ Green build exporting the Riemann Hypothesis unconditionally, with a robust Rout
 
 ## Phased plan
 
+### 0. Triage and build gating (current focus)
+- **Deduplicate `BoundaryWedgeProof.lean`:** remove the later `abbrev KernelDecayBudgetSucc …` block (around lines 1797–1808) and keep the earlier structure definition; drop the duplicated `C_cross_default` definition/lemma near the end of the file.
+- **Centralize default constants:** move `A_default`, `B_default`, `Cdiag_default`, `C_cross_default` into an early “Defaults” section or a tiny imported file so they are defined before use throughout Route B.
+- **Fence placeholder “AXIOM” lemmas:** keep the heavy CR/Green/residue placeholders in a namespace or sealed file that Stage 1 does not import. Only the minimal exports consumed by Stage 1–3 should remain on the active path.
+- **Scoped CI target:** add a `lake` target (or script) that rebuilds only `rh/academic_framework/DiagonalFredholm/Determinant.lean` and `rh/RS/Det2Outer.lean` so Stage 1 can stay green while the wedge file is trimmed.
+- **Commit discipline:** land Stage 1 in three tight commits: (1) determinant boundary rewrites; (2) Det2Outer measurability; (3) BoundaryWedgeProof dedupe/fencing with no other edits.
+
 ### 1. Repository hygiene and baseline
 - Confirm toolchain and mathlib versions; record hashes.
 - Ensure there are no import cycles; keep `PoissonCayley` and `HalfPlaneOuterV2` as stable AF exports.
 - Fence off heavy modules: keep `BoundaryWedgeProof` reduced to minimal exports; defer the full proof until after the green build.
 
 ### 2. Stage 1 – Boundary measurability and continuity
+- Normalize the critical-line helper lemmas to use literal `1/2` exponents and keep the supporting `rewriter` lemmas off the global simp set. Whenever the `2⁻¹` form is needed, apply the dedicated helper (`two_pow_neg_one_half_lt_one`, `prime_pow_neg_one_half_lt_one`, etc.) instead of letting `simp` bounce between the shapes. This prevents the recursion loops we were seeing in `Determinant.lean`.
 - In `rh/academic_framework/DiagonalFredholm/Determinant.lean`:
-  - `det2_AF_boundary_hasUniformSumOnCompacts`: uniform bound on the boundary series on compact `t`-intervals using the existing cubic-tail bound.
-  - `det2_AF_boundary_continuous`: continuity of `t ↦ det2_AF (1/2 + I t)` via the Weierstrass M-test.
+  - `det2_AF_boundary_hasUniformSumOnCompacts`: uniform bound on the boundary series on compact `t`-intervals using the existing cubic-tail bound together with the normalized rewrite helpers.
+  - `det2_AF_boundary_continuous`: continuity of `t ↦ det2_AF (1/2 + I t)` via the Weierstrass M-test, reusing the helpers verbatim instead of reconstructing the algebraic bounds inline.
 - In `rh/RS/Det2Outer.lean`:
   - `det2_boundary_continuous`: deduced via `det2_eq_AF`.
   - `det2_boundary_measurable`: from `det2_boundary_continuous`.
@@ -84,10 +92,12 @@ Green build exporting the Riemann Hypothesis unconditionally, with a robust Rout
 
 ## Risk mitigation and alternates
 
+- Keep Stage 1 green by gating Route B updates behind the scoped CI target until `Determinant.lean` and `Det2Outer.lean` both build locally.
+- If duplicate/remnant definitions remain in `BoundaryWedgeProof.lean`, move them into `RS/sealed/` so they cannot break the main build path.
 - If uniform-convergence packaging becomes heavy, fall back to a boundary-only version:
   - Express `det₂(boundary t)` as the limit of continuous partial products (finite products over primes ≤ N).
   - Prove uniform convergence on compact `t`-intervals using the existing prime-sum bounds.
-  - Conclude continuity via `TendstoUniformlyOn.compact → continuousLimit`, avoiding global measurability lemmas.
+  - Conclude continuity via `TendstoUniformlyOn.compact → continuousLimit`, still keeping the rewrite helper lemmas local to the boundary proof.
 - If `RouteB_Final` strains imports, move tiny façade lemmas to AF and keep Route B very thin.
 
 ## Acceptance criteria

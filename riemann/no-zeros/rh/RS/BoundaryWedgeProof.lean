@@ -1,3 +1,31 @@
+/-‑ Default cross-term witness from dyadic row bound data.
+Assuming the analytic bilinear majorization with exact convolution entries and the dyadic
+row bound hypotheses, we package `X : Cross4DecayMajSucc I` with `X.C = C_cross_default`. -/
+theorem Cross4Decay_default_from_row_bound_default
+  (I : WhitneyInterval) (c : ℝ)
+  (a b : ℕ → ℝ)
+  (hMaj_int : ∀ K : ℕ,
+      RH.RS.boxEnergyCRGreen gradU_whitney volume
+        (RH.RS.Whitney.tent (WhitneyInterval.interval I))
+      ≤ (Finset.range K).sum (fun k => (phi_of_nu (nu_default I) k)
+            * ((Finset.range K).sum (fun j =>
+                ((∫ t in (WhitneyInterval.interval I),
+                    PoissonKernelDyadic.Ksigma (α_split * I.len) (t - a k)
+                    * PoissonKernelDyadic.Ksigma (α_split * I.len) (t - b j))
+                  * (phi_of_nu (nu_default I) j))))))
+  )
+  (ha : ∀ k, PoissonKernelDyadic.inDyadicAnnulus c I.len k (a k))
+  (hb : ∀ j, PoissonKernelDyadic.inDyadicAnnulus c I.len j (b j))
+  (hconv : ∀ k j,
+      (∫ t, PoissonKernelDyadic.Ksigma (α_split * I.len) (t - a k)
+           * PoissonKernelDyadic.Ksigma (α_split * I.len) (t - b j))
+        = Real.pi * PoissonKernelDyadic.Ksigma (α_split * I.len + α_split * I.len) (a k - b j))
+  :
+  ∃ X : Cross4DecayMajSucc I, X.C = C_cross_default := by
+  classical
+  refine ⟨Cross4DecayMajSucc.default_of_majorization I (hMaj_from_row_bound_default I c a b hMaj_int ha hb hconv),
+    ?_⟩
+  simp
 import rh.RS.CRGreenOuter
 import rh.RS.PoissonKernelDyadic
 import rh.RS.SchurGlobalization
@@ -36,6 +64,32 @@ namespace RH.RS.BoundaryWedgeProof
 open Real Complex
 open MeasureTheory
 open RH.Cert.KxiWhitneyRvM
+
+/-- Default calibration constants shared across Route B. -/
+section Defaults
+
+noncomputable def A_default : ℝ := 0.08
+noncomputable def B_default : ℝ := 2
+noncomputable def Cdiag_default : ℝ := 0.04
+noncomputable def C_cross_default : ℝ := 0.04
+
+lemma default_AB_le : A_default * B_default ≤ Kxi_paper := by
+  have h : A_default * B_default = Kxi_paper := by
+    norm_num [A_default, B_default, Kxi_paper]
+  simpa [h] using (le_of_eq h)
+
+lemma Cdiag_default_nonneg : 0 ≤ Cdiag_default := by
+  norm_num [Cdiag_default]
+
+lemma C_cross_default_nonneg : 0 ≤ C_cross_default := by
+  norm_num [C_cross_default]
+
+lemma hCalib : Cdiag_default + C_cross_default ≤ A_default := by
+  have hsum : Cdiag_default + C_cross_default = 0.08 := by
+    norm_num [Cdiag_default, C_cross_default]
+  simpa [hsum, A_default]
+
+end Defaults
 
 namespace KxiDiag
 
@@ -1792,21 +1846,6 @@ lemma KD_energy_from_annular_decomposition_succ
     simpa using (Finset.mul_sum Cdecay (Finset.range (Nat.succ K)) (fun k => phi_of_nu nu k))
   exact le_trans h1 (by simpa [hfac] using hsum)
 
-/‑‑ Succ-form aliases to match alternate local development that uses explicit
-`Nat.succ` ranges in the KD budget packaging. -/
-abbrev KernelDecayBudgetSucc (I : WhitneyInterval) := KernelDecayBudget I
-
-def KernelDecayBudgetSucc.of
-  (I : WhitneyInterval)
-  (Cdecay : ℝ) (φ : ℕ → ℝ)
-  (hCdecay_nonneg : 0 ≤ Cdecay)
-  (hPartial : ∀ K : ℕ,
-      RH.RS.boxEnergyCRGreen gradU_whitney volume
-        (RH.RS.Whitney.tent (WhitneyInterval.interval I))
-      ≤ Cdecay * ((Finset.range (Nat.succ K)).sum (fun k => φ k)))
-  : KernelDecayBudgetSucc I :=
-  KernelDecayBudget.of I Cdecay φ hCdecay_nonneg hPartial
-
 /-- Analytic annular KD bound (local, succ form): package a local annular split
 and termwise domination into a KD budget in the `Nat.succ` partial‑sum form. -/
 theorem KD_analytic_from_annular_local_succ
@@ -2076,12 +2115,6 @@ lemma KDPartialSumBound_of_4decay_kernel_majorization
 
 /‑‑ ## Default cross 4^{-dist} constant and packaging -/
 
-/-- Default cross Schur constant calibrated for the 4^{-|k−j|} kernel. -/
-noncomputable def C_cross_default : ℝ := 0.04
-
-lemma C_cross_default_nonneg : 0 ≤ C_cross_default := by
-  norm_num [C_cross_default]
-
 /-- Convenience constructor specialized to the default cross constant `C_cross_default`.
 Given a bilinear majorization with kernel `C_cross_default · 4^{-|k−j|}`, produce
 `X : Cross4DecayMajSucc I` with `X.C = C_cross_default`. -/
@@ -2258,34 +2291,6 @@ lemma hMaj_from_row_bound_default
     simpa [mul_comm, mul_left_comm, mul_assoc]
       using hsum)
 
-/-- Default cross-term witness from dyadic row bound data.
-Assuming the analytic bilinear majorization with exact convolution entries and the dyadic
-row bound hypotheses, we package `X : Cross4DecayMajSucc I` with `X.C = C_cross_default`. -/
-theorem Cross4Decay_default_from_row_bound_default
-  (I : WhitneyInterval) (c : ℝ)
-  (a b : ℕ → ℝ)
-  (hMaj_int : ∀ K : ℕ,
-      RH.RS.boxEnergyCRGreen gradU_whitney volume
-        (RH.RS.Whitney.tent (WhitneyInterval.interval I))
-      ≤ (Finset.range K).sum (fun k => (phi_of_nu (nu_default I) k)
-            * ((Finset.range K).sum (fun j =>
-                ((∫ t in (WhitneyInterval.interval I),
-                    PoissonKernelDyadic.Ksigma (α_split * I.len) (t - a k)
-                    * PoissonKernelDyadic.Ksigma (α_split * I.len) (t - b j))
-                  * (phi_of_nu (nu_default I) j))))))
-  )
-  (ha : ∀ k, PoissonKernelDyadic.inDyadicAnnulus c I.len k (a k))
-  (hb : ∀ j, PoissonKernelDyadic.inDyadicAnnulus c I.len j (b j))
-  (hconv : ∀ k j,
-      (∫ t, PoissonKernelDyadic.Ksigma (α_split * I.len) (t - a k)
-           * PoissonKernelDyadic.Ksigma (α_split * I.len) (t - b j))
-        = Real.pi * PoissonKernelDyadic.Ksigma (α_split * I.len + α_split * I.len) (a k - b j))
-  :
-  ∃ X : Cross4DecayMajSucc I, X.C = C_cross_default := by
-  classical
-  refine ⟨Cross4DecayMajSucc.default_of_majorization I (hMaj_from_row_bound_default I c a b hMaj_int ha hb hconv),
-    ?_⟩
-  simp
 
 /-- Finisher: combining a default diagonal succ split with the default cross 4^{-dist}
 majorization obtained from the dyadic row bound yields the Carleson energy bound. -/
@@ -2743,33 +2748,6 @@ theorem carleson_energy_bound_from_KD_analytic_and_counts_with_slack
   have hConst : (KD.Cdecay * VD.Cν) ≤ Kxi_paper := by simpa using hConst'
   -- Apply the bridge with the calibrated constant
   exact carleson_energy_bound_from_decay_density I KD VD hConst
-
-/-- Default calibration constants: pick `A = 0.08`, `B = 2`, so `A·B = 0.16 = Kxi_paper`. -/
-noncomputable def A_default : ℝ := 0.08
-noncomputable def B_default : ℝ := 2
-
-/-- Default diagonal constant, extracted from the calibrated diagonal bounds. -/
-noncomputable def Cdiag_default : ℝ := 0.04
-
-/-- Default Schur cross-term constant from the decay-4 majorization. -/
-noncomputable def C_cross_default : ℝ := 0.04
-
-lemma default_AB_le : A_default * B_default ≤ Kxi_paper := by
-  have h : A_default * B_default = Kxi_paper := by
-    norm_num [A_default, B_default, Kxi_paper]
-  simpa [h] using (le_of_eq h)
-
-lemma Cdiag_default_nonneg : 0 ≤ Cdiag_default := by
-  norm_num [Cdiag_default]
-
-lemma C_cross_default_nonneg : 0 ≤ C_cross_default := by
-  norm_num [C_cross_default]
-
-/-- Calibrated arithmetic closure: `Cdiag_default + C_cross_default ≤ A_default`. -/
-lemma hCalib : Cdiag_default + C_cross_default ≤ A_default := by
-  have hsum : Cdiag_default + C_cross_default = 0.08 := by
-    norm_num [Cdiag_default, C_cross_default]
-  simpa [hsum, A_default]
 
 /-- Default KD+counts corollary: if `Cdecay ≤ 0.08` and `Cν ≤ 2`, then the
 `Kxi_paper` bound holds via the KD_analytic + counts pathway. -/
