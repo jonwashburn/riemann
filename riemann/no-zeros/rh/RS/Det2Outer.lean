@@ -229,25 +229,14 @@ private lemma O_witness_boundary_abs (t : ℝ) :
 lemma measurable_O_twoInv :
     Measurable fun t : ℝ => O_witness (twoInvParam t) := by
   classical
-  have hPiece :
-      (fun t : ℝ => O_witness (boundary t)) =
-        fun t =>
-          det2 (twoInvParam t) / riemannXi_ext (twoInvParam t) := by
-    funext t
-    have : ¬ ((1 / 2 : ℝ) < (boundary t).re) := by
-      simp [boundary]
-    simp [O_witness, this, boundary_eq_twoInvParam]
   have hPieceTwoInv :
       (fun t : ℝ => O_witness (twoInvParam t)) =
         fun t =>
           det2 (twoInvParam t) / riemannXi_ext (twoInvParam t) := by
-    simpa [twoInvParam_eq_boundary] using hPiece
-  have hPieceTwoInv_AF :
-      (fun t : ℝ => O_witness (twoInvParam t)) =
-        fun t =>
-          RH.AcademicFramework.DiagonalFredholm.det2_AF (twoInvParam t) /
-            riemannXi_ext (twoInvParam t) := by
-    simpa [det2_eq_AF] using hPieceTwoInv
+    funext t
+    have : ¬ ((1 / 2 : ℝ) < (twoInvParam t).re) := by
+      simp [twoInvParam]
+    simp [O_witness, this, twoInvParam]
   have hXi :
       Measurable fun t : ℝ => riemannXi_ext (boundary t) :=
     RH.AcademicFramework.CompletedXi.measurable_riemannXi_ext.comp
@@ -262,12 +251,7 @@ lemma measurable_O_twoInv :
     simpa [twoInvParam_eq_boundary] using det2_boundary_measurable
   have hRatioTwoInv :=
     hDetTwoInv.div hXiTwoInv
-  have hRatioTwoInv_AF :
-      Measurable fun t : ℝ =>
-        RH.AcademicFramework.DiagonalFredholm.det2_AF (twoInvParam t) /
-          riemannXi_ext (twoInvParam t) := by
-    simpa [det2_eq_AF] using hRatioTwoInv
-  simpa [hPieceTwoInv_AF] using hRatioTwoInv_AF
+  exact hPieceTwoInv ▸ hRatioTwoInv
 
 lemma measurable_O :
     Measurable fun t : ℝ => O_witness (boundary t) := by
