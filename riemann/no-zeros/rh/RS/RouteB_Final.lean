@@ -110,12 +110,45 @@ lemma boundary_positive_AF_of_PPlus :
 -- (Boundary real-trace measurability for the full pinch field is available
 -- in the AF module; we keep the local det₂ measurability here.)
 
+/-! ## Boundary measurability shortcuts -/
+
+private lemma boundary_param_measurable :
+    Measurable fun t : ℝ =>
+      RH.AcademicFramework.HalfPlaneOuterV2.boundary t := by
+  simpa [RH.AcademicFramework.HalfPlaneOuterV2.boundary, RH.RS.boundary]
+    using (RH.RS.boundary_continuous.measurable)
+
+private lemma det2_boundary_measurable_AF :
+    Measurable fun t : ℝ =>
+      RH.RS.det2 (RH.AcademicFramework.HalfPlaneOuterV2.boundary t) := by
+  simpa [RH.AcademicFramework.HalfPlaneOuterV2.boundary, RH.RS.boundary]
+    using RH.RS.det2_boundary_measurable
+
+private lemma xi_boundary_measurable_AF :
+    Measurable fun t : ℝ =>
+      riemannXi_ext (RH.AcademicFramework.HalfPlaneOuterV2.boundary t) := by
+  exact
+    RH.AcademicFramework.CompletedXi.measurable_riemannXi_ext.comp
+      boundary_param_measurable
+
+private lemma O_boundary_measurable_AF :
+    Measurable fun t : ℝ =>
+      O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t) := by
+  -- `O` is definitionally the `choose` of the witnessed outer, which is `O_witness`.
+  -- Rewriting the boundary parametrization puts the statement into the RS lemma.
+  simpa [RH.AcademicFramework.HalfPlaneOuterV2.boundary, RH.RS.boundary,
+      O, hOuterWitness, RH.RS.OuterHalfPlane.choose_outer,
+      RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext_proved,
+      RH.RS.O_witness]
+    using (RH.RS.O_boundary_measurable :
+      Measurable fun t : ℝ => RH.RS.O_witness (RH.RS.boundary t))
+
 /-! ## Poisson representation on offXi (from θ‑free identity) -/
 
 /-- If the θ‑free real‑part identity holds on `offXi` for the pinch field,
 and the boundary trace components are measurable, then the half‑plane Poisson
 representation exists on `offXi`. -/
-theorem F_pinch_has_poisson_rep
+private lemma F_pinch_has_poisson_rep_of_meas
   (hDet2 : RH.RS.Det2OnOmega)
   (hXi : AnalyticOn ℂ riemannXi_ext (RH.AcademicFramework.HalfPlaneOuterV2.Ω \ ({1} : Set ℂ)))
   (hDet_meas : Measurable (fun t : ℝ => RH.RS.det2 (RH.AcademicFramework.HalfPlaneOuterV2.boundary t)))
@@ -144,6 +177,23 @@ theorem F_pinch_has_poisson_rep
     (hDet2 := hDet2) (hO := (O_spec).1) (hBME := hBME_af) (hXi := hXi)
     (hDet_meas := hDet_meas) (hO_meas := hO_meas) (hXi_meas := hXi_meas)
     (hReEqOn := hFormula)
+
+theorem F_pinch_has_poisson_rep
+  (hDet2 : RH.RS.Det2OnOmega)
+  (hXi : AnalyticOn ℂ riemannXi_ext (RH.AcademicFramework.HalfPlaneOuterV2.Ω \ ({1} : Set ℂ)))
+  (hReEqOn :
+    RH.AcademicFramework.PoissonCayley.HasHalfPlanePoissonReEqOn
+      (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
+      RH.AcademicFramework.HalfPlaneOuterV2.offXi)
+  : RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
+      (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch RH.RS.det2 O)
+      RH.AcademicFramework.HalfPlaneOuterV2.offXi :=
+  F_pinch_has_poisson_rep_of_meas
+    (hDet2 := hDet2) (hXi := hXi)
+    (hDet_meas := det2_boundary_measurable_AF)
+    (hO_meas := O_boundary_measurable_AF)
+    (hXi_meas := xi_boundary_measurable_AF)
+    (hReEqOn := hReEqOn)
 
 /-- θ‑free half-plane real-part identity for the canonical pinch field from a pullback
 Poisson representation on `offXi`. -/
