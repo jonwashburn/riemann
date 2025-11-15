@@ -8,6 +8,7 @@ import Mathlib.Analysis.Complex.RemovableSingularity
 import Mathlib.Analysis.SpecialFunctions.Gamma.Deligne
 import Mathlib.Data.Real.StarOrdered
 import rh.academic_framework.GaussianIntegral
+import Mathlib
 
 noncomputable section
 
@@ -113,7 +114,6 @@ theorem deriv_bound_on_circle
         have hHM : ‖H z‖ ≤ M := hM z hz
         have hnonneg : 0 ≤ ‖(z - s) ^ 2‖⁻¹ := by
           exact inv_nonneg.mpr (norm_nonneg _)
-        have hnormpow : ‖(z - s) ^ 2‖ = ‖z - s‖ ^ 2 := by simp [norm_pow]
         have hnorm : ‖(z - s) ^ 2‖ = r ^ 2 := by simp [hzR]
         have hinv : ‖(z - s) ^ 2‖⁻¹ = (r ^ 2)⁻¹ := by simp [hnorm]
         have hmul : ‖(z - s) ^ 2‖⁻¹ * ‖H z‖ ≤ ‖(z - s) ^ 2‖⁻¹ * M :=
@@ -164,8 +164,8 @@ lemma closedBall_subset_halfplane_of_re_ge
     simpa [dist_eq_norm] using hz
   have hre : (z - (σ + t * I)).re ≥ -‖z - (σ + t * I)‖ := by
     -- |Re w| ≤ ‖w‖ ⇒ -‖w‖ ≤ Re w
-    have := (abs_re_le_norm (z - (σ + t * I)))
-    have : |(z - (σ + t * I)).re| ≤ ‖z - (σ + t * I)‖ := this
+    have := Complex.abs_re_le_abs (z - (σ + t * I))
+    have : |(z - (σ + t * I)).re| ≤ ‖z - (σ + t * I)‖ := by simpa [Complex.abs_apply] using this
     exact neg_le_of_abs_le this
   have : z.re ≥ σ - σ0 / 2 := by
     -- z.re ≥ (σ+tI).re - ‖z-(σ+tI)‖
@@ -228,12 +228,7 @@ end Gammaℝ
 end Complex
 
 open Real Set MeasureTheory Filter Asymptotics
-open scoped Real Topology
-
-/-- If `a ≤ b` and `0 < c`, then `a / c ≤ b / c`. -/
-lemma div_le_div_of_le_left {a b c : ℝ} (hab : a ≤ b) (hc : 0 < c) :
-    a / c ≤ b / c := by
-  exact div_le_div_of_nonneg_right hab hc.le
+open scoped Real Topology Complex
 
 namespace Complex.Gammaℝ
 
@@ -251,8 +246,8 @@ lemma norm_H_on_sphere_le
   have h_re : (σ0 / 2) ≤ z.re := by
     -- z.re ≥ (σ+tI).re - ‖z-(σ+tI)‖ ≥ σ - σ0/2
     have hre : (z - (σ + t * I)).re ≥ -‖z - (σ + t * I)‖ := by
-      have := (abs_re_le_norm (z - (σ + t * I)))
-      exact (neg_le_of_abs_le this)
+      have := Complex.abs_re_le_abs (z - (σ + t * I))
+      exact neg_le_of_abs_le this
     have h1 : z.re ≥ (σ + t * I).re - ‖z - (σ + t * I)‖ := by
       have := add_le_add_right hre ((σ + t * I).re)
       simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using this
@@ -284,7 +279,9 @@ lemma norm_H_on_sphere_le
         Real.rpow_le_rpow_of_exponent_le hpi.le h_exp
       exact hpow
     calc ‖(π : ℂ) ^ (-(z / 2))‖
-        = Real.pi ^ (-(z / 2)).re := Complex.norm_cpow_eq_rpow_re_of_pos Real.pi_pos _
+        = Real.pi ^ (-(z / 2)).re := by
+            rw [Complex.norm_eq_abs]
+            exact Complex.abs_cpow_eq_rpow_re_of_pos Real.pi_pos (-(z / 2))
       _ = Real.pi ^ (-(z.re / 2)) := by simp [Complex.neg_re]
       _ ≤ Real.pi ^ (-(σ0 / 4)) := this
   let w := z / 2
@@ -297,7 +294,10 @@ lemma norm_H_on_sphere_le
     -- z.re ≤ σ + σ0/2 ≤ 1 + 1/2 = 3/2, so w.re ≤ 3/4 < 1
     have h_z_ub : z.re ≤ σ + σ0 / 2 := by
       have : |z.re - σ| ≤ σ0 / 2 := by
-        have := (abs_re_le_norm (z - (σ + t * I))).trans hz'
+        have habs :
+            |(z - (σ + t * I)).re| ≤ ‖z - (σ + t * I)‖ := by
+          simpa using Complex.abs_re_le_abs (z - (σ + t * I))
+        have := le_trans habs hz'
         simpa [Complex.sub_re, Complex.add_re, Complex.ofReal_re,
                 Complex.mul_re, Complex.I_re, mul_zero, add_zero] using this
       linarith [(abs_sub_le_iff.mp this).left]
@@ -306,10 +306,17 @@ lemma norm_H_on_sphere_le
           ≤ σ + σ0 / 2 := h_z_ub
         _ ≤ 1 + 1 / 2 := by linarith [hhi, hσ0]
         _ = 3 / 2 := by norm_num
+    have h_div : z.re / 2 ≤ (3 : ℝ) / 4 := by
+      have hhalf : (0 : ℝ) ≤ 1 / 2 := by norm_num
+      have := mul_le_mul_of_nonneg_left this hhalf
+      have : (1 / 2 : ℝ) * z.re ≤ (1 / 2 : ℝ) * ((3 : ℝ) / 2) := this
+      calc z.re / 2
+          = z.re * (1 / 2) := by ring
+        _ ≤ (3 / 2) * (1 / 2) := by linarith
+        _ = 3 / 4 := by ring
     calc w.re
         = z.re / 2 := by simp [w]
-      _ ≤ (3/2) / 2 := div_le_div_of_le_left this (by norm_num)
-      _ = 3/4 := by norm_num
+      _ ≤ 3 / 4 := h_div
       _ ≤ 1 := by norm_num
   -- Classical integral bound on Γ on Re > 0: for w with Re w ≥ a,
   -- one has ‖Γ(w)‖ ≤ 1/a + √π (split the defining integral at 1 and bound).
@@ -324,7 +331,8 @@ lemma norm_H_on_sphere_le
     calc ‖H z‖
         = ‖Complex.Gammaℝ z‖ := by rw [H]
       _ = ‖(π : ℂ) ^ (-z / 2) * Complex.Gamma (z / 2)‖ := by rw [Complex.Gammaℝ_def]
-      _ = ‖(π : ℂ) ^ (-z / 2)‖ * ‖Complex.Gamma (z / 2)‖ := Complex.norm_mul _ _
+      _ = ‖(π : ℂ) ^ (-z / 2)‖ * ‖Complex.Gamma (z / 2)‖ := by
+          simp
       _ = ‖(π : ℂ) ^ (-z / 2)‖ * ‖Complex.Gamma w‖ := by rw [show z / 2 = w from rfl]
       _ ≤ Real.rpow Real.pi (-(σ0 / 4)) * ‖Complex.Gamma w‖ := by
         have : (π : ℂ) ^ (-z / 2) = (π : ℂ) ^ (-(z / 2)) := by ring_nf
@@ -383,15 +391,15 @@ Interpretation note: In applications `C` dominates `sup_{σ∈[σ0,1], t∈ℝ} 
 for `H(s) = π^{-s/2} Γ(s/2)`. We keep this at the Prop-level here; downstream bridges
 extract the numeric witness. -/
 def BoundedFGammaPrimeOnStrip (σ0 : ℝ) : Prop :=
-  ∃ _ : (1 / 2 : ℝ) < σ0, ∃ _ : σ0 ≤ 1, ∃ C : ℝ, 0 ≤ C ∧ True
+  ∃ C : ℝ, Complex.Gammaℝ.boundedHDerivOnStrip σ0 C
 
 /-- Convenience eliminator: extract the numeric bound `C` and its nonnegativity
 from a `BoundedFGammaPrimeOnStrip σ0` hypothesis. -/
 theorem exists_const_of_BoundedFGammaPrimeOnStrip
     {σ0 : ℝ} (h : BoundedFGammaPrimeOnStrip σ0) :
     ∃ C : ℝ, 0 ≤ C := by
-  rcases h with ⟨_, ⟨_, ⟨C, hC0, _⟩⟩⟩
-  exact ⟨C, hC0⟩
+  rcases h with ⟨C, hC⟩
+  exact ⟨C, hC.2.2.1⟩
 
 /-! ### Explicit Cauchy-route constant (Prop-level)
 
@@ -414,8 +422,8 @@ lemma cauchyHPrimeBoundConstant_nonneg (σ0 : ℝ) : 0 ≤ cauchyHPrimeBoundCons
 theorem boundedFGammaPrimeOnStrip_of
     {σ0 : ℝ} (hσ0 : (1 / 2 : ℝ) < σ0) (hσ1 : σ0 ≤ 1) :
     BoundedFGammaPrimeOnStrip σ0 := by
-  -- Exhibit an explicit nonnegative constant witnessing the bound.
-  refine ⟨hσ0, ⟨hσ1, ⟨cauchyHPrimeBoundConstant σ0, cauchyHPrimeBoundConstant_nonneg σ0, trivial⟩⟩⟩
+  refine ⟨(2 / σ0) * Complex.Gammaℝ.circleBound σ0, ?_⟩
+  simpa using Complex.Gammaℝ.boundedHDerivOnStrip_via_explicit_bound hσ0 hσ1
 
 /-!
 Sketch proof idea for the Cauchy-route bound (not used directly here):
