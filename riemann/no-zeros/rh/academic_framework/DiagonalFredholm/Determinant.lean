@@ -1054,7 +1054,7 @@ lemma det2_AF_boundary_eq_exp_tsum (t : ℝ) :
   have hfactor :
       ∀ p : Prime,
         Complex.exp (det2_AF_boundary_logSummand p t) =
-          det2EulerFactor (boundaryPoint t) p := by
+          det2EulerFactor ((2 : ℂ)⁻¹ + Complex.I * (t : ℂ)) p := by
     intro p
     set lam : ℂ := (p.1 : ℂ) ^ (-(boundaryPoint t))
     have hlam_lt :
@@ -1063,13 +1063,26 @@ lemma det2_AF_boundary_eq_exp_tsum (t : ℝ) :
       simpa [Complex.norm_eq_abs, lam, neg_boundaryPoint_eq_expanded_two_inv t]
         using this
     have hdet := eulerFactor_as_exp_log lam hlam_lt
-    simpa [det2_AF_boundary_logSummand_def, lam, add_comm, add_left_comm,
-      add_assoc, mul_comm, mul_left_comm, mul_assoc] using hdet.symm
+    have :
+        Complex.exp (det2_AF_boundary_logSummand p t) =
+          det2EulerFactor (boundaryPoint t) p := by
+      simpa [det2EulerFactor, det2_AF_boundary_logSummand_def, lam, add_comm,
+        add_left_comm, add_assoc, mul_comm, mul_left_comm, mul_assoc] using hdet.symm
+    simpa [boundaryPoint_eq_two_inv] using this
+  have hfactor_fun :
+      (fun p : Prime =>
+          det2EulerFactor ((2 : ℂ)⁻¹ + Complex.I * (t : ℂ)) p) =
+        fun p : Prime => Complex.exp (det2_AF_boundary_logSummand p t) := by
+    funext p; symm; exact hfactor p
+  have hprod_congr :
+      ∏' (p : Prime), det2EulerFactor ((2 : ℂ)⁻¹ + Complex.I * (t : ℂ)) p =
+        ∏' (p : Prime), Complex.exp (det2_AF_boundary_logSummand p t) := by
+    simpa using congrArg (fun f : Prime → ℂ => ∏' p, f p) hfactor_fun
   have hprodEuler :
-      ∏' (p : Prime), det2EulerFactor (boundaryPoint t) p =
-        Complex.exp (∑' (p : Prime), det2_AF_boundary_logSummand p t) := by
-    simpa [hfactor] using hprod
-  simpa [det2_AF] using hprodEuler
+      ∏' (p : Prime), det2EulerFactor ((2 : ℂ)⁻¹ + Complex.I * (t : ℂ)) p =
+        Complex.exp (∑' (p : Prime), det2_AF_boundary_logSummand p t) :=
+    hprod_congr.trans hprod
+  simpa [det2_AF, boundaryPoint_eq_two_inv] using hprodEuler
 
 lemma det2_AF_twoInv_eq_exp_tsum (t : ℝ) :
     det2_AF ((2 : ℂ)⁻¹ + Complex.I * (t : ℂ)) =
@@ -1105,12 +1118,11 @@ lemma det2_AF_boundary_continuous :
         fun t =>
           Complex.exp (∑' (p : Prime), det2_AF_boundary_logSummand p t) := by
     funext t; exact det2_AF_twoInv_eq_exp_tsum t
-  have hfunext :
-      (fun t : ℝ => det2_AF (boundaryPoint t)) =
-        fun t =>
-          Complex.exp (∑' (p : Prime), det2_AF_boundary_logSummand p t) :=
-    hrewrite.trans hfunexp
-  simpa [hfunext] using hcont
+  have htwoInv :
+      Continuous fun t : ℝ =>
+        det2_AF ((2 : ℂ)⁻¹ + Complex.I * (t : ℂ)) := by
+    simpa [hfunexp] using hcont
+  simpa [hrewrite] using htwoInv
 
 lemma det2_AF_twoInv_continuous :
     Continuous fun t : ℝ =>

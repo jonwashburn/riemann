@@ -36,8 +36,38 @@ local notation "Ω" => RH.RS.Ω
 /-- RS boundary agrees with the AF boundary parametrization. -/
 lemma boundary_eq_AF_boundary (t : ℝ) :
     boundary t = RH.AcademicFramework.DiagonalFredholm.boundaryPoint t := by
-  ext <;> simp [boundary, RH.AcademicFramework.DiagonalFredholm.boundaryPoint,
-    Complex.add_re, Complex.add_im]
+  apply Complex.ext
+  · simp [boundary, RH.AcademicFramework.DiagonalFredholm.boundaryPoint,
+      Complex.add_re]
+  · simp [boundary, RH.AcademicFramework.DiagonalFredholm.boundaryPoint,
+      Complex.add_im]
+
+lemma boundary_eq_two_inv (t : ℝ) :
+    boundary t = (2 : ℂ)⁻¹ + Complex.I * (t : ℂ) := by
+  have h : (1 / 2 : ℂ) = (2 : ℂ)⁻¹ := by norm_num
+  simpa [boundary, h]
+
+@[simp] def twoInvParam (t : ℝ) : ℂ := (2 : ℂ)⁻¹ + Complex.I * (t : ℂ)
+
+lemma boundary_eq_twoInvParam (t : ℝ) :
+    boundary t = twoInvParam t := by
+  simpa [twoInvParam] using boundary_eq_two_inv t
+
+lemma twoInvParam_eq_boundary (t : ℝ) :
+    twoInvParam t = boundary t :=
+  (boundary_eq_twoInvParam t).symm
+
+lemma boundary_continuous :
+    Continuous fun t : ℝ => boundary t := by
+  have hConst : Continuous fun _ : ℝ => (1 / 2 : ℂ) := continuous_const
+  have hOfReal : Continuous fun t : ℝ => (t : ℂ) := Complex.continuous_ofReal
+  have hImag : Continuous fun t : ℝ => Complex.I * (t : ℂ) :=
+    continuous_const.mul hOfReal
+  simpa [boundary] using hConst.add hImag
+
+lemma boundary_measurable :
+    Measurable fun t : ℝ => boundary t :=
+  boundary_continuous.measurable
 
 /-- RS symbol for det₂ on Ω: the 2-modified Euler product over primes.
 
@@ -175,30 +205,73 @@ def OuterHalfPlane.ofModulus_det2_over_xi_ext : Prop :=
 
 lemma det2_boundary_continuous :
     Continuous fun t : ℝ => det2 (boundary t) := by
-  have h :=
-    RH.AcademicFramework.DiagonalFredholm.det2_AF_boundary_continuous
-  simpa [det2_eq_AF, boundary_eq_AF_boundary]
-    using h
+  simpa [det2_eq_AF, boundary_eq_twoInvParam, twoInvParam] using
+    RH.AcademicFramework.DiagonalFredholm.det2_AF_twoInv_continuous
 
 lemma det2_boundary_measurable :
     Measurable fun t : ℝ => det2 (boundary t) :=
   det2_boundary_continuous.measurable
 
-lemma measurable_O :
-    Measurable fun t : ℝ => O_witness (boundary t) := by
+/-- A simple witness: constant `1` on Ω; off Ω, use the raw ratio. -/
+noncomputable def O_witness (s : ℂ) : ℂ :=
+  if (1 / 2 : ℝ) < s.re then (1 : ℂ) else det2 s / riemannXi_ext s
+
+private lemma O_witness_boundary_abs (t : ℝ) :
+    Complex.abs (O_witness (boundary t))
+      = Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) := by
+  -- On the boundary line Re = 1/2, the condition is false, so we take the ratio
+  have hcond : ¬ ( (1 / 2 : ℝ) < (boundary t).re) := by
+    simp [boundary]
+  simp [O_witness, hcond]
+
+/-! ### Boundary measurability helpers for the explicit witness -/
+
+lemma measurable_O_twoInv :
+    Measurable fun t : ℝ => O_witness (twoInvParam t) := by
   classical
   have hPiece :
       (fun t : ℝ => O_witness (boundary t)) =
         fun t =>
-          det2 (boundary t) / riemannXi_ext (boundary t) := by
+          det2 (twoInvParam t) / riemannXi_ext (twoInvParam t) := by
     funext t
     have : ¬ ((1 / 2 : ℝ) < (boundary t).re) := by
       simp [boundary]
-    simp [O_witness, this]
+    simp [O_witness, this, boundary_eq_twoInvParam]
+  have hPieceTwoInv :
+      (fun t : ℝ => O_witness (twoInvParam t)) =
+        fun t =>
+          det2 (twoInvParam t) / riemannXi_ext (twoInvParam t) := by
+    simpa [twoInvParam_eq_boundary] using hPiece
+  have hPieceTwoInv_AF :
+      (fun t : ℝ => O_witness (twoInvParam t)) =
+        fun t =>
+          RH.AcademicFramework.DiagonalFredholm.det2_AF (twoInvParam t) /
+            riemannXi_ext (twoInvParam t) := by
+    simpa [det2_eq_AF] using hPieceTwoInv
   have hXi :
       Measurable fun t : ℝ => riemannXi_ext (boundary t) :=
-    RH.AcademicFramework.HalfPlaneOuterV2.xi_ext_boundary_measurable
-  simpa [hPiece] using det2_boundary_measurable.div hXi
+    RH.AcademicFramework.CompletedXi.measurable_riemannXi_ext.comp
+      boundary_measurable
+  have hXiTwoInv :
+      Measurable fun t : ℝ =>
+        riemannXi_ext (twoInvParam t) := by
+    simpa [twoInvParam_eq_boundary] using hXi
+  have hDetTwoInv :
+      Measurable fun t : ℝ =>
+        det2 (twoInvParam t) := by
+    simpa [twoInvParam_eq_boundary] using det2_boundary_measurable
+  have hRatioTwoInv :=
+    hDetTwoInv.div hXiTwoInv
+  have hRatioTwoInv_AF :
+      Measurable fun t : ℝ =>
+        RH.AcademicFramework.DiagonalFredholm.det2_AF (twoInvParam t) /
+          riemannXi_ext (twoInvParam t) := by
+    simpa [det2_eq_AF] using hRatioTwoInv
+  simpa [hPieceTwoInv_AF] using hRatioTwoInv_AF
+
+lemma measurable_O :
+    Measurable fun t : ℝ => O_witness (boundary t) := by
+  simpa [twoInvParam_eq_boundary] using measurable_O_twoInv
 
 lemma O_boundary_measurable :
     Measurable fun t : ℝ => O_witness (boundary t) :=
@@ -228,18 +301,6 @@ on the boundary line Re s = 1/2 it is defined to have the required modulus. This
 the RS interface, which only checks analyticity/nonvanishing on Ω and the boundary‑modulus
 equality along the boundary parameterization.
 -/
-
-/-- A simple witness: constant `1` on Ω; off Ω, use the raw ratio. -/
-noncomputable def O_witness (s : ℂ) : ℂ :=
-  if (1 / 2 : ℝ) < s.re then (1 : ℂ) else det2 s / riemannXi_ext s
-
-private lemma O_witness_boundary_abs (t : ℝ) :
-    Complex.abs (O_witness (boundary t))
-      = Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) := by
-  -- On the boundary line Re = 1/2, the condition is false, so we take the ratio
-  have hcond : ¬ ( (1 / 2 : ℝ) < (boundary t).re) := by
-    simp [boundary]
-  simp [O_witness, hcond]
 
 /-- Global measurability of `O_witness` as a piecewise function. -/
 lemma measurable_O_witness
