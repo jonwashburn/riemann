@@ -26,9 +26,13 @@ Green build exporting the Riemann Hypothesis unconditionally, with a robust Rout
 
 ### 2. Stage 1 – Boundary measurability and continuity
 - Normalize the critical-line helper lemmas to use literal `1/2` exponents and keep the supporting `rewriter` lemmas off the global simp set. Whenever the `2⁻¹` form is needed, apply the dedicated helper (`two_pow_neg_one_half_lt_one`, `prime_pow_neg_one_half_lt_one`, etc.) instead of letting `simp` bounce between the shapes. This prevents the recursion loops we were seeing in `Determinant.lean`.
+- Re-run `lake build rh.academic_framework.DiagonalFredholm.Determinant` to confirm the determinant layer is green before wiring RS.
+- Update `rh/RS/Det2Outer.lean` so `det2_boundary_continuous`, `det2_boundary_measurable`, `measurable_O`, and `O_boundary_measurable` are proved by the new `det2_AF_twoInv_*` wrappers, keeping all statements in the literal `(2⁻¹ + I·t)` shape.
+- Defer any further `BoundaryWedgeProof` edits until after the RS layer consumes the wrappers; only reopen that file once Stage 1b is complete.
 - In `rh/academic_framework/DiagonalFredholm/Determinant.lean`:
   - `det2_AF_boundary_hasUniformSumOnCompacts`: uniform bound on the boundary series on compact `t`-intervals using the existing cubic-tail bound together with the normalized rewrite helpers.
   - `det2_AF_boundary_continuous`: continuity of `t ↦ det2_AF (1/2 + I t)` via the Weierstrass M-test, reusing the helpers verbatim instead of reconstructing the algebraic bounds inline.
+  - `det2_AF_twoInv_eq_exp_tsum` / `det2_AF_twoInv_continuous`: lightweight wrappers obtained from the boundary lemmas by a single `boundaryPoint_eq_two_inv` rewrite so RS can consume literal `(2⁻¹ + I·t)` statements without reopening the analytic proofs.
 - In `rh/RS/Det2Outer.lean`:
   - `det2_boundary_continuous`: deduced via `det2_eq_AF`.
   - `det2_boundary_measurable`: from `det2_boundary_continuous`.

@@ -693,6 +693,7 @@ private lemma neg_boundaryPoint_expand (t : ℝ) :
   simp [boundaryPoint, sub_eq_add_neg, add_comm, add_left_comm, add_assoc,
     mul_comm, mul_left_comm, mul_assoc]
 
+-- Real rpow behaves like ordinary exponentiation on natural powers for positive bases.
 lemma boundaryPoint_re (t : ℝ) : (boundaryPoint t).re = 1 / 2 := by
   simp [boundaryPoint, Complex.add_re]
 
@@ -702,8 +703,10 @@ lemma boundaryPoint_im (t : ℝ) : (boundaryPoint t).im = t := by
 lemma boundaryPoint_eq_two_inv (t : ℝ) :
     boundaryPoint t = (2 : ℂ)⁻¹ + Complex.I * (t : ℂ) := by
   have h : (1 / 2 : ℂ) = (2 : ℂ)⁻¹ := by norm_num
-  have h' := congrArg (fun z : ℂ => z + Complex.I * (t : ℂ)) h
-  simpa [boundaryPoint, h] using h'
+  calc
+    boundaryPoint t = (1 / 2 : ℂ) + Complex.I * (t : ℂ) := rfl
+    _ = (2 : ℂ)⁻¹ + Complex.I * (t : ℂ) := by
+      simpa [h]
 
 def det2_AF_boundary_logSummand (p : Prime) (t : ℝ) : ℂ :=
   let s := boundaryPoint t
@@ -774,14 +777,86 @@ private lemma neg_boundaryPoint_eq_expanded_two_inv (t : ℝ) :
   simp [boundaryPoint, sub_eq_add_neg, add_comm, add_left_comm, add_assoc,
     neg_two_inv_complex, two_mul, mul_comm, mul_left_comm, mul_assoc]
 
+private lemma abs_cpow_boundary_expanded (p : Prime) (t : ℝ) :
+    Complex.abs ((p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -((2 : ℂ)⁻¹)))
+      = (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) := by
+  have := boundary_lambda_norm (p := p) (t := t)
+  simpa [Complex.norm_eq_abs, neg_boundaryPoint_eq_expanded_two_inv t]
+    using this
+
+private lemma boundary_abs_expanded_eq_twoInv (p : Prime) (t : ℝ) :
+    Complex.abs ((p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -((2 : ℂ)⁻¹)))
+      = (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) := by
+  have := boundary_lambda_norm (p := p) (t := t)
+  simpa [Complex.norm_eq_abs, neg_boundaryPoint_eq_expanded_two_inv t,
+    neg_two_inv_real]
+    using this
+
+private lemma boundary_abs_expanded_lt_one (p : Prime) (t : ℝ) :
+    Complex.abs ((p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -((2 : ℂ)⁻¹))) < 1 := by
+  have hlt : (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) < 1 := prime_pow_neg_two_inv_lt_one p
+  simpa [boundary_abs_expanded_eq_twoInv (p := p) (t := t)] using hlt
+
+private lemma real_pow_neg_half_pow_three (p : Prime) :
+    ((p.1 : ℝ) ^ (-(1 / 2 : ℝ))) ^ 3 = (p.1 : ℝ) ^ (-((3 : ℝ) / 2)) := by
+  have hxpos : 0 < (↑↑p : ℝ) := by exact_mod_cast p.property.pos
+  set r : ℝ := -(1 / 2 : ℝ)
+  have htwo :
+      ((↑↑p : ℝ) ^ r) * ((↑↑p : ℝ) ^ r) = (↑↑p : ℝ) ^ (r + r) := by
+    simpa [r, add_comm] using
+      (Real.rpow_add hxpos (-(1 / 2 : ℝ)) (-(1 / 2 : ℝ))).symm
+  have hthree :
+      (↑↑p : ℝ) ^ (r + r) * (↑↑p : ℝ) ^ r =
+        (↑↑p : ℝ) ^ (r + r + r) := by
+    simpa [r, add_comm, add_left_comm, add_assoc] using
+      (Real.rpow_add hxpos (-(1 / 2 : ℝ) + -(1 / 2 : ℝ)) (-(1 / 2 : ℝ))).symm
+  have hsum : r + r + r = -((3 : ℝ) / 2) := by
+    have hxr : r = -((2 : ℝ)⁻¹) := by
+      simpa [r] using (neg_two_inv_real.symm :
+        -(1 / 2 : ℝ) = -((2 : ℝ)⁻¹))
+    have : -((2 : ℝ)⁻¹) + (-((2 : ℝ)⁻¹) + -((2 : ℝ)⁻¹))
+        = -((3 : ℝ) / 2) := by
+      norm_num
+    simpa [hxr, add_comm, add_left_comm, add_assoc] using this
+  have hpow :
+      ((↑↑p : ℝ) ^ r) ^ 3 =
+        (↑↑p : ℝ) ^ r * ((↑↑p : ℝ) ^ r * (↑↑p : ℝ) ^ r) := by
+    rw [pow_three]
+  have hpow' :
+      ((↑↑p : ℝ) ^ r) ^ 3 =
+        (↑↑p : ℝ) ^ (r + r) * (↑↑p : ℝ) ^ r := by
+    simpa [htwo, mul_comm, mul_left_comm, mul_assoc]
+      using hpow
+  have hstd :
+      ((↑↑p : ℝ) ^ r) ^ 3 = (↑↑p : ℝ) ^ (r + r + r) := by
+    simpa [hthree, mul_comm, mul_left_comm, mul_assoc] using hpow'
+  simpa [hsum] using hstd
+
+private lemma boundary_abs_expanded_pow_three (p : Prime) (t : ℝ) :
+    (Complex.abs ((p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -((2 : ℂ)⁻¹)))) ^ 3
+        = (p.1 : ℝ) ^ (-((3 : ℝ) / 2)) := by
+  have hbase :
+      Complex.abs ((p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -((2 : ℂ)⁻¹))) =
+        (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) :=
+    boundary_abs_expanded_eq_twoInv (p := p) (t := t)
+  have hpow :=
+    real_pow_neg_half_pow_three (p := p)
+  have hx : -((2 : ℝ)⁻¹) = -(1 / 2 : ℝ) := by norm_num
+  have hpow_twoInv :
+      ((p.1 : ℝ) ^ (-((2 : ℝ)⁻¹))) ^ 3 = (p.1 : ℝ) ^ (-((3 : ℝ) / 2)) := by
+    simpa [hx]
+      using hpow
+  simpa [hbase] using hpow_twoInv
+
 -- Absolute value of the expanded boundary exponent form.
 private lemma boundary_one_sub_lambda_mem_slitPlane (p : Prime) (t : ℝ) :
     1 - (p.1 : ℂ) ^ (-(boundaryPoint t)) ∈ Complex.slitPlane := by
-  have hlam_norm := boundary_lambda_norm (p := p) (t := t)
   have hlam_lt_one :
       ‖(p.1 : ℂ) ^ (-(boundaryPoint t))‖ < 1 := by
-    have : (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) < 1 := prime_pow_neg_two_inv_lt_one p
-    simpa [hlam_norm, neg_two_inv_real, Complex.norm_eq_abs] using this
+    have :=
+      boundary_abs_expanded_lt_one (p := p) (t := t)
+    simpa [Complex.norm_eq_abs, neg_boundaryPoint_eq_expanded_two_inv t]
+      using this
   have hRe :
       ((p.1 : ℂ) ^ (-(boundaryPoint t))).re < 1 :=
     lt_of_le_of_lt (Complex.re_le_abs _) hlam_lt_one
@@ -789,6 +864,12 @@ private lemma boundary_one_sub_lambda_mem_slitPlane (p : Prime) (t : ℝ) :
       0 < 1 - ((p.1 : ℂ) ^ (-(boundaryPoint t))).re :=
     sub_pos.mpr hRe
   exact Or.inl hpos
+
+private lemma boundary_one_sub_lambda_expanded_mem_slitPlane (p : Prime) (t : ℝ) :
+    1 - (p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -((2 : ℂ)⁻¹))
+      ∈ Complex.slitPlane := by
+  simpa [neg_boundaryPoint_eq_expanded_two_inv t] using
+    boundary_one_sub_lambda_mem_slitPlane (p := p) (t := t)
 
 lemma det2_AF_boundary_logSummand_continuous (p : Prime) :
     Continuous fun t : ℝ => det2_AF_boundary_logSummand p t := by
@@ -864,24 +945,13 @@ lemma det2_AF_boundary_logSummand_norm_bound (p : Prime) (t : ℝ) :
       Complex.abs lam = (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) := by
     simpa [Complex.norm_eq_abs, lam] using
       boundary_lambda_norm (p := p) (t := t)
-  have hlam_abs_two_inv :
-      Complex.abs lam = (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) := by
-    simpa [neg_two_inv_real] using hlam_abs_half
-  have hlam_abs_expanded :
-      Complex.abs ((p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -((2 : ℂ)⁻¹)))
-        = Complex.abs lam := by
-    simp [lam, neg_boundaryPoint_eq_expanded_two_inv t]
-  have hlam_abs_expanded_two_inv :
-      Complex.abs ((p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -((2 : ℂ)⁻¹)))
-        = (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) := by
-    simpa [hlam_abs_two_inv] using hlam_abs_expanded
-  have hlam_lt_one :
-      Complex.abs lam < 1 := by
-    have : (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) < 1 := prime_pow_neg_two_inv_lt_one p
-    simpa [hlam_abs_two_inv] using this
   have hlam_lt_expanded :
       Complex.abs ((p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -((2 : ℂ)⁻¹))) < 1 := by
-    simpa [hlam_abs_expanded_two_inv] using hlam_lt_one
+    exact boundary_abs_expanded_lt_one (p := p) (t := t)
+  have hlam_lt_one :
+      Complex.abs lam < 1 := by
+    simpa [lam, neg_boundaryPoint_eq_expanded_two_inv t]
+      using hlam_lt_expanded
   have hden :
       (1 - Complex.abs lam)⁻¹ ≤ det2_boundary_majorant_const := by
     have hle_two : (2 : ℝ) ≤ (p.1 : ℝ) :=
@@ -917,11 +987,13 @@ lemma det2_AF_boundary_logSummand_norm_bound (p : Prime) (t : ℝ) :
       log_one_sub_plus_z_plus_sq_cubic_tail hlam_lt_one
   have hlam_pow :
       (Complex.abs lam) ^ 3 = (p.1 : ℝ) ^ (-((3 : ℝ) / 2)) := by
-    have hstd :
-        ((p.1 : ℝ) ^ (-(1 / 2 : ℝ))) ^ 3 = (p.1 : ℝ) ^ (-((3 : ℝ) / 2)) := by
-      simp [Real.rpow_mul (le_of_lt (Nat.cast_pos.mpr p.property.pos))
-        (-(1 / 2 : ℝ)) (3 : ℝ)]
-    simpa [hlam_abs_half] using hstd
+    have hpow :=
+      boundary_abs_expanded_pow_three (p := p) (t := t)
+    have hbase :
+        Complex.abs ((p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -((2 : ℂ)⁻¹)))
+          = Complex.abs lam := by
+      simp [lam, neg_boundaryPoint_eq_expanded_two_inv t]
+    simpa [hbase] using hpow
   have hbound :
       ‖det2_AF_boundary_logSummand p t‖
         ≤ det2_boundary_majorant_const * (p.1 : ℝ) ^ (-((3 : ℝ) / 2)) := by
@@ -981,18 +1053,33 @@ lemma det2_AF_boundary_eq_exp_tsum (t : ℝ) :
         hSummable).2
   have hfactor :
       ∀ p : Prime,
-          det2EulerFactor (boundaryPoint t) p =
-            Complex.exp (det2_AF_boundary_logSummand p t) := by
+        Complex.exp (det2_AF_boundary_logSummand p t) =
+          det2EulerFactor (boundaryPoint t) p := by
     intro p
     set lam : ℂ := (p.1 : ℂ) ^ (-(boundaryPoint t))
-    have hlam_norm := boundary_lambda_norm (p := p) (t := t)
-    have hlam_lt : ‖lam‖ < 1 := by
-      have : (p.1 : ℝ) ^ (-((2 : ℝ)⁻¹)) < 1 := prime_pow_neg_two_inv_lt_one p
-      simpa [Complex.norm_eq_abs, lam, hlam_norm, neg_two_inv_real] using this
-    simpa [det2EulerFactor, det2_AF_boundary_logSummand_def, lam,
-      eulerFactor_as_exp_log]
-      using eulerFactor_as_exp_log lam hlam_lt
-  simp [det2_AF, boundaryPoint_eq_two_inv, hfactor, hprod]
+    have hlam_lt :
+        ‖lam‖ < 1 := by
+      have := boundary_abs_expanded_lt_one (p := p) (t := t)
+      simpa [Complex.norm_eq_abs, lam, neg_boundaryPoint_eq_expanded_two_inv t]
+        using this
+    have hdet := eulerFactor_as_exp_log lam hlam_lt
+    simpa [det2_AF_boundary_logSummand_def, lam, add_comm, add_left_comm,
+      add_assoc, mul_comm, mul_left_comm, mul_assoc] using hdet.symm
+  have hprodEuler :
+      ∏' (p : Prime), det2EulerFactor (boundaryPoint t) p =
+        Complex.exp (∑' (p : Prime), det2_AF_boundary_logSummand p t) := by
+    simpa [hfactor] using hprod
+  simpa [det2_AF] using hprodEuler
+
+lemma det2_AF_twoInv_eq_exp_tsum (t : ℝ) :
+    det2_AF ((2 : ℂ)⁻¹ + Complex.I * (t : ℂ)) =
+      Complex.exp (∑' (p : Prime), det2_AF_boundary_logSummand p t) := by
+  calc
+    det2_AF ((2 : ℂ)⁻¹ + Complex.I * (t : ℂ))
+        = det2_AF (boundaryPoint t) := by
+          simpa [boundaryPoint_eq_two_inv]
+    _ = Complex.exp (∑' (p : Prime), det2_AF_boundary_logSummand p t) :=
+          det2_AF_boundary_eq_exp_tsum t
 
 lemma det2_AF_boundary_continuous :
     Continuous fun t : ℝ => det2_AF (boundaryPoint t) := by
@@ -1009,13 +1096,26 @@ lemma det2_AF_boundary_continuous :
       Continuous fun t : ℝ =>
         Complex.exp (∑' (p : Prime), det2_AF_boundary_logSummand p t) :=
     Complex.continuous_exp.comp hcont_tsum
+  have hrewrite :
+      (fun t : ℝ => det2_AF (boundaryPoint t)) =
+        fun t : ℝ => det2_AF ((2 : ℂ)⁻¹ + Complex.I * (t : ℂ)) := by
+    funext t; simpa [boundaryPoint_eq_two_inv]
+  have hfunexp :
+      (fun t : ℝ => det2_AF ((2 : ℂ)⁻¹ + Complex.I * (t : ℂ))) =
+        fun t =>
+          Complex.exp (∑' (p : Prime), det2_AF_boundary_logSummand p t) := by
+    funext t; exact det2_AF_twoInv_eq_exp_tsum t
   have hfunext :
       (fun t : ℝ => det2_AF (boundaryPoint t)) =
         fun t =>
-          Complex.exp (∑' (p : Prime), det2_AF_boundary_logSummand p t) := by
-    funext t; exact det2_AF_boundary_eq_exp_tsum t
-  simpa [hfunext, boundaryPoint_eq_two_inv]
-    using hcont
+          Complex.exp (∑' (p : Prime), det2_AF_boundary_logSummand p t) :=
+    hrewrite.trans hfunexp
+  simpa [hfunext] using hcont
+
+lemma det2_AF_twoInv_continuous :
+    Continuous fun t : ℝ =>
+      det2_AF ((2 : ℂ)⁻¹ + Complex.I * (t : ℂ)) := by
+  simpa [boundaryPoint_eq_two_inv] using det2_AF_boundary_continuous
 
 end BoundaryContinuity
 
