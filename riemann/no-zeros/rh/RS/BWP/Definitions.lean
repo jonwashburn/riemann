@@ -1007,6 +1007,197 @@ lemma mem_zerosInBox_iff {α : ℝ} (I : WhitneyInterval) {ρ : ℂ} :
     ρ ∈ zerosInBox α I ↔ ρ ∈ zeroSetXi ∧ ρ ∈ whitneyBoxC α I := by
   simp [zerosInBox, Set.Finite.mem_toFinset]
 
+
+
+open ContinuousLinearMap
+
+/-- `J_canonical` is analytic on Ω away from the zero set of `riemannXi_ext`
+and the pole at `1`. -/
+lemma analyticAt_J_canonical {z : ℂ}
+    (hzΩ : z ∈ Ω) (hz_ne_one : z ≠ 1) (hzXi : riemannXi_ext z ≠ 0) :
+    AnalyticAt ℂ J_canonical z := by
+  classical
+  have hz_ne_zero : z ≠ 0 := by
+    have hRe : (1 / 2 : ℝ) < z.re := hzΩ
+    intro hz0
+    have : (1 / 2 : ℝ) < (0 : ℝ) := by simpa [hz0] using hRe
+    linarith
+  have hdet : AnalyticWithinAt ℂ det2 Ω z := det2_analytic_on_RSΩ z hzΩ
+  have hout : AnalyticWithinAt ℂ outer_exists.outer Ω z := outer_exists.analytic z hzΩ
+  have hxi : AnalyticAt ℂ riemannXi_ext z :=
+    analyticAt_completedRiemannZeta z hz_ne_zero hz_ne_one
+  have hden :
+      AnalyticWithinAt ℂ (fun w => outer_exists.outer w * riemannXi_ext w) Ω z :=
+    hout.mul (hxi.analyticWithinAt (s := Ω))
+  have hden_ne : outer_exists.outer z * riemannXi_ext z ≠ 0 :=
+    mul_ne_zero (outer_exists.nonzero z hzΩ) hzXi
+  have hquot :
+      AnalyticWithinAt ℂ
+        (fun w : ℂ => det2 w / (outer_exists.outer w * riemannXi_ext w)) Ω z :=
+    hdet.div hden hden_ne
+  obtain ⟨F, hEq, hF⟩ :=
+    (analyticWithinAt_iff_exists_analyticAt (𝕜 := ℂ) (E := ℂ) (F := ℂ)).1 hquot
+  have hΩ : (Ω : Set ℂ) ∈ 𝓝 z := isOpen_Ω.mem_nhds hzΩ
+  have hEq' :
+      (fun w : ℂ => det2 w / (outer_exists.outer w * riemannXi_ext w)) =ᶠ[𝓝 z] F := by
+    have hinsert : insert z Ω = Ω := by simp [Set.insert_eq_of_mem hzΩ]
+    have hnhds : 𝓝[Ω] z = 𝓝 z := nhdsWithin_eq_nhds.2 hΩ
+    simpa [hinsert, hnhds] using hEq
+  have hAnalytic :
+      AnalyticAt ℂ (fun w : ℂ => det2 w / (outer_exists.outer w * riemannXi_ext w)) z :=
+    hF.congr hEq'.symm
+  rw [J_canonical]
+  exact hAnalytic
+
+/-- Linear part of the upper half-plane coordinate map `(t, σ) ↦ σ + I * t`.
+
+This is an `ℝ`‑linear map `ℝ × ℝ → ℂ` obtained by taking the second coordinate as a real
+scalar, and adding `I` times the first coordinate. -/
+noncomputable def halfPlaneLinear : ℝ × ℝ →L[ℝ] ℂ :=
+  (snd ℝ ℝ ℝ).smulRight (1 : ℂ) +
+  (fst ℝ ℝ ℝ).smulRight (Complex.I)
+
+/-- Coordinate map `(t, σ) ↦ (1/2 + σ) + I * t` used in the definition of `U_halfplane`.
+
+We separate the constant shift `(1/2 : ℝ)` from the linear part so that the Frechét derivative
+is just `halfPlaneLinear`. -/
+noncomputable def halfPlaneCoord (p : ℝ × ℝ) : ℂ :=
+  ((1 / 2 : ℝ) : ℂ) + halfPlaneLinear p
+
+@[simp] lemma halfPlaneLinear_apply (p : ℝ × ℝ) :
+  halfPlaneLinear p = (p.2 : ℝ) + Complex.I * (p.1 : ℂ) := by
+  -- expand the definition: snd picks σ, fst picks t
+  simp [halfPlaneLinear, smulRight, Complex.ofReal_mul]  -- standard CLM algebra
+  exact CommMonoid.mul_comm (↑p.1) I
+
+@[simp] lemma halfPlaneCoord_apply (p : ℝ × ℝ) :
+  halfPlaneCoord p = ((1 / 2 : ℝ) + p.2 : ℝ) + Complex.I * (p.1 : ℂ) := by
+  -- constant shift plus the linear part
+  simp [halfPlaneCoord, halfPlaneLinear_apply, add_comm, add_left_comm, add_assoc]
+
+lemma halfPlaneCoord_mem_Ω_of_pos {p : ℝ × ℝ} (hp : 0 < p.2) :
+    halfPlaneCoord p ∈ Ω := by
+  have hRe : (1 / 2 : ℝ) < (1 / 2 : ℝ) + p.2 := by linarith
+  simpa [Ω, halfPlaneCoord_apply, add_comm, add_left_comm, add_assoc] using hRe
+
+lemma halfPlaneCoord_sub_half (p : ℝ × ℝ) :
+    (halfPlaneCoord p).re - (1 / 2 : ℝ) = p.2 := by
+  simp [halfPlaneCoord_apply, add_comm, add_left_comm, add_assoc, sub_eq_add_neg]
+
+/-- Heights (measured as `σ = Re ρ - 1/2`) of the zeros of `riemannXi_ext` that lie
+in the Whitney box of aperture `α` over `I`. -/
+noncomputable def zeroHeights (α : ℝ) (I : WhitneyInterval) : Finset ℝ :=
+  (zerosInBox α I).image fun ρ : ℂ => ρ.re - (1 / 2 : ℝ)
+
+/-- Supremum (actually the finite maximum) of the zero heights in the aperture-`α`
+Whitney box.  It is `0` if no zeros are present. -/
+noncomputable def zeroHeightSup (α : ℝ) (I : WhitneyInterval) : ℝ :=
+  if h : (zeroHeights α I).Nonempty then
+    (zeroHeights α I).max' h
+  else
+    0
+
+lemma zeroHeight_nonneg {α : ℝ} (I : WhitneyInterval) {ρ : ℂ}
+    (hρ : ρ ∈ zerosInBox α I) :
+    0 ≤ ρ.re - (1 / 2 : ℝ) := by
+  classical
+  rcases (mem_zerosInBox_iff (α := α) I).mp hρ with ⟨_, hWhitney⟩
+  rcases hWhitney with ⟨p, hp, rfl⟩
+  have hσ : 0 ≤ p.2 := (Set.mem_Icc.mp hp.2).1
+  have hrepr :
+      (halfPlaneCoord p).re - (1 / 2 : ℝ) = p.2 := by
+    simp [halfPlaneCoord, halfPlaneLinear, add_comm, add_left_comm, add_assoc, sub_eq_add_neg]
+  simpa [hrepr] using hσ
+
+lemma zeroHeightSup_nonneg (α : ℝ) (I : WhitneyInterval) :
+    0 ≤ zeroHeightSup α I := by
+  classical
+  by_cases h : (zeroHeights α I).Nonempty
+  ·
+    have hne := h
+    obtain ⟨σ, hσ⟩ := h
+    obtain ⟨ρ, hρ, rfl⟩ := Finset.mem_image.mp hσ
+    have hσ_nonneg : 0 ≤ ρ.re - (1 / 2 : ℝ) :=
+      zeroHeight_nonneg (α := α) I hρ
+    have hσ_le :
+        ρ.re - (1 / 2 : ℝ) ≤ (zeroHeights α I).max' hne :=
+      Finset.le_max' (zeroHeights α I) (ρ.re - 1 / 2) hσ
+    exact
+      le_trans hσ_nonneg
+        (by simpa [zeroHeightSup, hne] using hσ_le)
+  · simp [zeroHeightSup, h]
+
+lemma le_zeroHeightSup_of_mem {α : ℝ} (I : WhitneyInterval) {σ : ℝ}
+    (hσ : σ ∈ zeroHeights α I) :
+    σ ≤ zeroHeightSup α I := by
+  classical
+  have hne : (zeroHeights α I).Nonempty := ⟨σ, hσ⟩
+  have : σ ≤ (zeroHeights α I).max' hne :=
+    Finset.le_max' (zeroHeights α I) σ hσ
+  simpa [zeroHeightSup, hne] using this
+
+lemma zeroHeight_mem_zeroHeights {α : ℝ} (I : WhitneyInterval)
+    {ρ : ℂ} (hρ : ρ ∈ zerosInBox α I) :
+    ρ.re - (1 / 2 : ℝ) ∈ zeroHeights α I := by
+  classical
+  exact Finset.mem_image.mpr ⟨ρ, hρ, rfl⟩
+
+lemma zeroHeight_le_sup {α : ℝ} (I : WhitneyInterval)
+    {ρ : ℂ} (hρ : ρ ∈ zerosInBox α I) :
+    ρ.re - (1 / 2 : ℝ) ≤ zeroHeightSup α I := by
+  exact le_zeroHeightSup_of_mem I (zeroHeight_mem_zeroHeights I hρ)
+
+lemma zero_and_pole_free_above_height
+    {α ε : ℝ} (I : WhitneyInterval)
+    (hε_nonneg : 0 ≤ ε)
+    (havoid : (1 / 2 : ℝ) ∉ Set.Icc ε (α * I.len))
+    (hheight : zeroHeightSup α I < ε)
+    {p : ℝ × ℝ}
+    (hp : p ∈ I.interval ×ˢ Set.Icc ε (α * I.len)) :
+    riemannXi_ext (halfPlaneCoord p) ≠ 0 ∧ halfPlaneCoord p ≠ 1 := by
+  classical
+  rcases hp with ⟨hp_t, hp_σ⟩
+  have hp_bounds := Set.mem_Icc.mp hp_σ
+  have hp_nonneg : 0 ≤ p.2 := le_trans hε_nonneg hp_bounds.1
+  have hp_full : p ∈ I.interval ×ˢ Set.Icc (0 : ℝ) (α * I.len) :=
+    ⟨hp_t, ⟨hp_nonneg, hp_bounds.2⟩⟩
+  have hWhitney : halfPlaneCoord p ∈ whitneyBoxC α I := by
+    refine ⟨p, hp_full, ?_⟩
+    simp [halfPlaneCoord]
+    exact add_assoc 2⁻¹ (↑p.2) (Complex.I * ↑p.1)
+  constructor
+  · intro hzero
+    have hZeroInBox : halfPlaneCoord p ∈ zerosInBox α I := by
+      refine (mem_zerosInBox_iff (α := α) I).mpr ?_
+      exact ⟨by simpa using hzero, hWhitney⟩
+    have hheight_le :
+        (halfPlaneCoord p).re - (1 / 2 : ℝ) ≤ zeroHeightSup α I :=
+      zeroHeight_le_sup (α := α) I hZeroInBox
+    have hrepr :
+        (halfPlaneCoord p).re - (1 / 2 : ℝ) = p.2 := by
+      simp [halfPlaneCoord_apply, add_comm, add_left_comm, add_assoc, sub_eq_add_neg]
+    have hheight_ge : ε ≤ (halfPlaneCoord p).re - (1 / 2 : ℝ) := by
+      simpa [hrepr] using hp_bounds.1
+    have hcontr : ε ≤ zeroHeightSup α I :=
+      le_trans hheight_ge hheight_le
+    exact (not_lt_of_ge hcontr) hheight
+  · intro hOne
+    have hp1 : p.1 = 0 := by
+      simpa [halfPlaneCoord_apply] using congrArg (Complex.im) hOne
+    have hp2 : p.2 = 1 / 2 := by
+      have hRe := congrArg Complex.re hOne
+      have hRe' :
+          (1 / 2 : ℝ) + p.2 = 1 := by
+        simp only [halfPlaneCoord_apply, hp1, Complex.add_re, Complex.ofReal_re,
+          Complex.mul_re, Complex.I_re, Complex.I_im, Complex.ofReal_im,
+          zero_mul, mul_zero, sub_zero, add_zero] at hRe
+        simpa using hRe
+      exact by linarith [hRe']
+    have : (1 / 2 : ℝ) ∈ Set.Icc ε (α * I.len) := by
+      rw [Set.mem_Icc, ← hp2]
+      exact hp_bounds
+    exact havoid this
+
 lemma riemannXi_ext_zero_avoids_poles {ρ : ℂ} (hρ : riemannXi_ext ρ = 0) : ρ ≠ 0 ∧ ρ ≠ 1 := by
   constructor
   · rintro rfl; exact completedRiemannZeta_zero_ne_zero hρ

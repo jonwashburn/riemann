@@ -139,6 +139,19 @@ def J_CR (O : OuterOnOmega) (s : ℂ) : ℂ :=
 /-- Canonical J using the admitted outer. -/
 def J_canonical : ℂ → ℂ := J_CR outer_exists
 
+/-- `J_canonical` does not vanish on Ω away from the zeros of `riemannXi_ext`. -/
+lemma J_canonical_ne_zero_of_offZeros {z : ℂ}
+    (hzΩ : z ∈ Ω) (hzXi : riemannXi_ext z ≠ 0) :
+    J_canonical z ≠ 0 := by
+  have hdet : det2 z ≠ 0 := det2_nonzero_on_RSΩ hzΩ
+  have hout : outer_exists.outer z ≠ 0 := outer_exists.nonzero z hzΩ
+  have hden : outer_exists.outer z * riemannXi_ext z ≠ 0 :=
+    mul_ne_zero hout hzXi
+  have := div_ne_zero hdet hden
+  simpa [J_canonical, J_CR] using this
+
+
+
 /-- Equality between the RS canonical J and the pinch J with the chosen outer. -/
 lemma J_CR_eq_J_pinch :
   ∀ z, J_CR outer_exists z = J_pinch det2 outer_exists.outer z := by
@@ -1083,6 +1096,7 @@ theorem rect_green_trace_identity_strong
       ring
     rw [h1, ← integral_sub hIntIntA hIntIntB]
   rw [this, hIntSub]
+
 
 
 end RS
