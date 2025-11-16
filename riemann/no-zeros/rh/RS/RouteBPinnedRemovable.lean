@@ -271,13 +271,14 @@ lemma pathToTwo_mem (z : ℂ) (hz : z ∈ XiDomain) :
 lemma Whitney_O_spec :
     RH.RS.OuterHalfPlane O ∧
     RH.RS.BoundaryModulusEq O (fun s => RH.RS.det2 s / riemannXi_ext s) := by
-  classical
-  have hWitness := RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext_proved
-  obtain ⟨hOuter, hBoundary⟩ :=
-    RH.RS.OuterHalfPlane.choose_outer_spec hWitness
-  refine ⟨?_, ?_⟩
-  · exact hOuter
-  · exact hBoundary
+  refine ⟨?hOuter, ?hBoundary⟩
+  ·
+    change RH.RS.OuterHalfPlane RH.RS.WhitneyAeCore.O
+    simpa [RH.RS.WhitneyAeCore.O] using RH.RS.O_witness_outer
+  ·
+    change RH.RS.BoundaryModulusEq RH.RS.WhitneyAeCore.O
+        (fun s => RH.RS.det2 s / riemannXi_ext s)
+    simpa [RH.RS.WhitneyAeCore.O] using RH.RS.O_witness_boundary_modulus
 
 /-- Produce an isolating, preconnected open neighbourhood for a zero of `riemannXi_ext`
 inside Ω. The neighbourhood is chosen small enough to avoid `{1}` as well. -/

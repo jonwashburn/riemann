@@ -31,20 +31,13 @@ local notation "Ω" => RH.RS.Ω
 
 /-! ## Shared outer witness and chosen outer -/
 
-/-! Align the chosen outer with the canonical `outer_exists.outer`. -/
-/-– Fixed witness for outer existence with boundary modulus |det₂/ξ_ext|. -/
-def hOuterWitness :
-    RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext :=
-  RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext_proved
-
-/-– The chosen outer function from the fixed witness (canonical). -/
-def O : ℂ → ℂ := RH.RS.OuterHalfPlane.choose_outer hOuterWitness
+/-- The canonical outer used throughout Route B. -/
+def O : ℂ → ℂ := RH.RS.O_witness
 
 lemma O_spec :
     RH.RS.OuterHalfPlane O ∧
     RH.RS.BoundaryModulusEq O (fun s => RH.RS.det2 s / riemannXi_ext s) := by
-  simpa [O] using
-    RH.RS.OuterHalfPlane.choose_outer_spec hOuterWitness
+  exact ⟨RH.RS.O_witness_outer, RH.RS.O_witness_boundary_modulus⟩
 
 lemma outer_exists_outer_eq_O :
     RH.RS.outer_exists.outer = O := rfl
@@ -134,13 +127,8 @@ private lemma xi_boundary_measurable_AF :
 private lemma O_boundary_measurable_AF :
     Measurable fun t : ℝ =>
       O (RH.AcademicFramework.HalfPlaneOuterV2.boundary t) := by
-  -- `O` is definitionally the `choose` of the witnessed outer, which is `O_witness`.
-  -- Rewriting the boundary parametrization puts the statement into the RS lemma.
-  simpa [RH.AcademicFramework.HalfPlaneOuterV2.boundary, RH.RS.boundary,
-      O, hOuterWitness, RH.RS.OuterHalfPlane.choose_outer,
-      RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext_proved,
-      RH.RS.O_witness]
-    using (RH.RS.O_boundary_measurable :
+  simpa [O, RH.AcademicFramework.HalfPlaneOuterV2.boundary, RH.RS.boundary] using
+    (RH.RS.O_boundary_measurable :
       Measurable fun t : ℝ => RH.RS.O_witness (RH.RS.boundary t))
 
 /-! ## Poisson representation on offXi (from θ‑free identity) -/

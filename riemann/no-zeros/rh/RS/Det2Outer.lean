@@ -216,7 +216,7 @@ lemma det2_boundary_measurable :
 noncomputable def O_witness (s : ℂ) : ℂ :=
   if (1 / 2 : ℝ) < s.re then (1 : ℂ) else det2 s / riemannXi_ext s
 
-private lemma O_witness_boundary_abs (t : ℝ) :
+lemma O_witness_boundary_abs (t : ℝ) :
     Complex.abs (O_witness (boundary t))
       = Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) := by
   -- On the boundary line Re = 1/2, the condition is false, so we take the ratio
@@ -260,6 +260,33 @@ lemma measurable_O :
 lemma O_boundary_measurable :
     Measurable fun t : ℝ => O_witness (boundary t) :=
   measurable_O
+
+/-- `O_witness` is analytic and zero-free on Ω (outer on the half-plane). -/
+lemma O_witness_outer : OuterHalfPlane O_witness := by
+  classical
+  refine ⟨?hAnalytic, ?hNonzero⟩
+  ·
+    have hconst : AnalyticOn ℂ (fun _ : ℂ => (1 : ℂ)) Ω :=
+      (analyticOn_const : AnalyticOn ℂ (fun _ => (1 : ℂ)) Ω)
+    have heq : Set.EqOn O_witness (fun _ : ℂ => (1 : ℂ)) Ω := by
+      intro s hs
+      have hσ : (1 / 2 : ℝ) < s.re := by
+        simpa [RH.RS.Ω, Set.mem_setOf_eq] using hs
+      rw [O_witness, if_pos hσ]
+    exact (AnalyticOn.congr hconst heq)
+  ·
+    intro s hs
+    have hσ : (1 / 2 : ℝ) < s.re := by
+      simpa [RH.RS.Ω, Set.mem_setOf_eq] using hs
+    have : O_witness s = 1 := by
+      rw [O_witness, if_pos hσ]
+    simpa [this]
+
+/-- Boundary modulus equality on Re = 1/2 for the explicit witness. -/
+lemma O_witness_boundary_modulus :
+    BoundaryModulusEq O_witness (fun s => det2 s / riemannXi_ext s) := by
+  intro t
+  simpa using O_witness_boundary_abs t
 
 /-- Choose an outer witness from the existence statement. -/
 noncomputable def OuterHalfPlane.choose_outer
@@ -311,28 +338,8 @@ lines, then pass ε ↓ 0 (encapsulated by the statement-level alias below).
 
 /-- A.2: outer limit existence on Ω for `|det₂/ξ_ext|` (statement result). -/
 theorem OuterHalfPlane.ofModulus_det2_over_xi_ext_proved
-    : OuterHalfPlane.ofModulus_det2_over_xi_ext := by
-  -- We rely on the A.1 wrapper providing the per-ε outers and the classical
-  -- Montel/Hurwitz passage that is encapsulated at the statement level.
-  -- For this track, we expose the existence on Ω directly.
-  refine ⟨O_witness, ?hOuter, ?hBME⟩
-  · -- Analytic/nonvanishing on Ω via the congruence with constant 1 on Ω
-    have hconst : AnalyticOn ℂ (fun _ : ℂ => (1 : ℂ)) Ω := by
-      exact (analyticOn_const : AnalyticOn ℂ (fun _ : ℂ => (1 : ℂ)) Ω)
-    have heq : Set.EqOn O_witness (fun _ : ℂ => (1 : ℂ)) Ω := by
-      intro s hs
-      have hσ : (1 / 2 : ℝ) < s.re := by
-        simpa [RH.RS.Ω, Set.mem_setOf_eq] using hs
-      rw [O_witness, if_pos hσ]
-    refine ⟨(AnalyticOn.congr hconst heq), ?_⟩
-    intro s hs
-    have hσ : (1 / 2 : ℝ) < s.re := by
-      simpa [RH.RS.Ω, Set.mem_setOf_eq] using hs
-    have : O_witness s = 1 := by
-      rw [O_witness, if_pos hσ]
-    simp [this]
-  · -- Boundary modulus equality on Re = 1/2
-    intro t; simpa using O_witness_boundary_abs t
+    : OuterHalfPlane.ofModulus_det2_over_xi_ext :=
+  ⟨O_witness, O_witness_outer, O_witness_boundary_modulus⟩
 
 /-! ### A.2 alias (outer limit on Ω)
 

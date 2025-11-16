@@ -41,17 +41,47 @@ Green build exporting the Riemann Hypothesis unconditionally, with a robust Rout
 - Already present: `xi_ext_boundary_measurable` (AF, via `measurable_riemannXi_ext`).
 - Acceptance: `Determinant.lean` and `Det2Outer.lean` compile; `det2_boundary_measurable`, `O_boundary_measurable`, `xi_ext_boundary_measurable` are available.
 
+Status:
+- AF determinant boundary layer is green; RS `Det2Outer` is wired to the two‑inv wrappers and builds.
+- `RouteB_Final` has an internal “auto‑measurability” path for the pinch boundary trace, so callers don’t need to thread those explicitly.
+
+Next steps (quick):
+- Keep AF/RS green via the scoped targets:
+  - `lake build rh.academic_framework.DiagonalFredholm.Determinant`
+  - `lake build rh.RS.Det2Outer rh.RS.RouteB_Final`
+
 ### 3. Stage 2 – Route B wiring to Poisson
 - In `rh/RS/RouteB_Final.lean`:
   - `F_pinch_has_poisson_rep`: satisfy measurability inputs with the three boundary lemmas; keep `theta_free_ReEqOn_offXi` via AF `PoissonCayley`.
 - In `rh/RS/PinchWrappers.lean`:
-  - `canonical_hasPoissonRepOn`: supply the three measurability lemmas plus the AF identity bridge; remove any `sorry`.
-- Acceptance: `RouteB_Final.lean` and `PinchWrappers.lean` compile; `canonical_hasPoissonRepOn` is closed.
+  - `pinch_certificate_from_canonical` / `RH_from_PPlus_canonical`: expose the Poisson-representation witness as an explicit argument (`hRepOn`) so the Route B façade can be plugged in without re-proving measurability.
+- Acceptance: `RouteB_Final.lean` and `PinchWrappers.lean` compile; the canonical wrappers accept an explicit `HasPoissonRepOn` parameter instead of relying on an implicit lemma.
+
+Status:
+- `F_pinch_has_poisson_rep` now has a convenience wrapper that internally supplies boundary measurability from AF/RS exports, leaving only the θ‑free identity and `Det2OnOmega` as inputs.
+- `PinchWrappers.lean` builds with the canonical wrappers parameterized by `hRepOn`.
+
+Next steps:
+- Verify and keep green:
+  - `lake build rh.RS.RouteB_Final rh.RS.PinchWrappers`
+- Thread the actual `RouteB_Final.F_pinch_has_poisson_rep` export (with its `Det2OnOmega`/θ‑free identity inputs) into the canonical wrappers when those hypotheses are ready.
 
 ### 4. Stage 3 – Pinned/removable + u-trick
 - Verify `rh/RS/RouteBPinnedRemovable.lean` builds.
 - Ensure helper lemmas and the u-trick proof are trimmed and stable (simp bounds small, `EqOn → eventuallyEq` glued).
 - Acceptance: file compiles with no new sorrys; public API unchanged.
+
+Status:
+- `rh/RS/RouteBPinnedRemovable.lean` builds (only upstream warnings remain); no new proof debt on the Route B side.
+
+Next steps:
+- Keep the target green via `lake build rh.RS.RouteBPinnedRemovable` whenever the pinned-removable lemmas change.
+- Once the canonical Poisson witness is finalized, thread it through the pinned-data helpers so downstream callers don’t need to reopen Route B.
+
+Next steps:
+- Build and fix any drift:
+  - `lake build rh.RS.RouteBPinnedRemovable`
+- Ensure pinned data wrappers consume `RouteB_Final.canonical_hasPoissonRepOn` (no direct boundary‑measurability threading).
 
 ### 5. Stage 4 – (P+) threading and positivity
 - In `rh/RS/WhitneyAeCore.lean`: confirm the `(P+)` facade and `boundary_positive` export.
@@ -88,7 +118,7 @@ Green build exporting the Riemann Hypothesis unconditionally, with a robust Rout
 - `rh/RS/RouteB_Final.lean`
   - Fill `hDet_meas`, `hO_meas`, `hXi_meas` with the above lemmas
 - `rh/RS/PinchWrappers.lean`
-  - Use the Route B façade and the three measurability lemmas for `canonical_hasPoissonRepOn`
+  - Keep the canonical wrappers thin by threading the Route B Poisson witness via the new `hRepOn` parameter.
 - `rh/RS/RouteBPinnedRemovable.lean`
   - Confirm helper/u-trick proofs are trimmed; ensure no regression
 - `rh/Proof/Main.lean`

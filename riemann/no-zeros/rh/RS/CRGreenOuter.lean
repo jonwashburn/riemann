@@ -121,22 +121,22 @@ Reference: Implemented in `rh/RS/Det2Outer.lean` via `OuterHalfPlane` witness.
 -/
 def outer_exists : OuterOnOmega := by
   classical
-  let h := RH.RS.OuterHalfPlane.ofModulus_det2_over_xi_ext_proved
-  let O : ℂ → ℂ := RH.RS.OuterHalfPlane.choose_outer h
-  let spec := RH.RS.OuterHalfPlane.choose_outer_spec h
-  have h_pointwise : ∀ t : ℝ,
-      Complex.abs (O (boundary t)) =
-      Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) := fun t => spec.2 t
   refine {
-    outer := O
-  , analytic := spec.1.analytic
+    outer := RH.RS.O_witness
+  , analytic := RH.RS.O_witness_outer.analytic
   , nonzero := by
       intro z hz
-      exact spec.1.nonzero hz
-  , boundary_modulus :=
-      (Filter.Eventually.of_forall h_pointwise).mono (by
-        intro t ht _
-        exact ht)
+      exact RH.RS.O_witness_outer.nonzero hz
+  , boundary_modulus := by
+      have h_pointwise :
+          ∀ t : ℝ,
+            Complex.abs (RH.RS.O_witness (boundary t)) =
+              Complex.abs (det2 (boundary t) / riemannXi_ext (boundary t)) := by
+        intro t; simpa using RH.RS.O_witness_boundary_abs t
+      exact
+        (Filter.Eventually.of_forall h_pointwise).mono (by
+          intro t ht _
+          exact ht)
   }
 
 /-- CR-Green outer J (outer-normalized ratio): J := det₂ / (O · ξ_ext).
