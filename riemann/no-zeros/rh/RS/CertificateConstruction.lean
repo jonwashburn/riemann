@@ -13,6 +13,7 @@ import Mathlib.Topology.Order
 import Mathlib.Topology.Algebra.Field
 import rh.RS.RouteB_Final
 import rh.RS.RouteBPinnedRemovable
+import rh.RS.PinchWrappers
 
 /-!
 # Certificate Construction - Final Wiring
@@ -32,6 +33,7 @@ namespace RH.RS.CertificateConstruction
 open Complex Filter Set
 open scoped Topology
 open RH.AcademicFramework.CompletedXi
+open RH.Proof.Final.RH.Proof.Final.RH.Proof.Final
 
 /-! ## Section 1: Connect Interior Positivity
 
@@ -39,131 +41,26 @@ From ACTION 4, we have interior positivity on all of Ω.
 We need to restrict this to Ω \ {ξ_ext = 0} for the certificate.
 -/
 
-/-! ## Section 1a: Outer witness (used later) -/
-
-/-- Outer existence witness for the certificate (Route B's chosen outer). -/
-theorem outer_exists_for_certificate :
-  ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
-    BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s) := by
-  refine ⟨RH.RS.RouteB.O, (RH.RS.RouteB.O_spec).1, (RH.RS.RouteB.O_spec).2⟩
-
--- Interior positivity for the certificate outer via Route B (P+) + Poisson transport.
-lemma interior_positive_with_certificate_outer
-    (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical)
-    (hRepOn :
-      RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
-        (F_pinch det2 (Classical.choose outer_exists_for_certificate))
-        RH.AcademicFramework.HalfPlaneOuterV2.offXi) :
-  ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
-    0 ≤ ((2 : ℂ) * (J_pinch det2 (Classical.choose outer_exists_for_certificate) z)).re := by
-  classical
-  have hChoose : Classical.choose outer_exists_for_certificate = RH.RS.RouteB.O := rfl
-  simpa [hChoose] using RH.RS.RouteB.interior_positive_offXi hCanon
-    (by simpa [outer_exists_for_certificate, hChoose] using hRepOn)
-
-/-! ## Section 2: Outer Existence Witness
-
-Package the outer from ACTION 2 into the required format.
--/
-
--- (outer_exists_for_certificate theorem defined in Section 1a above)
-
-/-! ## Section 3: Removable Extension Data
-
-Provide pinned removable extension at each ξ_ext zero.
-This is standard removable singularity theory with the u-trick.
--/
-
-/-- Specialization: isolated zeros for `riemannXi_ext` on Ω. We reuse the
-Route B pinned removable packaging, which already supplies an isolating
-neighborhood `U` with `(U ∩ {ξ_ext = 0}) = {ρ}`. -/
-lemma xi_ext_zero_isolated_on_Ω
-  (ρ : ℂ) (hΩ : ρ ∈ Ω) (hξ : riemannXi_ext ρ = 0) :
-  ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
-    (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) := by
-  classical
-  -- Extract the isolating neighborhood directly from Route B's isolating lemma
-  obtain ⟨U, hUopen, hUconn, hUsub, hρU, hIso, _⟩ :=
-    RH.RS.RouteB.exists_isolating_preconnected_open ρ hΩ hξ
-  exact ⟨U, hUopen, hUconn, hUsub, hρU, hIso⟩
-
-/-- Removable extension across each `ξ_ext` zero for the pinch Θ, built from
-Route B's pinned u–trick packaging and the standard removable-update builder. -/
-theorem removable_extension_at_xi_zeros
-  (hRe :
-    ∀ z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi,
-      0 ≤ ((2 : ℂ) * (J_pinch det2 RH.RS.RouteB.O z)).re)
-  (O_witness : ∃ O : ℂ → ℂ, OuterHalfPlane O ∧
-      BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s)) :
-  ∀ ρ, ρ ∈ Ω → riemannXi_ext ρ = 0 →
-    ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧ U ⊆ Ω ∧ ρ ∈ U ∧
-      (U ∩ {z | riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
-      ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧
-        AnalyticOn ℂ (Θ_pinch_of det2 (Classical.choose O_witness)) (U \ {ρ}) ∧
-        Set.EqOn (Θ_pinch_of det2 (Classical.choose O_witness)) g (U \ {ρ}) ∧
-        g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1 := by
-  classical
-  -- Align the chosen outer with the RouteB outer `O`
-  have hChoose : Classical.choose O_witness = RH.RS.RouteB.O := rfl
-  -- Build the existence assignment via the pinned u‑trick packaging
-  -- provided by Route B, then pass it through the pinned→removable builder
-  -- to obtain the analytic extension across ρ with value 1.
-  intro ρ hΩ hXi
-  -- Pinned data for Θ := Θ_pinch_of det2 O on a neighborhood U of ρ
-  obtain ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi, hΘU, u, hEq, hu0, z0, hz0U,
-      hz0ne, hΘz0ne⟩ :=
-    RH.RS.RouteB.pinned_removable_data (hRe := hRe) ρ hΩ hXi
-  -- Use the pinned→removable assignment builder to produce the extension `g`
-  -- and package into the expected existence shape.
-  -- We inline the builder to avoid an extra chooser lambda here.
-  -- Invoke the centralized pinned→removable builder
-  let data := RH.RS.OffZeros.LocalDataXi.of_pinned
-    (riemannXi := riemannXi_ext) (Θ := Θ_pinch_of det2 (Classical.choose O_witness))
-    (U := U) hUopen hUconn hUsub hρU hIsoXi hΘU u hEq hu0 z0 hz0U hz0ne hΘz0ne
-  refine ⟨U, hUopen, hUconn, hUsub, hρU, hIsoXi, ?_⟩
-  exact ⟨data.g, data.hg, data.hΘU, data.hExt, data.hval, z0, hz0U, by
-    -- Nontriviality passes to `g` at `z0` since `z0 ≠ ρ` ⇒ update leaves the value
-    -- unchanged and we had Θ z0 ≠ 1.
-    intro hg1
-    have : (Θ_pinch_of det2 (Classical.choose O_witness)) z0 = 1 := by
-      -- data.g agrees with Θ off ρ
-      have : data.g z0 = (Θ_pinch_of det2 (Classical.choose O_witness)) z0 := by
-        change (Function.update _ _ _ _) = _
-        simpa [Function.update, hz0ne] using rfl
-      simpa [this] using hg1
-    exact hΘz0ne this⟩
-
-/-! ## Section 4: Interior Positivity in J_pinch Terms
-
-We need to express interior positivity using J_pinch (not J_canonical).
--/
-
-  -- No additional axioms are needed below; positivity is obtained directly
-  -- from the interior positivity already established and the chosen outer.
-
--- Note: the above positivity is expressed directly for the `J_pinch` with the
--- chosen outer, matching the certificate ingredient.
-
-/-! ## Section 5: Build Concrete Certificate
-
-Assemble all the pieces into a PinchCertificateExt witness.
--/
-
-/-- Concrete certificate witness from ACTIONS 1-4.
-This is YOUR final assembly - wiring all proven components. -/
+/-- Concrete certificate witness exported directly from the canonical `(P+)`
+data provided by Route B. -/
 noncomputable def concrete_certificate
     (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical)
     (hRepOn :
       RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
-        (F_pinch det2 (Classical.choose outer_exists_for_certificate))
+        (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 RH.RS.RouteB.O)
         RH.AcademicFramework.HalfPlaneOuterV2.offXi) :
     RH.RS.PinchCertificateExt :=
-  certificate_from_pinch_ingredients
-    outer_exists_for_certificate
-    (interior_positive_with_certificate_outer hCanon hRepOn)
-    (removable_extension_at_xi_zeros
-      (interior_positive_with_certificate_outer hCanon hRepOn)
-      outer_exists_for_certificate)
+  RH.RS.pinch_certificate_from_canonical hCanon hRepOn
+
+@[simp] lemma concrete_certificate_J
+    (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical)
+    (hRepOn :
+      RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
+        (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 RH.RS.RouteB.O)
+        RH.AcademicFramework.HalfPlaneOuterV2.offXi) :
+    (concrete_certificate hCanon hRepOn).J =
+      J_pinch det2 RH.RS.RouteB.O :=
+  rfl
 
 /-! ## Section 6: Main Unconditional Theorem
 
@@ -177,22 +74,55 @@ theorem RiemannHypothesis_of_PPlus
     (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical)
     (hRepOn :
       RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
-        (F_pinch det2 RH.RS.RouteB.O)
+        (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 RH.RS.RouteB.O)
         RH.AcademicFramework.HalfPlaneOuterV2.offXi)
     (hRe_one :
       0 ≤ ((2 : ℂ) * (J_pinch det2 RH.RS.RouteB.O 1)).re) :
     RiemannHypothesis := by
-  -- Use the Main.lean entry point
-  exact _root_.RH_from_pinch_certificate
-    (concrete_certificate hCanon
-      (by simpa using hRepOn)) hRe_one
+  classical
+  let C : RH.RS.PinchCertificateExt := concrete_certificate hCanon hRepOn
+  have hRe_one' : 0 ≤ ((2 : ℂ) * C.J 1).re := by
+    simpa [C, concrete_certificate_J hCanon hRepOn] using hRe_one
+  have hSchur :
+      RH.RS.IsSchurOn (RH.RS.Θ_cert C)
+        (RH.RS.Ω \ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}) := by
+    have hRe_S :
+        ∀ z ∈ (RH.RS.Ω \ {w | RH.AcademicFramework.CompletedXi.riemannXi_ext w = 0}),
+          0 ≤ ((2 : ℂ) * C.J z).re := by
+      intro z hz
+      rcases hz with ⟨hzΩ, hzNotZero⟩
+      by_cases hz1 : z = (1 : ℂ)
+      · simpa [hz1] using hRe_one'
+      ·
+        have hzOffXi : z ∈ RH.AcademicFramework.HalfPlaneOuterV2.offXi := by
+          refine And.intro hzΩ ?_
+          refine And.intro hz1 ?_
+          · intro hXi
+            exact hzNotZero (by simpa [Set.mem_setOf_eq] using hXi)
+        exact C.hRe_offXi z hzOffXi
+    exact RH.RS.Theta_Schur_of_Re_nonneg_on (J := C.J)
+      (S := (RH.RS.Ω \ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}))
+      hRe_S
+  let assignXi :
+      ∀ ρ, ρ ∈ RH.RS.Ω →
+        RH.AcademicFramework.CompletedXi.riemannXi_ext ρ = 0 →
+          ∃ (U : Set ℂ), IsOpen U ∧ IsPreconnected U ∧
+            U ⊆ RH.RS.Ω ∧ ρ ∈ U ∧
+            (U ∩ {z | RH.AcademicFramework.CompletedXi.riemannXi_ext z = 0}) = ({ρ} : Set ℂ) ∧
+            ∃ g : ℂ → ℂ, AnalyticOn ℂ g U ∧
+              AnalyticOn ℂ (RH.RS.Θ_cert C) (U \ ({ρ} : Set ℂ)) ∧
+              Set.EqOn (RH.RS.Θ_cert C) g (U \ ({ρ} : Set ℂ)) ∧
+              g ρ = 1 ∧ ∃ z, z ∈ U ∧ g z ≠ 1 :=
+    fun ρ hΩ hXi => C.existsRemXi ρ hΩ hXi
+  exact RiemannHypothesis_mathlib_from_pinch_ext_assign
+    (Θ := RH.RS.Θ_cert C) hSchur assignXi
 
 /-- Backwards-compatible alias. -/
 theorem RiemannHypothesis_unconditional
     (hCanon : RH.RS.WhitneyAeCore.PPlus_canonical)
     (hRepOn :
       RH.AcademicFramework.HalfPlaneOuterV2.HasPoissonRepOn
-        (F_pinch det2 RH.RS.RouteB.O)
+        (RH.AcademicFramework.HalfPlaneOuterV2.F_pinch det2 RH.RS.RouteB.O)
         RH.AcademicFramework.HalfPlaneOuterV2.offXi)
     (hRe_one :
       0 ≤ ((2 : ℂ) * (J_pinch det2 RH.RS.RouteB.O 1)).re) :

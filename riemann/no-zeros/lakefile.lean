@@ -22,6 +22,7 @@ lean_lib rh where
     `rh.RS.OffZerosBridge,
     `rh.RS.Cayley,
     `rh.RS.PinchCertificate,
+    `rh.RS.PinchWrappers,
     `rh.RS.RouteB_Final,
     `rh.RS.RouteBPinnedRemovable,
     `rh.RS.CertificateConstruction,

@@ -98,6 +98,17 @@ Next steps:
 - Minimize `BoundaryWedgeProof` to only exports consumed by `(P+)`.
 - Remove or guard heavy subproofs.
 
+Status:
+- Heavy `(P+)` proofs now live in `rh/RS/sealed/BoundaryWedgeProofCore.lean`. The public
+  `rh/RS/BoundaryWedgeProof.lean` re-exports just the calibrated constants,
+  dyadic bookkeeping helpers, VK budget interface, and `PPlus_from_constants`.
+
+Next steps:
+- Keep importing modules pointed at the thin wrapper; only sealed targets should
+  depend on the full core file.
+- When new arithmetic lemmas are required, add them to the sealed file first and
+  re-export only the minimal statements needed downstream.
+
 ### 8. Stage 7 – Axiom/sorry audit
 - Traverse the final dependency path of `RiemannHypothesis_final`; eliminate or relocate any `sorry`.
 - Document remaining non-final modules as off-path.

@@ -59,11 +59,21 @@ def buildPinchCertificate
   have hSpec :
       OuterHalfPlane O ∧ BoundaryModulusEq O (fun s => det2 s / riemannXi_ext s) :=
     Classical.choose_spec hOuter
-  refine buildPinchCertificateOfOuter O hSpec.1 hSpec.2 ?_ ?_
+  refine {
+    J := J_pinch det2 O
+    hRe_offXi := ?_
+    existsRemXi := ?_
+  }
   · intro z hz
     simpa using hRe_offXi z hz
   · intro ρ hΩ hXi
-    exact hRemXi ρ hΩ hXi
+    obtain ⟨U, hUopen, hUconn, hUsub, hρU, hIso, g, hgU, hΘU, hEq, hval, zNon⟩ :=
+      hRemXi ρ hΩ hXi
+    have hΘ := by
+      simpa [Θ_pinch_of, Theta_of_J] using hΘU
+    have hEq' := by
+      simpa [Θ_pinch_of, Theta_of_J] using hEq
+    exact ⟨U, hUopen, hUconn, hUsub, hρU, hIso, g, hgU, hΘ, hEq', hval, zNon⟩
 
 end RS
 end RH
