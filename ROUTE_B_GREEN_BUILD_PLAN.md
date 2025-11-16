@@ -113,8 +113,31 @@ Next steps:
 - Traverse the final dependency path of `RiemannHypothesis_final`; eliminate or relocate any `sorry`.
 - Document remaining non-final modules as off-path.
 
+Status:
+- `./verify_proof.sh` now runs cleanly: `lake build rh` succeeds, the active theorem
+  `RiemannHypothesis_mathlib_from_pinch_ext_assign` is present, and the axiom report
+  lists only `propext`, `Classical.choice`, and `Quot.sound`. No `sorry`/`admit`
+  statements remain on the final path.
+
+Next steps:
+- Keep the audit script in the loop before tagging Stage 8, and rerun it whenever
+  core files (`rh/Proof/Main.lean`, `rh/RS/CertificateConstruction.lean`, etc.)
+  change.
+
 ### 9. Stage 8 – CI/branch seal
 - Tag the stable commit; add a CI job to build only AF/RS/Proof final targets; reject regressions.
+
+Status:
+- Added `riemann/no-zeros/ci_routeB_minimal.sh`, which builds the scoped targets
+  (`rh.academic_framework.DiagonalFredholm.Determinant`, `rh.RS.Det2Outer`,
+  `rh.RS.RouteB_Final`, `rh.RS.RouteBPinnedRemovable`, `rh.Proof.Main`). This is
+  the command our short CI job should execute before tagging or merging.
+- Wired the helper into GitHub Actions via `.github/workflows/routeb-ci.yml`. Every
+  push / PR touching AF/RS sources now runs the script automatically.
+
+Next steps:
+- Monitor the new workflow for a few pushes to ensure it stays green, then tag
+  the branch for the unconditional RH export / release.
 
 ## Concrete additions/edits by file
 
