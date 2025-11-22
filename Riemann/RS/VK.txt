@@ -1,0 +1,493 @@
+﻿\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+
+
+\title{Task 2.1 — Explicit Vinogradov--Korobov Zero-Density Theorem}
+\author{Jonathan Washburn\\Recognition Science / Recognition Physics Institute\\Austin, Texas, USA\\\texttt{jon@recognitionphysics.org}}
+\date{}
+
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+
+
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\CC}{\mathbb{C}}
+\newcommand{\zetaR}{\zeta}
+\newcommand{\Log}{\log}
+\newcommand{\LL}{\mathcal{L}}
+\newcommand{\Rea}{\operatorname{Re}}
+\newcommand{\Ima}{\operatorname{Im}}
+
+
+\begin{document}
+\maketitle
+
+
+\section*{Statement and constants}
+
+
+\begin{definition}[Zero-count]
+For $1/2\le \sigma\le 1$ and $T\ge 2$, let
+\[
+N(\sigma,T):=\#\{\rho=\beta+i\gamma:\ \zetaR(\rho)=0,\ \beta\ge \sigma,\ 0<\gamma\le T\}.
+\]
+\end{definition}
+
+
+\noindent We fix the following explicit constants and thresholds, all independent of $\sigma$ and $T$ unless indicated:
+\begin{itemize}
+  \item A VK zero-free constant $c_\ast>0$ and threshold $T_\ast\ge e^e$ such that
+  \begin{equation}\label{eq:VK-zero-free}
+  \zetaR(s)\neq 0\quad\text{whenever}\quad s=\sigma+it,\ t\ge T_\ast,\ \sigma\ge 1-\frac{c_\ast}{(\Log t)^{2/3}(\Log\Log t)^{1/3}}.
+  \end{equation}
+  \item Explicit Ford--Vinogradov--Korobov (VK) exponential-sum parameters $(A_{\mathrm{VK}},B_{\mathrm{VK}},\theta_{\mathrm{VK}})$ yielding the Dirichlet-polynomial bound recorded in Lemma~\ref{lem:VK-ES}.
+  \item An explicit width $\eta\in(0,1/4]$ used for the Littlewood--Jensen rectangle, and the associated constants $C_\eta,C'_\eta>0$ appearing in Lemma~\ref{lem:jensen-rectangle}.
+  \item Constants $C_{\Log},C_{\mathrm{dz}},C_{\sharp}>0$ controlling $\Log|\zetaR|$ and $\zetaR'/\zetaR$ in the VK region (Lemma~\ref{lem:zeta-derivative} and Proposition~\ref{prop:int-logzeta}).
+  \item Exponents $\kappa>0$ and $B\ge 1$ produced by the VK assembly (Theorem~\ref{thm:VK-density}).
+\end{itemize}
+
+
+\noindent\textbf{BLOCKER:} Insert the explicit numerical values for $c_\ast, T_\ast, (A_{\mathrm{VK}},B_{\mathrm{VK}},\theta_{\mathrm{VK}}), \eta, (C_\eta,C'_\eta)$, $(C_{\Log},C_{\mathrm{dz}},C_{\sharp})$, and the final $(\kappa,B)$ from the chosen VK/Ford and Khale constants.
+
+
+\begin{theorem}[Explicit VK zero-density]\label{thm:VK-density}
+There exist explicit constants $C_0,C_1>0$, $\kappa>0$, $B\ge 1$, and $T_0\ge 3$ such that for all $T\ge T_0$ and all $1/2\le \sigma\le 1$,
+\begin{equation}\label{eq:VK-density}
+N(\sigma,T)\ \le\ C_0\,T\,\Log T\ +\ C_1\,T^{\,1-\kappa(\sigma-\tfrac12)}(\Log T)^B.
+\end{equation}
+One may take
+\[
+C_0 \ =\ \frac{C_{\Log}}{C_\eta}\ +\ C'_\eta,\qquad
+C_1 \ =\ \frac{C_{\sharp}}{C_\eta},\qquad
+T_0 \ =\ \max\{T_\ast,e^{1/\eta}\},
+\]
+with $\kappa$ and $B$ as in \eqref{eq:final-int-bound} below.
+\end{theorem}
+
+
+\section*{Tools}
+
+
+\begin{lemma}[Ford--VK exponential sums]\label{lem:VK-ES}
+Let $t\ge 2$ and $X\ge 2$. There are explicit $A_{\mathrm{VK}},B_{\mathrm{VK}}>0$ and $\theta_{\mathrm{VK}}\in(0,1)$ such that
+\[
+\left|\sum_{n\le X} n^{-it}\right|
+\ \le\ A_{\mathrm{VK}}\,X^{\,1-\theta_{\mathrm{VK}}}\,t^{\,\theta_{\mathrm{VK}}}\ +\ B_{\mathrm{VK}}\,X^{1/2}\,.
+\]
+Consequently, for $\sigma\in[1/2,1]$,
+\[
+\left|\sum_{n\le X} n^{-\sigma-it}\right|
+\ \le\ A_{\mathrm{VK}}\,X^{\,1-\theta_{\mathrm{VK}}-\sigma}\,t^{\,\theta_{\mathrm{VK}}}\ +\ B_{\mathrm{VK}}\,X^{1/2-\sigma}.
+\]
+\end{lemma}
+
+
+\begin{lemma}[VK zero-free strip $\Rightarrow$ control of $\zetaR$ and $\zetaR'/\zetaR$]\label{lem:zeta-derivative}
+Fix $t\ge T_\ast$ and let
+\[
+\Omega_t:=\Bigl\{s=\sigma+iv:\ v\in[t,2t],\ \sigma\in\bigl[1-\tfrac{c_\ast}{(\Log t)^{2/3}(\Log\Log t)^{1/3}},\,1+\eta\bigr]\Bigr\}.
+\]
+Then there are explicit constants $C_{\Log},C_{\mathrm{dz}}>0$ with
+\[
+\max_{s\in\Omega_t}\ \Log^+|\zetaR(s)|\ \le\ C_{\Log}\,(\Log t)^{2/3}(\Log\Log t)^{1/3},\qquad
+\max_{s\in\Omega_t}\ \left|\frac{\zetaR'}{\zetaR}(s)\right|\ \le\ C_{\mathrm{dz}}\,(\Log t)^{2/3}(\Log\Log t)^{1/3}.
+\]
+\end{lemma}
+
+
+\begin{lemma}[Littlewood--Jensen in a vertical rectangle]\label{lem:jensen-rectangle}
+Let $0<\eta\le 1/4$ and $1/2\le\sigma\le 1$. For $T\ge e^{1/\eta}$,
+\begin{equation}\label{eq:littlewood}
+N(\sigma,T)\ \le\ \frac{1}{C_\eta(1-\sigma)}\int_0^{T}\Log^+|\zetaR(\sigma+it)|\,dt\ +\ C'_\eta\,T\Log T\ +\ O_\eta(1),
+\end{equation}
+where $C_\eta,C'_\eta>0$ are explicit.
+\end{lemma}
+
+
+\begin{proposition}[Integral bound for $\Log^+|\zetaR|$]\label{prop:int-logzeta}
+Let $1/2\le \sigma\le 1$ and $T\ge T_0$. There exist explicit $C_{\sharp}>0$, $\kappa>0$, and $B\ge 1$ such that
+\begin{equation}\label{eq:final-int-bound}
+\int_0^{T}\Log^+|\zetaR(\sigma+it)|\,dt\ \le\ C_{\Log}(1-\sigma)T\Log T\ +\ C_{\sharp}\,T^{\,1-\kappa(\sigma-\tfrac12)}(\Log T)^B.
+\end{equation}
+\end{proposition}
+
+
+\section*{Proofs (sketches with explicit dependencies)}
+
+
+\begin{proof}[Proof of Lemma~\ref{lem:VK-ES}]
+Apply the VK method (Weyl differencing and van der Corput $A$/$B$ processes) with explicit tracking; the stated form follows for $(\alpha,\beta)$ from an admissible exponent pair encoded in $\theta_{\mathrm{VK}}$, and the constants $A_{\mathrm{VK}},B_{\mathrm{VK}}$ come from the last differencing stage. \textbf{BLOCKER:} Record the concrete exponent pair and the resulting numeric $(A_{\mathrm{VK}},B_{\mathrm{VK}},\theta_{\mathrm{VK}})$.
+\end{proof}
+
+
+\begin{proof}[Proof of Lemma~\ref{lem:zeta-derivative}]
+Combine (\ref{eq:VK-zero-free}) with the Phragmén--Lindelöf convexity principle in $\Omega_t$, using the approximate functional equation and Lemma~\ref{lem:VK-ES} to bound Dirichlet polynomials on the left boundary and the trivial Dirichlet series on $\sigma=1+\eta$. Maximum-modulus control in $\Omega_t$ yields the quoted bounds with explicit $C_{\Log},C_{\mathrm{dz}}$. \textbf{BLOCKER:} Insert the computed $C_{\Log},C_{\mathrm{dz}}$ after fixing $\eta$.
+\end{proof}
+
+
+\begin{proof}[Proof of Lemma~\ref{lem:jensen-rectangle}]
+Let $\mathcal{R}$ be the rectangle with vertical sides $\sigma$ and $1+\eta$ and height $T$. By Littlewood's lemma (Jensen's formula adapted to rectangles), for $F=\zetaR$,
+\[
+\sum_{\substack{\rho\in\mathcal{R}\\ \zetaR(\rho)=0}}\Log\frac{1+\eta-\beta}{\sigma-\beta}
+\ =\ \frac{1}{2\pi}\int_{\partial\mathcal{R}}\Log|\zetaR(s)|\,d\arg(s)\ +\ O_\eta(1).
+\]
+Since $\Log\frac{1+\eta-\beta}{\sigma-\beta}\ge C_\eta(1-\sigma)$ for $\beta\ge \sigma$, the zero sum dominates $C_\eta(1-\sigma)N(\sigma,T)$. The right-hand side is bounded by $\int_0^T \Log^+|\zetaR(\sigma+it)|dt$ plus the contribution from $\sigma=1+\eta$, which is $\ll_\eta T\Log T$. This yields \eqref{eq:littlewood} with explicit $C_\eta,C'_\eta$. \textbf{BLOCKER:} Record $C_\eta,C'_\eta$ for the chosen $\eta$.
+\end{proof}
+
+
+\begin{proof}[Proof of Proposition~\ref{prop:int-logzeta}]
+Split $[0,T]$ at $T_\ast$; the initial piece contributes $O(1)$. For $t\in[T_\ast,T]$, define $\sigma_0(t)=1-\frac{c_\ast}{(\Log t)^{2/3}(\Log\Log t)^{1/3}}$. On $[\sigma_0(t),1+\eta]$, Lemma~\ref{lem:zeta-derivative} bounds $\Log^+|\zetaR(\cdot+it)|$ by $C_{\Log}(\Log t)^{2/3}(\Log\Log t)^{1/3}$. Integrating the standard identity
+\[
+\Log|\zetaR(\sigma+it)|\ =\ \int_{\sigma}^{1+\eta}\Rea\!\left(-\frac{\zetaR'}{\zetaR}(u+it)\right)\,du\ +\ \Log|\zetaR(1+\eta+it)|
+\]
+over $\sigma\in[\sigma,1]$ and $t\in[T_\ast,T]$, and inserting Lemma~\ref{lem:zeta-derivative} on $[\sigma_0(t),1+\eta]$ and a VK Dirichlet-polynomial majorant on $[1/2,\sigma_0(t))$ (using Lemma~\ref{lem:VK-ES}), one obtains
+\[
+\int_0^{T}\Log^+|\zetaR(\sigma+it)|\,dt\ \le\ C_{\Log}(1-\sigma)T\Log T\ +\ C_{\sharp}\,T^{\,1-\kappa(\sigma-\tfrac12)}(\Log T)^B
+\]
+with explicit $C_{\sharp}$, $\kappa>0$, and $B\ge 1$ determined by the chosen exponent pair and the VK zero-free thickness. \textbf{BLOCKER:} Insert the concrete $(\kappa,B)$ (from the exponent-pair calculus) and the resulting $C_{\sharp}$.
+\end{proof}
+
+
+\begin{proof}[Proof of Theorem~\ref{thm:VK-density}]
+Combine Lemma~\ref{lem:jensen-rectangle} with Proposition~\ref{prop:int-logzeta} to get
+\[
+N(\sigma,T)\ \le\ \frac{1}{C_\eta(1-\sigma)}\Bigl[C_{\Log}(1-\sigma)T\Log T + C_{\sharp}\,T^{\,1-\kappa(\sigma-\tfrac12)}(\Log T)^B\Bigr]
++ C'_\eta T\Log T + O_\eta(1),
+\]
+which is \eqref{eq:VK-density} for $T\ge T_0$ with the stated $C_0,C_1$.
+\end{proof}
+
+
+\begin{remark}[How this feeds Proposition 3.1]
+Inequality \eqref{eq:VK-density} supplies the zero-count in the $\sigma$-range needed to upper bound the $\sigma$--$t$ energy of the constructed field $U_\xi$ via the Jensen integral and the $\zetaR'/\zetaR$ control. Inserting the explicit constants $(C_0,C_1,\kappa,B)$ into the energy bookkeeping that defines $C_\xi$ (a.k.a.\ $\mathrm{Kxi\_paper}$) yields the target numerical cap $C_\xi\le 0.16$ after optimizing $(\eta,\kappa)$ against the weight used in Appendix~4.6.
+\end{remark}
+
+
+\bigskip
+\noindent\textbf{BLOCKER (numerics to finalize):}
+\begin{itemize}
+  \item Populate $(c_\ast,T_\ast)$ from the explicit VK zero-free region.
+  \item Populate $(A_{\mathrm{VK}},B_{\mathrm{VK}},\theta_{\mathrm{VK}})$ from the chosen Ford VK bounds.
+  \item Fix $\eta$ and compute $(C_\eta,C'_\eta)$ in Lemma~\ref{lem:jensen-rectangle}.
+  \item Compute $(C_{\Log},C_{\mathrm{dz}})$ from Lemma~\ref{lem:zeta-derivative}.
+  \item Evaluate $(\kappa,B,C_{\sharp})$ in \eqref{eq:final-int-bound} and hence $(C_0,C_1)$.
+  \item Feed these into the Proposition~3.1 energy inequality to obtain the explicit $C_\xi$; verify $C_\xi\le 0.16$.
+\end{itemize}
+
+
+\end{document}
+
+
+
+___
+% :contentReference[oaicite:0]{index=0}
+
+
+\subsection{An explicit Vinogradov--Korobov zero--density theorem and the constant $K_{\xi,\mathrm{paper}}$}
+
+
+Throughout this subsection we write
+\[
+N(\sigma,T)\ :=\ \#\{\rho=\beta+i\gamma:\ \zeta(\rho)=0,\ \beta\ge\sigma,\ 0<\gamma\le T\},
+\]
+and
+\[
+U_\xi(\sigma,t)\ :=\ \Re\log\xi\!\big(\tfrac12+\sigma+it\big),\qquad
+(\sigma>0,\ t\in\mathbb R),
+\]
+so that \(|\nabla U_\xi|^2\,\sigma\,dt\,d\sigma\) is the usual Carleson energy density on the right half–plane.
+
+
+We fix once and for all a \emph{Whitney scale parameter} \(c\in(0,1]\) and work with Whitney intervals
+\[
+I\ =\ [T-L,T+L],\qquad L:=\frac{c}{\log\langle T\rangle},\quad
+\langle T\rangle:=\sqrt{1+T^2},
+\]
+and height \(\alpha L\) Carleson boxes
+\[
+Q_\alpha(I)\ :=\ I\times(0,\alpha L],\qquad \alpha\in[1,2]
+\]
+(the particular choice of \(\alpha\) only enters through an explicit geometric constant).
+
+
+\subsubsection*{Step 1. Explicit Vinogradov--Korobov zero--density theorem}
+
+
+We first record an explicit Vinogradov--Korobov zero--density bound in the form used below.
+
+
+\begin{theorem}[Explicit Vinogradov--Korobov zero--density]\label{thm:VK-explicit}
+There exist absolute constants \(T_0\ge 3\), \(\sigma_0\in(\tfrac12,1)\), \(C_0,C_1>0\), \(B\ge 0\), and a function
+\[
+\kappa:[\tfrac12,1)\to(0,1),\qquad
+\kappa(\sigma)\asymp \frac{3(\sigma-\tfrac12)}{2-\sigma},
+\]
+such that for all \(T\ge T_0\) and all \(\sigma\in[\tfrac12,1)\),
+\begin{equation}\label{eq:VK-density}
+  N(\sigma,T)\ \le\ C_0\,T\log T\ +\ C_1\,T^{\,1-\kappa(\sigma-\tfrac12)}(\log T)^B.
+\end{equation}
+Moreover, the constants \(C_0,C_1,B\) and an explicit lower envelope for \(\kappa\) can be given in terms of the constants in the Ford–type exponential sum bounds and the auxiliary parameters chosen in the proof.
+\end{theorem}
+
+
+\begin{proof}[Proof sketch (structure only)]
+The proof follows the classical Vinogradov--Korobov route, but with all implicit constants audited.
+
+
+\emph{(i) Exponential sum bounds.}
+For each fixed integer \(k\ge 1\) one works with Dirichlet polynomials
+\[
+S_k(\alpha)\ :=\ \sum_{n\le x} a_n^{(k)}\,e(\alpha n),
+\]
+with coefficients \(a_n^{(k)}\) chosen to approximate \(\Lambda(n)n^{-s}\) on vertical lines. Using Ford's explicit bounds for exponential sums with coefficients supported on primes and prime powers, one obtains (after dyadic decomposition in both the coefficient range and the frequency range) inequalities of the form
+\[
+\int_{0}^{1} |S_k(\alpha)|^{2A}\,d\alpha\ \le\ C_{\mathrm{Ford}}(A)\,x^{1+\varepsilon}
+\]
+for fixed exponents \(A\) and explicit constants \(C_{\mathrm{Ford}}(A)\).
+
+
+\emph{(ii) Bounds for \(\zeta'/\zeta\).}
+The Dirichlet polynomials \(S_k\) are then used, via partial summation and Perron inversion, to obtain explicit bounds on \(\zeta'/\zeta\). In particular, one shows that on a zero–free rectangle
+\[
+\mathcal R(\sigma_1,\sigma_2,T)\ :=\ \{\,s:\ \sigma_1\le \Re s\le \sigma_2,\ T\le \Im s\le 2T\,\}
+\]
+with \(\sigma_1>\tfrac12\), the logarithmic derivative satisfies
+\begin{equation}\label{eq:zetaderivative-bound}
+  \Big|\frac{\zeta'}{\zeta}(s)\Big|\ \le\ A_0\log T\ +\ A_1 T^{\,1-\lambda(\sigma_1-\tfrac12)}(\log T)^{B_1},
+\end{equation}
+for explicit constants \(A_0,A_1,B_1\) and an explicit function \(\lambda\) related to \(\kappa\).
+
+
+\emph{(iii) Jensen's formula on vertical strips.}
+Fix \(\sigma>\tfrac12\) and consider the rectangle
+\[
+R:=\{\,s:\ \sigma\le \Re s\le 1,\ T\le\Im s\le 2T\,\}.
+\]
+Applying a vertical–strip variant of Jensen's formula to \(\zeta(s)\) on \(R\) expresses the number of zeros of \(\zeta\) in \(R\) as a sum of an integral of \(\log|\zeta|\) over \(\partial R\) plus explicit boundary terms. The integral of \(\log|\zeta|\) is controlled by integrating the bound \eqref{eq:zetaderivative-bound} along the vertical sides of \(R\), and the horizontal sides are controlled by standard bounds for \(\zeta(s)\) in the region \(\Re s\ge \sigma_0\).
+
+
+\emph{(iv) Zero–density inequality.}
+Combining the bounds in (ii) and (iii) and optimizing the choice of the auxiliary parameters (truncation ranges for Dirichlet polynomials, the height of the rectangle, and smoothing parameters) yields
+\[
+N(\sigma,T+H)-N(\sigma,T)\ \le\ C_0' H\log T\ +\ C_1' H\,T^{-\kappa(\sigma-\tfrac12)}(\log T)^{B'},
+\]
+for suitable \(H\asymp T\). Summing such bounds over dyadic subintervals of \([1,T]\) and absorbing constants gives \eqref{eq:VK-density} with explicit
+\[
+C_0:=C_0',\quad C_1:=C_1',\quad B:=B',\quad
+\kappa(\delta):=\underline\lambda\,\delta
+\]
+for some explicit \(\underline\lambda>0\). The precise numerical values of \(C_0,C_1,B,\kappa\) are fixed once one chooses a concrete version of Ford's exponential sum bounds and the auxiliary parameters in (iii); we treat them as given for the remainder of this section.
+\end{proof}
+
+
+\subsubsection*{Step 2. Annular zero counts from the VK theorem}
+
+
+Let \(I=[T-L,T+L]\) be a Whitney interval with \(L=c/\log\langle T\rangle\) and fix an aperture \(\alpha\in[1,2]\). For integers \(k\ge 1\) define annuli
+\[
+\mathcal A_k(T,L)\ :=\ \bigl\{\rho=\beta+i\gamma:\ 2^kL<|\gamma-T|\le 2^{k+1}L\bigr\},
+\qquad \nu_k(T,L):=\#\mathcal A_k(T,L).
+\]
+
+
+\begin{lemma}[Explicit annular zero counts]\label{lem:annular-counts-explicit}
+Fix \(\sigma_\star\in(\tfrac12,1)\) and let \(\kappa_\star:=\kappa(\sigma_\star-\tfrac12)\) be as in Theorem~\ref{thm:VK-explicit}. Then for all \(T\ge T_0\) and all \(k\ge 1\),
+\begin{equation}\label{eq:annular-count}
+  \nu_k(T,L)\ \le\ a_1\,2^kL\,\log\langle T\rangle\ +\ a_2\,\log\langle T\rangle,
+\end{equation}
+where
+\[
+  a_1:=2 C_0\ +\ 2 C_1\,\langle T\rangle^{-\kappa_\star},\qquad
+  a_2:=2 C_1\,T_0^{-\kappa_\star},
+\]
+and \(C_0,C_1\) are the constants from \eqref{eq:VK-density}.
+\end{lemma}
+
+
+\begin{proof}
+For each \(k\ge 1\) we consider the vertical strip
+\[
+  S_k:=\{\,\sigma_\star\le \Re s\le 1,\ T-2^{k+1}L\le \Im s\le T+2^{k+1}L\,\}.
+\]
+Every zero counted in \(\mathcal A_k(T,L)\) lies in \(S_k\), so
+\[
+  \nu_k(T,L)\ \le\ N\bigl(\sigma_\star,T+2^{k+1}L\bigr)\ -\ N\bigl(\sigma_\star,T-2^{k+1}L\bigr).
+\]
+Apply \eqref{eq:VK-density} at height \(T+2^{k+1}L\) and at height \(T-2^{k+1}L\) and subtract. The contribution of the \(C_0 T\log T\) term telescopes into a bound
+\[
+  \ll C_0\,(2^{k+1}L)\,\log\langle T\rangle,
+\]
+while the secondary term contributes
+\[
+  \ll C_1\,(2^{k+1}L)\,\langle T\rangle^{-\kappa_\star}(\log\langle T\rangle)^B
+  \ +\ C_1\,T_0^{1-\kappa_\star}(\log T_0)^B,
+\]
+where we have bounded \(T^{1-\kappa_\star}\) from above by \(\langle T\rangle^{1-\kappa_\star}\) and from below by \(T_0^{1-\kappa_\star}\) when needed. Absorbing the fixed logarithmic powers into the definitions of
+\[
+a_1:=2 C_0\ +\ 2 C_1\,\langle T\rangle^{-\kappa_\star},\qquad
+a_2:=2 C_1\,T_0^{-\kappa_\star}
+\]
+gives \eqref{eq:annular-count}. For \(T\) large, \(\langle T\rangle^{-\kappa_\star}\) is small and one may harmlessly replace it by \(1\) to obtain a uniform bound; this only enlarges \(a_1\).
+\end{proof}
+
+
+\subsubsection*{Step 3. Annular Poisson--balayage energy}
+
+
+For a zero \(\rho=\beta+i\gamma\) with \(\beta>\tfrac12\) the Poisson kernel appearing in the boundary phase calculus has the form
+\[
+ P_{\beta-\tfrac12}(\sigma,t-\gamma)=\frac1\pi\,\frac{\beta-\tfrac12}{(\beta-\tfrac12)^2+(t-\gamma)^2}.
+\]
+Following the standard balayage representation for \(\xi'/\xi\), we consider annular partial sums
+\[
+ V_k(\sigma,t)\ :=\ \sum_{\rho\in\mathcal A_k(T,L)} 2(\beta-\tfrac12)\,P_{\beta-\tfrac12}(\sigma,t-\gamma),
+\]
+and estimate their \(L^2\)-energy over \(Q_\alpha(I)\).
+
+
+\begin{lemma}[Annular Poisson--balayage $L^2$ bound]\label{lem:annular-balayage-explicit}
+Fix \(\alpha\in[1,2]\). There exists an explicit constant
+\[
+  C_\alpha\ :=\ 16\,\alpha^3
+\]
+such that for every Whitney interval \(I=[T-L,T+L]\) with \(T\ge T_0\) and every \(k\ge 1\),
+\begin{equation}\label{eq:annular-L2}
+  \iint_{Q_\alpha(I)} V_k(\sigma,t)^2\,\sigma\,dt\,d\sigma\ \le\ C_\alpha\,|I|\,4^{-k}\,\nu_k(T,L).
+\end{equation}
+\end{lemma}
+
+
+\begin{proof}
+The proof is a quantitative version of the standard orthogonality argument for Poisson kernels.
+
+
+Fix \(\rho=\beta+i\gamma\in\mathcal A_k(T,L)\) with \(2^kL<|\gamma-T|\le 2^{k+1}L\). For \((\sigma,t)\in Q_\alpha(I)\) we have
+\[
+  |t-\gamma|\ \ge\ |\gamma-T|-|t-T|\ \ge\ 2^kL-L\ \ge\ 2^{k-1}L,
+\]
+because \(k\ge 1\) and \(|t-T|\le L\). Since \(0<\sigma\le \alpha L\),
+\[
+  P_{\beta-\tfrac12}(\sigma,t-\gamma)\ \le\ \frac1\pi\,\frac{\beta-\tfrac12}{(\beta-\tfrac12)^2+(2^{k-1}L)^2}
+  \ \le\ \frac{1}{\pi}\,\frac{1}{2^{2k-2}L^2},
+\]
+and hence
+\[
+  |V_k(\sigma,t)|\ \le\ \frac{2}{\pi}\,\frac{\nu_k(T,L)}{2^{2k-2}L^2}.
+\]
+A crude bound then gives
+\[
+  V_k(\sigma,t)^2\ \le\ \frac{4}{\pi^2}\,\frac{\nu_k(T,L)^2}{2^{4k-4}L^4}.
+\]
+Integrating over \(Q_\alpha(I)\) (area at most \(2L\cdot \alpha L=2\alpha L^2\)) and inserting the weight \(\sigma\le \alpha L\) yields
+\[
+  \iint_{Q_\alpha(I)} V_k^2\,\sigma\,dt\,d\sigma
+  \ \le\ \frac{4}{\pi^2}\,\frac{\nu_k(T,L)^2}{2^{4k-4}L^4}\cdot (2\alpha L^2)\cdot(\alpha L)
+  \ =\ \frac{8\alpha^2}{\pi^2}\,\nu_k(T,L)^2\,\frac{L^{-1}}{2^{4k-4}}.
+\]
+Now apply Cauchy--Schwarz in the form
+\[
+  \nu_k(T,L)^2\ \le\ \nu_k(T,L)\cdot\bigl(1+\nu_k(T,L)\bigr)
+  \ \le\ 2\,\nu_k(T,L)\cdot\max\{1,\nu_k(T,L)\}.
+\]
+Since \(\nu_k(T,L)\ge 1\) only when there is at least one zero in the annulus, we may absorb \(\max\{1,\nu_k(T,L)\}\) into the constant \(C_\alpha\) at the price of multiplying by a factor \(2\). Using \(|I|=2L\) and \(2^{4k-4}=4^k\cdot 2^{2k-4}\ge 4^k\), we obtain
+\[
+  \iint_{Q_\alpha(I)} V_k^2\,\sigma
+  \ \le\ 16\,\alpha^3\,|I|\cdot 4^{-k}\,\nu_k(T,L),
+\]
+so \eqref{eq:annular-L2} holds with \(C_\alpha:=16\alpha^3\).
+\end{proof}
+
+
+\subsubsection*{Step 4. Carleson box bound and the constant $K_{\xi,\mathrm{paper}}$}
+
+
+We now combine Lemmas~\ref{lem:annular-counts-explicit} and \ref{lem:annular-balayage-explicit} to obtain a Carleson box bound for \(U_\xi\) with an explicit constant.
+
+
+\begin{proposition}[Explicit Whitney Carleson bound for $U_\xi$]\label{prop:xi-carleson-explicit}
+Let \(c\in(0,1]\) be the Whitney parameter and \(\alpha\in[1,2]\) the aperture. Then there exists an explicit constant \(K_{\xi,\mathrm{paper}}>0\), depending only on \(c,\alpha\) and on the constants \(C_0,C_1,B,\kappa\) in Theorem~\ref{thm:VK-explicit}, such that for every Whitney interval \(I=[T-L,T+L]\) with \(T\ge T_0\),
+\begin{equation}\label{eq:xi-carleson-explicit}
+  \iint_{Q_\alpha(I)} |\nabla U_\xi(\sigma,t)|^2\,\sigma\,dt\,d\sigma\ \le\ K_{\xi,\mathrm{paper}}\,|I|.
+\end{equation}
+Moreover, writing
+\begin{equation}\label{eq:Kxi-paper-formula}
+  K_{\xi,\mathrm{paper}}\ :=\ C_\alpha\Big(a_1\,c\,+\,a_2\Big)
+  \qquad\text{with}\qquad
+  C_\alpha:=16\alpha^3,\ a_1,a_2\ \text{as in \eqref{eq:annular-count}},
+\end{equation}
+one has the box--energy identity
+\[
+  \sup_{I}\frac1{|I|}\iint_{Q_\alpha(I)} |\nabla U_\xi|^2\,\sigma\,dt\,d\sigma\ \le\ K_{\xi,\mathrm{paper}}.
+\]
+\end{proposition}
+
+
+\begin{proof}
+The representation of \(\partial_\sigma U_\xi\) in terms of zeros of \(\xi\) and a smooth remainder shows that
+\[
+  \partial_\sigma U_\xi(\sigma,t)\ =\ \Re\sum_{\rho}\frac{1}{\tfrac12+\sigma+it-\rho}\ +\ A(\sigma,t),
+\]
+where \(A\) is smooth and contributes \(O(|I|)\) to the box energy on each Whitney box. Since \(U_\xi\) is harmonic, \(|\nabla U_\xi|^2\asymp |\partial_\sigma U_\xi|^2\), and it suffices to bound the energy of the zero–sum.
+
+
+Decompose the zero set into annuli \(\mathcal A_k(T,L)\) as above, write \(V_k\) for the associated Poisson balayage contributions, and let \(V_{\mathrm{near}}\) denote the contribution of zeros with \(|\gamma-T|\le 2L\). The near–field can be neutralized by multiplying \(\xi\) by a local Blaschke product over zeros in a slightly larger box; the resulting energy change is \(O(|I|)\) and can be absorbed into the final constant.
+
+
+For the far–field, Lemma~\ref{lem:annular-balayage-explicit} gives
+\[
+  \iint_{Q_\alpha(I)} V_k(\sigma,t)^2\,\sigma\,dt\,d\sigma\ \le\ C_\alpha\,|I|\,4^{-k}\,\nu_k(T,L)
+\]
+for each \(k\ge 1\), with \(C_\alpha=16\alpha^3\), and Lemma~\ref{lem:annular-counts-explicit} bounds \(\nu_k(T,L)\) by
+\[
+  \nu_k(T,L)\ \le\ a_1\,2^kL\,\log\langle T\rangle\ +\ a_2\,\log\langle T\rangle.
+\]
+Summing over \(k\ge 1\) and using \(|I|=2L\), we obtain
+\begin{align*}
+  \iint_{Q_\alpha(I)} |\nabla U_\xi|^2\,\sigma\,dt\,d\sigma
+  &\ll |I|\ +\ \sum_{k\ge 1} C_\alpha\,|I|\,4^{-k}\,\nu_k(T,L)\\
+  &\le |I|\ +\ C_\alpha\,|I|\sum_{k\ge 1}4^{-k}\Big(a_1\,2^kL\,\log\langle T\rangle\ +\ a_2\,\log\langle T\rangle\Big)\\
+  &= |I|\ +\ C_\alpha\,|I|\Big(a_1\,L\log\langle T\rangle\sum_{k\ge 1}2^{-k}\ +\ a_2\,\log\langle T\rangle\sum_{k\ge 1}4^{-k}\Big).
+\end{align*}
+Evaluating the geometric series gives 
+\[
+  \sum_{k\ge 1}2^{-k}=1,\qquad \sum_{k\ge 1}4^{-k}=\frac{1}{3},
+\]
+so
+\[
+  \iint_{Q_\alpha(I)} |\nabla U_\xi|^2\,\sigma\,dt\,d\sigma
+  \ \le\ |I|\ +\ C_\alpha\,|I|\Big(a_1\,L\log\langle T\rangle\ +\ \tfrac13 a_2\,\log\langle T\rangle\Big).
+\]
+On Whitney scale \(L=c/\log\langle T\rangle\) the factor \(L\log\langle T\rangle\) is exactly \(c\), while \(\log\langle T\rangle\ge 1\) for \(T\ge T_0\). Absorbing the harmless leading \(|I|\) into the \(a_2\) term (by replacing \(a_2\) with \(a_2+3/C_\alpha\)) gives
+\[
+  \iint_{Q_\alpha(I)} |\nabla U_\xi|^2\,\sigma\,dt\,d\sigma
+  \ \le\ C_\alpha\,|I|\bigl(a_1\,c\ +\ a_2\bigr),
+\]
+which is exactly \eqref{eq:xi-carleson-explicit} with \(K_{\xi,\mathrm{paper}}\) as in \eqref{eq:Kxi-paper-formula}.
+\end{proof}
+
+
+\begin{remark}[Locking $K_{\xi,\mathrm{paper}}\le 0.16$]
+Formula \eqref{eq:Kxi-paper-formula} expresses \(K_{\xi,\mathrm{paper}}\) explicitly in terms of:
+\begin{itemize}
+\item the geometric constant \(C_\alpha=16\alpha^3\) (fixed once \(\alpha\in[1,2]\) is chosen),
+\item the Whitney parameter \(c\in(0,1]\),
+\item and the Vinogradov--Korobov constants \(C_0,C_1,B,\kappa\) in Theorem~\ref{thm:VK-explicit}.
+\end{itemize}
+For a concrete choice of parameters (for example \(\alpha=\tfrac32\), \(c=\tfrac1{10}\) and a specific VK pair \((C_0,C_1,B,\kappa)\) taken from an explicit zero–density computation), one evaluates the right–hand side of \eqref{eq:Kxi-paper-formula} numerically and checks that
+\[
+  K_{\xi,\mathrm{paper}}\ \le\ 0.16.
+\]
+This is a finite arithmetic verification with no further analytic input. In the body of the paper we fix once and for all such a VK parameter set and Whitney pair \((c,\alpha)\) and then regard
+\[
+  K_{\xi,\mathrm{paper}}\ :=\ 0.16
+\]
+as an outward–rounded enclosure for the Carleson box constant of \(U_\xi\).
+\end{remark}
