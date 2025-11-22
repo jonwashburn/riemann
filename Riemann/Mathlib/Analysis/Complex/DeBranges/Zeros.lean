@@ -40,7 +40,7 @@ lemma exists_order_and_factorization {f : ℂ → ℂ} (hf_entire : Differentiab
   have hf_analyticOn : AnalyticOnNhd ℂ f (Set.univ : Set ℂ) :=
     (Complex.analyticOnNhd_univ_iff_differentiable (f := f)).2 hf_entire
   have hf_analyticAt : AnalyticAt ℂ f z₀ :=
-    hf_analyticOn z₀ (by simpa)
+    hf_analyticOn z₀ (by simp)
 
   -- `f` is not locally zero around `z₀`, otherwise the identity principle would force `f = 0`.
   have hf_not_locally_zero : ¬ ∀ᶠ z in 𝓝 z₀, f z = 0 := by
@@ -145,8 +145,61 @@ lemma integrableOn_Ioo_abs_rpow_neg_iff {p t : ℝ} (ht : 0 < t) :
 /-- Local integrability at a single point: `nhds x₀` version of the p-test. -/
 lemma integrableAtFilter_abs_sub_rpow_neg (x₀ : ℝ) (p : ℝ) :
   IntegrableAtFilter (fun x : ℝ => |x - x₀| ^ (-p)) (𝓝 x₀) volume ↔ p < 1 := by
-  -- implement the interval splitting + translation as above
-  sorry
+  constructor
+  · rintro ⟨s, hs_nhds, h_int⟩
+    rcases Metric.mem_nhds_iff.mp hs_nhds with ⟨ε, hε, h_sub⟩
+    have h_subset : Ioo x₀ (x₀ + ε) ⊆ s := by
+      rw [Real.ball_eq_Ioo] at h_sub
+      exact Subset.trans (Ioo_subset_Ioo (by linarith) (by linarith)) h_sub
+    have h_int_right : IntegrableOn (fun x => |x - x₀| ^ (-p)) (Ioo x₀ (x₀ + ε)) volume :=
+      h_int.mono_set h_subset
+    -- Translate x -> x - x₀
+    let e := Homeomorph.addLeft x₀
+    rw [← Measure.map_add_left_eq_self x₀ volume] at h_int_right
+    rw [← integrableOn_map_equiv e.toMeasurableEquiv] at h_int_right
+    have h_preimage : e.toMeasurableEquiv ⁻¹' (Ioo x₀ (x₀ + ε)) = Ioo 0 ε := by
+      ext y
+      simp [e, Homeomorph.addLeft, Ioo]
+      constructor <;> intro h <;> simp at h ⊢ <;> linarith
+    rw [h_preimage] at h_int_right
+    simp only [Homeomorph.toMeasurableEquiv_coe, Homeomorph.addLeft_apply, add_sub_cancel_left] at h_int_right
+    rwa [integrableOn_Ioo_abs_rpow_neg_iff hε] at h_int_right
+  · intro hp_lt
+    use Ioo (x₀ - 1) (x₀ + 1)
+    refine ⟨Ioo_mem_nhds (by linarith) (by linarith), ?_⟩
+    rw [← union_diff_cancel (Set.singleton_subset_Ioo (by linarith) (by linarith) : {x₀} ⊆ Ioo (x₀ - 1) (x₀ + 1))]
+    rw [integrableOn_union, integrableOn_singleton_iff]
+    refine ⟨?_, ?_⟩
+    · simp
+    · rw [Ioo_diff_singleton_of_mem (by linarith : x₀ - 1 < x₀) (by linarith : x₀ < x₀ + 1)]
+      rw [integrableOn_union]
+      constructor
+      · -- Left side: Ioo (x₀ - 1) x₀
+        let e := Homeomorph.addLeft x₀
+        rw [← Measure.map_add_left_eq_self x₀ volume]
+        rw [← integrableOn_map_equiv e.toMeasurableEquiv]
+        have h_preimage : e.toMeasurableEquiv ⁻¹' (Ioo (x₀ - 1) x₀) = Ioo (-1) 0 := by
+          ext y; simp [e, Homeomorph.addLeft, Ioo]; constructor <;> intro h <;> simp at h ⊢ <;> linarith
+        rw [h_preimage]
+        simp only [Homeomorph.toMeasurableEquiv_coe, Homeomorph.addLeft_apply, add_sub_cancel_left]
+        -- Reflect y -> -y
+        let neg := Homeomorph.neg ℝ
+        rw [← Measure.map_neg_eq_self volume]
+        rw [← integrableOn_map_equiv neg.toMeasurableEquiv]
+        have h_preimage_neg : neg.toMeasurableEquiv ⁻¹' (Ioo (-1) 0) = Ioo 0 1 := by
+          ext y; simp [neg, Homeomorph.neg, Ioo]; constructor <;> intro h <;> simp at h ⊢ <;> linarith
+        rw [h_preimage_neg]
+        simp only [Homeomorph.toMeasurableEquiv_coe, Homeomorph.neg_apply, abs_neg]
+        rwa [integrableOn_Ioo_abs_rpow_neg_iff zero_lt_one]
+      · -- Right side: Ioo x₀ (x₀ + 1)
+        let e := Homeomorph.addLeft x₀
+        rw [← Measure.map_add_left_eq_self x₀ volume]
+        rw [← integrableOn_map_equiv e.toMeasurableEquiv]
+        have h_preimage : e.toMeasurableEquiv ⁻¹' (Ioo x₀ (x₀ + 1)) = Ioo 0 1 := by
+          ext y; simp [e, Homeomorph.addLeft, Ioo]; constructor <;> intro h <;> simp at h ⊢ <;> linarith
+        rw [h_preimage]
+        simp only [Homeomorph.toMeasurableEquiv_coe, Homeomorph.addLeft_apply, add_sub_cancel_left]
+        rwa [integrableOn_Ioo_abs_rpow_neg_iff zero_lt_one]
 
 lemma locallyIntegrable_abs_sub_rpow_neg (x₀ : ℝ) (p : ℝ) :
     LocallyIntegrable (fun x : ℝ => |x - x₀| ^ (-p)) volume ↔ p < 1 := by
@@ -157,16 +210,21 @@ lemma locallyIntegrable_abs_sub_rpow_neg (x₀ : ℝ) (p : ℝ) :
     have hx := h x₀
     -- apply the local p-test
     exact (integrableAtFilter_abs_sub_rpow_neg x₀ p).1 hx
-  · intro hp
+  · intro hp x
     -- need `IntegrableAtFilter` for every `x`
-    intro x
     by_cases hx : x = x₀
     · subst hx
       -- Now `x = x₀`, so we can reuse the `x₀`-case of the local p-test.
       simpa using (integrableAtFilter_abs_sub_rpow_neg x p).2 hp
-    · -- `x ≠ x₀`: choose a small ball away from `x₀` and bound the function
-      -- to show integrable there (standard bounded-on-compact argument)
-      sorry
+    · -- `x ≠ x₀`: function is continuous at x
+      apply ContinuousAt.integrableAt_nhds
+      apply ContinuousAt.rpow
+      · apply ContinuousAt.abs
+        apply ContinuousAt.sub
+        · exact continuousAt_id
+        · exact continuousAt_const
+      · exact continuousAt_const
+      · left; rw [abs_pos]; exact sub_ne_zero.mpr hx
 
 /-- Local integrability of `|x - x₀|^{-p}` near `x₀` is controlled by the same
 exponent condition `p < 1`. This is the core analytic input; the full
@@ -174,17 +232,8 @@ exponent condition `p < 1`. This is the core analytic input; the full
 arguments on top of this lemma. -/
 lemma locallyIntegrable_abs_sub_rpow_neg' (x₀ : ℝ) (p : ℝ) :
     LocallyIntegrable (fun x : ℝ => |x - x₀| ^ (-p)) volume ↔ p < 1 := by
-  -- Sketch of the full proof (to be filled in subsequent iterations):
-  -- 1. By translation invariance of Lebesgue measure, reduce the problem to `x₀ = 0`,
-  --    i.e. to `LocallyIntegrable (fun x => |x| ^ (-p)) volume`.
-  -- 2. Using the definition of `LocallyIntegrable` and sigma-compactness of `ℝ`,
-  --    show that for this specific function, local integrability is equivalent
-  --    to integrability on some (equivalently, every) small symmetric interval
-  --    around `0`, e.g. `IntegrableOn (fun x => |x| ^ (-p)) (Ioo (0 : ℝ) 1)`.
-  -- 3. Apply `integrableOn_Ioo_abs_rpow_neg_iff` to identify this with `p < 1`.
-  --
-  -- We leave the topological/measure-theoretic glue (steps 1–2) to a later pass.
-  sorry
+  -- This is exactly `locallyIntegrable_abs_sub_rpow_neg`.
+  simpa using (locallyIntegrable_abs_sub_rpow_neg x₀ p)
 
 end MeasureTheory
 
@@ -198,9 +247,29 @@ variable (E : DeBrangesFunction)
 noncomputable def weight (x : ℝ) : ℝ :=
   (‖E x‖ ^ 2)⁻¹
 
+/-- The weight function is measurable (in fact continuous; see below). -/
+lemma measurable_weight : Measurable E.weight := by
+  -- `x ↦ E x` is continuous, hence measurable.
+  have hE : Measurable fun x : ℝ => E x :=
+    (E.continuous.comp continuous_ofReal).measurable
+  -- `x ↦ ‖E x‖` is measurable, so are powers and inverses.
+  have h_norm : Measurable fun x : ℝ => ‖E x‖ :=
+    (continuous_norm.comp (E.continuous.comp continuous_ofReal)).measurable
+  have h_pow : Measurable fun x : ℝ => ‖E x‖ ^ 2 :=
+    h_norm.pow_const 2
+  have h_inv : Measurable fun x : ℝ => (‖E x‖ ^ 2)⁻¹ :=
+    h_pow.inv
+  exact h_inv
+
 /-- The corresponding `ENNReal`-valued density. -/
 noncomputable def density (x : ℝ) : ENNReal :=
   ENNReal.ofReal (E.weight x)
+
+/-- The de Branges density is measurable as an `ENNReal`-valued function. -/
+lemma measurable_density : Measurable E.density := by
+  -- `ENNReal.ofReal` is measurable, so we can compose it with `weight`.
+  have h := E.measurable_weight
+  exact ENNReal.measurable_ofReal.comp h
 
 /-- The de Branges measure `μ_E = |E(x)|⁻² dx` on `ℝ`. -/
 noncomputable def measure : Measure ℝ :=
