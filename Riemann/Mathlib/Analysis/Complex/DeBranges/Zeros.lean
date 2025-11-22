@@ -155,50 +155,73 @@ lemma integrableAtFilter_abs_sub_rpow_neg (x₀ : ℝ) (p : ℝ) :
       h_int.mono_set h_subset
     -- Translate x -> x - x₀
     let e := Homeomorph.addLeft x₀
-    rw [← Measure.map_add_left_eq_self x₀ volume] at h_int_right
-    rw [← integrableOn_map_equiv e.toMeasurableEquiv] at h_int_right
-    have h_preimage : e.toMeasurableEquiv ⁻¹' (Ioo x₀ (x₀ + ε)) = Ioo 0 ε := by
+    rw [← map_add_left_eq_self volume x₀] at h_int_right
+    change IntegrableOn _ _ (Measure.map e volume) at h_int_right
+    erw [MeasurableEmbedding.integrableOn_map_iff e.measurableEmbedding] at h_int_right
+    have h_preimage : e ⁻¹' (Ioo x₀ (x₀ + ε)) = Ioo 0 ε := by
       ext y
       simp [e, Homeomorph.addLeft, Ioo]
-      constructor <;> intro h <;> simp at h ⊢ <;> linarith
     rw [h_preimage] at h_int_right
-    simp only [Homeomorph.toMeasurableEquiv_coe, Homeomorph.addLeft_apply, add_sub_cancel_left] at h_int_right
-    rwa [integrableOn_Ioo_abs_rpow_neg_iff hε] at h_int_right
+    dsimp [e] at h_int_right
+    simp only [Function.comp_def, add_sub_cancel_left] at h_int_right
+    rw [integrableOn_Ioo_abs_rpow_neg_iff hε] at h_int_right
+    exact h_int_right
   · intro hp_lt
     use Ioo (x₀ - 1) (x₀ + 1)
     refine ⟨Ioo_mem_nhds (by linarith) (by linarith), ?_⟩
-    rw [← union_diff_cancel (Set.singleton_subset_Ioo (by linarith) (by linarith) : {x₀} ⊆ Ioo (x₀ - 1) (x₀ + 1))]
+    rw [← union_diff_cancel (singleton_subset_iff.2 ⟨by linarith, by linarith⟩ : {x₀} ⊆ Ioo (x₀ - 1) (x₀ + 1))]
     rw [integrableOn_union, integrableOn_singleton_iff]
     refine ⟨?_, ?_⟩
     · simp
-    · rw [Ioo_diff_singleton_of_mem (by linarith : x₀ - 1 < x₀) (by linarith : x₀ < x₀ + 1)]
+    · have : Ioo (x₀ - 1) (x₀ + 1) \ {x₀} = Ioo (x₀ - 1) x₀ ∪ Ioo x₀ (x₀ + 1) := by
+        ext x
+        simp [mem_Ioo, mem_singleton_iff]
+        constructor
+        · rintro ⟨⟨h1, h2⟩, hne⟩
+          rcases lt_trichotomy x x₀ with hlt | heq | hgt
+          · exact Or.inl ⟨h1, hlt⟩
+          · contradiction
+          · exact Or.inr ⟨hgt, h2⟩
+        · rintro (⟨h1, h2⟩ | ⟨h1, h2⟩)
+          · exact ⟨⟨h1, by linarith⟩, by linarith⟩
+          · exact ⟨⟨by linarith, h2⟩, by linarith⟩
+      rw [this]
       rw [integrableOn_union]
       constructor
       · -- Left side: Ioo (x₀ - 1) x₀
         let e := Homeomorph.addLeft x₀
-        rw [← Measure.map_add_left_eq_self x₀ volume]
-        rw [← integrableOn_map_equiv e.toMeasurableEquiv]
-        have h_preimage : e.toMeasurableEquiv ⁻¹' (Ioo (x₀ - 1) x₀) = Ioo (-1) 0 := by
-          ext y; simp [e, Homeomorph.addLeft, Ioo]; constructor <;> intro h <;> simp at h ⊢ <;> linarith
+        rw [← map_add_left_eq_self volume x₀]
+        change IntegrableOn _ _ (Measure.map e volume)
+        rw [MeasurableEmbedding.integrableOn_map_iff e.measurableEmbedding]
+        have h_preimage : e ⁻¹' (Ioo (x₀ - 1) x₀) = Ioo (-1) 0 := by
+          ext y
+          simp [e, Homeomorph.addLeft, Ioo]
+          grind
         rw [h_preimage]
-        simp only [Homeomorph.toMeasurableEquiv_coe, Homeomorph.addLeft_apply, add_sub_cancel_left]
+        dsimp [e]
+        simp only [Function.comp_def, add_sub_cancel_left]
         -- Reflect y -> -y
         let neg := Homeomorph.neg ℝ
-        rw [← Measure.map_neg_eq_self volume]
-        rw [← integrableOn_map_equiv neg.toMeasurableEquiv]
-        have h_preimage_neg : neg.toMeasurableEquiv ⁻¹' (Ioo (-1) 0) = Ioo 0 1 := by
-          ext y; simp [neg, Homeomorph.neg, Ioo]; constructor <;> intro h <;> simp at h ⊢ <;> linarith
+        -- Lebesgue measure on ℝ is invariant under x ↦ -x
+        rw [← Measure.map_neg_eq_self (volume : Measure ℝ)]
+        change IntegrableOn _ _ (Measure.map neg volume)
+        rw [MeasurableEmbedding.integrableOn_map_iff neg.measurableEmbedding]
+        have h_preimage_neg : neg ⁻¹' (Ioo (-1) 0) = Ioo 0 1 := by
+          ext; simp [neg, Ioo]; constructor <;> intros <;> aesop
         rw [h_preimage_neg]
-        simp only [Homeomorph.toMeasurableEquiv_coe, Homeomorph.neg_apply, abs_neg]
+        dsimp [neg]
+        simp only [Function.comp_def, abs_neg]
         rwa [integrableOn_Ioo_abs_rpow_neg_iff zero_lt_one]
       · -- Right side: Ioo x₀ (x₀ + 1)
         let e := Homeomorph.addLeft x₀
-        rw [← Measure.map_add_left_eq_self x₀ volume]
-        rw [← integrableOn_map_equiv e.toMeasurableEquiv]
-        have h_preimage : e.toMeasurableEquiv ⁻¹' (Ioo x₀ (x₀ + 1)) = Ioo 0 1 := by
-          ext y; simp [e, Homeomorph.addLeft, Ioo]; constructor <;> intro h <;> simp at h ⊢ <;> linarith
+        rw [← map_add_left_eq_self volume x₀]
+        change IntegrableOn _ _ (Measure.map e volume)
+        rw [MeasurableEmbedding.integrableOn_map_iff e.measurableEmbedding]
+        have h_preimage : e ⁻¹' (Ioo x₀ (x₀ + 1)) = Ioo 0 1 := by
+          ext; simp [e, Ioo]
         rw [h_preimage]
-        simp only [Homeomorph.toMeasurableEquiv_coe, Homeomorph.addLeft_apply, add_sub_cancel_left]
+        dsimp [e]
+        simp only [Function.comp_def, add_sub_cancel_left]
         rwa [integrableOn_Ioo_abs_rpow_neg_iff zero_lt_one]
 
 lemma locallyIntegrable_abs_sub_rpow_neg (x₀ : ℝ) (p : ℝ) :
@@ -217,14 +240,21 @@ lemma locallyIntegrable_abs_sub_rpow_neg (x₀ : ℝ) (p : ℝ) :
       -- Now `x = x₀`, so we can reuse the `x₀`-case of the local p-test.
       simpa using (integrableAtFilter_abs_sub_rpow_neg x p).2 hp
     · -- `x ≠ x₀`: function is continuous at x
-      apply ContinuousAt.integrableAt_nhds
-      apply ContinuousAt.rpow
-      · apply ContinuousAt.abs
-        apply ContinuousAt.sub
-        · exact continuousAt_id
-        · exact continuousAt_const
-      · exact continuousAt_const
-      · left; rw [abs_pos]; exact sub_ne_zero.mpr hx
+      have h_cont : ContinuousOn (fun y => |y - x₀| ^ (-p)) {y | y ≠ x₀} := by
+        apply ContinuousOn.rpow
+        · apply ContinuousOn.abs
+          apply ContinuousOn.sub continuousOn_id continuousOn_const
+        · exact continuousOn_const
+        · intro y hy
+          -- We need to show the base is non-zero or exponent is positive
+          -- Since hy : y ∈ {y | y ≠ x₀}, we have |y - x₀| > 0
+          try left -- In case the goal is a disjunction
+          simp only [abs_ne_zero, ne_eq, sub_eq_zero]
+          exact hy
+      have h_open : IsOpen {y : ℝ | y ≠ x₀} := isOpen_ne
+      have h_mem : x ∈ {y : ℝ | y ≠ x₀} := hx
+      rw [← nhdsWithin_eq_nhds.mpr (IsOpen.mem_nhds h_open h_mem)]
+      exact h_cont.integrableAt_nhdsWithin h_open.measurableSet h_mem
 
 /-- Local integrability of `|x - x₀|^{-p}` near `x₀` is controlled by the same
 exponent condition `p < 1`. This is the core analytic input; the full
