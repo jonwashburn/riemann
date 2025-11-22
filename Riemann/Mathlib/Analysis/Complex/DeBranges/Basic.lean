@@ -47,6 +47,23 @@ instance : CoeFun DeBrangesFunction (fun _ => ℂ → ℂ) :=
 lemma continuous (E : DeBrangesFunction) : Continuous E :=
   E.entire.continuous
 
+/-- A de Branges function is never identically zero. -/
+lemma not_identically_zero (E : DeBrangesFunction) : E.toFun ≠ 0 := by
+  intro hE
+  -- Evaluate the Hermite–Biehler inequality at `z = I`.
+  have hz : 0 < (Complex.I).im := by
+    simp
+  have h := E.growth_condition Complex.I hz
+  -- Under the hypothesis `E.toFun = 0`, all values of `E` vanish.
+  have hzero : ∀ z, E z = 0 := by
+    intro z
+    have := congrArg (fun f : ℂ → ℂ => f z) hE
+    simpa using this
+  -- This gives `0 < 0`, a contradiction.
+  have : (0 : ℝ) < 0 := by
+    simp [hzero] at h
+  exact lt_irrefl _ this
+
 /-- De Branges functions have no zeros in the open upper half-plane. -/
 lemma no_upper_zeros (E : DeBrangesFunction) (z : ℂ) (hz : 0 < z.im) :
     E z ≠ 0 := by
