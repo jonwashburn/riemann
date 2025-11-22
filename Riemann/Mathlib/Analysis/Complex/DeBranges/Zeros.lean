@@ -81,13 +81,110 @@ lemma exists_order_and_factorization {f : ℂ → ℂ} (hf_entire : Differentiab
         ⟨g', hg'_an, hg'_ne, hg'_eq⟩
     exact h.symm
 
+open Asymptotics
+
 /--
 Asymptotic behavior near a zero. If `f(z₀)=0`, then `f(z) = Θ((z-z₀)^N)` for `N ≥ 1`.
 -/
 lemma isTheta_at_zero_order {f : ℂ → ℂ} (hf : Differentiable ℂ f) (hf_ne : f ≠ 0) (z₀ : ℂ) :
     ∃ (N : ℕ), (f z₀ = 0 → N ≥ 1) ∧
     f =Θ[𝓝 z₀] (fun z => (z - z₀) ^ N) := by
-  sorry
+  classical
+  -- 1. Factorization f = (z - z₀)^N • g with g analytic and nonvanishing at z₀.
+  obtain ⟨N, hN_exists, -⟩ :=
+    exists_order_and_factorization (f := f)
+      (hf_entire := hf) (hf_not_id_zero := hf_ne) z₀
+  rcases hN_exists with ⟨g, hg_an, hg_ne, hg_eq⟩
+  -- 2. Show N ≥ 1 if f z₀ = 0.
+  have hNpos : f z₀ = 0 → 1 ≤ N := by
+    intro hf0
+    -- If N = 0 then f =ᶠ g near z₀, hence by continuity f z₀ = g z₀, contradiction.
+    by_contra hN
+    have hN0 : N = 0 := by
+      -- from ¬ (1 ≤ N) we get N ≤ 0
+      have hle : N ≤ 0 := Nat.lt_succ_iff.mp (Nat.lt_of_not_ge hN)
+      -- in ℕ, N ≤ 0 implies N = 0
+      exact le_antisymm hle (Nat.zero_le _)
+    subst hN0
+    have h_ev : f =ᶠ[𝓝 z₀] fun z => (z - z₀) ^ (0 : ℕ) * g z := by
+      -- turn the eventual equality with `•` into one with `*`
+      have := hg_eq
+      -- `smul_eq_mul` on ℂ
+      refine this.mono ?_
+      intro z hz; simpa [pow_zero, one_mul, smul_eq_mul] using hz
+    -- Take the equality at the point z₀ from the eventual equality.
+    have h_val : f z₀ = (z₀ - z₀) ^ (0 : ℕ) * g z₀ :=
+      Filter.EventuallyEq.eq_of_nhds h_ev
+    -- Using f z₀ = 0, this forces g z₀ = 0, contradicting hg_ne.
+    have hg0' : 0 = g z₀ := by
+      simpa [hf0, pow_zero, one_mul] using h_val
+    have hg0 : g z₀ = 0 := hg0'.symm
+    exact hg_ne hg0
+  -- 3. Θ-asymptotics.
+  -- First, pass from eventual equality to Θ for the factored form.
+  have h_ev_mul : f =ᶠ[𝓝 z₀] fun z => (z - z₀) ^ N * g z := by
+    refine hg_eq.mono ?_
+    intro z hz; simpa [smul_eq_mul] using hz
+  have hTheta_mul : f =Θ[𝓝 z₀] (fun z => (z - z₀) ^ N * g z) :=
+    h_ev_mul.isTheta
+  -- Next, show g is Θ to the constant g z₀, using continuity and g z₀ ≠ 0.
+  have h_cont_g : ContinuousAt g z₀ := hg_an.continuousAt
+  -- Next, show g is Θ to the constant g z₀, using continuity and g z₀ ≠ 0.
+  have h_cont_g : ContinuousAt g z₀ := hg_an.continuousAt
+  have hTheta_g_const :
+      (fun z => g z) =Θ[𝓝 z₀] fun _ => g z₀ := by
+    -- Consider h(z) = g z - g z₀, which tends to 0 at z₀.
+    let h : ℂ → ℂ := fun z => g z - g z₀
+    have h_tendsto : Tendsto h (𝓝 z₀) (𝓝 0) := by
+      have h_cont : ContinuousAt h z₀ := h_cont_g.sub continuousAt_const
+      simpa [h] using h_cont.tendsto
+    -- Hence h =o[𝓝 z₀] (const g z₀) by `isLittleO_const_iff`.
+    have h_littleO_const :
+        h =o[𝓝 z₀] (fun _ : ℂ => g z₀) :=
+      (Asymptotics.isLittleO_const_iff (l := 𝓝 z₀) (f'' := h)
+        (c := g z₀) hg_ne).2 h_tendsto
+    -- Then const =Θ (h + const) =Θ g.
+    have hTheta_const_g :
+        (fun _ : ℂ => g z₀) =Θ[𝓝 z₀] (fun z => h z + g z₀) :=
+      Asymptotics.IsLittleO.right_isTheta_add h_littleO_const
+    have h_eq : (fun z => h z + g z₀) =ᶠ[𝓝 z₀] g := by
+      filter_upwards [Filter.Eventually.of_forall (fun z => by assumption [h])] with z hz
+      aesop
+    exact (hTheta_const_g.trans_eventuallyEq h_eq).symm
+  -- Combine Θ for g with Θ for the factor (z - z₀)^N.
+  have hTheta_prod :
+      (fun z => (z - z₀) ^ N * g z) =Θ[𝓝 z₀]
+      (fun z => (z - z₀) ^ N * g z₀) :=
+    (Asymptotics.isTheta_refl _ _).mul hTheta_g_const
+  -- Drop the nonzero constant factor `g z₀`.
+  have hTheta_drop :
+      (fun z => g z₀ * (z - z₀) ^ N) =Θ[𝓝 z₀] (fun z => (z - z₀) ^ N) := by
+    -- First get Θ for the base function and its constant multiple
+    have hTheta_base_scaled :
+        (fun z => (z - z₀) ^ N) =Θ[𝓝 z₀] fun z => g z₀ * (z - z₀) ^ N :=
+      (Asymptotics.isTheta_const_mul_right
+        (l := 𝓝 z₀)
+        (f := fun z => (z - z₀) ^ N)
+        (g := fun z => (z - z₀) ^ N)
+        (c := g z₀) hg_ne).2
+        (Asymptotics.isTheta_rfl
+          (f := fun z => (z - z₀) ^ N)
+          (l := 𝓝 z₀))
+    -- Then just flip the Θ-equivalence.
+    exact hTheta_base_scaled.symm
+
+  -- Adjust the middle factor of `hTheta_prod` so it matches `hTheta_drop`.
+  have h_middle_eq :
+      (fun z => (z - z₀) ^ N * g z₀) =ᶠ[𝓝 z₀] fun z => g z₀ * (z - z₀) ^ N := by
+    filter_upwards with z
+    ring
+  have hTheta_prod' :
+      (fun z => (z - z₀) ^ N * g z) =Θ[𝓝 z₀] fun z => g z₀ * (z - z₀) ^ N :=
+    hTheta_prod.trans_eventuallyEq h_middle_eq
+
+  -- Final chaining: f Θ (z - z₀)^N * g z Θ g z₀ * (z - z₀)^N Θ (z - z₀)^N.
+  refine ⟨N, hNpos, ?_⟩
+  exact hTheta_mul.trans (hTheta_prod'.trans hTheta_drop)
 
 end Complex
 namespace MeasureTheory
@@ -313,9 +410,173 @@ lemma weight_asymptotics_near_real_point {x₀ : ℝ} (hE_not_zero : E.toFun ≠
     ∃ (N : ℕ), (E x₀ = 0 → N ≥ 1) ∧ ∃ (C : ℝ), C > 0 ∧
     (fun x : ℝ => E.weight x) =Θ[𝓝 x₀]
       (fun x : ℝ => C * |x - x₀| ^ (-2 * (N : ℝ))) := by
-  -- Uses factorization of an entire function at a zero and Theta-asymptotics.
-  -- To be filled using `AnalyticAt.analyticOrderAt_eq_natCast` and `IsTheta` API.
-  sorry
+  classical
+  -- Consider `E` as a function `ℂ → ℂ`
+  let f : ℂ → ℂ := fun z => E z
+  have hf_diff : Differentiable ℂ f := E.entire
+  -- Apply the complex Θ-order lemma at the real point `x₀ : ℂ`
+  obtain ⟨N, hNpos, hTheta_f⟩ :=
+    Complex.isTheta_at_zero_order (f := f) hf_diff hE_not_zero (x₀ : ℂ)
+  -- From `f =Θ (z-x₀)^N` we get an asymptotic equivalence of norms on ℂ
+  have hTheta_norm :
+      (fun z : ℂ => ‖f z‖) =Θ[𝓝 (x₀ : ℂ)]
+        (fun z : ℂ => ‖z - (x₀ : ℂ)‖ ^ (N : ℕ)) := by
+    -- first: `f =Θ (z-x₀)^N` ⇒ norms are Θ‑equivalent
+    have h₁ : (fun z : ℂ => ‖f z‖) =Θ[𝓝 (x₀ : ℂ)]
+        (fun z : ℂ => ‖(z - (x₀ : ℂ)) ^ N‖) := by
+      rw [Asymptotics.isTheta_norm_left, Asymptotics.isTheta_norm_right]
+      exact hTheta_f
+    -- but `‖(z - x₀)^N‖ = ‖z - x₀‖^N`
+    have h₂ :
+        (fun z : ℂ => ‖(z - (x₀ : ℂ)) ^ N‖) =ᶠ[𝓝 (x₀ : ℂ)]
+          fun z => ‖z - (x₀ : ℂ)‖ ^ (N : ℕ) := by
+      refine Filter.Eventually.of_forall ?_
+      intro z
+      simp [norm_pow]
+    exact h₁.trans_eventuallyEq h₂
+  -- Square the norms: `‖f z‖^2 =Θ ‖z-x₀‖^(2N)`
+  have hTheta_norm_sq :
+      (fun z : ℂ => ‖f z‖ ^ 2) =Θ[𝓝 (x₀ : ℂ)]
+        (fun z : ℂ => ‖z - (x₀ : ℂ)‖ ^ (2 * N)) := by
+    -- use Θ‑pow with exponent 2
+    have h := (Asymptotics.IsTheta.pow (f := fun z => ‖f z‖)
+        (g := fun z => ‖z - (x₀ : ℂ)‖ ^ (N : ℕ)) hTheta_norm 2)
+    -- simplify the right-hand side exponent
+    have h_exp :
+        (fun z : ℂ => (‖z - (x₀ : ℂ)‖ ^ (N : ℕ)) ^ (2 : ℕ)) =ᶠ[𝓝 (x₀ : ℂ)]
+          fun z => ‖z - (x₀ : ℂ)‖ ^ (2 * N) := by
+      refine Filter.Eventually.of_forall ?_
+      intro z
+      -- (a^N)^2 = a^(2*N)
+      simp [pow_mul]
+      ring_nf
+    -- rewrite both sides
+    have hL : (fun z : ℂ => ‖f z‖ ^ 2) =Θ[𝓝 (x₀ : ℂ)]
+        (fun z : ℂ => (‖z - (x₀ : ℂ)‖ ^ (N : ℕ)) ^ (2 : ℕ)) := h
+    exact hL.trans_eventuallyEq h_exp
+  -- Invert: `(‖f z‖^2)⁻¹ =Θ ‖z-x₀‖^(-2N)` along `𝓝 (x₀ : ℂ)`
+  have hTheta_inv :
+      (fun z : ℂ => (‖f z‖ ^ 2)⁻¹) =Θ[𝓝 (x₀ : ℂ)]
+        (fun z : ℂ => ‖z - (x₀ : ℂ)‖ ^ (- (2 * N : ℤ))) := by
+    -- view powers as integer powers for inversion
+    -- First, express both sides with zpow and then apply `IsTheta.inv`
+    have h_zpow :
+        (fun z : ℂ => ‖f z‖ ^ (2 : ℕ)) =Θ[𝓝 (x₀ : ℂ)]
+          (fun z : ℂ => ‖z - (x₀ : ℂ)‖ ^ (2 * N)) := hTheta_norm_sq
+    have h_zpow' :
+        (fun z : ℂ => ‖f z‖ ^ (2 : ℕ)) =Θ[𝓝 (x₀ : ℂ)]
+          (fun z : ℂ => ‖z - (x₀ : ℂ)‖ ^ (2 * N)) :=
+      h_zpow
+    -- apply Θ‑inversion
+    have h_inv :
+        (fun z : ℂ => (‖f z‖ ^ 2)⁻¹) =Θ[𝓝 (x₀ : ℂ)]
+          (fun z : ℂ => (‖z - (x₀ : ℂ)‖ ^ (2 * N))⁻¹) :=
+      Asymptotics.IsTheta.inv
+        (l := 𝓝 (x₀ : ℂ))
+        (f := fun z => ‖f z‖ ^ 2)
+        (g := fun z => ‖z - (x₀ : ℂ)‖ ^ (2 * N))
+        h_zpow'
+    -- rewrite RHS as a negative integer power
+    have h_rewrite :
+        (fun z : ℂ => (‖z - (x₀ : ℂ)‖ ^ (2 * N))⁻¹) =ᶠ[𝓝 (x₀ : ℂ)]
+          fun z => ‖z - (x₀ : ℂ)‖ ^ (- (2 * N : ℤ)) := by
+      refine Filter.Eventually.of_forall ?_
+      intro z
+      -- (‖z - x₀‖^(2*N))⁻¹ = ‖z - x₀‖^(-(2*N))
+      simp [zpow_neg]; rfl
+    -- clean up both sides
+    have hL :
+        (fun z : ℂ => (‖f z‖ ^ (2 : ℕ))⁻¹) =Θ[𝓝 (x₀ : ℂ)]
+          (fun z : ℂ => (‖z - (x₀ : ℂ)‖ ^ (2 * N))⁻¹) := h_inv
+    have hL' :
+        (fun z : ℂ => (‖f z‖ ^ 2)⁻¹) =Θ[𝓝 (x₀ : ℂ)]
+          (fun z : ℂ => (‖z - (x₀ : ℂ)‖ ^ (2 * N))⁻¹) := by
+      simpa using hL
+    exact hL'.trans_eventuallyEq h_rewrite
+  -- Now restrict to the real line: `x : ℝ ↦ z := (x : ℂ)`.
+  -- On reals, `‖(x:ℂ) - (x₀:ℂ)‖ = |x - x₀|`.
+  have hTheta_real :
+      (fun x : ℝ => (‖E x‖ ^ 2)⁻¹) =Θ[𝓝 x₀]
+        (fun x : ℝ => |x - x₀| ^ (- (2 * N : ℤ))) := by
+    -- First, pull back `hTheta_inv` along the inclusion `ℝ → ℂ`.
+    have hO₁ :
+        (fun x : ℝ => (‖f (x : ℂ)‖ ^ 2)⁻¹) =O[𝓝 x₀]
+          (fun x : ℝ => ‖(x : ℂ) - (x₀ : ℂ)‖ ^ (- (2 * N : ℤ))) :=
+      (hTheta_inv.isBigO).comp_tendsto (continuous_ofReal.tendsto x₀)
+    have hO₂ :
+        (fun x : ℝ => ‖(x : ℂ) - (x₀ : ℂ)‖ ^ (- (2 * N : ℤ))) =O[𝓝 x₀]
+          (fun x : ℝ => (‖f (x : ℂ)‖ ^ 2)⁻¹) :=
+      (hTheta_inv.isBigO_symm).comp_tendsto (continuous_ofReal.tendsto x₀)
+    -- Rewrite using `f = E`.
+    have hO₁' :
+        (fun x : ℝ => (‖E x‖ ^ 2)⁻¹) =O[𝓝 x₀]
+          (fun x : ℝ => ‖(x : ℂ) - (x₀ : ℂ)‖ ^ (- (2 * N : ℤ))) := by
+      simpa [f] using hO₁
+    have hO₂' :
+        (fun x : ℝ => ‖(x : ℂ) - (x₀ : ℂ)‖ ^ (- (2 * N : ℤ))) =O[𝓝 x₀]
+          (fun x : ℝ => (‖E x‖ ^ 2)⁻¹) := by
+      simpa [f] using hO₂
+    -- This gives Θ-asymptotics with the complex norm on the right-hand side.
+    have hTheta_real' :
+        (fun x : ℝ => (‖E x‖ ^ 2)⁻¹) =Θ[𝓝 x₀]
+          (fun x : ℝ => ‖(x : ℂ) - (x₀ : ℂ)‖ ^ (- (2 * N : ℤ))) :=
+      ⟨hO₁', hO₂'⟩
+    -- Replace `‖(x:ℂ) - (x₀:ℂ)‖` with `|x - x₀|`.
+    have h_eq_abs :
+        (fun x : ℝ => ‖(x : ℂ) - (x₀ : ℂ)‖ ^ (- (2 * N : ℤ)))
+          =ᶠ[𝓝 x₀] fun x : ℝ => |x - x₀| ^ (- (2 * N : ℤ)) := by
+      refine Filter.Eventually.of_forall ?_
+      intro x
+      have hbase : ‖(x : ℂ) - (x₀ : ℂ)‖ = ‖x - x₀‖ := by
+        simpa [Complex.ofReal_sub] using (Complex.norm_real (x - x₀))
+      simp [hbase, Real.norm_eq_abs]
+    exact hTheta_real'.trans_eventuallyEq h_eq_abs
+
+  -- Finally, rewrite the RHS in the requested Real form with exponent `-2 * (N : ℝ)`
+  -- and take C = 1 > 0.
+  refine ⟨N, ?_, 1, by norm_num, ?_⟩
+  · -- the order condition comes directly from `isTheta_at_zero_order`
+    intro hx0
+    exact hNpos (by
+      -- `f x₀ = 0` is the same as `E x₀ = 0`
+      simpa using congrArg id hx0)
+  · -- clean up the exponent and constant on reals
+    -- `|x - x₀| ^ (- (2 * N : ℤ))` is (up to rewriting) exactly
+    -- `1 * |x - x₀| ^ (-2 * (N : ℝ))`.
+    -- Thus, by `IsTheta.isTheta_congr_right`, we get the desired form.
+    have h_exp :
+        (fun x : ℝ => |x - x₀| ^ (- (2 * N : ℤ))) =ᶠ[𝓝 x₀]
+          fun x : ℝ => |x - x₀| ^ (-2 * (N : ℝ)) := by
+      -- On `ℝ`, integer and real powers agree when the exponent is an integer.
+      refine Filter.Eventually.of_forall ?_
+      intro x
+      have h_exponent :
+          ((- (2 * N : ℤ)) : ℝ) = (-2 : ℝ) * (N : ℝ) := by
+        -- Simplify the cast of `-(2 * N)` from `ℤ` to `ℝ`.
+        -- The result is `-2 * (N : ℝ)`.
+        simp [mul_comm]
+      calc
+        |x - x₀| ^ (- (2 * N : ℤ))
+            = |x - x₀| ^ ((- (2 * N : ℤ)) : ℝ) := by
+                simpa [Real.rpow_intCast] using
+                  (Real.rpow_intCast (|x - x₀|) (- (2 * N : ℤ))).symm
+        _ = |x - x₀| ^ (-2 * (N : ℝ)) := by
+                simp
+    -- combine
+    -- first, rewrite the left-hand side of `hTheta_real` using `weight`
+    have hTheta_real' :
+        (fun x : ℝ => E.weight x) =Θ[𝓝 x₀]
+          fun x : ℝ => |x - x₀| ^ (- (2 * N : ℤ)) := by
+      simpa [DeBrangesFunction.weight] using hTheta_real
+    -- then transport along the eventual equality on the right-hand side
+    have hTheta_real'' :
+        (fun x : ℝ => E.weight x) =Θ[𝓝 x₀]
+          fun x : ℝ => |x - x₀| ^ (-2 * (N : ℝ)) :=
+      hTheta_real'.trans_eventuallyEq h_exp
+    -- finally, insert the trivial constant factor `1`
+    simpa [DeBrangesFunction.weight, one_mul] using hTheta_real''
+
+open Set
 
 /--
 **Theorem:** The de Branges measure `μ_E` is locally finite if and only if `E` has no real zeros,
@@ -326,13 +587,236 @@ lemma locallyFiniteMeasure_iff_no_real_zeros (hE_not_zero : E.toFun ≠ 0) :
   constructor
   · -- (⇒) Locally finite ⇒ no real zeros.
     intro hLocFin
+    -- Use the instance coming from the hypothesis.
+    have _ : IsLocallyFiniteMeasure E.measure := hLocFin
     by_contra h_exists_zero
     push_neg at h_exists_zero
     rcases h_exists_zero with ⟨x₀, hx₀⟩
-    -- From `weight_asymptotics_near_real_point`, near `x₀` the weight looks like
-    -- `C * |x - x₀|^{-2N}` with `N ≥ 1`, which is not locally integrable by the p-test.
-    -- This contradicts local finiteness of `E.measure`.
-    sorry
+    -- Asymptotics of the weight near the real zero `x₀`.
+    obtain ⟨N, hNpos, C, hCpos, hTheta_weight⟩ :=
+      E.weight_asymptotics_near_real_point (x₀ := x₀) hE_not_zero
+    have hN_ge1 : 1 ≤ N := hNpos hx₀
+
+    -- From local finiteness of `E.measure`, pick an open neighbourhood `U` of `x₀`
+    -- with finite measure.
+    rcases (E.measure.exists_isOpen_measure_lt_top x₀) with
+      ⟨U, hxU, hUopen, hμU_lt⟩
+    have hU_mem : U ∈ 𝓝 x₀ := hUopen.mem_nhds hxU
+    have hU_meas : MeasurableSet U := hUopen.measurableSet
+
+    -- Express `E.measure U` as a lower Lebesgue integral of the density.
+    have hμU_ne :
+        (∫⁻ x in U, E.density x ∂(volume)) ≠ ⊤ := by
+      have hμU_ne' : E.measure U ≠ ⊤ := hμU_lt.ne
+      -- `withDensity_apply` identifies the measure of `U` with the integral of the density.
+      simpa [DeBrangesFunction.measure, hU_meas] using hμU_ne'
+
+    -- View this as an integral with respect to `volume.restrict U`.
+    have hμU_ne_restrict :
+        (∫⁻ x, E.density x ∂(volume.restrict U)) ≠ ⊤ := by
+      -- By definition, `∫⁻ x in U, _ ∂volume` is the same as
+      -- `∫⁻ x, _ ∂(volume.restrict U)`.
+      simpa using hμU_ne
+
+    -- Finite integral of the (non-negative) density gives finite integral
+    -- of its `toReal`, i.e. of the real-valued weight.
+    have hfi_density :
+        HasFiniteIntegral (fun x => (E.density x).toReal) (volume.restrict U) :=
+      hasFiniteIntegral_toReal_of_lintegral_ne_top hμU_ne_restrict
+
+    -- The density is `ofReal (E.weight x)`, and `E.weight x ≥ 0` for all `x`.
+    have hweight_nonneg (x : ℝ) : 0 ≤ E.weight x := by
+      dsimp [DeBrangesFunction.weight]
+      have : 0 ≤ ‖E x‖ ^ 2 := by
+        have hnorm_nonneg : (0 : ℝ) ≤ ‖E x‖ := norm_nonneg _
+        exact pow_two_nonneg _
+      exact inv_nonneg.mpr this
+
+    have hfi_weight :
+        HasFiniteIntegral E.weight (volume.restrict U) := by
+      -- Pointwise identification of `(E.density x).toReal` with `E.weight x`.
+      have h_eq :
+          (fun x => (E.density x).toReal) = E.weight := by
+        funext x
+        have hx : 0 ≤ E.weight x := hweight_nonneg x
+        -- `density x = ofReal (weight x)`.
+        simp [DeBrangesFunction.density, DeBrangesFunction.weight]
+      simpa [h_eq] using hfi_density
+
+    -- Hence the weight is integrable on `U` with respect to Lebesgue measure.
+    have hInt_weight_U : IntegrableOn E.weight U volume := by
+      -- `IntegrableOn` is just integrability with respect to `volume.restrict U`.
+      have :
+          Integrable E.weight (volume.restrict U) :=
+        ⟨E.measurable_weight.aestronglyMeasurable, hfi_weight⟩
+      simpa [IntegrableOn] using this
+
+    -- So `E.weight` is integrable at the filter `𝓝 x₀`.
+    have hIntAt_weight :
+        IntegrableAtFilter E.weight (𝓝 x₀) volume :=
+      ⟨U, hU_mem, hInt_weight_U⟩
+
+    -- Let `g` be the model singularity `C * |x - x₀|^{-2N}`.
+    let g : ℝ → ℝ := fun x =>
+      C * |x - x₀| ^ (-2 * (N : ℝ))
+
+    -- From `IsTheta`, we know `g =O[𝓝 x₀] E.weight`.
+    have hBigO_g_weight :
+        g =O[𝓝 x₀] (fun x : ℝ => E.weight x) :=
+      (hTheta_weight.symm).isBigO
+
+    -- Extract a neighbourhood on which we have the pointwise domination
+    -- `‖g x‖ ≤ c * ‖E.weight x‖`.
+    obtain ⟨c, hc_pos, hc_bound⟩ :=
+        (Asymptotics.isBigO_iff' (f := g)
+          (g := fun x : ℝ => E.weight x) (l := 𝓝 x₀)).1 hBigO_g_weight
+    -- First get some `T₀ ∈ 𝓝 x₀` where the bound holds.
+    obtain ⟨T₀, hT₀_mem, hT₀_forall⟩ :
+        ∃ T ∈ 𝓝 x₀, ∀ x ∈ T, ‖g x‖ ≤ c * ‖E.weight x‖ :=
+      Filter.Eventually.exists_mem hc_bound
+    -- Shrink to an open neighbourhood `T ⊆ T₀` for measurability.
+    rcases mem_nhds_iff.1 hT₀_mem with ⟨T, hT_subset, hT_open, hT_x₀⟩
+    have hT_mem : T ∈ 𝓝 x₀ := hT_open.mem_nhds hT_x₀
+    have hT_forall : ∀ x ∈ T, ‖g x‖ ≤ c * ‖E.weight x‖ := by
+      intro x hxT
+      exact hT₀_forall x (hT_subset hxT)
+
+    -- Work on the intersection `S = U ∩ T`, which is still a neighbourhood of `x₀`.
+    set S : Set ℝ := U ∩ T
+    have hS_mem : S ∈ 𝓝 x₀ := inter_mem hU_mem hT_mem
+    have hS_subset_U : S ⊆ U := inter_subset_left
+    have hT_meas : MeasurableSet T := hT_open.measurableSet
+    have hS_meas : MeasurableSet S := hU_meas.inter hT_meas
+
+    -- `E.weight` is integrable on `S`.
+    have hInt_weight_S : IntegrableOn E.weight S volume :=
+      hInt_weight_U.mono_set hS_subset_U
+
+    -- On `S`, we have the domination `‖g x‖ ≤ c * ‖E.weight x‖`.
+    have hDom_S :
+        ∀ᵐ x ∂(volume.restrict S),
+          ‖g x‖ ≤ c * ‖E.weight x‖ := by
+      -- Pointwise bound on `S`.
+      have h_forall :
+          ∀ x, x ∈ S → ‖g x‖ ≤ c * ‖E.weight x‖ := by
+        intro x hxS
+        exact hT_forall x hxS.2
+      -- First, restrict the global statement with the implication `x ∈ S → …`.
+      have hAE :
+          ∀ᵐ x ∂(volume.restrict S),
+            x ∈ S → ‖g x‖ ≤ c * ‖E.weight x‖ :=
+        ae_restrict_of_ae (μ := volume) (Filter.Eventually.of_forall h_forall)
+      -- Under `volume.restrict S`, we have `x ∈ S` almost everywhere.
+      have hAE_mem :
+          ∀ᵐ x ∂(volume.restrict S), x ∈ S :=
+        ae_restrict_mem (μ := volume) (s := S) hS_meas
+      -- Combine to drop the hypothesis `x ∈ S`.
+      refine (hAE.and hAE_mem).mono ?_
+      intro x hx
+      exact hx.1 hx.2
+
+    -- Integrability of the majorant `x ↦ c * E.weight x` on `S`.
+    have hInt_major :
+        Integrable (fun x => c * E.weight x) (volume.restrict S) := by
+      have hInt_weight :
+          Integrable E.weight (volume.restrict S) := by
+        -- `IntegrableOn` over `S` is the same as integrability w.r.t. `volume.restrict S`.
+        simpa [IntegrableOn] using hInt_weight_S
+      -- Constant multiple of an integrable function is integrable.
+      simpa using hInt_weight.const_mul c
+
+    -- Hence `g` is integrable on `S` by comparison.
+    have hInt_g_S :
+        Integrable g (volume.restrict S) :=
+      Integrable.mono'
+        (hg := hInt_major)
+        (hf := by
+          -- `g` is measurable, hence a.e.-strongly measurable with respect to `volume.restrict S`.
+          -- We obtain `AEStronglyMeasurable` via the equivalence with `AEMeasurable` on `ℝ`.
+          have hg_meas : Measurable g := by
+            -- `g x = C * |x - x₀| ^ (-2 * (N : ℝ))`
+            fun_prop
+          have hg_aemeas : AEMeasurable g (volume.restrict S) :=
+            Measurable.aemeasurable hg_meas
+          -- In a second countable Borel space like `ℝ`, `AEMeasurable` and `AEStronglyMeasurable`
+          -- are equivalent.
+          exact
+            (aestronglyMeasurable_iff_aemeasurable
+              (μ := volume.restrict S) (f := g)).2 hg_aemeas)
+        (h := by
+          -- Turn the domination on `S` into an a.e. inequality with a real-valued majorant.
+          -- On `S`, we have `‖g x‖ ≤ c * ‖E.weight x‖` almost everywhere, and `E.weight x ≥ 0`,
+          -- so `‖E.weight x‖ = E.weight x`.
+          refine hDom_S.mono ?_
+          intro x hx
+          have hx0 : 0 ≤ E.weight x := hweight_nonneg x
+          -- simplify the norm on `ℝ`
+          simpa [Real.norm_eq_abs, abs_of_nonneg hx0] using hx)
+
+    have hInt_g_S' : IntegrableOn g S volume := by
+      simpa [IntegrableOn] using hInt_g_S
+
+    -- Thus `g` is integrable at the filter `𝓝 x₀`.
+    have hIntAt_g :
+        IntegrableAtFilter g (𝓝 x₀) volume :=
+      ⟨S, hS_mem, hInt_g_S'⟩
+
+    -- Remove the harmless positive constant `C` from `g`.
+    have hIntAt_model :
+        IntegrableAtFilter
+          (fun x : ℝ => |x - x₀| ^ (-2 * (N : ℝ)))
+          (𝓝 x₀) volume := by
+      -- On `S`, `g` is integrable, hence so is its constant multiple `C⁻¹ • g`.
+      refine ⟨S, hS_mem, ?_⟩
+      have hInt_Cinv_g :
+          IntegrableOn (fun x : ℝ => C⁻¹ * g x) S volume := by
+        -- View `IntegrableOn` over `S` as integrability w.r.t. `volume.restrict S`.
+        have hgS : Integrable g (volume.restrict S) := by
+          simpa [IntegrableOn] using hInt_g_S'
+        have hCinv : Integrable (fun x : ℝ => C⁻¹ * g x) (volume.restrict S) :=
+          hgS.const_mul C⁻¹
+        simpa [IntegrableOn] using hCinv
+      -- Rewrite `C⁻¹ * g` as the model function on `S`.
+      have hC_ne : (C : ℝ) ≠ 0 := ne_of_gt hCpos
+      have hEqOn :
+          EqOn (fun x : ℝ => C⁻¹ * g x)
+               (fun x : ℝ => |x - x₀| ^ (-2 * (N : ℝ))) S := by
+        intro x hx
+        dsimp [g]
+        -- `C⁻¹ * (C * a) = a`
+        have : C⁻¹ * (C * |x - x₀| ^ (-2 * (N : ℝ))) = |x - x₀| ^ (-2 * (N : ℝ)) := by
+          have := inv_mul_cancel_left₀ hC_ne (|x - x₀| ^ (-2 * (N : ℝ)))
+          simpa [mul_comm, mul_left_comm, mul_assoc] using this
+        simpa [this]
+      exact hInt_Cinv_g.congr_fun hEqOn hS_meas
+
+    -- Apply the p-test: local integrability of `|x - x₀|^{-p}` forces `p < 1`.
+    have h_exp_lt :
+        2 * (N : ℝ) < 1 := by
+      -- `integrableAtFilter_abs_sub_rpow_neg` is stated for exponent `-p`,
+      -- so take `p := 2 * (N : ℝ)`.
+      have h_lemm :=
+        (integrableAtFilter_abs_sub_rpow_neg (x₀ := x₀) (p := 2 * (N : ℝ))).1
+      -- Rewrite the model function into the required form.
+      have h_exponent : (-2 : ℝ) * (N : ℝ) = -(2 * (N : ℝ)) := by ring
+      have hIntAt_model' :
+          IntegrableAtFilter
+            (fun x : ℝ => |x - x₀| ^ (-(2 * (N : ℝ)))) (𝓝 x₀) volume := by
+        simpa [h_exponent] using hIntAt_model
+      -- Now apply the lemma.
+      exact h_lemm hIntAt_model'
+
+    -- But `N ≥ 1` contradicts `2 * (N : ℝ) < 1`.
+    have h_ge : (2 : ℝ) ≤ 2 * (N : ℝ) := by
+      have hN_ge1_real : (1 : ℝ) ≤ N := by
+        exact_mod_cast hN_ge1
+      have h2_pos : (0 : ℝ) ≤ (2 : ℝ) := by norm_num
+      -- Multiply the inequality `1 ≤ N` by `2`.
+      have := mul_le_mul_of_nonneg_left hN_ge1_real h2_pos
+      simpa [two_mul, one_mul] using this
+    -- From `2 ≤ 2N < 1` we get `2 < 1`, impossible.
+    have : (2 : ℝ) < 1 := lt_of_le_of_lt h_ge h_exp_lt
+    linarith
   · -- (⇐) No real zeros ⇒ locally finite.
     intro hNoZeros
     -- If no real zeros, `(‖E x‖^2)⁻¹` is continuous on `ℝ` and hence defines a locally finite
@@ -355,7 +839,7 @@ I'll address both parts of your question about mathlib4's treatment of these top
 
 ## Order of Zeros and Factorization for Analytic Functions
 
-Mathlib4 defines the **order of vanishing** (order of zeros) in `Mathlib/Analysis/Analytic/Order.lean` through the function `analyticOrderAt`, which returns the unique `n : ℕ∞` such that an analytic function can be factored as `f(z) = (z - z₀)^n • g(z)` where `g` is analytic and non-vanishing at `z₀`. [1](#3-0)
+Mathlib4 defines the **order of vanishing** (order of zeros) in `Mathlib/Analysis/Analytic/Order.lean` through the function `analyticOrderAt`, which returns the unique `n : ℕ⊤` such that an analytic function can be factored as `f(z) = (z - z₀)^n • g(z)` where `g` is analytic and non-vanishing at `z₀`. [1](#3-0)
 
 The key characterization theorem states that `analyticOrderAt f z₀ = n` if and only if there exists an analytic function `g` with `g(z₀) ≠ 0` such that `f z = (z - z₀) ^ n • g z` holds eventually near `z₀`: [2](#3-1)
 
@@ -389,15 +873,15 @@ The corresponding result for interval integrability is: [7](#3-6)
 
 **File:** Mathlib/Analysis/Analytic/Order.lean (L32-44)
 ```text
-/-- The order of vanishing of `f` at `z₀`, as an element of `ℕ∞`.
+/-- The order of vanishing of `f` at `z₀`, as an element of `ℕ⊤`.
 
-The order is defined to be `∞` if `f` is identically 0 on a neighbourhood of `z₀`, and otherwise the
+The order is defined to be `⊤` if `f` is identically 0 on a neighbourhood of `z₀`, and otherwise the
 unique `n` such that `f` can locally be written as `f z = (z - z₀) ^ n • g z`, where `g` is analytic
 and does not vanish at `z₀`. See `AnalyticAt.analyticOrderAt_eq_top` and
 `AnalyticAt.analyticOrderAt_eq_natCast` for these equivalences.
 
 If `f` isn't analytic at `z₀`, then `analyticOrderAt f z₀` returns a junk value of `0`. -/
-noncomputable def analyticOrderAt (f : 𝕜 → E) (z₀ : 𝕜) : ℕ∞ :=
+noncomputable def analyticOrderAt (f : 𝕜 → E) (z₀ : 𝕜) : ℕ⊤ :=
   if hf : AnalyticAt 𝕜 f z₀ then
     if h : ∀ᶠ z in 𝓝 z₀, f z = 0 then ⊤
     else ↑(hf.exists_eventuallyEq_pow_smul_nonzero_iff.mpr h).choose
