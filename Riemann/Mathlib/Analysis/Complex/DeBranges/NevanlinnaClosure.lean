@@ -71,6 +71,7 @@ lemma IsBoundedOnUpperHalfPlane.smul {f : ℂ → ℂ} (c : ℂ)
     _ ≤ ‖c‖ * C := by
       exact mul_le_mul_of_nonneg_left hfz (norm_nonneg _)
 
+
 /-- Boundedness is preserved under pointwise multiplication. -/
 lemma IsBoundedOnUpperHalfPlane.mul {f g : ℂ → ℂ}
     (hf : IsBoundedOnUpperHalfPlane f)
@@ -252,6 +253,18 @@ lemma smul (hf : IsDeBrangesAdmissible f) (c : ℂ) :
     have h_le : meanType (fun z => c * f z) ≤ meanType f :=
       meanType_smul_le c f
     exact h_le.trans hf.mean_type_nonpos
+
+/-- Admissibility is closed under subtraction. -/
+lemma sub (hf : IsDeBrangesAdmissible f) (hg : IsDeBrangesAdmissible g) :
+    IsDeBrangesAdmissible (fun z => f z - g z) := by
+  -- `f - g = f + (-1) * g`, so use `add` and `smul`.
+  have h_neg_g :
+      IsDeBrangesAdmissible (fun z => (-1 : ℂ) * g z) :=
+    smul (hf := hg) (-1)
+  have h_add :
+      IsDeBrangesAdmissible (fun z => f z + (-1 : ℂ) * g z) :=
+    add hf h_neg_g
+  simpa [sub_eq_add_neg, mul_comm] using h_add
 
 end IsDeBrangesAdmissible
 end Complex
