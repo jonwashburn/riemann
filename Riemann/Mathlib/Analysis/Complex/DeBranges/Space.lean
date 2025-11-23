@@ -1,14 +1,7 @@
 -- Mathlib/Analysis/Complex/DeBranges/Space.lean
-
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Basic
-import Riemann.Mathlib.Analysis.Complex.DeBranges.NevanlinnaClosure
 import Riemann.Mathlib.Analysis.Complex.ConjugateReflection
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Measure
-
-import Mathlib.MeasureTheory.Function.L2Space
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Analytic.Uniqueness
-import Mathlib
+import Riemann.Mathlib.Analysis.Complex.DeBranges.NevanlinnaClosure
 
 /-!
 # de Branges spaces

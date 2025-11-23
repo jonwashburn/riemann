@@ -1,3 +1,4 @@
+import Mathlib.Analysis.Complex.RemovableSingularity
 import Riemann.Mathlib.Analysis.Complex.ConjugateReflection
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Basic
 
