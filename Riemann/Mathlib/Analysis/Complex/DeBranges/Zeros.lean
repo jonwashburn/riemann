@@ -1,7 +1,12 @@
+import Mathlib.Analysis.Complex.CauchyIntegral
+import Mathlib.Analysis.SpecialFunctions.Integrability.Basic
+import Mathlib.Data.Real.StarOrdered
+import Mathlib.MeasureTheory.Constructions.Polish.Basic
+import Mathlib.MeasureTheory.Measure.Haar.Unique
+import Mathlib.MeasureTheory.Order.Group.Lattice
+import Mathlib.Topology.EMetricSpace.Paracompact
+import Mathlib.Topology.Separation.CompletelyRegular
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Basic
-import Mathlib
-import PrimeNumberTheoremAnd
-import StrongPNT
 
 /-!
 # Infrastructure for Zeros of Analytic Functions and Local Integrability
@@ -129,8 +134,6 @@ lemma isTheta_at_zero_order {f : ℂ → ℂ} (hf : Differentiable ℂ f) (hf_ne
     h_ev_mul.isTheta
   -- Next, show g is Θ to the constant g z₀, using continuity and g z₀ ≠ 0.
   have h_cont_g : ContinuousAt g z₀ := hg_an.continuousAt
-  -- Next, show g is Θ to the constant g z₀, using continuity and g z₀ ≠ 0.
-  have h_cont_g : ContinuousAt g z₀ := hg_an.continuousAt
   have hTheta_g_const :
       (fun z => g z) =Θ[𝓝 z₀] fun _ => g z₀ := by
     -- Consider h(z) = g z - g z₀, which tends to 0 at z₀.
@@ -148,8 +151,9 @@ lemma isTheta_at_zero_order {f : ℂ → ℂ} (hf : Differentiable ℂ f) (hf_ne
         (fun _ : ℂ => g z₀) =Θ[𝓝 z₀] (fun z => h z + g z₀) :=
       Asymptotics.IsLittleO.right_isTheta_add h_littleO_const
     have h_eq : (fun z => h z + g z₀) =ᶠ[𝓝 z₀] g := by
-      filter_upwards [Filter.Eventually.of_forall (fun z => by assumption [h])] with z hz
-      aesop
+      refine Filter.Eventually.of_forall ?_
+      intro z
+      simp [h]
     exact (hTheta_const_g.trans_eventuallyEq h_eq).symm
   -- Combine Θ for g with Θ for the factor (z - z₀)^N.
   have hTheta_prod :
@@ -338,16 +342,20 @@ lemma locallyIntegrable_abs_sub_rpow_neg (x₀ : ℝ) (p : ℝ) :
       simpa using (integrableAtFilter_abs_sub_rpow_neg x p).2 hp
     · -- `x ≠ x₀`: function is continuous at x
       have h_cont : ContinuousOn (fun y => |y - x₀| ^ (-p)) {y | y ≠ x₀} := by
-        apply ContinuousOn.rpow
-        · apply ContinuousOn.abs
-          apply ContinuousOn.sub continuousOn_id continuousOn_const
-        · exact continuousOn_const
-        · intro y hy
-          -- We need to show the base is non-zero or exponent is positive
-          -- Since hy : y ∈ {y | y ≠ x₀}, we have |y - x₀| > 0
-          try left -- In case the goal is a disjunction
-          simp only [abs_ne_zero, ne_eq, sub_eq_zero]
-          exact hy
+        -- base: y ↦ |y - x₀| is continuous on `{y | y ≠ x₀}`
+        have h_base : ContinuousOn (fun y : ℝ => |y - x₀|) {y | y ≠ x₀} := by
+          refine (Continuous.continuousOn ?_).abs
+          exact (continuous_id.sub continuous_const)
+        -- exponent: constant function y ↦ -p is continuous
+        have h_exp : ContinuousOn (fun _ : ℝ => -p) {y | y ≠ x₀} :=
+          continuous_const.continuousOn
+        -- apply the real power continuity lemma
+        refine ContinuousOn.rpow h_base h_exp ?_
+        intro y hy
+        -- on `{y | y ≠ x₀}`, the base is nonzero
+        left
+        have hy' : y - x₀ ≠ 0 := sub_ne_zero.mpr hy
+        exact abs_ne_zero.mpr hy'
       have h_open : IsOpen {y : ℝ | y ≠ x₀} := isOpen_ne
       have h_mem : x ∈ {y : ℝ | y ≠ x₀} := hx
       rw [← nhdsWithin_eq_nhds.mpr (IsOpen.mem_nhds h_open h_mem)]
@@ -834,6 +842,76 @@ lemma locallyFiniteMeasure_iff_no_real_zeros (hE_not_zero : E.toFun ≠ 0) :
         exact ne_of_gt (pow_pos hpos 2))
     exact MeasureTheory.IsLocallyFiniteMeasure.withDensity_ofReal continuous_weight
 
+
+/-- Convenience version of `locallyFiniteMeasure_iff_no_real_zeros` that does not
+require an explicit `E ≠ 0` hypothesis, since a de Branges function is never
+identically zero. -/
+lemma locallyFiniteMeasure_iff_no_real_zeros'
+    (E : DeBrangesFunction) :
+    IsLocallyFiniteMeasure E.measure ↔ ∀ x : ℝ, E x ≠ 0 :=
+  locallyFiniteMeasure_iff_no_real_zeros
+    (E := E) (hE_not_zero := DeBrangesFunction.not_identically_zero E)
+
+end DeBrangesFunction
+
+/-! ### 4. Bridge lemmas for `HermiteBiehlerFunction` -/
+
+namespace HermiteBiehlerFunction
+
+variable (E : HermiteBiehlerFunction)
+
+/-- On the real line, the de Branges weight attached to a Hermite–Biehler
+function agrees with the de Branges weight of its underlying
+`DeBrangesFunction`. -/
+lemma weight_eq_deBranges_weight (x : ℝ) :
+    E.weight x = DeBrangesFunction.weight E.toDeBrangesFunction x := by
+  -- Both sides are definitionally `(‖E x‖ ^ 2)⁻¹`.
+  rfl
+
+/-- On the real line, the `ENNReal`-valued de Branges density attached to a
+Hermite–Biehler function agrees with the density of its underlying
+`DeBrangesFunction`. -/
+lemma density_eq_deBranges_density (x : ℝ) :
+    E.density x = DeBrangesFunction.density E.toDeBrangesFunction x := by
+  -- Both sides are `ENNReal.ofReal` of the corresponding weights.
+  rfl
+
+/-- The de Branges measure attached to a Hermite–Biehler function agrees with
+the de Branges measure of its underlying `DeBrangesFunction`. -/
+lemma measure_eq_deBranges_measure :
+    E.measure = DeBrangesFunction.measure E.toDeBrangesFunction := by
+  -- The two measures are `withDensity` of equal densities.
+  -- We prove equality by extensionality on measurable sets.
+  ext s hs
+  simp [HermiteBiehlerFunction.measure, DeBrangesFunction.measure]
+  aesop
+
+/-- Specialization of `DeBrangesFunction.locallyFiniteMeasure_iff_no_real_zeros`
+to Hermite–Biehler functions, using the bridge lemmas above. -/
+lemma locallyFiniteMeasure_iff_no_real_zeros_hermite :
+    IsLocallyFiniteMeasure E.measure ↔ ∀ x : ℝ, E x ≠ 0 := by
+  -- Work with the underlying de Branges function.
+  have h :=
+    DeBrangesFunction.locallyFiniteMeasure_iff_no_real_zeros'
+      (E := E.toDeBrangesFunction)
+  -- Rewrite the left-hand side using the measure bridge lemma.
+  have h_left :
+      IsLocallyFiniteMeasure E.measure ↔
+        IsLocallyFiniteMeasure (DeBrangesFunction.measure E.toDeBrangesFunction) := by
+    constructor <;> intro hμ
+    · simpa [measure_eq_deBranges_measure E] using hμ
+    · simpa [measure_eq_deBranges_measure E] using hμ
+  -- Rewrite the right-hand side using the definitional equality `E x = _`.
+  have h_right :
+      (∀ x : ℝ, E.toDeBrangesFunction x ≠ 0) ↔ ∀ x : ℝ, E x ≠ 0 := by
+    constructor
+    · intro h x; simpa using h x
+    · intro h x; simpa using h x
+  -- Combine the equivalence with the two rewrites.
+  exact (h_left.trans h).trans h_right
+
+end HermiteBiehlerFunction
+
 /-
 I'll address both parts of your question about mathlib4's treatment of these topics.
 
@@ -1003,4 +1081,3 @@ lemma integrableOn_Ioo_rpow_iff {s t : ℝ} (ht : 0 < t) :
 ```
 
 -/
-end DeBrangesFunction
