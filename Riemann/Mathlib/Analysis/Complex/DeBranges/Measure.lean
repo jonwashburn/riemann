@@ -1,16 +1,4 @@
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Basic
-import Riemann.Mathlib.Analysis.Complex.ConjugateReflection
-import Mathlib.MeasureTheory.Measure.OpenPos
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Mathlib.MeasureTheory.Integral.Bochner.L1
-import Mathlib.MeasureTheory.Integral.Bochner.VitaliCaratheodory
-import Mathlib.Analysis.Complex.CauchyIntegral
-import Mathlib.Analysis.Complex.RemovableSingularity
-
-import Mathlib.Analysis.Calculus.Deriv.Star
-import Mathlib.Topology.Algebra.Module.Star
--- [Imports for ConjugateReflection and Nevanlinna sections omitted]
-
 import Mathlib
 
 /-!
@@ -94,6 +82,22 @@ instance : Measure.IsOpenPosMeasure E.measure := by
   rw [this]
   exact hUo.measure_pos volume hUne
 
+set_option maxHeartbeats 0 in
+/-- The de Branges measure associated with a Hermite–Biehler function is non-atomic.
+
+Since it is defined as a `withDensity` of Lebesgue measure by a positive continuous
+density, it has no atoms. This is convenient when working with pointwise
+identities that may fail on a (Lebesgue-)null set, e.g. at a single point. -/
+instance : MeasureTheory.NoAtoms E.measure := by
+  -- `E.measure` is `volume.withDensity E.density`, and Lebesgue measure `volume` on `ℝ` is non-atomic.
+  simpa [HermiteBiehlerFunction.measure] using
+    (MeasureTheory.noAtoms_withDensity (μ := (MeasureTheory.volume : Measure ℝ))
+      (f := E.density))
+
+/-- In particular, every singleton has `μ_E`-measure zero. -/
+lemma measure_singleton (x : ℝ) : E.measure {x} = 0 := by
+  simp
+
 end HermiteBiehlerFunction
 
 namespace HermiteBiehlerFunction
@@ -113,7 +117,7 @@ open scoped UpperHalfPlane ENNReal
 variable (E : HermiteBiehlerFunction)
 
 /-- The real-valued de Branges weight `(‖E x‖ ^ 2)⁻¹` is continuous. -/
-private lemma continuous_density_real :
+lemma continuous_density_real :
     Continuous fun x : ℝ => ((norm (E x)) ^ 2)⁻¹ := by
   -- This is exactly the `weight` from `Basic.lean`.
   simpa [HermiteBiehlerFunction.weight] using E.continuous_weight

@@ -167,6 +167,17 @@ noncomputable instance : AddCommGroup (Space E) :=
     rfl (fun _ _ => rfl) (fun _ => rfl) (fun _ _ => rfl)
     (fun _ _ => rfl) (fun _ _ => rfl)
 
+noncomputable instance : SMul ℂ (Space E) := ⟨fun c F => ⟨c • F.1, MemSpace.smul c F.2⟩⟩
+
+noncomputable instance : Module ℂ (Space E) where
+  smul c F := c • F
+  one_smul F := Subtype.ext (one_smul ℂ F.1)
+  mul_smul c d F := Subtype.ext (mul_smul c d F.1)
+  smul_zero c := Subtype.ext (smul_zero c)
+  smul_add c F G := Subtype.ext (smul_add c F.1 G.1)
+  add_smul c d F := Subtype.ext (add_smul c d F.1)
+  zero_smul F := Subtype.ext (zero_smul ℂ F.1)
+
 /-- Members of the de Branges space `B(E)` are entire functions. -/
 lemma entire (F : Space E) : Differentiable ℂ F :=
   F.property.entire
@@ -206,6 +217,14 @@ instance will be constructed once the algebraic closure properties of
 `MemSpace` are available. -/
 noncomputable def inner (F G : Space E) : ℂ :=
   ⟪toLp (E := E) F, toLp (E := E) G⟫_ℂ
+
+@[simp]
+lemma toLp_add (F G : Space E) : toLp (E := E) (F + G) = toLp (E := E) F + toLp (E := E) G :=
+  rfl
+
+@[simp]
+lemma toLp_smul (c : ℂ) (F : Space E) : toLp (E := E) (c • F) = c • toLp (E := E) F :=
+  rfl
 
 /-- The embedding `toLp : B(E) → L²(μ_E)` is injective: if two elements of the
 de Branges space have the same image in `L²(μ_E)`, then they are equal as
@@ -358,6 +377,21 @@ lemma toLp_isometry : Isometry (toLp (E := E)) := by
   intro F G
   rfl
 
+noncomputable instance : NormedSpace ℂ (Space E) where
+  norm_smul_le c F := by
+    rw [norm_def, toLp_smul (E := E), norm_smul]
+    exact le_rfl
+
+noncomputable instance : InnerProductSpace ℂ (Space E) where
+  inner := inner (E := E)
+  norm_sq_eq_re_inner F := by
+    rw [norm_def, inner, InnerProductSpace.norm_sq_eq_re_inner (𝕜 := ℂ)]
+  conj_inner_symm F G := by
+    simp [inner]
+  add_left F G H := by
+    simp [inner, toLp_add (E := E), InnerProductSpace.add_left (𝕜 := ℂ)]
+  smul_left F G c := by
+    simp [inner, toLp_smul (E := E), InnerProductSpace.smul_left (𝕜 := ℂ)]
 
 end Space
 end DeBranges
