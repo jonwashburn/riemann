@@ -176,7 +176,7 @@ lemma iteratedDeriv_tanh_differentiable (n : ℕ) : Differentiable ℝ (iterated
   norm_cast
 
 /-- Norm of Iterated derivative for scaled tanh is equal to the norm of its Fderiv -/
-lemma tanh_const_mul_iteratedDeriv_norm_eq_iteratedFDeriv_norm (n : ℕ) (x : ℝ) :
+lemma tanh_const_mul_iteratedDeriv_norm_eq_iteratedFDeriv_norm (κ : ℝ) (n : ℕ) (x : ℝ) :
     ‖iteratedFDeriv ℝ n (fun x => tanh (κ * x)) x‖
     = |iteratedDeriv n (fun x => tanh (κ * x)) x| := by
   rw [← iteratedFDerivWithin_univ, ← iteratedDerivWithin_univ, ← norm_eq_abs,

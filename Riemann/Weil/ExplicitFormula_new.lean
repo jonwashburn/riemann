@@ -1,4 +1,3 @@
-
 import Mathlib.Analysis.Distribution.SchwartzSpace
 import Mathlib.Analysis.Distribution.FourierSchwartz
 import Mathlib.Analysis.SpecialFunctions.Gamma.Deriv
@@ -8,6 +7,8 @@ import Mathlib.NumberTheory.VonMangoldt
 import Mathlib.MeasureTheory.Integral.Bochner
 import Mathlib.Analysis.Complex.CauchyIntegral
 import Mathlib.Analysis.MellinTransform
+import Mathlib.Analysis.Calculus.ParametricIntegral
+-- Assuming these are available from the context or mocked if necessary
 import PrimeNumberTheoremAnd
 import StrongPNT
 
@@ -20,7 +21,7 @@ to a sum over prime powers and analytical terms (Geometric Side).
 
 ## Main Definitions
 
-* `WeilTestFunction`: A structure bundling the properties required for the test function `g`.
+* `IsWeilTestFunction`: A structure bundling the properties required for the test function `g`.
 * `weilTransform`: The analytic transform `Φ(s) = ∫ g(x) e^{(s - 1/2)x} dx`.
 * `spectralSide`: The sum `∑ Φ(ρ)` over nontrivial zeros.
 * `geometricSide`: The sum over primes, archimedean terms, and boundary terms.
@@ -64,7 +65,19 @@ def weilTransform (s : ℂ) : ℂ :=
 
 lemma integrable_exp_neg_mul_abs {ε : ℝ} (hε : 0 < ε) :
     Integrable (fun x : ℝ => Real.exp (-ε * |x|)) := by
-  sorry
+  refine integrable_of_integrable_on_Iic_of_integrable_on_Ioi ?_ ?_
+  · have : IntegrableOn (fun x ↦ Real.exp (ε * x)) (Iic 0) volume := by
+      apply integrableOn_Iic_exp_mul_of_pos hε
+    apply this.congr_fun
+    intro x hx
+    simp only [abs_of_nonpos hx, neg_mul, Real.exp_neg]
+    congr
+    ring
+  · have : IntegrableOn (fun x ↦ Real.exp (-ε * x)) (Ioi 0) volume := by
+      apply integrableOn_Ioi_exp_neg_mul_of_pos hε
+    apply this.congr_fun
+    intro x hx
+    simp only [abs_of_nonneg (le_of_lt hx)]
 
 lemma weilTransform_integrable_strip
     (s : ℂ) (h_strip : |s.re - (1 / 2)| < 1 / 2) :
@@ -74,7 +87,7 @@ lemma weilTransform_integrable_strip
     Integrable (fun x : ℝ => C * Real.exp (-ε * |x|)) :=
     (integrable_exp_neg_mul_abs hε).const_mul C
   apply MeasureTheory.AECover.integrable_of_integral_norm_bounded _
-    ((integrable_mul_exp_neg_mul_sq hε).const_mul C)
+    ((integrable_exp_neg_mul_abs hε).const_mul C)
   intro x
   specialize hdecay x
   rw [norm_mul, Complex.norm_eq_abs, Complex.abs_exp]
@@ -94,24 +107,62 @@ lemma weilTransform_holomorphic_strip :
       {s : ℂ | |s.re - (1 / 2)| < 1 / 2} := by
   apply differentiableOn_integral_of_dominated_complex
   · exact measurableSet_setOf_lt (continuous_abs.comp (continuous_re.sub continuous_const)) continuous_const
-  · -- Dominated by C * exp(-ε|x|) locally
+  · -- Dominated by C * exp(-ε'|x|) locally
     intro s₀ hs₀
-    obtain ⟨C, ε, hε, hdecay⟩ := IsWeilTestFunction.decay
+    obtain ⟨C, ε, hε, hdecay⟩ := IsWeilTestFunction.decay (g := g)
     -- Find a small neighborhood of s₀ inside the strip
     obtain ⟨δ, hδ, h_ball⟩ := Metric.isOpen_iff.mp (isOpen_lt (continuous_abs.comp (continuous_re.sub continuous_const)) continuous_const) s₀ hs₀
-    refine ⟨fun x => C * Real.exp (-ε * |x|), (integrable_exp_neg_mul_abs hε).const_mul _, 0, ?_⟩
+    -- We need to pick an ε' < ε such that the domination holds for all s in the ball
+    -- The exponent is -(1/2 + ε)|x| + (Re s - 1/2)x
+    -- We need -(1/2 + ε)|x| + (Re s - 1/2)x ≤ -ε'|x|
+    -- This requires (Re s - 1/2)x ≤ (1/2 + ε - ε')|x|
+    -- Let's just use the fact that Re s is bounded in the ball.
+    let σ_max := s₀.re + δ
+    let σ_min := s₀.re - δ
+    -- We know -ε < σ_min - 1/2 and σ_max - 1/2 < ε because the ball is in the strip (0, 1)
+    -- and the decay allows for a strip of width 2ε around 1/2.
+    -- Actually, IsWeilTestFunction.decay gives decay e^{-(1/2+ε)|x|}.
+    -- The integral has e^{(s-1/2)x}.
+    -- Total exponent: -(1/2+ε)|x| + (Re s - 1/2)x.
+    -- If x > 0: (Re s - 1 - ε)x. We need Re s < 1 + ε.
+    -- If x < 0: (Re s + ε)x. We need Re s > -ε.
+    -- The strip is 0 < Re s < 1, so this is always satisfied with room to spare.
+    let margin := min (1 + ε - σ_max) (σ_min - (-ε))
+    have h_margin : 0 < margin := by
+      -- Proof that the ball is well within the convergence strip (-ε, 1+ε)
+      sorry
+    refine ⟨fun x => C * Real.exp (- (margin/2) * |x|), (integrable_exp_neg_mul_abs (by linarith)).const_mul _, 0, ?_⟩
     refine eventually_of_forall fun t ht => ?_
-    -- Use essentially the same bound as above, but for all t in the ball
-    sorry -- uniform bound on neighborhood
+    -- Uniform bound proof
+    sorry
 
 lemma summable_log_mul_rpow_of_one_lt {p : ℝ} (hp : 1 < p) :
     Summable (fun n : ℕ => Real.log n * (n : ℝ) ^ (-p)) := by
-  have : (fun n : ℕ => Real.log n * (n : ℝ) ^ (-p)) =O[atTop] (fun n => (n : ℝ) ^ (-(1 + (p - 1) / 2))) := by
+  -- Let p = 1 + 2δ
+  let δ := (p - 1) / 2
+  have hδ : 0 < δ := by linarith
+  have : (fun n : ℕ => Real.log n * (n : ℝ) ^ (-p)) =O[atTop] (fun n => (n : ℝ) ^ (-(1 + δ))) := by
     refine IsBigO.of_bound 1 (Filter.eventually_atTop.mpr ⟨1, fun n hn => ?_⟩)
     rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (Real.log_nonneg (Nat.one_le_cast.2 hn)),
         Real.abs_rpow_of_nonneg (Nat.cast_nonneg n), one_mul]
-    -- Reduce to log n ≤ n^((p-1)/2)
-    sorry -- standard growth bound
+    rw [neg_add, Real.rpow_add (Nat.cast_pos.2 hn), Real.rpow_neg (Nat.cast_nonneg _)]
+    rw [mul_comm, ← mul_assoc, ← div_eq_mul_inv]
+    -- We need log n * n^(-p) ≤ n^(-1-δ)
+    -- log n * n^(-(1+2δ)) ≤ n^(-1-δ)
+    -- log n * n^(-1) * n^(-2δ) ≤ n^(-1) * n^(-δ)
+    -- log n * n^(-δ) ≤ 1
+    -- log n ≤ n^δ. This is true eventually.
+    have h_growth : Real.log n ≤ (n : ℝ) ^ δ := by
+      -- Standard calculus: log x < x^δ for large x
+      sorry
+    calc Real.log n * (n : ℝ) ^ (-p)
+      _ = Real.log n * (n : ℝ) ^ (-(1 + 2 * δ)) := by congr; linarith
+      _ = (Real.log n * (n : ℝ) ^ (-δ)) * (n : ℝ) ^ (-(1 + δ)) := by
+          rw [Real.rpow_add (Nat.cast_pos.2 hn), Real.rpow_mul (Nat.cast_nonneg _)]; ring_nf; rfl
+      _ ≤ 1 * (n : ℝ) ^ (-(1 + δ)) := by
+          gcongr
+          rw [Real.rpow_neg (Nat.cast_nonneg _), ← div_eq_mul_inv]
+          exact (div_le_one (Real.rpow_pos_of_pos (Nat.cast_pos.2 hn) _)).mpr h_growth
   refine this.summable (Real.summable_nat_rpow_inv.2 ?_)
   linarith
 
@@ -120,7 +171,7 @@ lemma primeTerm_summable :
       if n = 0 then 0 else
         ((vonMangoldt n : ℂ) / Real.sqrt n) *
           (g (Real.log n) + g (-Real.log n))) := by
-  obtain ⟨C, ε, hε, hdecay⟩ := IsWeilTestFunction.decay
+  obtain ⟨C, ε, hε, hdecay⟩ := IsWeilTestFunction.decay (g := g)
   apply Summable.of_norm_bounded_eventually_nat (fun n => (2 * C) * (Real.log n * (n : ℝ) ^ (-(1 + ε))))
   · exact (summable_log_mul_rpow_of_one_lt (by linarith)).const_mul _
   · filter_upwards [Filter.eventually_gt_atTop 0] with n hn
@@ -149,16 +200,22 @@ lemma primeTerm_summable :
           rw [← Real.rpow_add (Nat.cast_pos.2 hn), neg_add_neg]
           congr; ring
 
-
-
 /-! ### The Spectral Side (Zeros) -/
 
 /-- Predicate for nontrivial zeros of Riemann Zeta in the critical strip. -/
 def IsZetaNontrivialZero (s : ℂ) : Prop :=
   riemannZeta s = 0 ∧ 0 < s.re ∧ s.re < 1
 
+/--
+Convergence of the spectral side requires estimates on the vertical density of zeros.
+Specifically, N(T) ~ T log T.
+Without this deep number-theoretic input, we cannot prove summability for general Schwartz functions.
+We mark this as a `sorry` to indicate the dependency on the Zero Density Theorem.
+-/
 lemma spectralSide_summable :
     Summable (fun ρ : {s // IsZetaNontrivialZero s} => weilTransform g ρ) := by
+  -- Requires N(T) = |{ρ | 0 < Im ρ < T}| ~ (T/2π) log T
+  -- and rapid decay of weilTransform g (which is entire and Schwartz on vertical lines)
   sorry
 
 /--
@@ -250,6 +307,12 @@ lemma rectangle_integral_residue_decomposition
       verticalLineIntegral g (1 - ε) T =
       (2 * π * Complex.I) *
         (spectralSideTrunc g T + boundaryTerm g) := by
+  -- This requires the Residue Theorem for a rectangle.
+  -- The poles inside the rectangle [1-ε, 1+ε] x [-T, T] are:
+  -- 1. The pole of ζ(s) at s=1 (residue 1 for -ζ'/ζ, so residue Φ(1) for integrand)
+  -- 2. The pole of ζ(s) at s=0 (from functional equation, residue Φ(0))
+  -- 3. The nontrivial zeros ρ of ζ(s) (residue Φ(ρ))
+  -- Note: We assume T is not the ordinate of a zero.
   sorry
 
 /-- The integral on the *right* vertical line `Re s = 1 + ε` tends, as `T → ∞`,
@@ -259,6 +322,10 @@ lemma right_verticalLineIntegral_tendsto_geometricSide
     (ε : ℝ) (hε_pos : 0 < ε) :
     Tendsto (fun T : ℝ => verticalLineIntegral g (1 + ε) T)
       atTop (𝓝 (geometricSide g)) := by
+  -- 1. Expand -ζ'/ζ as Dirichlet series ∑ Λ(n) n^{-s}
+  -- 2. Swap integral and sum (justified by absolute convergence due to g's decay)
+  -- 3. Recognize ∫ g(x) e^{(1+ε+it-1/2)x} dt as Fourier transform related terms
+  -- 4. This yields the primeTerm
   sorry
 
 /-- The contribution from the horizontal segments (top and bottom of the rectangle)
@@ -272,6 +339,8 @@ lemma verticalLineIntegral_difference_tendsto_residue_sum
         verticalLineIntegral g (1 - ε) T)
       atTop
       (𝓝 ((2 * π * Complex.I) * (spectralSide g + boundaryTerm g))) := by
+  -- Requires bounds on ζ'/ζ on horizontal lines (standard PNT bounds)
+  -- and rapid decay of weilTransform g.
   sorry
 
 /-- Truncated spectral sum converges to the full spectral side as `T → ∞`.
@@ -279,6 +348,7 @@ This uses `spectralSide_summable`. -/
 lemma spectralSideTrunc_tendsto_spectralSide :
     Tendsto (fun T : ℝ => spectralSideTrunc g T)
       atTop (𝓝 (spectralSide g)) := by
+  -- Immediate from summability
   sorry
 
 /--
@@ -290,11 +360,72 @@ nontrivial zeros of `ζ(s)` equals the sum over prime powers plus analytical ter
 theorem weil_explicit_formula
     (g : SchwartzMap ℝ ℂ) [IsWeilTestFunction g] :
     spectralSide g = geometricSide g := by
-  -- choose ε with 0 < ε < 1/2
-  -- use `right_verticalLineIntegral_tendsto_geometricSide`
-  -- and `verticalLineIntegral_difference_tendsto_residue_sum`
-  -- plus `spectralSideTrunc_tendsto_spectralSide`
-  -- and basic algebra of limits
+  -- The proof strategy combines the lemmas above:
+  -- 1. Contour integration gives relation between vertical lines and residues (spectral + boundary).
+  -- 2. Right vertical line converges to geometric side (prime terms).
+  -- 3. Left vertical line is related to right via functional equation (archimedean terms).
+  -- 4. Horizontal integrals vanish.
   sorry
 
 end NumberTheory.WeilExplicit
+
+/-
+The current draft targets the Riemann Zeta function specifically. While the file is titled WeilExplicitFormula, Weil's formalism is powerful precisely because it unifies number fields, function fields, and automorphic L-functions (as detailed in Tao.md).
+
+Critique:
+
+Generality: A "SOTA formalization in full generality" should ideally define the Explicit Formula for a generic motivic L-function or at least the Selberg class. Hardcoding riemannZeta restricts the result to the classical case.
+Archimedean Factors: The definition of archimedeanTerm uses GammaLogDeriv at 1/4 + ix/2. This corresponds to the
+Γ
+(
+s
+/
+2
+)
+Γ(s/2) factor in the functional equation
+ξ
+(
+s
+)
+=
+π
+−
+s
+/
+2
+Γ
+(
+s
+/
+2
+)
+ζ
+(
+s
+)
+ξ(s)=π
+−s/2
+ Γ(s/2)ζ(s). This is correct for
+ζ
+(
+s
+)
+ζ(s), but a general implementation would require a vector of Gamma factors.
+Spectral Convergence: The spectralSide_summable lemma is non-trivial. It depends on the vertical density of zeros
+N
+(
+T
+)
+∼
+T
+2
+π
+log
+⁡
+T
+N(T)∼
+2π
+T
+​
+ logT. Without this estimate (which is not yet in Mathlib), the unconditional convergence of the spectral side for general Schwartz functions is unprovable.
+ -/
