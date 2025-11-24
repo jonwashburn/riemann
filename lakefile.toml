@@ -18,3 +18,9 @@ name = "PrimeNumberTheoremAnd"
 
 [[lean_lib]]
 name = "StrongPNT"
+
+[[lean_lib]]
+name = "VD"
+
+[[lean_lib]]
+name = "PhysLean"

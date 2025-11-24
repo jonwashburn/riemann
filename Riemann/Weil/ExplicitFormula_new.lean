@@ -1,227 +1,300 @@
+
 import Mathlib.Analysis.Distribution.SchwartzSpace
 import Mathlib.Analysis.Distribution.FourierSchwartz
-import Mathlib.NumberTheory.VonMangoldt
-import Mathlib.NumberTheory.LSeries.RiemannZeta
 import Mathlib.Analysis.SpecialFunctions.Gamma.Deriv
 import Mathlib.Analysis.SpecialFunctions.Complex.LogDeriv
+import Mathlib.NumberTheory.LSeries.RiemannZeta
+import Mathlib.NumberTheory.VonMangoldt
+import Mathlib.MeasureTheory.Integral.Bochner
+import Mathlib.Analysis.Complex.CauchyIntegral
+import Mathlib.Analysis.MellinTransform
 import PrimeNumberTheoremAnd
 import StrongPNT
 
 /-!
-# Weil's Explicit Formula
+# Weil's Explicit Formula for the Riemann Zeta Function
 
-This file defines the ingredients for Weil's Explicit Formula for L-functions,
-specifically focusing on the Riemann Zeta function.
+This file defines the structural components of Weil's Explicit Formula, relating
+a sum over the nontrivial zeros of the Riemann Zeta function (Spectral Side)
+to a sum over prime powers and analytical terms (Geometric Side).
 
-The Explicit Formula relates a sum over the nontrivial zeros of an L-function
-to a sum over prime powers (geometric side) and an integral involving the test function.
+## Main Definitions
 
-## Main definitions
+* `WeilTestFunction`: A structure bundling the properties required for the test function `g`.
+* `weilTransform`: The analytic transform `Φ(s) = ∫ g(x) e^{(s - 1/2)x} dx`.
+* `spectralSide`: The sum `∑ Φ(ρ)` over nontrivial zeros.
+* `geometricSide`: The sum over primes, archimedean terms, and boundary terms.
 
-* `IsWeilTestFunction`: A predicate for Schwartz functions suitable for the formula.
-  We require exponential decay in both time and frequency domains to ensure absolute convergence.
-* `spectralSide`: The sum over zeros.
-* `geometricSide`: The sum over primes plus archimedean terms.
+## Notation
 
-## Implementation notes
-
-We follow the normalization where the critical line is `Re(s) = 1/2`.
-The test function `g` is on the generic line `ℝ`, and its transform `Φ` is on the complex plane.
+We utilize the normalization where the critical line is `Re(s) = 1/2`.
 -/
 
 noncomputable section
 
-open scoped BigOperators
-open Complex Real MeasureTheory SchwartzMap Topology Filter
+open scoped BigOperators Real Complex
+open Complex Real MeasureTheory SchwartzMap Topology Filter Set ArithmeticFunction Asymptotics
 open ArithmeticFunction (vonMangoldt)
 
-namespace RH
-namespace Weil
+namespace NumberTheory.WeilExplicit
 
 /--
-Class of test functions for Weil's Explicit Formula.
-These are even Schwartz functions with exponential decay in both time and frequency domains.
-This ensures that the associated Mellin transform `Φ(s)` is analytic in a strip containing `[0,1]`,
-and that both the spectral side (sum over zeros) and geometric side (sum over primes) converge absolutely.
+A Weil test function is a Schwartz function on ℝ satisfying specific symmetry
+and decay properties allowing for the convergence of the Explicit Formula.
 -/
 class IsWeilTestFunction (g : SchwartzMap ℝ ℂ) : Prop where
+  /-- The function must be even, corresponding to the symmetry of the functional equation. -/
   even : ∀ x, g x = g (-x)
-  /-- Exponential decay of `g` sufficient to define `Φ(s)` for `0 ≤ Re(s) ≤ 1`. -/
-  decay : ∃ (C : ℝ) (ε : ℝ), 0 < ε ∧ ∀ x, ‖g x‖ ≤ C * Real.exp (- (1/2 + ε) * |x|)
-  /-- Exponential decay of `̂g` sufficient to sum over prime powers. -/
-  ft_decay : ∃ (C' : ℝ) (ε' : ℝ), 0 < ε' ∧ ∀ ξ, ‖fourierTransformCLM ℂ g ξ‖ ≤ C' * Real.exp (- (1/2 + ε') * |ξ|)
+  /-- Strong decay ensures the transform `Φ(s)` is entire or analytic in a wide strip. -/
+  decay : ∃ (C ε : ℝ), 0 < ε ∧ ∀ x, ‖g x‖ ≤ C * Real.exp (- (1/2 + ε) * |x|)
+  /-- Decay of the Fourier transform ensures absolute convergence of the prime sum. -/
+  ft_decay : ∃ (C' ε' : ℝ), 0 < ε' ∧ ∀ ξ, ‖fourierTransformCLM ℂ g ξ‖ ≤ C' * Real.exp (- (1/2 + ε') * |ξ|)
+
+variable (g : SchwartzMap ℝ ℂ) [IsWeilTestFunction g]
+
+/-! ### The Analytic Transform -/
 
 /--
-The vertical strip test transform `Φ(s)`.
-`Φ(s) = ∫ g(x) e^{(s - 1/2)x} dx`.
-This corresponds to the Mellin transform of `g` (viewed as a function on `ℝ`)
-shifted to the critical line.
+The Weil transform `Φ(s)`.
+This is effectively a bilateral Laplace transform shifted to center on `s = 1/2`.
+`Φ(s) = ∫_{-∞}^{∞} g(x) e^{(s - 1/2)x} dx`
 -/
-def verticalStripTest (g : SchwartzMap ℝ ℂ) (s : ℂ) : ℂ :=
+def weilTransform (s : ℂ) : ℂ :=
   ∫ x : ℝ, g x * Complex.exp ((s - 0.5) * x)
 
-/--
-Basic data for an L-function.
--/
-structure LFunctionData where
-  /-- The L-function itself. -/
-  L : ℂ → ℂ
-  /-- The generic definition of a nontrivial zero. -/
-  is_nontrivial_zero : ℂ → Prop
+lemma integrable_exp_neg_mul_abs {ε : ℝ} (hε : 0 < ε) :
+    Integrable (fun x : ℝ => Real.exp (-ε * |x|)) := by
+  sorry
 
-/--
-Spectral side: Sum of `Φ(ρ)` over nontrivial zeros.
--/
-def spectralSide (L : LFunctionData) (g : SchwartzMap ℝ ℂ) : ℂ :=
-  ∑' (ρ : {s // L.is_nontrivial_zero s}), verticalStripTest g ρ
+lemma weilTransform_integrable_strip
+    (s : ℂ) (h_strip : |s.re - (1 / 2)| < 1 / 2) :
+    Integrable (fun x : ℝ => g x * Complex.exp ((s - 1 / 2) * x)) := by
+  obtain ⟨C, ε, hε, hdecay⟩ := IsWeilTestFunction.decay (g := g)
+  have h_int :
+    Integrable (fun x : ℝ => C * Real.exp (-ε * |x|)) :=
+    (integrable_exp_neg_mul_abs hε).const_mul C
+  apply MeasureTheory.AECover.integrable_of_integral_norm_bounded _
+    ((integrable_mul_exp_neg_mul_sq hε).const_mul C)
+  intro x
+  specialize hdecay x
+  rw [norm_mul, Complex.norm_eq_abs, Complex.abs_exp]
+  refine le_trans (mul_le_mul_of_nonneg_right hdecay (Real.exp_nonneg _)) ?_
+  rw [← Real.exp_add, Real.exp_le_exp]
+  -- Exponent: -(1/2 + ε)|x| + (Re s - 1/2)x
+  have h_real : s.re - 1/2 = (s.re - 0.5) := by norm_num
+  rw [h_real]
+  rcases le_or_lt 0 x with hx | hx
+  · rw [abs_of_nonneg hx]
+    linarith [abs_le_of_abs_le_abs_sub_sub h_strip]
+  · rw [abs_of_neg hx]
+    linarith [abs_le_of_abs_le_abs_sub_sub h_strip]
 
-/-! ### Riemann Zeta Specifics -/
+lemma weilTransform_holomorphic_strip :
+    DifferentiableOn ℂ (fun s => weilTransform g s)
+      {s : ℂ | |s.re - (1 / 2)| < 1 / 2} := by
+  apply differentiableOn_integral_of_dominated_complex
+  · exact measurableSet_setOf_lt (continuous_abs.comp (continuous_re.sub continuous_const)) continuous_const
+  · -- Dominated by C * exp(-ε|x|) locally
+    intro s₀ hs₀
+    obtain ⟨C, ε, hε, hdecay⟩ := IsWeilTestFunction.decay
+    -- Find a small neighborhood of s₀ inside the strip
+    obtain ⟨δ, hδ, h_ball⟩ := Metric.isOpen_iff.mp (isOpen_lt (continuous_abs.comp (continuous_re.sub continuous_const)) continuous_const) s₀ hs₀
+    refine ⟨fun x => C * Real.exp (-ε * |x|), (integrable_exp_neg_mul_abs hε).const_mul _, 0, ?_⟩
+    refine eventually_of_forall fun t ht => ?_
+    -- Use essentially the same bound as above, but for all t in the ball
+    sorry -- uniform bound on neighborhood
 
-/--
-The set of nontrivial zeros of the Riemann Zeta function.
-Defined as zeros of `ζ(s)` in the critical strip `0 < Re(s) < 1`.
--/
-def is_zeta_nontrivial_zero (s : ℂ) : Prop :=
+lemma summable_log_mul_rpow_of_one_lt {p : ℝ} (hp : 1 < p) :
+    Summable (fun n : ℕ => Real.log n * (n : ℝ) ^ (-p)) := by
+  have : (fun n : ℕ => Real.log n * (n : ℝ) ^ (-p)) =O[atTop] (fun n => (n : ℝ) ^ (-(1 + (p - 1) / 2))) := by
+    refine IsBigO.of_bound 1 (Filter.eventually_atTop.mpr ⟨1, fun n hn => ?_⟩)
+    rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (Real.log_nonneg (Nat.one_le_cast.2 hn)),
+        Real.abs_rpow_of_nonneg (Nat.cast_nonneg n), one_mul]
+    -- Reduce to log n ≤ n^((p-1)/2)
+    sorry -- standard growth bound
+  refine this.summable (Real.summable_nat_rpow_inv.2 ?_)
+  linarith
+
+lemma primeTerm_summable :
+    Summable (fun n : ℕ =>
+      if n = 0 then 0 else
+        ((vonMangoldt n : ℂ) / Real.sqrt n) *
+          (g (Real.log n) + g (-Real.log n))) := by
+  obtain ⟨C, ε, hε, hdecay⟩ := IsWeilTestFunction.decay
+  apply Summable.of_norm_bounded_eventually_nat (fun n => (2 * C) * (Real.log n * (n : ℝ) ^ (-(1 + ε))))
+  · exact (summable_log_mul_rpow_of_one_lt (by linarith)).const_mul _
+  · filter_upwards [Filter.eventually_gt_atTop 0] with n hn
+    rw [norm_if_pos (Nat.ne_of_gt hn), norm_mul, norm_div, Complex.norm_eq_abs (Real.sqrt _),
+        Real.abs_sqrt (Nat.cast_nonneg _)]
+    -- Bound von Mangoldt
+    have hΛ := vonMangoldt_complex_norm_le_log n
+    -- Bound g terms
+    have hg : ‖g (Real.log n) + g (-Real.log n)‖ ≤ 2 * C * (n : ℝ) ^ (-(1/2 + ε)) := by
+      have h_log_pos : 0 ≤ Real.log n := Real.log_nonneg (Nat.one_le_cast.2 hn)
+      specialize hdecay (Real.log n)
+      rw [Real.abs_log_natCast, abs_of_nonneg h_log_pos] at hdecay
+      specialize g.even (Real.log n)
+      rw [norm_add_le, ← g.even, ← Real.exp_mul, neg_mul, Real.exp_neg,
+          Real.exp_mul, Real.exp_log (Nat.cast_pos.2 hn), Real.rpow_def_of_pos (Nat.cast_pos.2 hn)] at hdecay ⊢
+      linarith
+    -- Combine
+    calc ‖(vonMangoldt n : ℂ) / Real.sqrt n * (g (Real.log n) + g (-Real.log n))‖
+      _ = ‖(vonMangoldt n : ℂ)‖ * (n : ℝ) ^ (-(1/2 : ℝ)) * ‖g (Real.log n) + g (-Real.log n)‖ := by
+          rw [norm_mul, norm_div, Complex.norm_eq_abs, Real.abs_sqrt (Nat.cast_nonneg _),
+              Real.sqrt_eq_rpow, Real.rpow_neg (Nat.cast_nonneg _), div_eq_mul_inv]
+      _ ≤ Real.log n * (n : ℝ) ^ (-(1/2 : ℝ)) * (2 * C * (n : ℝ) ^ (-(1/2 + ε))) := by
+          gcongr
+      _ = (2 * C) * (Real.log n * ((n : ℝ) ^ (-(1/2 : ℝ)) * (n : ℝ) ^ (-(1/2 + ε)))) := by ring
+      _ = (2 * C) * (Real.log n * (n : ℝ) ^ (-(1 + ε))) := by
+          rw [← Real.rpow_add (Nat.cast_pos.2 hn), neg_add_neg]
+          congr; ring
+
+
+
+/-! ### The Spectral Side (Zeros) -/
+
+/-- Predicate for nontrivial zeros of Riemann Zeta in the critical strip. -/
+def IsZetaNontrivialZero (s : ℂ) : Prop :=
   riemannZeta s = 0 ∧ 0 < s.re ∧ s.re < 1
 
-/--
-L-function data for Riemann Zeta.
--/
-def zetaData : LFunctionData where
-  L := riemannZeta
-  is_nontrivial_zero := is_zeta_nontrivial_zero
+lemma spectralSide_summable :
+    Summable (fun ρ : {s // IsZetaNontrivialZero s} => weilTransform g ρ) := by
+  sorry
 
 /--
-Logarithmic derivative of the Gamma factor for Zeta, `Γℝ(s) = π^{-s/2} Γ(s/2)`.
+The spectral side of the Explicit Formula: `∑_ρ Φ(ρ)`.
+Note: Convergence of this sum depends on the density of zeros and decay of `Φ`.
+-/
+def spectralSide : ℂ :=
+  ∑' (ρ : {s // IsZetaNontrivialZero s}), weilTransform g ρ
+
+/-! ### The Geometric Side (Primes + Archimedean) -/
+
+lemma vonMangoldt_complex_norm_le_log (n : ℕ) :
+    ‖(vonMangoldt n : ℂ)‖ ≤ Real.log n := by
+  have hΛ_nonneg : 0 ≤ (vonMangoldt n : ℝ) :=
+    ArithmeticFunction.vonMangoldt_nonneg
+  simpa [Complex.norm_real, abs_of_nonneg hΛ_nonneg]
+    using (ArithmeticFunction.vonMangoldt_le_log (n := n))
+
+/--
+The contribution from prime powers `p^k`.
+`Sum_{n} Λ(n)/√n * (g(log n) + g(-log n))`
+-/
+def primeTerm : ℂ :=
+  - ∑' n : ℕ, if n = 0 then 0 else
+    ((vonMangoldt n : ℂ) / Real.sqrt n) *
+      (g (Real.log n) + g (-Real.log n))
+
+/--
+The Archimedean contribution arising from the Gamma factor in the functional equation.
+`1/2π ∫ g(x) Re(Ψ(1/4 + ix/2)) dx` ... (simplified form for definition)
 -/
 def GammaLogDeriv (s : ℂ) : ℂ :=
-  (logDeriv Gamma) s
+  (logDeriv Complex.Gamma) s
 
-/--
-Archimedean term for Zeta.
-`𝒜(g) = \frac{1}{4\pi} \int_{-\infty}^\infty g(x) \Psi_{arch}(x) dx`
--/
-def archimedeanTerm_zeta (g : SchwartzMap ℝ ℂ) : ℂ :=
+def archimedeanTerm : ℂ :=
   let h := fourierTransformCLM ℂ g
-  let term1 := (1 / (2 * π)) * ∫ x : ℝ, g x *
-    (GammaLogDeriv (1/4 + I * (x/2)) + GammaLogDeriv (1/4 - I * (x/2)))
+  let term1 :=
+    (1 / (2 * π)) *
+      ∫ x : ℝ,
+        g x *
+          (GammaLogDeriv (1 / 4 + (x / 2) * Complex.I) +
+            GammaLogDeriv (1 / 4 - (x / 2) * Complex.I))
   let term2 := - h 0 * Real.log π
   term1 + term2
 
 /--
-Lemma ensuring the prime sum converges absolutely for Weil test functions.
+The boundary terms arising from the poles of the L-function (at s=0 and s=1).
+For Riemann Zeta, this is `Φ(0) + Φ(1)`.
 -/
-lemma prime_sum_summable {g : SchwartzMap ℝ ℂ} [hg : IsWeilTestFunction g] :
-    Summable (fun n : ℕ => if n = 0 then 0 else
-      ‖((vonMangoldt n : ℂ) / Real.sqrt n) * ((fourierTransformCLM ℂ g) (Real.log n) + (fourierTransformCLM ℂ g) (-Real.log n))‖) := by
-  obtain ⟨C', ε', hε', hdecay⟩ := hg.ft_decay
-  -- We essentially need to sum Λ(n) n^{-1/2} * n^{-(1/2 + ε')}
-  -- This is Λ(n) n^{-(1 + ε')}, which is summable.
-  apply Summable.of_nonneg_of_le (g := fun n => if n = 0 then 0 else (2 * C' : ℝ) * (Real.log n + 1) * (n : ℝ) ^ (-(1 + ε')))
-  · intro n; split_ifs; exact le_rfl; exact norm_nonneg _
-  · intro n
-    if hn : n = 0 then simp [hn] else
-    simp only [hn, if_false]
-    let h := fourierTransformCLM ℂ g
-    have h_bound : ‖h (Real.log n) + h (-Real.log n)‖ ≤ 2 * C' * Real.exp (-(1/2 + ε') * Real.log n) := by
-      norm_cast
-      calc ‖h (Real.log n) + h (-Real.log n)‖
-        _ ≤ ‖h (Real.log n)‖ + ‖h (-Real.log n)‖ := norm_add_le _ _
-        _ ≤ C' * Real.exp (-(1/2 + ε') * |Real.log n|) + C' * Real.exp (-(1/2 + ε') * |-Real.log n|) := by
-          gcongr
-          exact hdecay (Real.log n)
-          exact hdecay (-Real.log n)
-        _ = 2 * C' * Real.exp (-(1/2 + ε') * Real.log n) := by
-          have : |Real.log n| = Real.log n := abs_of_nonneg (Real.log_nonneg (Nat.one_le_cast.mpr (Nat.pos_of_ne_zero hn)))
-          simp [this, abs_neg, mul_two]
-    rw [Real.exp_mul, Real.exp_log (Nat.cast_pos.mpr (Nat.pos_of_ne_zero hn))] at h_bound
-    -- term is Λ(n)/√n * bound
-    -- ‖Λ(n)‖ ≤ log n
-    have vonM_bound : ‖(vonMangoldt n : ℂ)‖ ≤ Real.log n := by
-      norm_cast
-      exact vonMangoldt_le_log
-    calc ‖(vonMangoldt n : ℂ) / Real.sqrt n * (h (Real.log n) + h (-Real.log n))‖
-      _ = ‖(vonMangoldt n : ℂ)‖ / Real.sqrt n * ‖h (Real.log n) + h (-Real.log n)‖ := by
-        rw [norm_mul, norm_div, Complex.norm_real, Real.norm_of_nonneg (Real.sqrt_nonneg _)]
-      _ ≤ Real.log n / Real.sqrt n * (2 * C' * (n : ℝ) ^ (-(1/2 + ε'))) := by
-        gcongr
-      _ = 2 * C' * Real.log n * ((n : ℝ) ^ (-(1/2 : ℝ)) * (n : ℝ) ^ (-(1/2 + ε'))) := by
-        rw [Real.sqrt_eq_rpow, one_div, mul_assoc, mul_comm _ (2 * C'), mul_assoc]
-        congr
-      _ = 2 * C' * Real.log n * (n : ℝ) ^ (-(1 + ε')) := by
-        rw [← Real.rpow_add (Nat.cast_pos.mpr (Nat.pos_of_ne_zero hn)), neg_add_neg_distrib]
-        ring_nf
-      _ ≤ (2 * C') * (Real.log n + 1) * (n : ℝ) ^ (-(1 + ε')) := by
-        gcongr
-        linarith
-  · -- Summability of log n * n^{-(1+ε)}
-    -- This follows from comparison with n^{-(1+ε/2)}
-    have h_conv : Summable (fun n : ℕ => (n : ℝ) ^ (-(1 + ε' / 2))) := by
-      apply Real.summable_nat_rpow_inv.mpr
-      linarith
-    apply Summable.of_nonneg_of_le (g := fun n => (2 * C') * (n : ℝ) ^ (-(1 + ε' / 2)))
-    · intro n; split_ifs; exact le_rfl;
-      apply mul_nonneg; apply mul_nonneg; norm_num; exact norm_nonneg _; apply Real.rpow_nonneg; exact Nat.cast_nonneg _
-    · intro n
-      if hn : n = 0 then simp [hn] else
-      simp only [hn, if_false]
-      -- log n + 1 ≤ C'' n^(ε/2) for large n
-      -- Just assume eventually
-      apply (Summable.mul_left (2 * C' : ℝ) h_conv).summable_of_eq_zero_or_lt
-      intro m hm
-      -- This is standard calculus check
-      sorry -- Proof of log n decay vs power
+def boundaryTerm : ℂ :=
+  weilTransform g 0 + weilTransform g 1
 
 /--
-Prime power contribution:
-`∑_{n} \frac{\Lambda(n)}{\sqrt{n}} (h(\log n) + h(-\log n))`
+The geometric side of the Explicit Formula.
 -/
-def primeTerm_zeta (g : SchwartzMap ℝ ℂ) : ℂ :=
-  let h := fourierTransformCLM ℂ g
-  - ∑' n : ℕ, if n = 0 then 0 else
-    ((vonMangoldt n : ℂ) / Real.sqrt n) * (h (Real.log n) + h (-Real.log n))
+def geometricSide : ℂ :=
+  boundaryTerm g + primeTerm g + archimedeanTerm g
 
-/--
-Geometric side: Sum of prime term, archimedean term, and boundary terms (poles).
--/
-def geometricSide_zeta (g : SchwartzMap ℝ ℂ) : ℂ :=
-  verticalStripTest g 1 +
-  verticalStripTest g 0 +
-  primeTerm_zeta g +
-  archimedeanTerm_zeta g
+/-! ### Main Theorem Statement -/
 
-/--
-Conjecture: The number of zeros of Zeta in the critical strip with imaginary part in [0, T]
-grows at most polynomially (actually T log T).
-This ensures summability of the spectral side for Weil test functions.
--/
-theorem zeta_zeros_polynomial_growth :
-    ∃ (k : ℝ), ∃ (C : ℝ), ∀ T ≥ 1,
-    (Set.finite_toFinset (ZetaZerosNearPoint_finite T)).card ≤ C * T ^ k := by
-  -- This requires global zero density estimates.
+namespace NumberTheory.WeilExplicit
+
+variable (g : SchwartzMap ℝ ℂ) [IsWeilTestFunction g]
+
+/-- `-ζ'/ζ`, the logarithmic derivative of the Riemann zeta function. -/
+def zetaLogDeriv (s : ℂ) : ℂ :=
+  - deriv riemannZeta s / riemannZeta s
+
+/-- Integrand `Φ(s) · (-ζ'/ζ)(s)` used in the explicit formula contour integral. -/
+def explicitIntegrand (s : ℂ) : ℂ :=
+  weilTransform g s * zetaLogDeriv s
+
+/-- Integral of `explicitIntegrand` along the vertical line `Re s = σ`, truncated at height `T`. -/
+def verticalLineIntegral (σ T : ℝ) : ℂ :=
+  ∫ t in -T..T, explicitIntegrand g (σ + t * Complex.I) * Complex.I
+
+/-- Truncated spectral side: only zeros with `|Im ρ| ≤ T`. -/
+def spectralSideTrunc (T : ℝ) : ℂ :=
+  ∑' (ρ : {s // IsZetaNontrivialZero s}),
+    if |(ρ : ℂ).im| ≤ T then weilTransform g ρ else 0
+
+/-- Contour‑integral / residue decomposition for a tall rectangle:
+difference of the two vertical integrals equals the sum of residues from
+nontrivial zeros and the poles at `0` and `1`. -/
+lemma rectangle_integral_residue_decomposition
+    (ε : ℝ) (hε_pos : 0 < ε) (hε_lt_half : ε < 1 / 2)
+    (T : ℝ) (hT : 1 ≤ T) :
+    verticalLineIntegral g (1 + ε) T -
+      verticalLineIntegral g (1 - ε) T =
+      (2 * π * Complex.I) *
+        (spectralSideTrunc g T + boundaryTerm g) := by
+  sorry
+
+/-- The integral on the *right* vertical line `Re s = 1 + ε` tends, as `T → ∞`,
+to the geometric side `boundary + prime + archimedean`.  This is where you use
+`LSeries_vonMangoldt_eq_deriv_riemannZeta_div` plus vertical decay. -/
+lemma right_verticalLineIntegral_tendsto_geometricSide
+    (ε : ℝ) (hε_pos : 0 < ε) :
+    Tendsto (fun T : ℝ => verticalLineIntegral g (1 + ε) T)
+      atTop (𝓝 (geometricSide g)) := by
+  sorry
+
+/-- The contribution from the horizontal segments (top and bottom of the rectangle)
+vanishes as `T → ∞`, so the limiting difference of the two vertical integrals
+is entirely given by the residue sum.  This is the analytic decay estimate
+along `Im s = ±T`. -/
+lemma verticalLineIntegral_difference_tendsto_residue_sum
+    (ε : ℝ) (hε_pos : 0 < ε) (hε_lt_half : ε < 1 / 2) :
+    Tendsto (fun T : ℝ =>
+      verticalLineIntegral g (1 + ε) T -
+        verticalLineIntegral g (1 - ε) T)
+      atTop
+      (𝓝 ((2 * π * Complex.I) * (spectralSide g + boundaryTerm g))) := by
+  sorry
+
+/-- Truncated spectral sum converges to the full spectral side as `T → ∞`.
+This uses `spectralSide_summable`. -/
+lemma spectralSideTrunc_tendsto_spectralSide :
+    Tendsto (fun T : ℝ => spectralSideTrunc g T)
+      atTop (𝓝 (spectralSide g)) := by
   sorry
 
 /--
-Lemma ensuring the spectral side sums absolutely.
+**Weil's Explicit Formula for the Riemann Zeta Function**.
+
+Given a suitable test function `g` (even, Schwartz, exp decay), the sum over the
+nontrivial zeros of `ζ(s)` equals the sum over prime powers plus analytical terms.
 -/
-lemma spectral_side_summable {g : SchwartzMap ℝ ℂ} [hg : IsWeilTestFunction g] :
-    Summable (fun ρ : {s // is_zeta_nontrivial_zero s} => verticalStripTest g ρ) := by
-  -- Use exponential decay of g to show Φ(ρ) decays rapidly
-  -- Use polynomial growth of zeros
+theorem weil_explicit_formula
+    (g : SchwartzMap ℝ ℂ) [IsWeilTestFunction g] :
+    spectralSide g = geometricSide g := by
+  -- choose ε with 0 < ε < 1/2
+  -- use `right_verticalLineIntegral_tendsto_geometricSide`
+  -- and `verticalLineIntegral_difference_tendsto_residue_sum`
+  -- plus `spectralSideTrunc_tendsto_spectralSide`
+  -- and basic algebra of limits
   sorry
 
-/--
-**Weil's Explicit Formula for Riemann Zeta**
-
-For a Weil test function `g`, the sum over nontrivial zeros equals the geometric side.
--/
-theorem weil_explicit_formula_zeta (g : SchwartzMap ℝ ℂ) [IsWeilTestFunction g] :
-    spectralSide zetaData g = geometricSide_zeta g := by
-  -- Proof requires:
-  -- 1. Contour integration of Φ(s) ζ'(s)/ζ(s)
-  -- 2. Residue theorem (catching zeros, pole at 1, pole at 0? No pole at 0 for ζ)
-  -- 3. Evaluation of integrals on Re(s)=0,1
-  sorry
-
-end Weil
-end RH
+end NumberTheory.WeilExplicit
