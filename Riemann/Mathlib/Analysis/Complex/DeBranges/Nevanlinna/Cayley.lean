@@ -1,5 +1,7 @@
 import Mathlib.Analysis.Complex.UnitDisc.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
+import Mathlib.Tactic.FieldSimp
+import Mathlib
 
 /-
 # Cayley transport between the upper half-plane and the unit disc
@@ -97,7 +99,7 @@ open Complex
 lemma norm_lt_one_of_normSq_lt_one {w : ℂ}
     (h : Complex.normSq w < 1) : ‖w‖ < 1 := by
   have hsqrt := Real.sqrt_lt_sqrt (Complex.normSq_nonneg _) h
-  simpa [norm, Real.sqrt_one] using hsqrt
+  aesop
 
 /-- The Cayley transform from the upper half-plane to the unit disc. -/
 def toUnitDisc (z : UpperHalfPlane) : Complex.UnitDisc :=
@@ -115,3 +117,139 @@ lemma coe_toUnitDisc (z : UpperHalfPlane) :
       ((z : ℂ) - Complex.I) / ((z : ℂ) + Complex.I) := rfl
 
 end UpperHalfPlane
+
+section Inverses
+
+open scoped ComplexOrder
+
+lemma re_cayley_disk (w : Complex.UnitDisc) :
+    ((1 + (w : ℂ)) / (1 - (w : ℂ))).re =
+      (1 - Complex.normSq (w : ℂ)) /
+        Complex.normSq (1 - (w : ℂ)) := by
+  set z : ℂ := (w : ℂ)
+  have hRe :
+      ((1 + z) / (1 - z)).re =
+        (1 - Complex.normSq z) / Complex.normSq (1 - z) := by
+    have hdiv := Complex.div_re (1 + z) (1 - z)
+    simp only [add_re, one_re, sub_re, add_im, one_im, zero_add, sub_im, zero_sub] at hdiv
+    rw [hdiv]
+    simp only [Complex.normSq]
+    ring_nf
+    simp; grind
+  aesop
+
+lemma re_cayley_disk_pos (w : Complex.UnitDisc) :
+    0 < ((1 + (w : ℂ)) / (1 - (w : ℂ))).re := by
+  have hnum : 0 < 1 - Complex.normSq (w : ℂ) := by
+    have hlt : Complex.normSq (w : ℂ) < 1 := by
+      simpa using w.normSq_lt_one
+    exact sub_pos.mpr hlt
+  have hden : 0 < Complex.normSq (1 - (w : ℂ)) := by
+    have : (1 - (w : ℂ)) ≠ 0 := sub_ne_zero.mpr
+      (by simpa [ne_comm] using w.coe_ne_one)
+    exact (Complex.normSq_pos).2 this
+  have := div_pos hnum hden
+  simpa [re_cayley_disk w] using this
+
+/-- The Cayley inverse from the unit disc to the upper half-plane. -/
+def fromUnitDisc (w : Complex.UnitDisc) : UpperHalfPlane :=
+  ⟨Complex.I * ((1 + (w : ℂ)) / (1 - (w : ℂ))),
+    by
+      have := re_cayley_disk_pos w
+      have hm : (Complex.I * ((1 + (w : ℂ)) / (1 - (w : ℂ)))).im =
+          ((1 + (w : ℂ)) / (1 - (w : ℂ))).re := by
+        simp
+      simpa [UpperHalfPlane.im, hm] using this⟩
+
+@[simp, norm_cast]
+lemma coe_fromUnitDisc (w : Complex.UnitDisc) :
+    ((fromUnitDisc w : UpperHalfPlane) : ℂ) =
+      Complex.I * ((1 + (w : ℂ)) / (1 - (w : ℂ))) := rfl
+
+lemma mobius_round_trip (w : ℂ) (hw : w ≠ 1) :
+    (((1 + w) / (1 - w)) - 1) / (((1 + w) / (1 - w)) + 1) = w := by
+  have hw' : (1 - w) ≠ 0 := sub_ne_zero.mpr (by simpa [ne_comm] using hw)
+  have htwo : (2 : ℂ) ≠ 0 := by norm_num
+  field_simp [hw', htwo, sub_eq_add_neg, add_comm, add_left_comm, add_assoc]
+  ring
+
+lemma cayley_comp_from (w : ℂ) (hw : w ≠ 1) :
+    ((Complex.I * (1 + w) / (1 - w) - Complex.I) /
+        (Complex.I * (1 + w) / (1 - w) + Complex.I)) = w := by
+  have hI : (Complex.I : ℂ) ≠ 0 := Complex.I_ne_zero
+  have hnum :
+      Complex.I * ((1 + w) / (1 - w)) - Complex.I =
+        Complex.I * (((1 + w) / (1 - w)) - 1) := by ring
+  have hden :
+      Complex.I * ((1 + w) / (1 - w)) + Complex.I =
+        Complex.I * (((1 + w) / (1 - w)) + 1) := by ring
+  have hrewrite :
+      ((Complex.I * (1 + w) / (1 - w) - Complex.I) /
+          (Complex.I * (1 + w) / (1 - w) + Complex.I)) =
+        (((1 + w) / (1 - w)) - 1) / (((1 + w) / (1 - w)) + 1) := by
+    field_simp [hnum, hden, hI]
+  simpa [hrewrite] using mobius_round_trip w hw
+
+lemma from_comp_cayley (z : ℂ) (hz : z + Complex.I ≠ 0) :
+    Complex.I * (1 + ((z - Complex.I) / (z + Complex.I))) /
+        (1 - ((z - Complex.I) / (z + Complex.I))) = z := by
+  have hnum :
+      1 + ((z - Complex.I) / (z + Complex.I)) =
+        (2 * z) / (z + Complex.I) := by
+    field_simp [hz]; grind
+  have hden :
+      1 - ((z - Complex.I) / (z + Complex.I)) =
+        (2 * Complex.I) / (z + Complex.I) := by
+    field_simp [hz]; grind
+  have hinv :
+      Complex.I * (1 + ((z - Complex.I) / (z + Complex.I))) /
+          (1 - ((z - Complex.I) / (z + Complex.I))) =
+        Complex.I * ((2 * z) / (z + Complex.I)) /
+          ((2 * Complex.I) / (z + Complex.I)) := by
+    simp [hnum, hden]
+  have hcalc :
+      Complex.I * ((2 * z) / (z + Complex.I)) /
+          ((2 * Complex.I) / (z + Complex.I)) = z := by
+    field_simp [hz, Complex.I_ne_zero, mul_comm, mul_left_comm,
+      mul_assoc]
+  simpa [hinv] using hcalc
+
+@[simp]
+lemma toUnitDisc_fromUnitDisc (w : Complex.UnitDisc) :
+    UpperHalfPlane.toUnitDisc (fromUnitDisc w) = w := by
+  apply Subtype.ext
+  -- first, restate `cayley_comp_from` with the desired parentheses
+  have h' :
+      ((Complex.I * ((1 + (w : ℂ)) / (1 - (w : ℂ))) - Complex.I) /
+        (Complex.I * ((1 + (w : ℂ)) / (1 - (w : ℂ))) + Complex.I)) = (w : ℂ) := by
+    -- rewrite the original lemma into this form
+    simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using
+      cayley_comp_from (w : ℂ) w.coe_ne_one
+  -- now unfold the Cayley maps and use `h'`
+  simpa [UpperHalfPlane.toUnitDisc, fromUnitDisc] using h'
+
+@[simp]
+lemma fromUnitDisc_toUnitDisc (z : UpperHalfPlane) :
+    fromUnitDisc (UpperHalfPlane.toUnitDisc z) = z := by
+  apply Subtype.ext
+  have him : 0 < (z : ℂ).im := z.property
+  have hden : (z : ℂ) + Complex.I ≠ 0 := by
+    intro h
+    have hz : (z : ℂ) = -Complex.I := by
+      simpa using eq_neg_of_add_eq_zero_left h
+    have hz_im : (z : ℂ).im = -1 := by
+      simp [hz]
+    have : (0 : ℝ) < -1 := by
+      simp [hz_im]; simp_all
+    have hfalse : ¬ (0 : ℝ) < -1 := by norm_num
+    exact hfalse this
+  -- rewrite `from_comp_cayley` into the same shape as `fromUnitDisc ∘ toUnitDisc`
+  have h' :
+      Complex.I * ((1 + ((z : ℂ) - Complex.I) / ((z : ℂ) + Complex.I)) /
+        (1 - ((z : ℂ) - Complex.I) / ((z : ℂ) + Complex.I))) = (z : ℂ) := by
+    simpa [mul_div_assoc] using
+      from_comp_cayley ((z : ℂ)) hden
+  -- now the left-hand side is exactly the complex value of `fromUnitDisc (toUnitDisc z)`
+  simpa [UpperHalfPlane.toUnitDisc, fromUnitDisc] using h'
+
+end Inverses
