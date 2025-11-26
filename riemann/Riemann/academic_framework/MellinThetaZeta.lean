@@ -713,8 +713,90 @@ def mellinIntegrand (s : ℂ) (t : ℝ) : ℂ :=
 /-- For Re(s) > 1, the integral ∫₁^∞ (θ(t)-1) t^(s/2-1) dt converges absolutely. -/
 theorem mellin_right_integrable {s : ℂ} (hs : 1 < s.re) :
     IntegrableOn (mellinIntegrand s) (Ici 1) volume := by
-  sorry
-  -- Use dominated convergence with bound |θ(t)-1| ≤ 2exp(-πt)
+  classical
+  -- Uniform constant for t ≥ 1
+  have h_lt_one : rexp (-π) < 1 := RiemannZeta.Helpers.exp_neg_lt_one pi_pos
+  have h_denom_pos : 0 < 1 - rexp (-π) := by linarith
+  let K : ℝ := (2 : ℝ) / (1 - rexp (-π))
+  -- Pointwise AE bound on Ici 1
+  have h_bound :
+      ∀ᵐ t ∂(volume.restrict (Ici 1)),
+        ‖mellinIntegrand s t‖
+          ≤ K * rexp (-π * t) * t^(s.re / 2 - 1) := by
+    refine (ae_restrict_mem measurableSet_Ici).mono ?_
+    intro t ht
+    have ht_pos : 0 < t := lt_of_lt_of_le zero_lt_one ht
+    -- norm bound
+    have hnorm :
+        ‖mellinIntegrand s t‖
+          = |jacobiTheta' t| * t^(s.re / 2 - 1) := by
+      have : 0 < t := ht_pos
+      simp [mellinIntegrand, norm_mul,
+        Complex.norm_cpow_eq_rpow_re_of_pos this (s/2 - 1)]
+    -- theta' bound: |θ(t)-1| ≤ 2 e^{-π t} / (1 - e^{-π t})
+    have h_theta :
+        |jacobiTheta' t| ≤ 2 * rexp (-π * t) / (1 - rexp (-π * t)) :=
+      jacobiTheta'_bound (show 1 ≤ t from ht)
+    -- Since t ≥ 1, 1 - e^{-π t} ≥ 1 - e^{-π}, so reciprocals are ordered
+    have h_exp_le : rexp (-π * t) ≤ rexp (-π) := by
+      -- because -π * t ≤ -π when t ≥ 1 and exp is monotone
+      have : -π * t ≤ -π := by
+        have : (1 : ℝ) ≤ t := ht
+        nlinarith [pi_pos, this]
+      exact exp_le_exp.mpr this
+    have h_denom_mono : 1 - rexp (-π * t) ≥ 1 - rexp (-π) := by linarith [h_exp_le]
+    have h_denom_pos_t : 0 < 1 - rexp (-π * t) := by
+      have : rexp (-π * t) < 1 := RiemannZeta.Helpers.exp_neg_lt_one (mul_pos pi_pos ht_pos)
+      linarith
+    have h_recip :
+        (1 / (1 - rexp (-π * t))) ≤ (1 / (1 - rexp (-π))) := by
+      -- one_div is antitone on (0,∞)
+      have ha : 0 < 1 - rexp (-π) := h_denom_pos
+      have hb : 0 < 1 - rexp (-π * t) := h_denom_pos_t
+      have hle : (1 - rexp (-π)) ≤ (1 - rexp (-π * t)) := by linarith [h_denom_mono]
+      exact one_div_le_one_div_of_le ha hle
+    -- Combine bounds
+    have : |jacobiTheta' t| ≤ (2 / (1 - rexp (-π))) * rexp (-π * t) := by
+      have := h_theta
+      have := (mul_le_mul_of_nonneg_left h_recip (by positivity : (0 : ℝ) ≤ 2 * rexp (-π * t)))
+      -- 2 * e^{-π t} * (1/(1 - e^{-π t})) ≤ 2 * e^{-π t} * (1/(1 - e^{-π}))
+      -- rewrite RHS as (2/(1 - e^{-π})) * e^{-π t}
+      have : 2 * rexp (-π * t) * (1 / (1 - rexp (-π * t)))
+                ≤ 2 * rexp (-π * t) * (1 / (1 - rexp (-π))) := by
+        exact this
+      have : 2 * rexp (-π * t) / (1 - rexp (-π * t))
+                ≤ 2 * rexp (-π * t) / (1 - rexp (-π)) := by
+        simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+      exact (le_trans h_theta this).trans_eq (by ring_nf)
+    -- Final inequality
+    have : ‖mellinIntegrand s t‖ ≤ K * rexp (-π * t) * t^(s.re / 2 - 1) := by
+      have : |jacobiTheta' t| * t^(s.re / 2 - 1)
+              ≤ ((2 / (1 - rexp (-π))) * rexp (-π * t)) * t^(s.re / 2 - 1) := by
+        exact mul_le_mul_of_nonneg_right this (by
+          have : 0 ≤ t := le_of_lt ht_pos
+          exact rpow_nonneg this _)
+      simpa [hnorm, K, mul_comm, mul_left_comm, mul_assoc]
+    exact this
+  -- Dominating function is integrable on Ici 1
+  have h_int : IntegrableOn
+      (fun t => (K : ℝ) * rexp (-π * t) * t^(s.re / 2 - 1)) (Ici 1) volume := by
+    have : IntegrableOn (fun t => rexp (-π * t) * t^(s.re / 2 - 1)) (Ici 1) volume := by
+      -- use Helpers integrability for exp(−a t) t^α on [1,∞)
+      simpa [mul_comm, mul_left_comm, mul_assoc] using
+        (RiemannZeta.Helpers.integrable_exp_neg_mul_rpow_Ioi (by exact pi_pos) (s.re / 2 - 1))
+    exact (this.const_mul K)
+  -- conclude by domination
+  refine IntegrableOn.mono' ?_ measurableSet_Ici h_bound
+  -- multiply by a constant in ℂ to match types (use norm bound)
+  -- ‖K * e^(-π t) * t^(⋯)‖ is integrable
+  have : IntegrableOn (fun t => ((K : ℝ) * rexp (-π * t) * t^(s.re / 2 - 1) : ℝ)) (Ici 1) volume :=
+    h_int
+  -- coerce to ℂ
+  simpa [mellinIntegrand, Complex.norm_ofReal, norm_mul, mul_comm, mul_left_comm, mul_assoc] using
+    ((h_int).mono
+      (by
+        intro t ht
+        simp))
 
 /-- For Re(s) < 2, the integral ∫₀^1 (θ(t)-1) t^(s/2-1) dt converges absolutely. -/
 theorem mellin_left_integrable {s : ℂ} (hs : s.re < 2) :
