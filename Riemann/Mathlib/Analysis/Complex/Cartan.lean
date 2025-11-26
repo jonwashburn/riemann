@@ -58,16 +58,69 @@ The proof uses that:
 For the formal proof, we use that ℂ is a Polish space where continuous
 functions are measurable, and the poles form a closed discrete set. -/
 lemma MeromorphicOn.measurable_of_univ {f : ℂ → ℂ} (hf : MeromorphicOn f ⊤) : Measurable f := by
-  -- The set of poles is discrete, hence the function is continuous on a dense open set.
-  -- In a Polish space, any function that is continuous on the complement of a countable
-  -- closed set is Borel measurable.
+  -- Strategy: f is continuous except on the set of poles, which is discrete (hence countable).
+  -- A function continuous off a countable set is Borel measurable.
   --
-  -- Strategy: Use that f is continuous off poles, poles are discrete (countable),
-  -- and apply measurable_of_continuousOn_compl_countable or similar.
-  --
-  -- For now, we use that meromorphic functions on ℂ are limits of rational functions,
-  -- which are measurable. This requires developing the theory further.
-  sorry
+  -- We prove this by showing the preimage of any open set is measurable:
+  -- f⁻¹(U) = {x | AnalyticAt ℂ f x ∧ f x ∈ U} ∪ {x | ¬AnalyticAt ℂ f x ∧ f x ∈ U}
+  -- The first set is open (f is continuous at analytic points).
+  -- The second set is countable (subset of the discrete set of poles).
+
+  apply measurable_of_isOpen
+  intro U hU
+
+  -- The set of analytic points is open
+  have h_analytic_open : IsOpen {x | AnalyticAt ℂ f x} := isOpen_analyticAt ℂ f
+
+  -- Part 1: Where f is analytic and f(x) ∈ U, this is open
+  have h_open_part : IsOpen {x | AnalyticAt ℂ f x ∧ f x ∈ U} := by
+    have h_eq : {x | AnalyticAt ℂ f x ∧ f x ∈ U} = {x | AnalyticAt ℂ f x} ∩ f ⁻¹' U := by
+      ext x; simp [Set.mem_inter_iff, Set.mem_preimage]
+    rw [h_eq]
+    -- f is continuous on the set of analytic points
+    have h_cont : ContinuousOn f {x | AnalyticAt ℂ f x} := fun x hx => hx.continuousAt.continuousWithinAt
+    -- The preimage of an open set under a continuous function on an open domain is open in that domain
+    have h_preimage_open : IsOpen ({x | AnalyticAt ℂ f x} ∩ f ⁻¹' U) :=
+      h_cont.isOpen_inter_preimage h_analytic_open hU
+    exact h_preimage_open
+
+  -- Part 2: The non-analytic points (poles) are codiscrete, hence countable in a second-countable space
+  -- In ℂ (second-countable, Lindelöf), the complement of a codiscrete set is countable
+  have h_poles_countable : Set.Countable {x | ¬AnalyticAt ℂ f x} := by
+    -- The set of analytic points is codiscrete within ⊤ (the whole space)
+    have h_codiscrete := hf.analyticAt_mem_codiscreteWithin
+    -- The complement of a codiscrete set has discrete topology as a subtype
+    have h_discrete : DiscreteTopology ({x | AnalyticAt ℂ f x}ᶜ ∩ (⊤ : Set ℂ) : Set ℂ) :=
+      discreteTopology_of_codiscreteWithin h_codiscrete
+    -- Simplify: {x | AnalyticAt ℂ f x}ᶜ ∩ ⊤ = {x | ¬AnalyticAt ℂ f x}
+    have h_set_eq : ({x | AnalyticAt ℂ f x}ᶜ ∩ (⊤ : Set ℂ) : Set ℂ) = {x | ¬AnalyticAt ℂ f x} := by
+      ext x
+      simp only [Set.top_eq_univ, Set.inter_univ, Set.mem_compl_iff, Set.mem_setOf_eq]
+    -- Transfer discrete topology to the simplified set
+    haveI h_discrete' : DiscreteTopology ({x | ¬AnalyticAt ℂ f x} : Set ℂ) := by
+      rw [← h_set_eq]; exact h_discrete
+    -- ℂ is second-countable, so any subtype is second-countable
+    haveI : SecondCountableTopology ({x | ¬AnalyticAt ℂ f x} : Set ℂ) :=
+      TopologicalSpace.Subtype.secondCountableTopology _
+    -- Second-countable spaces are separable
+    haveI : TopologicalSpace.SeparableSpace ({x | ¬AnalyticAt ℂ f x} : Set ℂ) :=
+      TopologicalSpace.SecondCountableTopology.to_separableSpace
+    -- A separable space with discrete topology is countable
+    have h_countable : Countable ({x | ¬AnalyticAt ℂ f x} : Set ℂ) :=
+      TopologicalSpace.separableSpace_iff_countable.mp ‹TopologicalSpace.SeparableSpace _›
+    exact Set.countable_coe_iff.mp h_countable
+
+  have h_poles_U_countable : Set.Countable {x | ¬AnalyticAt ℂ f x ∧ f x ∈ U} :=
+    h_poles_countable.mono (fun x hx => hx.1)
+
+  -- Decompose the preimage
+  have h_decomp : f ⁻¹' U = {x | AnalyticAt ℂ f x ∧ f x ∈ U} ∪ {x | ¬AnalyticAt ℂ f x ∧ f x ∈ U} := by
+    ext x
+    simp only [Set.mem_preimage, Set.mem_union, Set.mem_setOf_eq]
+    tauto
+
+  rw [h_decomp]
+  exact h_open_part.measurableSet.union h_poles_U_countable.measurableSet
 
 /-- Composition of a meromorphic function with a continuous function is measurable. -/
 lemma MeromorphicOn.measurable_comp_of_continuous {f : ℂ → ℂ} {g : ℝ → ℂ}
