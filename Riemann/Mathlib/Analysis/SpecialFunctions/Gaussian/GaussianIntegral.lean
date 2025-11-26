@@ -1,6 +1,10 @@
 import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Analysis.SpecialFunctions.Gamma.BohrMollerup
 
+import Mathlib
+
+import StrongPNT
+
 open Real Set MeasureTheory Filter Asymptotics
 open scoped Real Topology
 
@@ -445,5 +449,146 @@ lemma norm_Complex_Gamma_le_of_re_ge {w : ℂ} {a : ℝ}
   have : 1 / w.re + Real.sqrt Real.pi ≤ 1 / a + Real.sqrt Real.pi :=
     add_le_add_right h_one_div _
   exact h_main.trans this
+
+
+
+/-!
+# Gamma function bounds via integral splitting
+
+This file provides explicit bounds for the complex Gamma function `Γ(s)` in the
+strip `0 < a ≤ Re(s) ≤ b` by splitting the Euler integral at `t = 1`.
+
+## Main results
+
+* `Gammaℝ.norm_Complex_Gamma_le_of_re_ge`: For `0 < a ≤ Re(w) ≤ 1`,
+  we have `‖Γ(w)‖ ≤ 1/a + √π`.
+
+## Mathematical background
+
+The Euler integral `Γ(s) = ∫₀^∞ t^{s-1} e^{-t} dt` converges for `Re(s) > 0`.
+For `0 < a ≤ Re(s) ≤ 1`, we split at `t = 1`:
+
+1. **Integral on `[0,1]`**:
+   Since `|t^{s-1}| = t^{Re(s)-1} ≤ t^{a-1}` for `t ∈ [0,1]` and `a ≤ Re(s)`,
+   and `e^{-t} ≤ 1`, we have
+   `∫₀¹ |t^{s-1} e^{-t}| dt ≤ ∫₀¹ t^{a-1} dt = 1/a`.
+
+2. **Integral on `[1,∞)`**:
+   Since `Re(s) ≤ 1`, we have `|t^{s-1}| = t^{Re(s)-1} ≤ 1` for `t ≥ 1`.
+   Thus `∫₁^∞ |t^{s-1} e^{-t}| dt ≤ ∫₁^∞ e^{-t} dt = e^{-1} < √π`.
+
+Combining: `|Γ(s)| ≤ 1/a + e^{-1} < 1/a + √π`.
+
+A tighter bound uses Gaussian decay estimates, which we import from the
+standard Mathlib analysis of Gaussian integrals.
+-/
+
+noncomputable section
+
+open Complex Real Set MeasureTheory Filter Topology
+open scoped Real Topology BigOperators
+
+
+/-! ## Auxiliary integral bounds -/
+
+/-- The integral `∫₀¹ t^(a-1) dt = 1/a` for `a > 0`. -/
+lemma integral_rpow_zero_one_eq {a : ℝ} (ha : 0 < a) :
+    ∫ t in (0 : ℝ)..1, t ^ (a - 1) = 1 / a := by
+  rw [integral_rpow (Or.inl (by linarith : (-1 : ℝ) < a - 1))]
+  simp only [sub_add_cancel]
+  simp only [Real.one_rpow, Real.zero_rpow (by linarith : a ≠ 0)]
+  ring
+
+/-- The integral `∫₁^∞ e^{-t} dt = e^{-1}`. -/
+lemma integral_exp_neg_Ioi_one :
+    ∫ t in Set.Ioi (1 : ℝ), Real.exp (-t) = Real.exp (-1) := by
+  have h_int : IntegrableOn (fun t => Real.exp (-t)) (Set.Ioi 1) := integrableOn_exp_neg_Ioi 1
+  -- Use the antiderivative -exp(-t)
+  have h_cont : ContinuousWithinAt (fun x => -Real.exp (-x)) (Set.Ici 1) 1 := by
+    apply ContinuousAt.continuousWithinAt
+    exact (Real.continuous_exp.comp continuous_neg).neg.continuousAt
+  have h_deriv : ∀ t ∈ Set.Ioi (1 : ℝ), HasDerivAt (fun x => -Real.exp (-x)) (Real.exp (-t)) t := by
+    intro t _ht
+    have h1 : HasDerivAt (fun x => -x) (-1) t := hasDerivAt_neg t
+    have h2 : HasDerivAt Real.exp (Real.exp (-t)) (-t) := Real.hasDerivAt_exp (-t)
+    have h3 : HasDerivAt (fun x => Real.exp (-x)) (Real.exp (-t) * (-1)) t := h2.comp t h1
+    have h4 : HasDerivAt (fun x => -Real.exp (-x)) (-(Real.exp (-t) * (-1))) t := h3.neg
+    convert h4 using 1
+    ring
+  have h_tendsto : Tendsto (fun t => -Real.exp (-t)) atTop (𝓝 0) := by
+    have : Tendsto (fun t => Real.exp (-t)) atTop (𝓝 0) := tendsto_exp_neg_atTop_nhds_zero
+    simpa using this.neg
+  rw [MeasureTheory.integral_Ioi_of_hasDerivAt_of_tendsto h_cont h_deriv h_int h_tendsto]
+  simp [Real.exp_neg]
+
+/-- `e^{-1} < √π`. -/
+lemma exp_neg_one_lt_sqrt_pi : Real.exp (-1) < Real.sqrt Real.pi := by
+  -- e^{-1} ≈ 0.368, √π ≈ 1.772
+  -- We'll show e^{-1} < 1 < √π
+  have h1 : Real.exp (-1) < 1 := by
+    have : Real.exp 0 = 1 := Real.exp_zero
+    have hlt : (-1 : ℝ) < 0 := by norm_num
+    calc Real.exp (-1) < Real.exp 0 := Real.exp_lt_exp.mpr hlt
+      _ = 1 := this
+  have h2 : 1 < Real.sqrt Real.pi := by
+    have hpi_pos : 0 < Real.pi := Real.pi_pos
+    have hone_lt_pi : 1 < Real.pi := by
+      have : (3 : ℝ) < Real.pi := Real.pi_gt_three
+      linarith
+    rw [← Real.sqrt_one]
+    exact Real.sqrt_lt_sqrt (by norm_num) hone_lt_pi
+  linarith
+
+
+/-! ## Corollaries -/
+
+/-- Bound when `a = 1/2`: `‖Γ(w)‖ ≤ 4` for `1/2 ≤ Re(w) ≤ 1`. -/
+lemma norm_Gamma_le_four_half_strip {w : ℂ}
+    (hw_lo : (1/2 : ℝ) ≤ w.re) (hw_hi : w.re ≤ 1) :
+    ‖Complex.Gamma w‖ ≤ 4 := by
+  have h := norm_Complex_Gamma_le_of_re_ge (by norm_num : (0 : ℝ) < 1/2) hw_lo hw_hi
+  have hsqrt : Real.sqrt Real.pi < 2 := by
+    have hpi4 : Real.pi < 4 := Real.pi_lt_four
+    have : Real.sqrt Real.pi < Real.sqrt 4 := Real.sqrt_lt_sqrt (le_of_lt Real.pi_pos) hpi4
+    have h4 : Real.sqrt 4 = 2 := by norm_num
+    linarith
+  calc ‖Complex.Gamma w‖
+      ≤ 1 / (1/2 : ℝ) + Real.sqrt Real.pi := h
+    _ = 2 + Real.sqrt Real.pi := by norm_num
+    _ ≤ 2 + 2 := by linarith
+    _ = 4 := by ring
+
+/-- Bound when `a = 1/4`: `‖Γ(w)‖ ≤ 6` for `1/4 ≤ Re(w) ≤ 1`. -/
+lemma norm_Gamma_le_six_quarter_strip {w : ℂ}
+    (hw_lo : (1/4 : ℝ) ≤ w.re) (hw_hi : w.re ≤ 1) :
+    ‖Complex.Gamma w‖ ≤ 6 := by
+  have h := norm_Complex_Gamma_le_of_re_ge (by norm_num : (0 : ℝ) < 1/4) hw_lo hw_hi
+  have hsqrt : Real.sqrt Real.pi < 2 := by
+    have hpi4 : Real.pi < 4 := Real.pi_lt_four
+    have : Real.sqrt Real.pi < Real.sqrt 4 := Real.sqrt_lt_sqrt (le_of_lt Real.pi_pos) hpi4
+    have h4 : Real.sqrt 4 = 2 := by norm_num
+    linarith
+  calc ‖Complex.Gamma w‖
+      ≤ 1 / (1/4 : ℝ) + Real.sqrt Real.pi := h
+    _ = 4 + Real.sqrt Real.pi := by norm_num
+    _ ≤ 4 + 2 := by linarith
+    _ = 6 := by ring
+
+
+/-! ## Integration with the GammaBounds infrastructure -/
+
+namespace RH.AcademicFramework.GammaBounds
+
+open Complex Real
+
+/-- Re-export the main bound for compatibility with existing code. -/
+theorem norm_Complex_Gamma_le_of_re_ge' {w : ℂ} {a : ℝ}
+    (ha : 0 < a) (hw_lo : a ≤ w.re) (hw_hi : w.re ≤ 1) :
+    ‖Complex.Gamma w‖ ≤ 1 / a + Real.sqrt Real.pi :=
+  Gammaℝ.norm_Complex_Gamma_le_of_re_ge ha hw_lo hw_hi
+
+end RH.AcademicFramework.GammaBounds
+
+end
 
 end Complex.Gammaℝ

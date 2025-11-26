@@ -110,7 +110,7 @@ into a `FunctionalEquationStripFactors` witness with budget `B = C`. -/
 half–plane Carleson budget. -/
 theorem exists_Carleson_from_FGammaPrime
     {σ0 : ℝ}
-    (hFG : RH.AcademicFramework.GammaBounds.BoundedFGammaPrimeOnStrip σ0) :
+    (hFG : Complex.Gammaℝ.BoundedFGammaPrimeOnStrip σ0) :
     ∃ Kξ : ℝ, ConcreteHalfPlaneCarleson Kξ := by
   obtain ⟨C, hBound⟩ := hFG
   rcases hBound with ⟨_hσ, _hσ1, hC0, _hDeriv⟩
@@ -123,10 +123,10 @@ theorem exists_Carleson_from_FGammaPrime
 from the digamma/`FΓ′` strip bound. -/
 theorem factors_witness_from_FGammaPrime
     {σ0 : ℝ}
-    (hFG : RH.AcademicFramework.GammaBounds.BoundedFGammaPrimeOnStrip σ0)
+    (hFG : Complex.Gammaℝ.BoundedFGammaPrimeOnStrip σ0)
     : Nonempty FunctionalEquationStripFactors := by
   obtain ⟨C, hBound⟩ := hFG
-  have hFG' : RH.AcademicFramework.GammaBounds.BoundedFGammaPrimeOnStrip σ0 :=
+  have hFG' : Complex.Gammaℝ.BoundedFGammaPrimeOnStrip σ0 :=
     ⟨C, hBound⟩
   rcases hBound with ⟨hσ, hσ1, _hC0, _hDeriv⟩
   obtain ⟨Kξ, hCarleson⟩ := exists_Carleson_from_FGammaPrime (σ0 := σ0) hFG'
@@ -141,8 +141,8 @@ theorem factors_witness_from_FGammaPrime
 theorem kxiWitness_nonempty : Nonempty FunctionalEquationStripFactors := by
   classical
   -- Use the constructive Prop-level bound at σ0 = 3/5, wired through the bridge.
-  have hprop : RH.AcademicFramework.GammaBounds.BoundedFGammaPrimeOnStrip ((3 : ℝ) / 5) :=
-    RH.AcademicFramework.GammaBounds.boundedFGammaPrimeOnStrip_of (by norm_num) (by norm_num)
+  have hprop : Complex.Gammaℝ.BoundedFGammaPrimeOnStrip ((3 : ℝ) / 5) :=
+    Complex.Gammaℝ.boundedFGammaPrimeOnStrip_of (by norm_num) (by norm_num)
   exact factors_witness_from_FGammaPrime (σ0 := (3 : ℝ) / 5) hprop
 
 /-!

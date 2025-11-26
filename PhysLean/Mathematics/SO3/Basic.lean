@@ -67,11 +67,11 @@ lemma toGL_injective : Function.Injective toGL := by
 def toProd : SO(3) →* (Matrix (Fin 3) (Fin 3) ℝ) × (Matrix (Fin 3) (Fin 3) ℝ)ᵐᵒᵖ :=
   MonoidHom.comp (Units.embedProduct _) toGL
 
-lemma toProd_eq_transpose : toProd A = (A.1, ⟨A.1ᵀ⟩) := rfl
+lemma toProd_eq_transpose (A : SO(3)) : toProd A = (A.1, ⟨A.1ᵀ⟩) := rfl
 
 lemma toProd_injective : Function.Injective toProd := by
   intro A B h
-  rw [toProd_eq_transpose, toProd_eq_transpose, Prod.mk_inj] at h
+  rw [toProd_eq_transpose A, toProd_eq_transpose B, Prod.mk_inj] at h
   exact Subtype.eq h.1
 
 lemma toProd_continuous : Continuous toProd :=

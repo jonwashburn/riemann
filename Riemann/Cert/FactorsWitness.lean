@@ -57,7 +57,7 @@ def FEFactors_from_Hderiv (h : UniformHDerivBound) : FunctionalEquationStripFact
 /-- Build a `UniformHDerivBound` record from the Prop-level `FΓ′` bound. -/
 noncomputable def UniformHDerivBound.of_FGammaPrime
     {σ0 : ℝ}
-    (hFG : RH.AcademicFramework.GammaBounds.BoundedFGammaPrimeOnStrip σ0)
+    (hFG : Complex.Gammaℝ.BoundedFGammaPrimeOnStrip σ0)
     : UniformHDerivBound := by
   classical
   let C := Classical.choose hFG
@@ -90,9 +90,9 @@ available, replace `C := 1` by that bound and keep this constructor.
 def factors_witness : FunctionalEquationStripFactors := by
   classical
   -- Use the Prop-level FΓ′ bound at σ0 = 3/5 through the abstract bridge.
-  have hprop : RH.AcademicFramework.GammaBounds.BoundedFGammaPrimeOnStrip ((3 : ℝ) / 5) := by
+  have hprop : Complex.Gammaℝ.BoundedFGammaPrimeOnStrip ((3 : ℝ) / 5) := by
     -- Build from the constructive Prop helper (bundles the standard argument).
-    exact RH.AcademicFramework.GammaBounds.boundedFGammaPrimeOnStrip_of (by norm_num) (by norm_num)
+    exact Complex.Gammaℝ.boundedFGammaPrimeOnStrip_of (by norm_num) (by norm_num)
   exact FEFactors_from_Hderiv (UniformHDerivBound.of_FGammaPrime (σ0 := (3 : ℝ) / 5) hprop)
 
 /-- Nonemptiness of the closed-strip factors witness. -/
