@@ -2,6 +2,7 @@ import VD.MathlibSubmitted.Nevanlinna_add_proximity
 import VD.MathlibSubmitted.Nevanlinna_add_proximity
 
 import Mathlib.Analysis.Complex.ValueDistribution.FirstMainTheorem
+-- Import needed for integrability of proximity function (log_plus_norm)
 import Mathlib.MeasureTheory.Integral.CircleAverage
 import Mathlib.Analysis.Meromorphic.Order
 import Mathlib.Analysis.Meromorphic.NormalForm
@@ -113,6 +114,19 @@ lemma CircleIntegrable.of_continuous {E : Type*} [NormedAddCommGroup E] [NormedS
   unfold CircleIntegrable
   simpa using
     (hf.comp (continuous_circleMap c R)).intervalIntegrable (a := 0) (b := 2 * Real.pi)
+
+/-- A function that is constant on the sphere is circle integrable. -/
+lemma circleIntegrable_of_const_on_sphere {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    {f : ℂ → E} {c : ℂ} {R : ℝ} {C : E}
+    (h_eq : ∀ a ∈ Metric.sphere c |R|, f a = C) :
+    CircleIntegrable f c R := by
+  have h_param_eq : ∀ θ, f (circleMap c R θ) = C := by
+    intro θ
+    apply h_eq
+    -- Need to show circleMap c R θ is on the sphere.
+    simp [mem_sphere_iff_norm, circleMap_sub_center]
+  unfold CircleIntegrable
+  simp [h_param_eq, intervalIntegrable_const]
 
 end CircleIntegrabilityLemmas
 
@@ -638,6 +652,184 @@ lemma prod_integral_eq_double_intervalIntegral {f : ℝ → ℝ → ℝ} {a b : 
     simp [μ, intervalIntegral.integral_of_le hab]
   simpa [μ] using h_prod.trans h_iter
 
+/-- The Cartan kernel is integrable on the product measure `[0,2π] × [0,2π]`.
+
+This is the key integrability result needed for Cartan's formula.
+The proof uses Tonelli's theorem by analyzing the iterated integral of the absolute value
+of the kernel, leveraging Jensen's formula and properties of the proximity function.
+-/
+lemma cartan_integrability {f : ℂ → ℂ} (h : MeromorphicOn f ⊤) {R : ℝ} (_hR : R ≠ 0) :
+    Integrable (fun p : ℝ × ℝ => cartanKernel f R p.1 p.2)
+      ((volume.restrict (Set.uIoc 0 (2 * Real.pi))).prod
+       (volume.restrict (Set.uIoc 0 (2 * Real.pi)))) := by
+  -- Proof using Tonelli's theorem strategy.
+  have h0_le : (0 : ℝ) ≤ 2 * Real.pi := Real.two_pi_pos.le
+  have hIoc : Set.uIoc 0 (2 * Real.pi) = Set.Ioc 0 (2 * Real.pi) := Set.uIoc_of_le h0_le
+  rw [hIoc, hIoc]
+  set μ := volume.restrict (Set.Ioc 0 (2 * Real.pi)) with hμ_def
+
+  -- 1. Measurability of the kernel.
+  have h_meas_K : Measurable (fun p : ℝ × ℝ => cartanKernel f R p.1 p.2) := by
+    -- Meromorphic functions on ℂ are measurable.
+    have h_meas_f : Measurable f := h.measurable (Set.univ_mem)
+    have h_meas_G1 : Measurable (fun p : ℝ × ℝ => f (circleMap 0 R p.2)) :=
+      h_meas_f.comp ((continuous_circleMap 0 R).measurable.comp measurable_snd)
+    have h_meas_G2 : Measurable (fun p : ℝ × ℝ => circleMap 0 1 p.1) :=
+      (continuous_circleMap 0 1).measurable.comp measurable_fst
+    have h_meas_G : Measurable (fun p : ℝ × ℝ => f (circleMap 0 R p.2) - circleMap 0 1 p.1) :=
+      h_meas_G1.sub h_meas_G2
+    simp only [cartanKernel]
+    apply Real.measurable_log.comp (Continuous.measurable continuous_norm).comp h_meas_G
+
+  -- 2. Integral of the absolute value of the kernel.
+  let K_abs := fun p : ℝ × ℝ => ‖cartanKernel f R p.1 p.2‖
+  have h_meas_K_abs : Measurable K_abs := h_meas_K.norm
+
+  -- Inner integral: ∫_α ‖K(α, β)‖ dμ(α).
+  let InnerInt := fun β => ∫ α, ‖cartanKernel f R α β‖ ∂μ
+
+  -- Calculation of the inner integral using Jensen's formula identity: ∫|g| = 2∫g⁺ - ∫g.
+  have h_inner_calc : ∀ β, InnerInt β =
+      2 * (∫ α, max (cartanKernel f R α β) 0 ∂μ) -
+      (2 * Real.pi) * log⁺ ‖f (circleMap 0 R β)‖ := by
+    intro β
+    let z := f (circleMap 0 R β)
+    let g := fun α => cartanKernel f R α β -- g(α) = log ‖z - circleMap 0 1 α‖
+
+    -- Integrability of g.
+    have h_int_g_prop : Integrable g μ := by
+      have := circleIntegrable_log_norm_sub z 0 1
+      unfold CircleIntegrable at this
+      rw [intervalIntegrable_iff_integrableOn_Ioc_of_le h0_le] at this
+      -- Need to match the parametrization.
+      have h_param_match : (fun θ => Real.log ‖z - circleMap 0 1 θ‖) = g := by
+        funext θ; simp [g, cartanKernel]
+      rwa [h_param_match] at this
+
+    -- Value of ∫g (from Jensen's formula).
+    have h_int_g_val : ∫ α, g(α) ∂μ = (2 * Real.pi) * log⁺ ‖z‖ := by
+      have h_avg := circleAverage_log_norm_sub_eq_posLog z
+      unfold circleAverage Real.circleAverage at h_avg
+      simp only [smul_eq_mul] at h_avg
+      have h_int_eq_μ : ∫ θ in (0 : ℝ)..2 * Real.pi, Real.log ‖z - circleMap 0 1 θ‖ = ∫ θ, g(θ) ∂μ := by
+        rw [hμ_def, integral_restrict_Ioc_eq_intervalIntegral h0_le]
+        rfl
+      rw [h_int_eq_μ] at h_avg
+      field_simp [Real.two_pi_ne_zero] at h_avg
+      exact h_avg.symm
+
+    -- Identity |x| = 2 * max(x, 0) - x.
+    have h_abs_eq : ∀ α, |g(α)| = 2 * max (g(α)) 0 - g(α) := fun α => abs_eq_two_mul_max_sub (g(α))
+
+    -- Integrability of max(g, 0).
+    have h_int_g_plus : Integrable (fun α => max (g(α)) 0) μ := h_int_g_prop.max (integrable_const 0)
+
+    -- Integrate the identity.
+    have h_int_abs_g : ∫ α, |g(α)| ∂μ = 2 * ∫ α, max (g(α)) 0 ∂μ - ∫ α, g(α) ∂μ := by
+      rw [integral_congr_ae (Filter.eventually_of_forall h_abs_eq)]
+      rw [integral_sub]
+      · simp only [integral_mul_left]
+        exact Integrable.const_mul h_int_g_plus 2
+      · exact h_int_g_prop
+
+    -- Combine everything.
+    rw [h_int_g_val] at h_int_abs_g
+    exact h_int_abs_g
+
+  -- 3. Integrability of the inner integral InnerInt(β).
+  -- InnerInt(β) = 2 * Term1(β) - Term2(β).
+
+  -- Integrability of Term2(β) = (2π) * log⁺ ‖f(z_β)‖ (Proximity integrand).
+  have h_int_Term2 : Integrable (fun β => (2 * Real.pi) * log⁺ ‖f (circleMap 0 R β)‖) μ := by
+    -- Uses the fact that the proximity function integrand is integrable for meromorphic functions.
+    have h_prox_integrand : CircleIntegrable (fun z => log⁺ ‖f z‖) 0 R :=
+      circleIntegrable_log_plus_norm_meromorphicOn (h.mono (Set.subset_univ _))
+    unfold CircleIntegrable at h_prox_integrand
+    rw [intervalIntegrable_iff_integrableOn_Ioc_of_le h0_le] at h_prox_integrand
+    exact h_prox_integrand.const_mul (2 * Real.pi)
+
+  -- Integrability of Term1(β) = ∫_α max(K(α, β), 0) dμ(α).
+  -- We use the bound Term1(β) ≤ (2π) * (log⁺ ‖f(z_β)‖ + log 2).
+
+  -- Integrability of the bound (log⁺ ‖f(z_β)‖ + log 2).
+  have h_int_Bound : Integrable (fun β => log⁺ ‖f (circleMap 0 R β)‖ + Real.log 2) μ := by
+    have h_prox_int : Integrable (fun β => log⁺ ‖f (circleMap 0 R β)‖) μ := by
+      have h_prox_integrand := circleIntegrable_log_plus_norm_meromorphicOn (h.mono (Set.subset_univ _))
+      unfold CircleIntegrable at h_prox_integrand
+      rwa [intervalIntegrable_iff_integrableOn_Ioc_of_le h0_le] at h_prox_integrand
+
+    exact h_prox_int.add (integrable_const (Real.log 2))
+
+  have h_int_Term1 : Integrable (fun β => ∫ α, max (cartanKernel f R α β) 0 ∂μ) μ := by
+    -- Bound Term1(β).
+    have h_bound_Term1 : ∀ β, (∫ α, max (cartanKernel f R α β) 0 ∂μ) ≤
+        (2 * Real.pi) * (log⁺ ‖f (circleMap 0 R β)‖ + Real.log 2) := by
+      intro β
+      let z := f (circleMap 0 R β)
+      have h_integrand_bound : ∀ α, max (cartanKernel f R α β) 0 ≤ log⁺ ‖z‖ + Real.log 2 := by
+        intro α
+        let a := circleMap 0 1 α
+        have ha_norm : ‖a‖ = 1 := by simp [circleMap_norm]
+        -- max(log ‖z-a‖, 0) = log⁺ ‖z-a‖.
+        have h_eq_logplus : max (cartanKernel f R α β) 0 = log⁺ ‖z - a‖ := by
+          simp [cartanKernel]
+          exact posLog_eq_max_log_zero (norm_nonneg _)
+
+        rw [h_eq_logplus]
+        -- log⁺ ‖z-a‖ ≤ log⁺ (‖z‖ + 1) ≤ log⁺ ‖z‖ + log 2.
+        have h_le_plus1 : log⁺ ‖z - a‖ ≤ log⁺ (‖z‖ + 1) := by
+          apply posLog_monotone
+          calc ‖z - a‖ ≤ ‖z‖ + ‖a‖ := norm_sub_le z a
+            _ = ‖z‖ + 1 := by rw [ha_norm]
+        -- Uses the inequality log⁺(t+1) ≤ log⁺(t) + log 2.
+        have h_le_log2 : log⁺ (‖z‖ + 1) ≤ log⁺ ‖z‖ + Real.log 2 :=
+          posLog_add_one_le_posLog_add_log_two (norm_nonneg z)
+
+        exact le_trans h_le_plus1 h_le_log2
+
+      -- Integrate the bound.
+      apply integral_mono_of_nonneg (Filter.eventually_of_forall (fun _ => le_max_right _ _))
+        (integrable_const _) (Filter.eventually_of_forall h_integrand_bound)
+
+    -- AEStronglyMeasurable of Term1(β).
+    have h_aesm_Term1 : AEStronglyMeasurable (fun β => ∫ α, max (cartanKernel f R α β) 0 ∂μ) μ := by
+      -- Uses product measurability of the integrand and Fubini/Tonelli structure.
+      have h_meas_integrand : Measurable (fun p : ℝ × ℝ => max (cartanKernel f R p.1 p.2) 0) :=
+        h_meas_K.max measurable_const
+      exact h_meas_integrand.stronglyMeasurable.aestronglyMeasurable.integral_prod_left'
+
+    apply Integrable.mono (h_int_Bound.const_mul (2 * Real.pi)) h_aesm_Term1 (Filter.eventually_of_forall h_bound_Term1)
+
+  -- InnerInt(β) is integrable.
+  have h_int_InnerInt : Integrable InnerInt μ := by
+    have h_diff := (h_int_Term1.const_mul 2).sub h_int_Term2
+    apply Integrable.congr h_diff (Filter.eventually_of_forall (fun β => (h_inner_calc β).symm))
+
+  -- 4. Conclusion using Tonelli's theorem.
+  -- We show that the lintegral of K_abs is finite.
+  have h_tonelli_lintegral : ∫⁻ p, ENNReal.ofReal (K_abs p) ∂(μ.prod μ) =
+      ∫⁻ β, ENNReal.ofReal (InnerInt β) ∂μ := by
+    rw [lintegral_prod]
+    · apply lintegral_congr
+      intro β
+      rw [InnerInt]
+      rw [integral_eq_lintegral_of_nonneg_ae]
+      · apply Filter.eventually_of_forall (fun _ => norm_nonneg _)
+      · -- AEStronglyMeasurable of the slice.
+        exact (h_meas_K_abs.comp measurable_prod_mk_right).stronglyMeasurable.aestronglyMeasurable
+    · exact (Measurable.ennreal_ofReal.comp h_meas_K_abs).aemeasurable
+
+  have h_finite_prod_lintegral : ∫⁻ p, ENNReal.ofReal (K_abs p) ∂(μ.prod μ) < ⊤ := by
+    rw [h_tonelli_lintegral]
+    exact h_int_InnerInt.hasFiniteIntegral.lintegral_ofReal_lt_top
+
+  -- Integrability of the kernel follows from AEStronglyMeasurable and finite integral of the norm.
+  have h_aesm_K_prod : AEStronglyMeasurable (fun p : ℝ × ℝ => cartanKernel f R p.1 p.2) (μ.prod μ) :=
+    h_meas_K.stronglyMeasurable.aestronglyMeasurable
+
+  rw [integrable_iff_aestronglyMeasurable_and_hasFiniteIntegral]
+  exact ⟨h_aesm_K_prod, h_finite_prod_lintegral⟩
+
 lemma cartan_swap_averages
     {f : ℂ → ℂ} (_h : MeromorphicOn f ⊤) {R : ℝ}
     (h_int_kernel :
@@ -709,47 +901,9 @@ lemma cartan_swap_averages
   have h_swap :
       ∫ α in 0..2 * Real.pi, ∫ β in 0..2 * Real.pi, F α β
         =
-      ∫ β in 0..2 * Real.pi, ∫ α in 0..2 * Real.pi, F α β := by
-    -- Work with the measure restricted to the unordered interval `uIoc 0 (2π)` in the
-    -- second variable, and apply `intervalIntegral_integral_swap`.
-    let μR : Measure ℝ := volume.restrict (Set.uIoc 0 (2 * Real.pi))
-    have h_int' :
-        Integrable (uncurry F)
-          ((volume.restrict (Set.uIoc 0 (2 * Real.pi))).prod μR) := by
-      simpa [μR] using h_int
+      ∫ β in 0..2 * Real.pi, ∫ α in 0..2 * Real.pi, F α β :=
+    intervalIntegral_swap h0_le h0_le h_int
 
-    -- Helper: convert integral w.r.t. μR to interval integral
-    have h_convert : ∀ (g : ℝ → ℝ), ∫ y, g y ∂μR = ∫ y in 0..2 * Real.pi, g y := by
-      intro g
-      calc
-        ∫ y, g y ∂μR
-            = ∫ y in Set.uIoc 0 (2 * Real.pi), g y := by simp [μR]
-        _ = ∫ y in Set.Ioc 0 (2 * Real.pi), g y := by rw [Set.uIoc_of_le h0_le]
-        _ = ∫ y in 0..2 * Real.pi, g y := by rw [← intervalIntegral.integral_of_le h0_le]
-
-    -- Apply the conversion to both sides of h_swap'
-    have h_left : ∫ x in 0..2 * Real.pi, ∫ y, F x y ∂μR =
-        ∫ x in 0..2 * Real.pi, ∫ y in 0..2 * Real.pi, F x y := by
-      apply intervalIntegral.integral_congr; intro x _; exact h_convert (F x)
-
-    -- Use intervalIntegral_integral_swap (it produces: ∫ x in a..b, ∫ y, f x y ∂μ = ∫ y, ∫ x in a..b, f x y ∂μ)
-    have h_swap' :
-        ∫ x in 0..2 * Real.pi, ∫ y, F x y ∂μR =
-          ∫ y, (∫ x in 0..2 * Real.pi, F x y) ∂μR :=
-      MeasureTheory.intervalIntegral_integral_swap (μ := μR) h_int'
-
-    have h_right : ∫ y, (∫ x in 0..2 * Real.pi, F x y) ∂μR =
-        ∫ y in 0..2 * Real.pi, ∫ x in 0..2 * Real.pi, F x y :=
-      h_convert (fun y => ∫ x in 0..2 * Real.pi, F x y)
-
-    -- The swap uses Fubini: ∫∫ F x y dμ dν = ∫∫ F x y dν dμ
-    calc
-      ∫ α in 0..2 * Real.pi, ∫ β in 0..2 * Real.pi, F α β
-        = ∫ x in 0..2 * Real.pi, ∫ y in 0..2 * Real.pi, F x y := rfl
-      _ = ∫ x in 0..2 * Real.pi, ∫ y, F x y ∂μR := h_left.symm
-      _ = ∫ y, (∫ x in 0..2 * Real.pi, F x y) ∂μR := h_swap'
-      _ = ∫ y in 0..2 * Real.pi, ∫ x in 0..2 * Real.pi, F x y := h_right
-      _ = ∫ β in 0..2 * Real.pi, ∫ α in 0..2 * Real.pi, F α β := rfl
 
   -- Combine: compute the swapped integral via h_inner_on_param.
   have h_main :
@@ -825,122 +979,6 @@ theorem continuous_posLog : Continuous fun x : ℝ => log⁺ x := by
       _ = log (max (1 : ℝ) |x|) := posLog_eq_log_max_one (abs_nonneg x)
   simpa [h_eq] using h_log
 
-/-- The Cartan kernel is integrable on the product measure `[0,2π] × [0,2π]`.
-
-This is the key integrability result needed for Cartan's formula.
-The proof uses:
-1. `cartanKernel_integrable_in_alpha`: slice integrability in α for fixed β
-2. `cartanKernel_integrable_in_beta`: slice integrability in β for fixed α
-3. The kernel is continuous in α for each fixed β
-4. Fubini-Tonelli theorem to combine slice integrability into product integrability
--/
-lemma cartan_integrability {f : ℂ → ℂ} (h : MeromorphicOn f ⊤) {R : ℝ} (hR : R ≠ 0) :
-    Integrable (fun p : ℝ × ℝ => cartanKernel f R p.1 p.2)
-      ((volume.restrict (Set.uIoc 0 (2 * Real.pi))).prod
-       (volume.restrict (Set.uIoc 0 (2 * Real.pi)))) := by
-  have h0_le : (0 : ℝ) ≤ 2 * Real.pi := Real.two_pi_pos.le
-  have hIoc : Set.uIoc 0 (2 * Real.pi) = Set.Ioc 0 (2 * Real.pi) := Set.uIoc_of_le h0_le
-
-  -- Define restricted measures
-  set μ := volume.restrict (Set.Ioc 0 (2 * Real.pi)) with hμ_def
-
-  -- Slice integrability from circleIntegrable_log_norm_meromorphicOn
-  have h_beta : ∀ α : ℝ, IntervalIntegrable (fun β => cartanKernel f R α β) volume 0 (2 * π) :=
-    fun α => cartanKernel_integrable_in_beta h R α
-
-  have h_alpha : ∀ β : ℝ, IntervalIntegrable (fun α => cartanKernel f R α β) volume 0 (2 * π) :=
-    fun β => cartanKernel_integrable_in_alpha f R β
-
-  -- Convert to IntegrableOn
-  have h_beta_int : ∀ α : ℝ, IntegrableOn (fun β => cartanKernel f R α β) (Set.Ioc 0 (2 * π)) :=
-    fun α => (intervalIntegrable_iff_integrableOn_Ioc_of_le h0_le).1 (h_beta α)
-
-  have h_alpha_int : ∀ β : ℝ, IntegrableOn (fun α => cartanKernel f R α β) (Set.Ioc 0 (2 * π)) :=
-    fun β => (intervalIntegrable_iff_integrableOn_Ioc_of_le h0_le).1 (h_alpha β)
-
-  -- The product integrability follows from:
-  -- 1. Slice integrability in both directions (h_alpha, h_beta)
-  -- 2. The Cartan kernel is AEStronglyMeasurable (continuous in α for each β)
-  -- 3. Fubini's theorem (integrable_prod_iff)
-  rw [hIoc]
-
-  -- The key technical requirement is AEStronglyMeasurable on the product measure.
-  -- This follows from:
-  -- 1. The kernel K(α, β) = log ‖f(circleMap 0 R β) - circleMap 0 1 α‖
-  -- 2. It is continuous in α for each fixed β (circleMap and log-norm are continuous)
-  -- 3. It is AEStronglyMeasurable in β for each α (from slice integrability)
-  -- 4. These combine to give AEStronglyMeasurable on the product
-  --
-  -- Each slice is AEStronglyMeasurable (from integrability)
-  have h_slice_aesm : ∀ α, AEStronglyMeasurable (fun β => cartanKernel f R α β) μ :=
-    fun α => (h_beta_int α).aestronglyMeasurable
-  have h_slice_aesm' : ∀ β, AEStronglyMeasurable (fun α => cartanKernel f R α β) μ :=
-    fun β => (h_alpha_int β).aestronglyMeasurable
-
-  -- The product AEStronglyMeasurable follows from the fiberwise structure
-  -- and the measurability of the kernel as a composition of measurable functions.
-  -- The technical proof uses that:
-  -- 1. circleMap is continuous (hence measurable)
-  -- 2. f is meromorphic (hence Borel measurable on its domain)
-  -- 3. norm is continuous (hence measurable)
-  -- 4. log is Borel measurable
-  -- The composition is measurable, giving AEStronglyMeasurable on the product.
-  --
-  -- For a complete proof, one would construct the product measurability
-  -- using Fubini-Tonelli structure with the slice integrability.
-  -- The key technical requirement: AEStronglyMeasurable on the product measure.
-  --
-  -- For the Cartan kernel K(α, β) = log ‖f(circleMap 0 R β) - circleMap 0 1 α‖:
-  -- 1. Each α-slice β ↦ K(α, β) is AEStronglyMeasurable (from h_beta_int)
-  -- 2. Each β-slice α ↦ K(α, β) is continuous (circleMap and log-norm are continuous)
-  --    hence StronglyMeasurable
-  -- 3. These combine via Fubini-Tonelli structure to give product measurability
-  --
-  -- Complete proof sketch:
-  -- - Use StronglyMeasurable.aestronglyMeasurable for the α-slices
-  -- - Apply a product measurability construction (e.g., approximation by simple functions)
-  -- - The measurability of the composition follows from:
-  --   * circleMap: continuous → measurable
-  --   * f: meromorphic on ℂ → Borel measurable (MeromorphicAt.measurableAt)
-  --   * norm: continuous → measurable
-  --   * log: Borel measurable
-  -- Construct AEStronglyMeasurable on the product
-  -- The kernel K(α, β) = log ‖f(circleMap 0 R β) - circleMap 0 1 α‖ is measurable as a composition:
-  -- 1. circleMap is continuous (hence measurable)
-  -- 2. f is meromorphic (hence Borel measurable on ℂ)
-  -- 3. norm and log are measurable
-  --
-  -- For the formal proof, we use that each slice is AEStronglyMeasurable (from integrability)
-  -- and the product structure is preserved.
-  have h_aesm : AEStronglyMeasurable (fun p : ℝ × ℝ => cartanKernel f R p.1 p.2) (μ.prod μ) := by
-    -- Use AEStronglyMeasurable.prod_of_right: if β ↦ f(α, β) is AEStronglyMeasurable for all α,
-    -- and the function is jointly measurable, then f is AEStronglyMeasurable on the product.
-    --
-    -- The kernel is jointly measurable (composition of measurable functions)
-    -- and each slice is AEStronglyMeasurable (from h_slice_aesm).
-    sorry -- Composition measurability: log ∘ norm ∘ (f ∘ circleMap - circleMap)
-
-  -- Apply Fubini's integrability criterion
-  rw [MeasureTheory.integrable_prod_iff h_aesm]
-  refine ⟨?_, ?_⟩
-  · -- Almost every α-slice is integrable in β
-    exact Filter.Eventually.of_forall (fun α => h_beta_int α)
-  · -- The norm integral function α ↦ ∫ ‖K(α, β)‖ dβ is integrable
-    -- This uses the Fubini-Tonelli structure:
-    -- 1. h_aesm gives measurability on the product
-    -- 2. h_beta_int gives slice integrability
-    -- 3. h_alpha_int gives the swap direction
-    -- 4. On a finite measure, these combine to give integrability
-    --
-    -- Technical: Extract the StronglyMeasurable representative g from h_aesm,
-    -- show g is integrable using Tonelli and the slice integrability.
-    obtain ⟨g, hg_sm, hg_ae⟩ := h_aesm.norm.integral_prod_right'
-    refine Integrable.congr ?_ hg_ae.symm
-    -- g is strongly measurable and bounded by the double integral
-    -- The double integral is finite (from h_alpha_int slices)
-    -- By Tonelli, the swapped integral is also finite, giving integrability of g
-    sorry -- Tonelli swap + slice integrability → g is integrable
-
 /-!
 ### Circle Integrability for Cartan's Formula
 
@@ -949,62 +987,43 @@ These lemmas establish the circle integrability conditions needed for the main t
 
 /-- The function `a ↦ circleAverage (log ‖f · - a‖) 0 R` is circle integrable on the unit circle.
 
-The proof uses Fubini-Tonelli: the circle average is an integral over β, and
-integrability in α follows from the product integrability of the Cartan kernel.
-Specifically, if `K(α, β) = log ‖f(circleMap 0 R β) - circleMap 0 1 α‖` is integrable
-on `[0,2π] × [0,2π]`, then by Fubini, `α ↦ ∫ K(α, β) dβ` is integrable on `[0,2π]`.
+The proof uses Fubini-Tonelli, relying on the product integrability established
+in `cartan_integrability`.
 -/
 private lemma circleIntegrable_circleAverage_log_norm_sub_unit {f : ℂ → ℂ}
-    (_h : MeromorphicOn f ⊤) {R : ℝ} :
+    (h : MeromorphicOn f ⊤) {R : ℝ} :
     CircleIntegrable (fun a ↦ circleAverage (fun z ↦ Real.log ‖f z - a‖) 0 R) 0 1 := by
   by_cases hR : R = 0
-  · -- When R = 0, circleMap 0 0 θ = 0 for all θ, so the integrand is constant in θ:
-    -- circleAverage (log ‖f · - a‖) 0 0 = (2π)⁻¹ * ∫ θ, log ‖f 0 - a‖ = log ‖f 0 - a‖
-    -- This function of a is circle integrable by circleIntegrable_log_norm_sub_const.
+  · -- When R = 0, circleAverage reduces to evaluation at 0.
     subst hR
-    have h_cm : ∀ θ : ℝ, circleMap 0 0 θ = 0 := fun θ => by simp [circleMap]
     have h_eq : (fun a ↦ circleAverage (fun z ↦ Real.log ‖f z - a‖) 0 0) =
         (fun a ↦ Real.log ‖f 0 - a‖) := by
       funext a
-      simp only [circleAverage, Real.circleAverage]
-      have h_const : (fun θ => Real.log ‖f (circleMap 0 0 θ) - a‖) =
-          fun _ => Real.log ‖f 0 - a‖ := by
-        funext θ; simp [h_cm θ]
-      rw [h_const, intervalIntegral.integral_const]
-      simp only [smul_eq_mul, sub_zero]
-      field_simp
+      -- Use the property that circle average at radius 0 is evaluation at the center.
+      simp [Real.circleAverage_radius_zero]
     rw [h_eq]
+    -- This relies on f(0) being defined (which holds since f : ℂ → ℂ).
     exact circleIntegrable_log_norm_sub (f 0) 0 1
-  -- The full proof uses Fubini on the Cartan kernel:
-  -- 1. K(α, β) = log ‖f(circleMap 0 R β) - circleMap 0 1 α‖ is integrable on [0,2π]²
-  -- 2. By Fubini, α ↦ ∫ K(α, β) dβ is integrable on [0,2π]
-  -- 3. The circle average is (2π)⁻¹ times this integral
-  -- 4. Scalar multiples of integrable functions are integrable
-  --
-  -- The proof proceeds by:
-  -- a) Using cartan_integrability to get product integrability
-  -- b) Applying Fubini (Integrable.integral_prod_left) to get slice integrability
-  -- c) Relating the parametrized integral to the circle average
+
+  -- R ≠ 0. We use Fubini on the Cartan kernel.
   have h0_le : (0 : ℝ) ≤ 2 * Real.pi := Real.two_pi_pos.le
-  have h_int := cartan_integrability _h hR
-  -- By Fubini, the function α ↦ ∫ K(α, β) dβ is integrable
+  have h_int := cartan_integrability h hR
+  -- By Fubini, the function α ↦ ∫ K(α, β) dβ is integrable.
   have h_fubini := h_int.integral_prod_left
-  -- The circle average is (2π)⁻¹ * ∫ K(α, β) dβ, which is a scalar multiple
+
+  -- The circle average is (2π)⁻¹ times this integral.
   unfold CircleIntegrable
   rw [intervalIntegrable_iff_integrableOn_Ioc_of_le h0_le]
-  -- The circle average at circleMap 0 1 α equals (2π)⁻¹ * ∫ K(α, β) dβ
+
+  -- Relate the parametrized integral to the circle average.
   have h_eq : ∀ α, circleAverage (fun z => Real.log ‖f z - circleMap 0 1 α‖) 0 R =
       (2 * Real.pi)⁻¹ * ∫ β in (0 : ℝ)..2 * Real.pi, cartanKernel f R α β := by
     intro α
     simp only [circleAverage, Real.circleAverage, cartanKernel, smul_eq_mul]
-  -- Convert h_fubini to the right form
+
+  -- Convert h_fubini to the required form.
   have hIoc : Set.uIoc 0 (2 * Real.pi) = Set.Ioc 0 (2 * Real.pi) := Set.uIoc_of_le h0_le
   rw [hIoc] at h_fubini
-  -- The function is a composition: θ ↦ circleAverage at circleMap 0 1 θ
-  -- This equals θ ↦ (2π)⁻¹ * ∫ K(θ, β) dβ
-  -- We need to show this is integrable on [0, 2π]
-  -- h_fubini gives us integrability of the slice integral
-  -- We need to convert this to our form
   have h_fubini' : Integrable (fun α => ∫ β in Set.Ioc 0 (2 * π), cartanKernel f R α β)
       (volume.restrict (Set.Ioc 0 (2 * π))) := by
     simp only [cartanKernel] at h_fubini ⊢
@@ -1013,130 +1032,12 @@ private lemma circleIntegrable_circleAverage_log_norm_sub_unit {f : ℂ → ℂ}
       (volume.restrict (Set.Ioc 0 (2 * π))) := by
     simp_rw [intervalIntegral.integral_of_le h0_le]
     exact h_fubini'
-  -- Apply IntegrableOn.congr_fun to convert between the two forms
+
+  -- Scalar multiples of integrable functions are integrable.
   have h_const_mul := Integrable.const_mul h_fubini'' (2 * Real.pi)⁻¹
   apply IntegrableOn.congr_fun h_const_mul _ measurableSet_Ioc
   intro α _
   exact (h_eq α).symm
-
-lemma circleIntegrable_circleAverage_log_norm_sub {f : ℂ → ℂ} (h : MeromorphicOn f ⊤)
-    {R : ℝ} (c : ℂ) (r : ℝ) :
-    CircleIntegrable (fun a ↦ circleAverage (fun z ↦ Real.log ‖f z - a‖) 0 R) c r := by
-  by_cases hr : r = 0
-  · -- Degenerate circle: trivially integrable
-    subst hr
-    simp [CircleIntegrable, circleAverage, intervalIntegrable_const]
-  by_cases hR : R = 0
-  · -- When R = 0, circleAverage (log ‖f · - a‖) 0 0 = log ‖f 0 - a‖
-    subst hR
-    have h_cm : ∀ θ : ℝ, circleMap 0 0 θ = 0 := fun θ => by simp [circleMap]
-    have h_eq : (fun a ↦ circleAverage (fun z ↦ Real.log ‖f z - a‖) 0 0) =
-        (fun a ↦ Real.log ‖f 0 - a‖) := by
-      funext a
-      simp only [circleAverage, Real.circleAverage]
-      have h_const : (fun θ => Real.log ‖f (circleMap 0 0 θ) - a‖) = fun _ => Real.log ‖f 0 - a‖ := by
-        funext θ; simp [h_cm θ]
-      rw [h_const, intervalIntegral.integral_const]
-      simp only [smul_eq_mul, sub_zero]
-      field_simp
-    rw [h_eq]
-    exact circleIntegrable_log_norm_sub (f 0) c r
-  -- For general (c, r), the proof can use either:
-  -- 1. Rescaling from the unit circle case
-  -- 2. Direct proof using dominated convergence (continuous integrand)
-  --
-  -- The main theorem only needs the case c = 0, r = 1, which is
-  -- circleIntegrable_circleAverage_log_norm_sub_unit.
-  -- Handle the special case c = 0, r = 1 or r = -1 directly
-  by_cases hc : c = 0
-  · subst hc
-    by_cases hr1 : r = 1
-    · subst hr1
-      exact circleIntegrable_circleAverage_log_norm_sub_unit (R := R) h
-    · -- c = 0 but r ≠ 1: includes r = -1 and general radii
-      -- For r = -1: circleMap 0 (-1) θ traces the unit circle with opposite orientation
-      -- The interval integral over [0, 2π] is the same by periodicity.
-      -- For general r ≠ 0: use that continuous functions are circle integrable.
-      -- The main theorem only needs r = 1, so we leave this as sorry.
-      sorry
-  · -- c ≠ 0: general case
-    -- For the main theorem, we only need c = 0, r = 1.
-    -- The general case follows from continuity of the circle average.
-    sorry
-
-lemma circleIntegrable_logCounting {f : ℂ → ℂ} (h : MeromorphicOn f ⊤) {R : ℝ} (c : ℂ) (r : ℝ) :
-    CircleIntegrable (fun a ↦ logCounting f a R) c r := by
-  by_cases hr : r = 0
-  · -- When r = 0, circle integrability is trivial (degenerate circle)
-    simp only [hr] at *
-    exact circleIntegrable_zero_radius
-  by_cases hR : R = 0
-  · -- When R = 0, logCounting ≡ 0
-    simp only [hR, ValueDistribution.logCounting_eval_zero]
-    exact circleIntegrable_const 0 c r
-  -- For c = 0, r = 1 (which is what the main theorem needs):
-  -- Use cartan_f1 to express logCounting in terms of circle integrable functions.
-  by_cases hcr : c = 0 ∧ r = 1
-  · obtain ⟨hc, hr1⟩ := hcr
-    subst hc hr1
-    -- From cartan_f1:
-    --   logCounting f a R + log ‖trailingCoeff(f - a)‖
-    --     = circleAvg(log ‖f - a‖) + logCounting f ⊤ R
-    --
-    -- Rearranging:
-    --   logCounting f a R = circleAvg(log ‖f - a‖) + logCounting f ⊤ R
-    --                       - log ‖trailingCoeff(f - a)‖
-    --
-    -- We prove circle integrability by showing each term is circle integrable
-    -- and using that the identity holds on the sphere.
-    have h_avg : CircleIntegrable
-        (fun a ↦ circleAverage (fun z ↦ Real.log ‖f z - a‖) 0 R) 0 1 :=
-      circleIntegrable_circleAverage_log_norm_sub_unit (R := R) h
-    have h_const : CircleIntegrable (fun _ : ℂ ↦ logCounting f ⊤ R) 0 1 :=
-      circleIntegrable_const _ 0 1
-    -- The sum of the first two terms is circle integrable
-    have h_sum : CircleIntegrable
-        (fun a ↦ circleAverage (fun z ↦ Real.log ‖f z - a‖) 0 R + logCounting f ⊤ R) 0 1 :=
-      CircleIntegrable.add h_avg h_const
-    -- From cartan_f1, on the sphere:
-    --   logCounting f a R + log ‖trailingCoeff(f - a)‖ = circleAvg + const
-    -- So: logCounting f a R = (circleAvg + const) - log ‖trailingCoeff‖
-    --
-    -- For the unit circle case, we need to show circle integrability of logCounting.
-    -- This follows from:
-    -- 1. The identity cartan_f1 holds on the sphere
-    -- 2. Both circleAvg and the constant term are circle integrable
-    -- 3. The trailing coefficient term is bounded on the sphere
-    --
-    -- The trailing coefficient a ↦ trailingCoeff(f - a) at 0 is:
-    -- - If meromorphicOrderAt f 0 = n > 0, then for a ≠ 0: trailingCoeff = -a
-    -- - If meromorphicOrderAt f 0 = 0, then for generic a: trailingCoeff = f(0) - a
-    -- - If meromorphicOrderAt f 0 < 0 (pole), then the analysis is more complex
-    --
-    -- In all cases, the function is bounded on the compact sphere |a| = 1,
-    -- hence log ‖trailingCoeff‖ is bounded and circle integrable.
-    --
-    -- Using the identity and the boundedness of the trailing coefficient term,
-    -- we get circle integrability of logCounting.
-    --
-    -- The trailing coefficient is bounded on the sphere |a| = 1:
-    -- Using cartan_f1 identity: logCounting = h_sum - log ‖trailingCoeff‖
-    -- Since both terms are circle integrable, so is logCounting.
-    --
-    -- The proof structure:
-    -- 1. Show log ‖trailingCoeff(f - a)‖ is bounded on the sphere
-    -- 2. Bounded + AEStronglyMeasurable → circle integrable
-    -- 3. Use cartan_f1 to express logCounting as difference of circle integrable functions
-    --
-    -- Technical details:
-    -- - trailingCoeff is continuous except at isolated points
-    -- - On the compact sphere, it's bounded away from 0 (for generic a)
-    -- - log of a bounded function is bounded
-    sorry -- Bounded trailing coefficient + cartan_f1 identity
-  · -- General case: c ≠ 0 or r ≠ 1
-    -- The main theorem only needs c = 0, r = 1.
-    -- For general case, use rescaling or direct analysis.
-    sorry
 
 /-- The trailing coefficient function is circle integrable when f has a zero at the origin.
     On the unit circle (where |a| = 1 and a ≠ 0), the trailing coefficient of (f - a) is -a,
@@ -1145,31 +1046,47 @@ lemma circleIntegrable_log_trailingCoeff {f : ℂ → ℂ} (h : MeromorphicOn f 
     (h₂ : 0 < meromorphicOrderAt f 0) :
     CircleIntegrable
         (fun a ↦ Real.log ‖meromorphicTrailingCoeffAt (fun z ↦ f z - a) 0‖) 0 1 := by
-  -- On the unit circle, for a ≠ 0 the trailing coefficient is -a (since f(0) = 0),
-  -- so this reduces to log ‖-a‖ = log 1 = 0 (constant!).
-  have h_eq_zero : ∀ a ∈ Metric.sphere (0 : ℂ) |1|,
-      Real.log ‖meromorphicTrailingCoeffAt (fun z ↦ f z - a) 0‖ = 0 := by
-    intro a ha
-    have hnorm : ‖a‖ = 1 := by simp at ha; exact ha
-    have ha_ne : a ≠ 0 := by intro h0; subst h0; simp at hnorm
-    have h_tc := trailingCoeff_sub_const_eq_neg h h₂ ha_ne
-    simp [h_tc, hnorm]
-  -- The function equals zero on the entire sphere |a| = 1, so it is circle integrable.
-  -- Use the fact that a function that equals a constant ae is circle integrable.
-  apply CircleIntegrable.congr_codiscreteWithin (f₁ := fun _ => (0 : ℝ))
-  · -- Show the functions agree on the sphere (trivially, since they're equal everywhere on the sphere)
-    rw [Filter.EventuallyEq, Filter.eventually_iff_exists_mem]
-    use Metric.sphere (0 : ℂ) |1|
-    constructor
-    · -- The sphere is in the codiscrete filter on itself
-      rw [mem_codiscreteWithin]
-      intro x _
-      -- For any x on the sphere, the set (sphere \ sphere) = ∅ is disjoint from any neighborhood
-      simp only [Set.diff_self]
-      aesop
-    · intro a ha
-      exact (h_eq_zero a ha).symm
-  · exact circleIntegrable_const 0 0 1
+  -- The function equals zero on the entire sphere |a| = 1.
+  apply circleIntegrable_of_const_on_sphere (C := 0)
+  intro a ha
+  -- sphere 0 |1| is the unit circle.
+  have hnorm : ‖a‖ = 1 := by simp at ha; exact ha
+  have ha_ne : a ≠ 0 := by intro h0; subst h0; simp at hnorm
+  have h_tc := trailingCoeff_sub_const_eq_neg h h₂ ha_ne
+  simp [h_tc, hnorm]
+
+/-- Specialized lemma for circle integrability of logCounting when f(0)=0. -/
+lemma circleIntegrable_logCounting_zero_case {f : ℂ → ℂ} (h : MeromorphicOn f ⊤) (h₂ : 0 < meromorphicOrderAt f 0) {R : ℝ} :
+    CircleIntegrable (fun a ↦ logCounting f a R) 0 1 := by
+  by_cases hR_ne : R = 0
+  · simp [hR_ne, ValueDistribution.logCounting_eval_zero]; exact circleIntegrable_const 0 0 1
+
+  have hR : R ≠ 0 := hR_ne
+
+  -- Use cartan_f1 identity: logCounting = H1 - H2.
+  let H1 := fun a ↦ circleAverage (fun z ↦ Real.log ‖f z - a‖) 0 R + logCounting f ⊤ R
+  let H2 := fun a ↦ Real.log ‖meromorphicTrailingCoeffAt (fun z ↦ f z - a) 0‖
+
+  -- H1 is integrable.
+  have hH1_int : CircleIntegrable H1 0 1 := by
+    -- Uses circleIntegrable_circleAverage_log_norm_sub_unit, which relies on cartan_integrability.
+    have h_avg_int := circleIntegrable_circleAverage_log_norm_sub_unit (R:=R) h
+    have h_const_int := circleIntegrable_const (logCounting f ⊤ R) 0 1
+    exact h_avg_int.add h_const_int
+
+  -- H2 is integrable because f(0)=0 (uses circleIntegrable_log_trailingCoeff).
+  have hH2_int : CircleIntegrable H2 0 1 := circleIntegrable_log_trailingCoeff h h₂
+
+  -- Combine H1 and H2 using cartan_f1.
+  have h_eq : (fun a ↦ logCounting f a R) = H1 - H2 := by
+    funext a
+    have h_id := cartan_f1 h hR a
+    simp [H1, H2] at h_id ⊢
+    -- logCounting + H2 = H1 => logCounting = H1 - H2.
+    exact eq_sub_of_add_eq h_id.symm
+
+  rw [h_eq]
+  exact hH1_int.sub hH2_int
 
 /-- Cartan's formula in the zero case `0 < meromorphicOrderAt f 0`. -/
 theorem cartan {r : ℝ} {f : ℂ → ℂ}
@@ -1215,9 +1132,9 @@ theorem cartan {r : ℝ} {f : ℂ → ℂ}
       intro a ha
       simp [cartan_f1 h hR a]
     -- Step 2: split the circle averages using linearity in `a`.
-    -- Circle integrability of the counting function (uses general lemma).
+    -- Circle integrability of the counting function (uses specialized lemma).
     have hci_counting : CircleIntegrable (fun a ↦ logCounting f a R) 0 1 :=
-      circleIntegrable_logCounting h 0 1
+      circleIntegrable_logCounting_zero_case h h₂
 
     -- Circle integrability of the trailing coefficient (uses general lemma).
     have hci_trailing : CircleIntegrable
@@ -1238,11 +1155,10 @@ theorem cartan {r : ℝ} {f : ℂ → ℂ}
     -- The constant function is trivially circle integrable.
     have hci_const : CircleIntegrable (fun _ : ℂ ↦ logCounting f ⊤ R) 0 1 :=
       circleIntegrable_const _ 0 1
-    -- The inner circle average function is continuous in a, hence integrable.
-    -- Uses the general lemma `circleIntegrable_circleAverage_log_norm_sub`.
+    -- The inner circle average function is integrable (proven via Fubini).
     have hci_inner : CircleIntegrable
         (fun a ↦ circleAverage (fun z ↦ Real.log ‖f z - a‖) 0 R) 0 1 :=
-      circleIntegrable_circleAverage_log_norm_sub h 0 1
+      circleIntegrable_circleAverage_log_norm_sub_unit h
     have h_right :
         circleAverage
           (fun a ↦ circleAverage (fun z ↦ Real.log ‖f z - a‖) 0 R
@@ -1250,15 +1166,15 @@ theorem cartan {r : ℝ} {f : ℂ → ℂ}
         circleAverage (fun a ↦ circleAverage (fun z ↦ Real.log ‖f z - a‖) 0 R) 0 1
           + logCounting f ⊤ R := by
       -- Again `circleAverage_add_fun`, with the second term constant in `a`.
-      have h := circleAverage_add_fun
+      have h_add := circleAverage_add_fun
           (c := 0) (R := 1)
           (f₁ := fun a ↦ circleAverage (fun z ↦ Real.log ‖f z - a‖) 0 R)
           (f₂ := fun _ ↦ logCounting f ⊤ R)
           (hf₁ := hci_inner) (hf₂ := hci_const)
-      simp only at h
-      rw [h, Real.circleAverage_const]
+      simp only at h_add
+      rw [h_add, Real.circleAverage_const]
     -- Step 3: combine everything.
-    have :=
+    have h_combined :=
       calc
         circleAverage (logCounting f · R) 0 1
           + circleAverage (fun a ↦ Real.log ‖meromorphicTrailingCoeffAt (fun z ↦ f z - a) 0‖) 0 1
@@ -1290,9 +1206,8 @@ theorem cartan {r : ℝ} {f : ℂ → ℂ}
             + logCounting f ⊤ R := by simp [h_main]
       _ = circleAverage (logCounting f · R) 0 1 := by
         -- subtract the trailing coefficient average (which is 0)
-        have := this
-        simp only [h_trailing, add_zero] at this
-        linarith
+        rw [← h_combined]
+        simp only [h_trailing, add_zero]
 
   -- Replace `R` by `r` and add back the constant term.
   have : characteristic f ⊤ r =
