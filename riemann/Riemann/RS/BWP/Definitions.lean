@@ -1374,6 +1374,37 @@ lemma nu_default_eq_sum (I : WhitneyInterval) (k : ℕ) :
   simp [nu_default]
   exact nu_dyadic_eq_sum I (residue_bookkeeping I) k
 
+/-! ## VK Partial Sum Budget
+
+The VK partial sum budget captures the constraint that weighted zero counts
+in Whitney annuli satisfy a linear bound in the interval length. -/
+
+/-- The budget constant for VK partial sums. -/
+def VK_B_budget : ℝ := 2
+
+/-- VK partial sum budget in successor form: the weighted sum of φ_k values
+    up to level K+1 is bounded by VK_B_budget * (2 * L).
+
+    This is a Prop-valued predicate that asserts the bound holds. -/
+def VKPartialSumBudgetSucc (I : WhitneyInterval) (φ : ℕ → ℝ) : Prop :=
+  ∀ K : ℕ, (Finset.range (Nat.succ K)).sum φ ≤ VK_B_budget * (2 * I.len)
+
+namespace VKPartialSumBudgetSucc
+
+/-- Constructor for VKPartialSumBudgetSucc from a budget constant and partial sum bound. -/
+theorem of (I : WhitneyInterval) (φ : ℕ → ℝ) (B : ℝ)
+    (h : ∀ K : ℕ, (Finset.range (Nat.succ K)).sum φ ≤ B * (2 * I.len))
+    (hB : B ≤ VK_B_budget := by norm_num [VK_B_budget]) :
+    VKPartialSumBudgetSucc I φ := by
+  intro K
+  calc (Finset.range (Nat.succ K)).sum φ
+      ≤ B * (2 * I.len) := h K
+    _ ≤ VK_B_budget * (2 * I.len) := by
+        apply mul_le_mul_of_nonneg_right hB
+        linarith [I.len_pos]
+
+end VKPartialSumBudgetSucc
+
 /-! ## Calibration constants -/
 
 /-- Default calibration constants: pick `A = 0.08`, `B = 2`, so `A·B = 0.16 = Kxi_paper`. -/

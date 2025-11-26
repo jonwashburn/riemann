@@ -1,7 +1,5 @@
 import Mathlib.Analysis.Calculus.FDeriv.Symmetric
 import Riemann.RS.BWP.Laplacian
-import Riemann.RS.BWP.KxiFinite
-import Riemann.RS.BWP.WindowClass
 
 /-
 Auxiliary complex-analytic calculus lemmas used in the Boundary Wedge Proof.

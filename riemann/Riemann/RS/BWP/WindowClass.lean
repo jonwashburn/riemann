@@ -24,6 +24,6 @@ structure AdmissibleWindow (I : RH.Cert.WhitneyInterval) where
 
 /-- The specific window class constants used in the proof. -/
 def WindowConstants (Kxi : ℝ) : Prop :=
-  Kxi ≤ Kxi_paper
+  Kxi ≤ RH.RS.BoundaryWedgeProof.Kxi_paper
 
 end RH.RS.BWP

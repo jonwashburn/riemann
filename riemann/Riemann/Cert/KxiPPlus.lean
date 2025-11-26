@@ -33,6 +33,9 @@ structure WhitneyInterval where
 
 namespace WhitneyInterval
 
+/-- The center point of the Whitney interval. -/
+def mid (W : WhitneyInterval) : ℝ := W.t0
+
 /-- The closed interval associated to a Whitney interval. -/
 def interval (W : WhitneyInterval) : Set ℝ :=
   Set.Icc (W.t0 - W.len) (W.t0 + W.len)

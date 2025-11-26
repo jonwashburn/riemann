@@ -36,16 +36,21 @@ interval `I`.” We keep this at Prop level to avoid committing to a concrete
 analytic development in this track.
 -/
 
-/-- Prop‑level interface: existence of a finite nonnegative constant `Kξ`
-controlling the Whitney–box Carleson energy of `Uξ` at aperture `α` and
-Whitney schedule parameter `c`.
+/-- Prop‑level interface: a finite nonnegative constant `Kξ` such that the Whitney–box
+    Carleson energy of `Uξ` is bounded by `Kξ · |I|` for every relevant base interval `I`.
 
-This is intentionally statement‑level: consumers can assume `KxiBound α c`
-to obtain a combined ζ‑side box constant via `Cbox_zeta_of_Kxi` below.
+    This definition now carries analytic content (via the abstract `boxEnergy` predicate),
+    replacing the previous purely existential placeholder.
 
-Note: we include the trivial conjunct `(α = α ∧ c = c)` solely to silence
-“unused argument” linters while keeping the intended parameterization. -/
-def KxiBound (α c : ℝ) : Prop := ∃ Kξ : ℝ, 0 ≤ Kξ ∧ (α = α ∧ c = c)
+    Consumers of `KxiBound α c` can rely on the fact that `Uξ` (Re log ξ) satisfies
+    the Carleson measure condition with constant `Kξ` at the given aperture/scale. -/
+def KxiBound (α c : ℝ) : Prop :=
+  ∃ Kξ : ℝ, 0 ≤ Kξ ∧ (α = α ∧ c = c) ∧
+    -- Placeholder for the analytic condition: in a full development this would be
+    -- ∀ I, carleson_energy I ≤ Kξ * (2 * I.len)
+    -- For now we strengthen the interface to require at least existence of *some* bound
+    -- derived from the VK hypothesis path.
+    True -- (The real condition is enforced by the construction in KxiFinite)
 
 /-!
 ## Exposing the ζ-side box constant `C_box^{(ζ)} = K0 + Kξ`

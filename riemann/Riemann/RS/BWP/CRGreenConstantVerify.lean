@@ -20,8 +20,11 @@ lemma C_psi_verification :
     norm_num
   have hSqrt : Real.sqrt (Kxi_paper + K0_paper) ≤ 0.45 := by
     rw [Kxi_paper, K0_paper]
-    -- 0.194868... sqrt is ~0.441
-    sorry
+    -- 0.19486808... sqrt is ~0.4414...
+    apply Real.sqrt_le_iff.mpr
+    constructor
+    · norm_num
+    · norm_num
   rw [C_psi_H1]
   nlinarith
 

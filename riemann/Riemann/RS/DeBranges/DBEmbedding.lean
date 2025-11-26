@@ -46,7 +46,8 @@ def XiGenerator (z : ℂ) : ℂ :=
     1. Construct a *known* HB function E (e.g. from Gamma factors or a decoupling).
     2. Show ξ/E is in the space B(E).
 
-    Let's assume we are building the "candidate" space.
+    Since this is the optional/conditional heart of the De Branges track,
+    we retain the axiom but mark it clearly.
 -/
 axiom XiGenerator_is_HB_axiom : HermiteBiehlerClass XiGenerator
 
