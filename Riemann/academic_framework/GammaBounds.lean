@@ -384,6 +384,13 @@ theorem exists_const_of_BoundedFGammaPrimeOnStrip
   rcases h with ⟨C, hC⟩
   exact ⟨C, hC.2.2.1⟩
 
+/-- Existence of bounded derivative on strip for σ0 > 1/2. -/
+theorem boundedFGammaPrimeOnStrip_of
+    {σ0 : ℝ} (hσ0 : (1 / 2 : ℝ) < σ0) (hσ1 : σ0 ≤ 1) :
+    BoundedFGammaPrimeOnStrip σ0 := by
+  refine ⟨(2 / σ0) * Complex.Gammaℝ.circleBound σ0, ?_⟩
+  exact Complex.Gammaℝ.boundedHDerivOnStrip_via_explicit_bound hσ0 hσ1
+
 /-! ### Explicit Cauchy-route constant (Prop-level)
 
 We expose an explicit σ₀-dependent constant from the Cauchy/Γ outline. -/
