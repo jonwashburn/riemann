@@ -3,13 +3,13 @@ import Riemann.academic_framework.EulerProduct.K0Bound
 import Riemann.academic_framework.DiagonalFredholm.Determinant
 import Riemann.academic_framework.DiagonalFredholm.WeierstrassProduct
 import Riemann.academic_framework.DiskHardy
-import Riemann.academic_framework.Theta
 import Riemann.academic_framework.ZetaFunctionalEquation
 import Riemann.academic_framework.Domain
 import Riemann.academic_framework.Compat
 import Riemann.academic_framework.CompletedXi
 import Riemann.academic_framework.GammaBounds
 import Riemann.academic_framework.CompletedXiSymmetry
+import Riemann.academic_framework.Theta
 
 import Riemann.Cert.KxiWhitney_RvM
 import Riemann.Cert.K0PPlus

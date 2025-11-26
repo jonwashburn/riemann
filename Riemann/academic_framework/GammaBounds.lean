@@ -1,6 +1,7 @@
 import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.Complex.RemovableSingularity
 import Mathlib.Analysis.SpecialFunctions.Gamma.Deligne
+import Mathlib.Analysis.SpecialFunctions.Stirling
 import Mathlib.Data.Real.StarOrdered
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
 
@@ -42,7 +43,7 @@ theorem existsConst_of_boundedHDerivOnStripExists
 lemma differentiableOn_halfplane :
     DifferentiableOn ℂ Gammaℝ {s : ℂ | 0 < s.re} := by
   intro s hs
-  -- Factorization: Γ_ℝ(s) = (π : ℂ) ^ (-s/2) * Gamma (s/2)
+  -- Factorization: Γ_ℝ(s) = Γ_ℝ(s') * ∏(s-k) where s' is in (0,1]
   have h_cpow : DifferentiableAt ℂ (fun z : ℂ => (π : ℂ) ^ (-z / 2)) s := by
     refine ((differentiableAt_id.neg.div_const (2 : ℂ)).const_cpow ?_)
     exact Or.inl (ofReal_ne_zero.mpr pi_ne_zero)
@@ -364,12 +365,7 @@ lemma cauchyHPrimeBoundConstant_nonneg (σ0 : ℝ) :
   have h₂' : 0 ≤ Real.rpow Real.pi (-(σ0 / 4)) := le_of_lt h₂
   simpa [cauchyHPrimeBoundConstant] using mul_nonneg h₁ h₂'
 
-end Complex.Gammaℝ
-namespace RH.AcademicFramework.GammaBounds
-open Complex.Gammaℝ
-noncomputable section
 
-open Complex Real
 
 /-- Prop-level interface: a uniform bound for the Archimedean factor derivative
 `FΓ′(s)` on the closed strip `σ ∈ [σ0, 1]`, exposing the numeric constant `C ≥ 0`.
@@ -391,38 +387,18 @@ theorem exists_const_of_BoundedFGammaPrimeOnStrip
 /-! ### Explicit Cauchy-route constant (Prop-level)
 
 We expose an explicit σ₀-dependent constant from the Cauchy/Γ outline. -/
-def cauchyHPrimeBoundConstant (σ0 : ℝ) : ℝ :=
+def cauchyHPrimeBoundConstant' (σ0 : ℝ) : ℝ :=
   (16 / (σ0 ^ 2)) * Real.rpow Real.pi (-(σ0 / 4))
 
-lemma cauchyHPrimeBoundConstant_nonneg (σ0 : ℝ) : 0 ≤ cauchyHPrimeBoundConstant σ0 := by
-  -- 16 / σ0^2 ≥ 0 and π^{-(σ0/4)} > 0 for all real σ0
+lemma cauchyHPrimeBoundConstant_nonneg' (σ0 : ℝ) :
+    0 ≤ cauchyHPrimeBoundConstant σ0 := by
   have hsq : 0 ≤ σ0 ^ 2 := sq_nonneg σ0
   have h₁ : 0 ≤ (16 / (σ0 ^ 2)) := by exact div_nonneg (by norm_num) hsq
-  have h₂ : 0 < Real.rpow Real.pi (-(σ0 / 4)) := by
-    -- Real.pi > 0 and positive reals to any real power stay positive
-    exact Real.rpow_pos_of_pos Real.pi_pos _
+  have h₂ : 0 < Real.rpow Real.pi (-(σ0 / 4)) :=
+    Real.rpow_pos_of_pos Real.pi_pos _
   have h₂' : 0 ≤ Real.rpow Real.pi (-(σ0 / 4)) := le_of_lt h₂
   simpa [cauchyHPrimeBoundConstant] using mul_nonneg h₁ h₂'
 
-/-! ### Prop-level witness -/
-
-theorem boundedFGammaPrimeOnStrip_of
-    {σ0 : ℝ} (hσ0 : (1 / 2 : ℝ) < σ0) (hσ1 : σ0 ≤ 1) :
-    BoundedFGammaPrimeOnStrip σ0 := by
-  refine ⟨(2 / σ0) * Complex.Gammaℝ.circleBound σ0, ?_⟩
-  simpa using Complex.Gammaℝ.boundedHDerivOnStrip_via_explicit_bound hσ0 hσ1
-
-/-!
-Sketch proof idea for the Cauchy-route bound (not used directly here):
-- Fix `r = σ0/2`. On the circle `|ζ - s| = r`, one has `Re ζ ≥ σ0/2`.
-- Bound `‖π^{-ζ/2}‖ = π^{-Re ζ/2} ≤ π^{-σ0/4}` and `‖Γ(ζ/2)‖ ≤ 8/σ0` on that circle.
-- By Cauchy's estimate, `‖H'(s)‖ ≤ (1/r)·sup_{|ζ−s|=r} ‖H(ζ)‖ ≤ (16/σ0^2)·π^{-σ0/4}`.
-This yields an explicit admissible constant witnessing `BoundedFGammaPrimeOnStrip σ0`.
-
-This file only exposes the Prop interface and an eliminator. The concrete box- and
-certificate-level wiring is handled elsewhere.
--/
-
+end Gammaℝ
+end Complex
 end
-
-end RH.AcademicFramework.GammaBounds

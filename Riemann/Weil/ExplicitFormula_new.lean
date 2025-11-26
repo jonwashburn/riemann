@@ -4,7 +4,9 @@ import Mathlib.Analysis.SpecialFunctions.Gamma.Deriv
 import Mathlib.Analysis.SpecialFunctions.Complex.LogDeriv
 import Mathlib.NumberTheory.LSeries.RiemannZeta
 import Mathlib.NumberTheory.VonMangoldt
-import Mathlib.MeasureTheory.Integral.Bochner
+import Mathlib.MeasureTheory.Integral.Bochner.Basic
+import Mathlib.MeasureTheory.Integral.Bochner.L1
+import Mathlib.MeasureTheory.Integral.Bochner.VitaliCaratheodory
 import Mathlib.Analysis.Complex.CauchyIntegral
 import Mathlib.Analysis.MellinTransform
 import Mathlib.Analysis.Calculus.ParametricIntegral
@@ -63,44 +65,90 @@ This is effectively a bilateral Laplace transform shifted to center on `s = 1/2`
 def weilTransform (s : ℂ) : ℂ :=
   ∫ x : ℝ, g x * Complex.exp ((s - 0.5) * x)
 
+open Set
+
+/-- For any real `a`, the sets `(-∞, a]` and `(a, ∞)` partition `ℝ`. -/
+lemma union_Iic_Ioi (a : ℝ) :
+    (Iic a : Set ℝ) ∪ Ioi a = (Set.univ : Set ℝ) := by
+  ext x; constructor
+  · intro hx; exact trivial
+  · intro _; by_cases h : x ≤ a
+    · left; exact h
+    · right; exact lt_of_not_ge h
+
+/-- A function integrable on `(-∞, 0]` and `(0, ∞)` is integrable on `ℝ`. -/
+lemma integrable_of_integrable_on_Iic_of_integrable_on_Ioi {E : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
+    {f : ℝ → E} (h_le : IntegrableOn f (Iic 0)) (h_gt : IntegrableOn f (Ioi 0)) :
+    Integrable f := by
+  -- Use the standard `IntegrableOn.union` lemma plus the partition of ℝ
+  have h_union : (Iic (0 : ℝ) : Set ℝ) ∪ Ioi 0 = Set.univ := union_Iic_Ioi 0
+  -- rewrite the goal using this partition
+  have h_int : IntegrableOn f ((Iic 0 : Set ℝ) ∪ Ioi 0) := by
+    exact IntegrableOn.union h_le h_gt
+  simpa [IntegrableOn, h_union] using h_int
+
+/-- `x ↦ exp (-ε x)` is integrable on `(0, ∞)` for `ε > 0`. -/
+lemma integrableOn_exp_neg_mul_Ioi {ε : ℝ} (hε : 0 < ε) :
+    IntegrableOn (fun x : ℝ => Real.exp (-ε * x)) (Ioi 0) := by
+  have h : IntegrableOn (fun x ↦ Real.exp (-x)) (Ioi 0) := by
+    simpa using Real.GammaIntegral_convergent zero_lt_one
+  have : (fun x : ℝ => Real.exp (-ε * x)) = (fun x => Real.exp (-(ε * x))) := by
+    ext x; ring_nf
+  rw [this, integrableOn_Ioi_comp_mul_left_iff (fun y => Real.exp (-y)) 0 hε]
+  simp only [mul_zero]
+  exact h
+
+/-- `x ↦ exp (-ε x)` is integrable on `(0, ∞)` for `ε > 0`. -/
+
 lemma integrable_exp_neg_mul_abs {ε : ℝ} (hε : 0 < ε) :
     Integrable (fun x : ℝ => Real.exp (-ε * |x|)) := by
   refine integrable_of_integrable_on_Iic_of_integrable_on_Ioi ?_ ?_
   · have : IntegrableOn (fun x ↦ Real.exp (ε * x)) (Iic 0) volume := by
-      apply integrableOn_Iic_exp_mul_of_pos hε
+      exact integrableOn_exp_mul_Iic hε 0
     apply this.congr_fun
-    intro x hx
-    simp only [abs_of_nonpos hx, neg_mul, Real.exp_neg]
-    congr
-    ring
+    · intro x hx
+      simp only [mem_Iic] at hx
+      simp only []
+      rw [abs_of_nonpos hx]
+      ring_nf
+    · exact measurableSet_Iic
+
   · have : IntegrableOn (fun x ↦ Real.exp (-ε * x)) (Ioi 0) volume := by
-      apply integrableOn_Ioi_exp_neg_mul_of_pos hε
+      exact integrableOn_exp_neg_mul_Ioi hε
     apply this.congr_fun
-    intro x hx
-    simp only [abs_of_nonneg (le_of_lt hx)]
+    · intro x hx
+      simp only [mem_Ioi] at hx
+      simp only [abs_of_nonneg (le_of_lt hx)]
+    · exact measurableSet_Ioi
 
 lemma weilTransform_integrable_strip
     (s : ℂ) (h_strip : |s.re - (1 / 2)| < 1 / 2) :
     Integrable (fun x : ℝ => g x * Complex.exp ((s - 1 / 2) * x)) := by
   obtain ⟨C, ε, hε, hdecay⟩ := IsWeilTestFunction.decay (g := g)
-  have h_int :
-    Integrable (fun x : ℝ => C * Real.exp (-ε * |x|)) :=
-    (integrable_exp_neg_mul_abs hε).const_mul C
-  apply MeasureTheory.AECover.integrable_of_integral_norm_bounded _
-    ((integrable_exp_neg_mul_abs hε).const_mul C)
-  intro x
+  let bound := fun x : ℝ => C * Real.exp (-ε * |x|)
+  have h_int : Integrable bound := (integrable_exp_neg_mul_abs hε).const_mul C
+  have h_meas : AEStronglyMeasurable (fun x : ℝ => g x * Complex.exp ((s - 1 / 2) * x)) volume := by
+    apply Continuous.aestronglyMeasurable
+    exact g.continuous.mul (Complex.continuous_exp.comp (continuous_const.mul continuous_ofReal))
+  refine Integrable.mono' h_int h_meas ?_
+  filter_upwards with x
   specialize hdecay x
-  rw [norm_mul, Complex.norm_eq_abs, Complex.abs_exp]
+  rw [norm_mul, norm_exp]
   refine le_trans (mul_le_mul_of_nonneg_right hdecay (Real.exp_nonneg _)) ?_
-  rw [← Real.exp_add, Real.exp_le_exp]
-  -- Exponent: -(1/2 + ε)|x| + (Re s - 1/2)x
-  have h_real : s.re - 1/2 = (s.re - 0.5) := by norm_num
+  rw [mul_assoc, ← Real.exp_add]
+  unfold bound
+  gcongr
+  -- Exponent: -(1/2 + ε)|x| + (Re s - 1/2)x ≤ -ε * |x|
+  have h_real : (s - 1/2).re = s.re - 0.5 := by simp; norm_num
   rw [h_real]
   rcases le_or_lt 0 x with hx | hx
   · rw [abs_of_nonneg hx]
-    linarith [abs_le_of_abs_le_abs_sub_sub h_strip]
+    rw [abs_lt] at h_strip
+    linarith
   · rw [abs_of_neg hx]
-    linarith [abs_le_of_abs_le_abs_sub_sub h_strip]
+    rw [abs_lt] at h_strip
+    linarith
 
 lemma weilTransform_holomorphic_strip :
     DifferentiableOn ℂ (fun s => weilTransform g s)
