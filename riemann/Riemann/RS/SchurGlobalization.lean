@@ -245,6 +245,49 @@ theorem GlobalizeAcrossRemovable
     exact PinchFromExtension U hUopen hUconn ρ hρU Θ hΘU hSchur_U g hg hExt hval
   exact this.1
 
+/-- Schur extension at a limit point.
+    If Θ is bounded (Schur) on U \ {ρ} and tends to 1 at ρ, then it extends to g on U with g(ρ) = 1.
+-/
+lemma SchurExtensionAtZero
+    (Θ : ℂ → ℂ) (U : Set ℂ) (ρ : ℂ)
+    (hUopen : IsOpen U) (hρU : ρ ∈ U)
+    (hΘ : AnalyticOn ℂ Θ (U \ {ρ}))
+    (hSchur : IsSchurOn Θ (U \ {ρ}))
+    (hLim : Tendsto Θ (nhdsWithin ρ (U \ {ρ})) (nhds 1)) :
+    ∃ g, AnalyticOn ℂ g U ∧ EqOn Θ g (U \ {ρ}) ∧ g ρ = 1 := by
+  -- 1. Θ is bounded on U \ {ρ} (by 1).
+  -- 2. Riemann's removable singularity theorem implies Θ extends to g analytic on U.
+  -- 3. Since Θ -> 1 at ρ, g(ρ) must be 1 by continuity.
+  have h_bounded : BddAbove (norm '' (Θ '' (U \ {ρ}))) := by
+    use 1
+    rintro _ ⟨z, ⟨hzU, hzρ⟩, rfl⟩
+    exact hSchur z ⟨hzU, hzρ⟩
+
+  obtain ⟨g, hg_anal, hg_eq⟩ :=
+    Complex.analyticOn_extension_of_bounded_of_analyticOn
+      U ρ hUopen hΘ h_bounded
+
+  refine ⟨g, hg_anal, hg_eq, ?_⟩
+
+  -- g is continuous at ρ, so lim_{z->ρ} g(z) = g(ρ)
+  -- limit_{z->ρ, z!=ρ} g(z) = limit_{z->ρ, z!=ρ} Θ(z) = 1
+  have h_cont : ContinuousAt g ρ := hg_anal.continuousOn.continuousAt hUopen hρU
+  have h_lim_g : Tendsto g (nhds ρ) (nhds (g ρ)) := h_cont
+
+  -- Restrict limit to U \ {ρ}
+  have h_lim_g_within : Tendsto g (nhdsWithin ρ (U \ {ρ})) (nhds (g ρ)) :=
+    h_lim_g.mono_left nhdsWithin_le_nhds
+
+  have h_congr : g =ᶠ[nhdsWithin ρ (U \ {ρ})] Θ := by
+    filter_upwards [self_mem_nhdsWithin] with z hz
+    exact (hg_eq hz).symm
+
+  have h_lim_Θ : Tendsto Θ (nhdsWithin ρ (U \ {ρ})) (nhds (g ρ)) :=
+    h_lim_g_within.congr' h_congr
+
+  -- Unique limit
+  exact tendsto_nhds_unique h_lim_Θ hLim
+
 /-- No off‑critical zeros from a Schur bound off the zero set together with
 local removable extensions that pin to `1` and are not identically `1`.
 

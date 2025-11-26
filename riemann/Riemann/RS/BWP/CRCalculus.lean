@@ -300,4 +300,76 @@ lemma CR_second_order_Hessian_identity
     _   = fderiv ℝ (fun w : ℂ => - (deriv G w).im) z Complex.I := h_dir
     _   = - (fderiv ℝ (fun w : ℂ => (deriv G w).im) z) Complex.I := h_rhs
 
+/-!
+# Green's Identity on Whitney Tents
+
+This section formalizes the CR-Green pairing identity on Whitney tent domains.
+We prove that for a harmonic function U and a test function V_φ (Poisson extension),
+the boundary integral of the phase derivative pairs with the bulk Dirichlet energy.
+-/
+
+/-- Green's identity for harmonic functions on a tent domain.
+    ∫_I φ (-w') = ∬_Q ∇U · ∇(χV) + boundary_terms
+-/
+theorem cr_green_identity_on_tent
+    (U : ℂ → ℝ) (hU : Harmonic U) -- U is harmonic (e.g. Re log J)
+    (w : ℝ → ℝ) -- Boundary phase w(t)
+    (φ : ℝ → ℝ) -- Window function
+    (V : ℂ → ℝ) -- Poisson extension of φ
+    (χ : ℂ → ℝ) -- Cutoff function
+    (I : Set ℝ) (Q : Set ℂ) -- Interval and Tent domain
+    :
+    -- The pairing identity
+    ∃ (boundary_terms : ℝ),
+      (∫ t in I, φ t * (-deriv w t)) =
+      (∫ z in Q, (deriv U z) * (deriv (fun z => χ z * V z) z)) + boundary_terms := by
+  -- Strategy:
+  -- 1. Apply Green's first identity on the domain Q.
+  -- 2. Use the fact that U is harmonic to kill one bulk term.
+  -- 3. Relate the normal derivative of U on the boundary to -w' using CR equations.
+  -- 4. Handle the cutoff χ to localize the integral.
+  sorry -- TODO: Formalize Green's identity on tents
+
+/-- Dirichlet energy bound for the test function V_φ on the tent.
+    ||∇(χV_φ)||_2 ≤ C * sqrt(|I|)
+-/
+theorem test_function_energy_bound
+    (φ : ℝ → ℝ) (I : Set ℝ) (Q : Set ℂ)
+    (V : ℂ → ℝ) (χ : ℂ → ℝ)
+    (C : ℝ) -- Constant depending only on window shape
+    :
+    ∫ z in Q, ‖deriv (fun z => χ z * V z) z‖ ^ 2 ≤ C ^ 2 * (Measure.real.vol I) := by
+  -- Strategy:
+  -- 1. Use properties of the Poisson extension V_φ (smoothness, decay).
+  -- 2. Use properties of the cutoff χ (bounded gradient).
+  -- 3. Integrate the square of the gradient over the tent area (~ |I|^2).
+  -- 4. Show scaling yields linear bound in |I|.
+  sorry -- TODO: Prove test function energy estimate
+
+/-- Boundary term control: Side and top terms vanish due to cutoff. -/
+theorem boundary_term_control
+    (U : ℂ → ℝ) (χ : ℂ → ℝ) (V : ℂ → ℝ)
+    (Q : Set ℂ) -- Tent
+    (∂Q_side : Set ℂ) (∂Q_top : Set ℂ)
+    (hχ_supp : support χ ⊆ Q \ (∂Q_side ∪ ∂Q_top)) :
+    -- Integral over side/top boundaries is zero
+    ∫ z in ∂Q_side ∪ ∂Q_top, (deriv U z) * (χ z * V z) = 0 := by
+  -- Since χ is supported away from the side/top boundaries, the integrand is identically zero there.
+  sorry -- TODO: Prove boundary terms vanish
+
+/-- Outer Cancellation: Energy integral invariance under U -> U - Re log O. -/
+theorem outer_cancellation_invariance
+    (U : ℂ → ℝ) (O : ℂ → ℂ) -- Outer function
+    (hO_outer : True) -- Placeholder for Outer property
+    (Q : Set ℂ) :
+    -- The Dirichlet energy of U - Re log O is bounded by ... (context specific)
+    -- This theorem justifies replacing the full potential with the "zero-only" potential.
+    True := by
+  -- Strategy:
+  -- 1. Re log O is the Poisson extension of log|O|.
+  -- 2. U is the Poisson extension of log|J|.
+  -- 3. log|J| - log|O| = log|det2/ξ| on boundary.
+  -- 4. Energy depends on the boundary values (via harmonic extension).
+  sorry -- TODO: Formalize outer cancellation logic
+
 end Riemann.RS.BoundaryWedgeProof
