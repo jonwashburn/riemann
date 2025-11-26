@@ -1,7 +1,5 @@
-import Mathlib.Analysis.Complex.UnitDisc.Basic
 import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
-import Mathlib.Tactic.FieldSimp
-import Mathlib
+import Riemann.academic_framework.DiskHardy
 
 /-
 # Cayley transport between the upper half-plane and the unit disc
@@ -240,7 +238,7 @@ lemma fromUnitDisc_toUnitDisc (z : UpperHalfPlane) :
     have hz_im : (z : ℂ).im = -1 := by
       simp [hz]
     have : (0 : ℝ) < -1 := by
-      simp [hz_im]; simp_all
+      simp_all
     have hfalse : ¬ (0 : ℝ) < -1 := by norm_num
     exact hfalse this
   -- rewrite `from_comp_cayley` into the same shape as `fromUnitDisc ∘ toUnitDisc`
@@ -253,3 +251,53 @@ lemma fromUnitDisc_toUnitDisc (z : UpperHalfPlane) :
   simpa [UpperHalfPlane.toUnitDisc, fromUnitDisc] using h'
 
 end Inverses
+
+
+/-
+## Poisson transport along the Cayley transform
+
+As a first application, we record a simple transport lemma: if a function `F` on the
+unit disc has a Poisson representation in the sense of `HasDiskPoissonRepresentation`,
+then its pullback along the Cayley transform inherits a Poisson representation, with
+the same boundary data and kernel evaluated at `toUnitDisc z`.
+
+This mirrors the `pinch_hasPoissonRepOn_from_cayley` pattern in
+`Riemann/RS/HalfPlaneOuterV2.lean`, but specialized to the classical unit disc /
+upper half‑plane setting and the disk‑level Poisson representation API from
+`Riemann/academic_framework/DiskHardy.lean`.
+-/
+
+section PoissonTransport
+
+open MeasureTheory
+
+namespace Complex
+
+/-- Pull back a disk‑function `F` to the upper half‑plane via the Cayley transform. -/
+def cayleyPullback (F : ℂ → ℂ) (z : UpperHalfPlane) : ℂ :=
+  F ((UpperHalfPlane.toUnitDisc z : Complex.UnitDisc))
+
+@[simp]
+lemma cayleyPullback_re (F : ℂ → ℂ) (z : UpperHalfPlane) :
+    (cayleyPullback F z).re =
+      (F (UpperHalfPlane.toUnitDisc z : Complex.UnitDisc)).re := rfl
+
+/-- Disk Poisson representation transported to the upper half‑plane along the Cayley map.
+
+If `F` has a Poisson representation on the unit disc, then the pullback
+`z ↦ F (toUnitDisc z)` satisfies the *same* Poisson formula, with the Poisson
+kernel evaluated at `toUnitDisc z`.  This is just a reparametrization of the
+disk Poisson formula. -/
+lemma HasDiskPoissonRepresentation.cayleyPullback_re_eq
+    {F : ℂ → ℂ} (hF : HasDiskPoissonRepresentation F) (z : UpperHalfPlane) :
+    (cayleyPullback F z).re =
+      ∫ θ in Set.Icc 0 (2 * Real.pi),
+        (F (Circle.exp θ)).re *
+          Complex.poissonKernel (UpperHalfPlane.toUnitDisc z) θ ∂(volume) := by
+  -- By definition, `cayleyPullback F z = F (toUnitDisc z)`, so this is just
+  -- the disk Poisson formula specialized to the point `toUnitDisc z : 𝔻`.
+  simpa [cayleyPullback] using hF.re_eq (UpperHalfPlane.toUnitDisc z)
+
+end Complex
+
+end PoissonTransport
