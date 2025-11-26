@@ -15,7 +15,6 @@ import Riemann.academic_framework.Theta
 import PrimeNumberTheoremAnd.MellinCalculus
 import PrimeNumberTheoremAnd.Wiener
 import PrimeNumberTheoremAnd.ZetaBounds
-import Mathlib.Analysis.Asymptotics.Asymptotics
 import Mathlib
 import StrongPNT
 
@@ -29,7 +28,7 @@ for the Jacobi theta function and Riemann zeta function.
 
 noncomputable section
 
-open Complex Real MeasureTheory Filter Topology Set Asymptotics
+open Complex Real MeasureTheory Filter Topology Set
 open scoped Real NNReal
 
 namespace RiemannZeta.Helpers
@@ -120,7 +119,7 @@ lemma tsum_int_eq_tsum_nat_add_tsum_nat_neg {f : ℤ → ℝ} (hf : Summable f) 
 /-- Split tsum over integers into positive and negative parts (complex version). -/
 lemma tsum_int_eq_tsum_nat_add_tsum_nat_neg_complex {f : ℤ → ℂ} (hf : Summable f) (hf0 : f 0 = 0) :
     ∑' n : ℤ, f n = (∑' n : ℕ, f (n + 1 : ℕ)) + (∑' n : ℕ, f (-(n + 1 : ℕ))) := by
-  rw [tsum_int_eq_tsum_nat_add_tsum_nat_neg_add_zero f hf, hf0, add_zero]
+  rw [tsum_int_split hf, hf0, zero_add]
 
 /-- For even functions on integers, tsum is twice the positive part. -/
 lemma tsum_int_even {f : ℤ → ℝ} (hf : Summable f) (hf0 : f 0 = 0)
@@ -409,11 +408,59 @@ lemma sum_exp_neg_pi_sq_le {t : ℝ} (ht : 0 < t) :
 
 /-- Theta minus one is bounded by twice exp(-πt). -/
 lemma jacobiTheta'_abs_le {t : ℝ} (ht : 1 ≤ t) :
-    |∑' n : ℤ, rexp (-π * (n : ℝ)^2 * t) - 1| ≤ 2 * rexp (-π * t) := by
+    |∑' n : ℤ, rexp (-π * (n : ℝ)^2 * t) - 1| ≤
+      2 * rexp (-π * t) / (1 - rexp (-π * t)) := by
   have ht_pos : 0 < t := by linarith
-  -- Note: We need to show this using the fact that n^2 = n*n and the splitting
-  -- For now, we use a sorry
-  sorry -- Use sum_exp_neg_pi_sq_le and symmetry, need to properly split tsum_int_split
+  -- Let f(n) = exp(-π n^2 t).
+  let f : ℤ → ℝ := fun n => rexp (-π * (n : ℝ)^2 * t)
+  have hsum : Summable f := RiemannZeta.jacobiTheta_summable ht_pos
+  -- Split the integer sum at zero:
+  -- ∑_{ℤ} f(n) = f(0) + ∑_{n≥1} f(n) + ∑_{n≥1} f(-n)
+  have hsplit := RiemannZeta.Helpers.tsum_int_split (f := f) hsum
+  have hf0 : f 0 = 1 := by
+    unfold f; simp
+  -- Evenness: f(-(n+1)) = f(n+1)
+  have heven : ∀ n : ℕ, f (-(n + 1 : ℕ)) = f (n + 1 : ℕ) := by
+    intro n
+    unfold f
+    congr 1
+    simp only [Int.cast_neg, Int.cast_natCast, sq, neg_mul]
+    ring
+  -- Rearranged form: ∑_{ℤ} f(n) - 1 = 2 * ∑_{n≥1} f(n)
+  have h_rewrite :
+      (∑' n : ℤ, f n) - 1 = 2 * (∑' n : ℕ, f (n + 1 : ℕ)) := by
+    have := hsplit
+    -- Replace left with (f 0) + two equal tails
+    have hneg_eq_pos : (∑' n : ℕ, f (-(n + 1 : ℕ))) = ∑' n : ℕ, f (n + 1 : ℕ) := by
+      refine tsum_congr ?_
+      intro n; simpa using heven n
+    -- Finish the algebra
+    have := calc
+      (∑' n : ℤ, f n) - 1
+          = (f 0 + (∑' n : ℕ, f (n + 1 : ℕ)) + (∑' n : ℕ, f (-(n + 1 : ℕ)))) - 1 := by
+              simpa using this
+      _ = ((∑' n : ℕ, f (n + 1 : ℕ)) + (∑' n : ℕ, f (-(n + 1 : ℕ)))) + (f 0 - 1) := by ring
+      _ = ((∑' n : ℕ, f (n + 1 : ℕ)) + (∑' n : ℕ, f (n + 1 : ℕ))) + (f 0 - 1) := by
+              simpa [hneg_eq_pos]
+      _ = 2 * (∑' n : ℕ, f (n + 1 : ℕ)) + (f 0 - 1) := by ring
+      _ = 2 * (∑' n : ℕ, f (n + 1 : ℕ)) := by simpa [hf0]
+    simpa using this
+  -- Take absolute values: the RHS is ≥ 0
+  have h_nonneg : 0 ≤ ∑' n : ℕ, f (n + 1 : ℕ) := by
+    refine tsum_nonneg ?_
+    intro n; exact (le_of_lt (exp_pos _))
+  have h_abs :
+      |(∑' n : ℤ, f n) - 1| = 2 * (∑' n : ℕ, f (n + 1 : ℕ)) := by
+    simpa [h_nonneg, abs_of_nonneg (mul_nonneg (by norm_num) h_nonneg)] using congrArg abs h_rewrite
+  -- Bound the positive tail by the geometric-series comparison
+  have h_tail :
+      (∑' n : ℕ, f (n + 1 : ℕ)) ≤ rexp (-π * t) / (1 - rexp (-π * t)) := by
+    -- This is exactly `sum_exp_neg_pi_sq_le`
+    simpa [f] using RiemannZeta.Helpers.sum_exp_neg_pi_sq_le ht_pos
+  -- Conclude
+  have : |(∑' n : ℤ, f n) - 1| ≤ 2 * (rexp (-π * t) / (1 - rexp (-π * t))) := by
+    simpa [h_abs] using (mul_le_mul_of_nonneg_left h_tail (by norm_num : (0 : ℝ) ≤ 2))
+  simpa [f, sub_eq_add_neg] using this
 
 /-- Expression for `θ(t) - 1` as a sum over nonzero integers. -/
 lemma jacobiTheta'_tsum {t : ℝ} (ht : 0 < t) :
@@ -544,27 +591,49 @@ theorem poisson_sum_gaussian (t : ℝ) (ht : 0 < t) :
 
 /-- Exponential decay bound for modified theta. -/
 theorem jacobiTheta'_bound {t : ℝ} (ht : 1 ≤ t) :
-    |jacobiTheta' t| ≤ 2 * rexp (-π * t) := by
+    |jacobiTheta' t| ≤ 2 * rexp (-π * t) / (1 - rexp (-π * t)) := by
   unfold jacobiTheta'
   have ht_pos : 0 < t := by linarith
   rw [jacobiTheta_of_pos ht_pos]
-  exact Helpers.jacobiTheta'_abs_le ht
+  -- Reduce to the Helpers bound on the ℤ-sum
+  simpa using Helpers.jacobiTheta'_abs_le ht
 
 /-- Alternative form: theta can be written as 1 + 2∑_{n≥1}. -/
 theorem jacobiTheta_eq_one_add_twice_pos' {t : ℝ} (ht : 0 < t) :
     jacobiTheta t = 1 + 2 * ∑' (n : ℕ), rexp (-π * ((n + 1) : ℝ)^2 * t) := by
   rw [jacobiTheta_of_pos ht]
-  have hsum := jacobiTheta_summable ht
-  have h0 : rexp (-π * ((0 : ℤ) : ℝ)^2 * t) = 1 := by
-    simp only [Int.cast_zero, zero_pow (by norm_num : 0 ≠ 2), mul_zero, Real.exp_zero]
-  have heven : ∀ n : ℕ, rexp (-π * ((-(n + 1 : ℕ) : ℤ) : ℝ)^2 * t) =
-      rexp (-π * (((n + 1 : ℕ) : ℤ) : ℝ)^2 * t) := by
+  -- Let f(n) = exp(-π n^2 t).
+  let f : ℤ → ℝ := fun n => rexp (-π * (n : ℝ)^2 * t)
+  have hsum : Summable f := jacobiTheta_summable ht
+  -- Split the integer sum at zero
+  have hsplit := RiemannZeta.Helpers.tsum_int_split (f := f) hsum
+  -- Evenness: f(-(n+1)) = f(n+1)
+  have heven : ∀ n : ℕ, f (-(n + 1 : ℕ)) = f ((n + 1 : ℕ)) := by
     intro n
-    congr 2
+    unfold f
+    congr 1
     simp only [Int.cast_neg, Int.cast_natCast, sq, neg_mul]
     ring
-  -- Note: This needs to be done differently - we need to split the sum properly
-  sorry
+  -- Evaluate f 0
+  have hf0 : f 0 = 1 := by
+    unfold f
+    simp
+  -- Rewrite the split sum using evenness
+  -- jacobiTheta t = f 0 + (∑ n, f(n+1)) + (∑ n, f(-(n+1)))
+  --               = 1 + 2 * ∑ n, f(n+1).
+  simpa [f, hf0, two_mul, add_comm, add_left_comm, add_assoc] using
+    (by
+      simpa using
+        (congrArg (fun x => x) <|
+          show
+            (∑' n : ℤ, f n)
+              = f 0 + (∑' n : ℕ, f (n + 1 : ℕ)) + (∑' n : ℕ, f (-(n + 1 : ℕ))) from hsplit)
+            |>.trans
+              (by
+                have : (∑' n : ℕ, f (-(n + 1 : ℕ))) = ∑' n : ℕ, f (n + 1 : ℕ) := by
+                  refine tsum_congr ?_
+                  intro n; simpa [f] using heven n
+                simpa [this]))
 
 /-- Relation between sums over nonzero integers and zeta. -/
 theorem sum_abs_int_eq_twice_zeta' {s : ℂ} (hs : 1 < s.re) :
