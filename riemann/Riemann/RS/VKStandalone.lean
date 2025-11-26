@@ -31,6 +31,7 @@ structure VKZeroDensityHypothesis (N : ℝ → ℝ → ℝ) where
   C_VK : ℝ
   B_VK : ℝ
   T0   : ℝ
+  hC_VK_nonneg : 0 ≤ C_VK
   hT0  : 3 ≤ T0
   /-- VK explicit zero-density shape on [3/4,1) × [T0, ∞). -/
   zero_density :

@@ -47,6 +47,7 @@ theorem integral_log_plus_zeta_bound
       1000 -- C_VK placeholder
       5    -- B_VK placeholder
       (Real.exp 30) -- T0 placeholder
+      (by norm_num) -- hC_VK_nonneg
       (by norm_num) -- hT0
       (by sorry) -- zero_density placeholder proof (circular here, but structure is right)
     hyp.C_VK * T ^ (1 - RH.AnalyticNumberTheory.VKStandalone.kappa σ) * (Real.log T) ^ hyp.B_VK := by

@@ -70,12 +70,11 @@ theorem hardy_schur_pinch_route_complete (N : ℝ → ℝ → ℝ) (hyp : VKZero
 
   apply h_implication (hyp.C_VK) -- Use the VK constant as the Kξ
   · exact RH.Cert.kxiWitness_nonempty
-  · -- 0 <= C_VK from hypothesis structure (implicit or needs accessor)
-    -- Assuming C_VK non-negative as it's a count/density constant
-    sorry -- hyp.C_VK >= 0
+  · -- 0 <= C_VK from hypothesis structure
+    exact hyp.hC_VK_nonneg
   · -- ConcreteCarleson hyp.C_VK
     constructor
-    · sorry -- 0 <= hyp.C_VK
+    · exact hyp.hC_VK_nonneg
     · intro W
       -- Show (mkWhitneyBoxEnergy W hyp.C_VK).bound ≤ hyp.C_VK * (2 * W.len)
       -- This is definitional: bound := K * (2 * W.len)
