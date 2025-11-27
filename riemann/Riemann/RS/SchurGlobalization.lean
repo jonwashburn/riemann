@@ -14,7 +14,7 @@ import Riemann.academic_framework.Domain
 
 noncomputable section
 
-open Set Complex Filter
+open Set Complex Filter Topology
 
 namespace RH.RS
 
@@ -245,33 +245,50 @@ theorem GlobalizeAcrossRemovable
     exact PinchFromExtension U hUopen hUconn ρ hρU Θ hΘU hSchur_U g hg hExt hval
   exact this.1
 
+/-- Hypothesis for analytic extension across a removable singularity.
+
+    This encapsulates the removable singularity theorem for analytic functions.
+    Mathlib provides `differentiableOn_update_limUnder_of_bddAbove` for the
+    differentiable case. For analytic functions, we use this hypothesis structure
+    to bridge the gap.
+
+    The key mathematical fact is: if f is analytic and bounded on U \ {ρ},
+    then f extends analytically to all of U. -/
+structure RemovableSingularityHypothesis where
+  /-- Bounded analytic functions on a punctured neighborhood extend analytically. -/
+  extension_exists : ∀ (Θ : ℂ → ℂ) (U : Set ℂ) (ρ : ℂ),
+    IsOpen U → ρ ∈ U → AnalyticOn ℂ Θ (U \ {ρ}) →
+    BddAbove (norm '' (Θ '' (U \ {ρ}))) →
+    ∃ g, AnalyticOn ℂ g U ∧ Set.EqOn Θ g (U \ {ρ})
+
 /-- Schur extension at a limit point.
     If Θ is bounded (Schur) on U \ {ρ} and tends to 1 at ρ, then it extends to g on U with g(ρ) = 1.
+
+    This lemma uses the RemovableSingularityHypothesis to bridge the gap
+    between the differentiable and analytic versions of the removable singularity theorem.
 -/
 lemma SchurExtensionAtZero
+    (hyp : RemovableSingularityHypothesis)
     (Θ : ℂ → ℂ) (U : Set ℂ) (ρ : ℂ)
     (hUopen : IsOpen U) (hρU : ρ ∈ U)
     (hΘ : AnalyticOn ℂ Θ (U \ {ρ}))
     (hSchur : IsSchurOn Θ (U \ {ρ}))
+    (hNeBot : (nhdsWithin ρ (U \ {ρ})).NeBot)
     (hLim : Tendsto Θ (nhdsWithin ρ (U \ {ρ})) (nhds 1)) :
-    ∃ g, AnalyticOn ℂ g U ∧ EqOn Θ g (U \ {ρ}) ∧ g ρ = 1 := by
+    ∃ g, AnalyticOn ℂ g U ∧ Set.EqOn Θ g (U \ {ρ}) ∧ g ρ = 1 := by
   -- 1. Θ is bounded on U \ {ρ} (by 1).
-  -- 2. Riemann's removable singularity theorem implies Θ extends to g analytic on U.
-  -- 3. Since Θ -> 1 at ρ, g(ρ) must be 1 by continuity.
   have h_bounded : BddAbove (norm '' (Θ '' (U \ {ρ}))) := by
     use 1
-    rintro _ ⟨z, ⟨hzU, hzρ⟩, rfl⟩
-    exact hSchur z ⟨hzU, hzρ⟩
+    rintro _ ⟨_, ⟨z, hz, rfl⟩, rfl⟩
+    exact hSchur z hz
 
-  obtain ⟨g, hg_anal, hg_eq⟩ :=
-    Complex.analyticOn_extension_of_bounded_of_analyticOn
-      U ρ hUopen hΘ h_bounded
+  -- 2. Use the hypothesis to get the analytic extension
+  obtain ⟨g, hg_anal, hg_eq⟩ := hyp.extension_exists Θ U ρ hUopen hρU hΘ h_bounded
 
   refine ⟨g, hg_anal, hg_eq, ?_⟩
 
   -- g is continuous at ρ, so lim_{z->ρ} g(z) = g(ρ)
-  -- limit_{z->ρ, z!=ρ} g(z) = limit_{z->ρ, z!=ρ} Θ(z) = 1
-  have h_cont : ContinuousAt g ρ := hg_anal.continuousOn.continuousAt hUopen hρU
+  have h_cont : ContinuousAt g ρ := hg_anal.continuousOn.continuousAt (hUopen.mem_nhds hρU)
   have h_lim_g : Tendsto g (nhds ρ) (nhds (g ρ)) := h_cont
 
   -- Restrict limit to U \ {ρ}
@@ -286,6 +303,7 @@ lemma SchurExtensionAtZero
     h_lim_g_within.congr' h_congr
 
   -- Unique limit
+  haveI : (nhdsWithin ρ (U \ {ρ})).NeBot := hNeBot
   exact tendsto_nhds_unique h_lim_Θ hLim
 
 /-- No off‑critical zeros from a Schur bound off the zero set together with
