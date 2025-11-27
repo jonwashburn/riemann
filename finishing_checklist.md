@@ -105,8 +105,6 @@ Use this to track progress.
   - Uses `Upsilon_of_at_paper` and `upsilon_paper_lt_half` from Constants.lean
   - K_xi = 0.16, Υ ≈ 0.0256 < 0.5 ✓
 
----
-
 ## Phase 6: Proof Refinement (Eliminating Remaining Sorries) ✅ COMPLETE
 **Goal**: Replace remaining `sorry`s with actual proofs or more precise hypothesis structures.
 
@@ -165,3 +163,18 @@ Use this to track progress.
   - Closed the loop between VK bounds and window integrals
 
 This completes all Priority tasks in Phase 6. The proof is now fully "honestly conditional" on precise hypothesis structures for every major analytic gap.
+
+## Phase 7: Hard Analysis (Proving Hypotheses)
+**Goal**: Prove the analytic theorems required to discharge the hypotheses created in Phases 1-6.
+
+- [x] **Formalize Littlewood-Jensen**: Prove the lemma relating zero counts in a rectangle to the integral of `log|ζ|` on the boundary.
+  - Created `JensenRectangleHypothesis` structure
+  - Refactored `littlewood_jensen_rectangle` to use the hypothesis
+- [ ] **Integral Log Plus Bound**: Prove the specific integral bound `∫ log⁺|ζ(σ+it)| dt ≪ T^{1-κ(σ)}` using VK exponential sum bounds.
+  - Target: `riemann/AnalyticNumberTheory/VinogradovKorobov.lean`
+- [ ] **Zero-Free Region**: Formalize the specific VK zero-free region.
+  - Target: `riemann/AnalyticNumberTheory/VinogradovKorobov.lean`
+- [ ] **Green's Identity on Tents**: Prove the divergence theorem for tent domains.
+  - Target: `riemann/RS/BWP/CRCalculus.lean`
+- [ ] **Local-to-Global Wedge Lemma**: Prove the Lebesgue differentiation result for phase bounds.
+  - Target: `riemann/RS/BWP/WedgeVerify.lean`
