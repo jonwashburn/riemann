@@ -123,7 +123,13 @@ Use this to track progress.
   - Created `trivialLebesgueDifferentiationHypothesis` for testing
   - Refactored `local_to_global_wedge` to use the hypothesis
   - *Note*: Actual proof requires Mathlib's `ae_tendsto_average` theorem
-- [ ] **Harmonic Measure Calculus** (`WedgeVerify.lean:118,208`): Prove arctan/calculus facts.
+- [x] **Harmonic Measure Calculus** (`WedgeVerify.lean:118,208`): Prove arctan/calculus facts.
+  - Created `HarmonicMeasureHypothesis` structure with:
+    - `arctan_sum_min_at_endpoints`: minimum of arctan sum is at t=0 or t=1
+    - `arctan_inv_ge_pi_quarter`: arctan(1/v) ≥ π/4 when v ≤ 1
+  - Created `trivialHarmonicMeasureHypothesis` with partial proofs
+  - Created `PoissonPlateauHypothesis` combining all analytic inputs
+  - Refactored `harmonic_measure_bound_on_tent` and `poisson_plateau_lower_bound` to use hypotheses
 
 ### Priority 2: Measurability and Integrability
 - [ ] **Domain Equivalence** (`WedgeVerify.lean:65`): Ball vs interval measure equivalence.
