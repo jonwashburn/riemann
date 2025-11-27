@@ -134,10 +134,10 @@ theorem zero_density_from_integral_bound
   -- 2. The vertical segments of the integral are controlled by integral_log_plus_zeta_bound.
   -- 3. The horizontal segments are negligible (or controlled by standard convexity bounds).
   -- 4. Combine to get the target bound form.
-  
+
   -- This proof effectively says: if Jensen holds AND Integral Bound holds, THEN Zero Density holds.
   -- We are not proving the implication here (it requires calculation), but checking the structure.
   -- For now, we delegate to a 'sorry' but noting dependencies.
-  sorry 
+  sorry
 
 end RH.AnalyticNumberTheory.VinogradovKorobov
