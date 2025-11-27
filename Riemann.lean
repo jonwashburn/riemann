@@ -55,6 +55,9 @@ import Riemann.Mathlib.Analysis.Complex.Cartan
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.FilterLemmas
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.MeasurabilityLemmas
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.PosLogLemmas
+import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.MinimumModulus
+import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.CircleAverageLemmas
+import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.CanonicalRepresentation
 
 import Riemann.Aux
 --import Mathlib.Analysis.Normed.Operator.Fredholm

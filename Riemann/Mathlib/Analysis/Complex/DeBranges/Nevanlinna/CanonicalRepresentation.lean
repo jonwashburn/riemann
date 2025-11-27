@@ -7,6 +7,8 @@ import Riemann.Mathlib.Analysis.Complex.Cartan
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.PosLogLemmas
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.FilterLemmas
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.MeasurabilityLemmas
+import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.MinimumModulus
+import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.CircleAverageLemmas
 import Mathlib
 
 import VD
@@ -689,9 +691,33 @@ lemma IsOfBoundedTypeUnitDisc.characteristic_growth
     have h_inv_ge_one : 1 ≤ (1 - r)⁻¹ := by
       rw [one_le_inv₀ h_one_minus_r_pos]
       linarith
-    -- Use the crude bound: circleAverage ≤ M_G ≤ M_G + 1 ≤ (M_G + 1) * (1-r)⁻¹
+    -- Use the crude bound: circleAverage ≤ M_G + 1 ≤ (M_G + 1) * (1-r)⁻¹
+    --
+    -- The key estimate is:
+    -- circleAverage (log⁺ ‖G/H‖) ≤ circleAverage (log⁺ ‖G‖ + log⁺ ‖H⁻¹‖)
+    --                           ≤ circleAverage (log⁺ ‖G‖) + circleAverage (log⁺ ‖H⁻¹‖)
+    --                           ≤ M_G + (bound on log⁺ ‖H⁻¹‖)
+    --
+    -- For H bounded and nonzero on the disc, on any compact subset {|z| ≤ r}
+    -- with r < 1, the function H attains a positive minimum (by continuity
+    -- and nonvanishing). Hence log⁺ ‖H⁻¹‖ is bounded on the circle.
+    --
+    -- This uses:
+    -- 1. Real.posLog_norm_div_le from PosLogLemmas.lean for the subadditivity
+    -- 2. Minimum modulus principle for the H⁻¹ bound
+    --
+    -- For bounded-type functions, this estimate is the foundation of Nevanlinna theory.
     calc circleAverage (Real.log⁺ ‖g ·‖) 0 r
-        ≤ M_G + 1 := by sorry -- requires log⁺ subadditivity and minimum modulus
+        ≤ M_G + 1 := by
+          -- The proof requires:
+          -- 1. log⁺ subadditivity: log⁺ ‖G/H‖ ≤ log⁺ ‖G‖ + log⁺ ‖H⁻¹‖
+          -- 2. Circle average is subadditive
+          -- 3. proximity_bounded for G: circleAverage (log⁺ ‖G‖) 0 r ≤ M_G
+          -- 4. Minimum modulus for H on the compact disc of radius r
+          --
+          -- The "+1" absorbs the log⁺ ‖H⁻¹‖ term on the circle.
+          -- This is a crude bound; the actual Nevanlinna bound is tighter.
+          sorry
       _ ≤ (M_G + 1) * (1 - r)⁻¹ := by
           have h_nonneg : 0 ≤ M_G + 1 := by linarith [posLog_nonneg (x := M_G)]
           calc M_G + 1 = (M_G + 1) * 1 := by ring
@@ -748,14 +774,48 @@ lemma IsBoundedOnUnitDisc.meanTypeDisc_eq_zero {G : ℂ → ℂ}
   -- The function `(1 - r) * circleAverage (log⁺ ‖G ·‖) 0 r` is bounded by
   -- `(1 - r) * log⁺ C`, which tends to 0 as `r → 1⁻`.
   --
-  -- Use `Filter.limsup_one_sub_mul_eq_zero` from FilterLemmas.lean.
-  -- The result follows because:
-  -- 1. The circle average is nonneg and bounded by log⁺ C
-  -- 2. (1-r) * bounded function → 0 as r → 1⁻
-  -- 3. Limsup of tendsto-0 function equals 0
+  -- Strategy: Show that the limsup is bounded above by 0 (using the bound)
+  -- and bounded below by 0 (since the function is nonneg).
   --
-  -- The main technical gap is relating the filter `atTop.comap ...` to
-  -- `Filter.towardsOne`. Both capture `r → 1⁻` but with different formulations.
+  -- The technical details involve:
+  -- 1. Relating `atTop.comap (fun r => (1 - r)⁻¹)` to `Filter.towardsOne`
+  -- 2. Using `Filter.limsup_one_sub_mul_eq_zero` from FilterLemmas.lean
+  --
+  -- For the comap filter: as `(1-r)⁻¹ → ∞`, we have `r → 1⁻`.
+  -- This is essentially the same as `towardsOne` but parameterized differently.
+  --
+  -- The key observation is that the function `(1 - r) * (bounded)` tends to 0,
+  -- so its limsup equals 0 regardless of the specific filter formulation,
+  -- as long as the filter approaches `r → 1⁻`.
+  --
+  -- Proof: Let C := log⁺ (hG_bd.choose). Then:
+  -- - 0 ≤ (1-r) * circleAverage ≤ (1-r) * C for r ∈ (0, 1)
+  -- - As r → 1⁻, (1-r) * C → 0
+  -- - Hence limsup = 0
+  set C := log⁺ hG_bd.choose with hC_def
+  have hC_nonneg : 0 ≤ C := posLog_nonneg
+  -- The function is nonneg for r ∈ (0, 1)
+  have h_nonneg : ∀ r : ℝ, 0 < r → r < 1 →
+      0 ≤ (1 - r) * circleAverage (fun z => log⁺ ‖G z‖) 0 r := by
+    intro r hr0 hr1
+    apply mul_nonneg (by linarith : 0 ≤ 1 - r)
+    -- Circle average of nonneg function is nonneg
+    -- circleAverage f c R = (2π)⁻¹ * ∫ θ in 0..2π, f(circleMap c R θ)
+    -- For f ≥ 0, the integral is ≥ 0, so the average is ≥ 0.
+    simp only [circleAverage, Real.circleAverage, smul_eq_mul]
+    apply mul_nonneg
+    · positivity
+    · apply intervalIntegral.integral_nonneg (by positivity)
+      intro θ _
+      exact posLog_nonneg
+  -- The limsup over the comap filter equals the limsup over any equivalent filter
+  -- that captures r → 1⁻. Using the bound (1-r) * C → 0, the limsup is 0.
+  --
+  -- Technical detail: The filter `atTop.comap (fun r => (1-r)⁻¹)` may be ⊥ for
+  -- some ill-behaved cases, but for standard use (r ∈ (0,1)), it behaves as expected.
+  --
+  -- Full proof requires showing the filter is non-degenerate and applying
+  -- the squeeze theorem: 0 ≤ f(r) ≤ (1-r)*C → 0 implies limsup f = 0.
   sorry
 
 /-! ### Constructing the analytic Poisson term from Jensen's formula -/
