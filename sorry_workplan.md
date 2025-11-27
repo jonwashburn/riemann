@@ -6,10 +6,12 @@ This document provides a comprehensive plan to eliminate all `sorry` placeholder
 
 ## Executive Summary
 
-**Total sorries found:** ~75 across 20+ files  
-**Critical path sorries:** ~25 (blocks main theorem)  
-**Infrastructure sorries:** ~30 (Fredholm theory, de Branges)  
-**Cleanup sorries:** ~20 (numeric bounds, old interfaces)
+**Total sorries found:** ~83 across 20+ files
+**Critical path sorries:** ~25 (blocks main theorem via Hardy-Schur route)
+**Infrastructure sorries:** ~12 (Fredholm theory - not on critical path)
+**Alternative route sorries:** ~7 (De Branges - NOT needed for main proof)
+**Deprecated/WIP sorries:** ~20 (MellinThetaZeta'.lean, MellinThetaZeta''.lean)
+**Cleanup sorries:** ~19 (numeric bounds, old interfaces)
 
 ---
 
@@ -152,7 +154,10 @@ These appear to be work-in-progress variants. **Strategy:** Consolidate into mai
 
 ---
 
-## Phase 5: De Branges Track (Alternative Route)
+## Phase 5: De Branges Track (OPTIONAL - Alternative Route)
+
+> ⚠️ **NOT REQUIRED FOR MAIN PROOF** - The Hardy-Schur route (Phase 1) is the primary proof track.
+> De Branges is an independent alternative that could be pursued if Hardy-Schur is blocked.
 
 ### 5.1 Measure Theory (`riemann/Riemann/Mathlib/Analysis/Complex/DeBranges/Measure.lean`)
 
@@ -172,7 +177,8 @@ These appear to be work-in-progress variants. **Strategy:** Consolidate into mai
 |-------|-------------|----------|------------|
 | Growth estimates (2 sorries) | Nevanlinna theory | Complex analysis | Hard |
 
-**Strategy:** De Branges is an alternative proof route. Deprioritize unless Hardy-Schur path is blocked.
+**Strategy:** De Branges is an **alternative** proof route, NOT required for the main Hardy-Schur proof.
+Skip entirely unless Hardy-Schur path is blocked. The ~7 sorries here do NOT block `hardy_schur_pinch_route_complete`.
 
 ---
 
@@ -280,4 +286,3 @@ The proof is complete when:
    - Comments explaining deliberate axioms
    - Deprecated/unused files
 3. `hardy_schur_pinch_route_complete` has no `sorry` in its proof tree
-
