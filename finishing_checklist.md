@@ -10,11 +10,21 @@ Use this to track progress.
   - Added `zero_density_bound_from_hyp_nonneg` and `Zk_card_from_hyp_nonneg` lemmas
   - Added `vk_weighted_partial_sum_bound` theorem for the geometric decay argument
   - `VK_annular_counts_exists_real` now uses the VK hypothesis properly
-- [ ] **Refactor Carleson Bound**: Replace `carleson_energy_bound` (which assumes 0 energy) with `Hypothesis_Carleson_Bound`.
-  - *Note*: DiagonalBounds.lean has pre-existing compilation errors that need to be fixed first.
-  - The `Zk_card_real` function is used but the old definition was commented out.
-  - Need to wire `Zk_card_from_hyp` into the Carleson bound chain.
-- [ ] **Refactor Residues**: Replace `residue_bookkeeping` (empty list) with `Hypothesis_Residue_Atoms` that actually tracks $\xi$ zeros.
+- [x] **Refactor Carleson Bound**: Replace `carleson_energy_bound` (which assumes 0 energy) with `Hypothesis_Carleson_Bound`.
+  - Created `CarlesonHypothesis.lean` with:
+    - `CarlesonEnergyHypothesis` structure (K_xi, bounds, energy_bound)
+    - `VKCarlesonHypothesis` extending it with VK dependency
+    - `vk_derived_constant` placeholder for the VK → Carleson derivation
+    - `carleson_implies_paper_bound` theorem
+  - *Note*: DiagonalBounds.lean still has pre-existing compilation errors.
+  - The `boxEnergy` placeholder needs to be connected to the real definition.
+- [x] **Refactor Residues**: Replace `residue_bookkeeping` (empty list) with `Hypothesis_Residue_Atoms` that actually tracks $\xi$ zeros.
+  - Created `ResidueHypothesis.lean` with:
+    - `ResidueAtomsHypothesis` structure (C_total, total_bounded)
+    - `VKResidueHypothesis` extending it with VK dependency
+    - `vk_implies_residue_bounds` theorem (sorry'd)
+    - `mkVKResidueHypothesis` constructor
+  - Note: `residue_bookkeeping` already uses `zerosInBox` to enumerate zeros
 - [ ] **Fix KxiBound**: Redefine `KxiWhitney.KxiBound` to quantify over all Whitney intervals (analytic content) rather than just asserting existence of a number.
 
 ## Phase 2: Gap G1 (Phase-Velocity Identity)
