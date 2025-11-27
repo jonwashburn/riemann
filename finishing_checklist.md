@@ -25,7 +25,10 @@ Use this to track progress.
     - `vk_implies_residue_bounds` theorem (sorry'd)
     - `mkVKResidueHypothesis` constructor
   - Note: `residue_bookkeeping` already uses `zerosInBox` to enumerate zeros
-- [ ] **Fix KxiBound**: Redefine `KxiWhitney.KxiBound` to quantify over all Whitney intervals (analytic content) rather than just asserting existence of a number.
+- [x] **Fix KxiBound**: Redefine `KxiWhitney.KxiBound` to quantify over all Whitney intervals (analytic content) rather than just asserting existence of a number.
+  - Updated `KxiBound` to include `∀ (I : WhitneyInterval), boxEnergy_abstract I ≤ Kξ * (2 * I.len)`
+  - Added `boxEnergy_abstract` placeholder function
+  - The condition now explicitly quantifies over all Whitney intervals
 
 ## Phase 2: Gap G1 (Phase-Velocity Identity)
 **Goal**: Prove $-w'(t) = \pi \mu + \text{atoms}$ without assuming it.
