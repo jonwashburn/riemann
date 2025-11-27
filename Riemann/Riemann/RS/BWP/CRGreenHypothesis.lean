@@ -165,16 +165,41 @@ structure CRGreenHypothesis where
   windows_exist : ∀ (I : RH.Cert.WhitneyInterval),
     ∃ (w : AdmissibleWindow I), w.energy_bound ≤ 1 / I.len
 
-/-- Construct the full CR-Green hypothesis. -/
+/-- Hypothesis structure for window construction.
+
+    This encapsulates the construction of admissible windows (bump functions)
+    that satisfy the required properties:
+    - Compact support in I
+    - Non-negative
+    - Integrates to 1
+    - Bounded H¹ energy -/
+structure WindowConstructionHypothesis where
+  /-- For each Whitney interval, there exists an admissible window. -/
+  window_exists : ∀ (I : RH.Cert.WhitneyInterval),
+    ∃ (w : AdmissibleWindow I), w.energy_bound ≤ 1 / I.len
+  /-- The window is smooth and has the required scaling. -/
+  window_smooth : True -- Placeholder for smoothness properties
+
+/-- Trivial window construction hypothesis. -/
+noncomputable def trivialWindowConstructionHypothesis : WindowConstructionHypothesis := {
+  window_exists := fun I => by
+    -- A standard construction uses a rescaled bump function
+    -- φ(t) = (1/|I|) · ψ((t - t₀)/|I|) where ψ is a fixed smooth bump
+    -- The energy scales as 1/|I| due to the derivative scaling
+    sorry
+  window_smooth := trivial
+}
+
+/-- Construct the full CR-Green hypothesis.
+
+    Now takes a WindowConstructionHypothesis for the window existence. -/
 noncomputable def mkCRGreenHypothesis
-    (K_xi : ℝ) (hK_nonneg : 0 ≤ K_xi) (hK_bounded : K_xi ≤ Kxi_paper_crgreen) :
+    (K_xi : ℝ) (hK_nonneg : 0 ≤ K_xi) (hK_bounded : K_xi ≤ Kxi_paper_crgreen)
+    (h_window : WindowConstructionHypothesis) :
     CRGreenHypothesis := {
   identity := mkCRGreenIdentityHypothesis
   uniform_bound := mkUniformEnergyBoundHypothesis K_xi hK_nonneg hK_bounded
-  windows_exist := fun I => by
-    -- Construct a standard bump function (placeholder - actual construction requires analysis)
-    -- The proper construction uses a smooth bump function with ∫ φ = 1
-    sorry
+  windows_exist := h_window.window_exists
 }
 
 /-! ## Wedge Condition -/
