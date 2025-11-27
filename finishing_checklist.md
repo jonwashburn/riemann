@@ -3,8 +3,10 @@
 This checklist breaks down the "Finishing Strategy" from `proof_map.md` into executable tasks.
 Use this to track progress.
 
-## Phase 1: Honest Refactoring (De-Stubbing)
+## Phase 1: Honest Refactoring (De-Stubbing) ✅ COMPLETE
 **Goal**: Replace trivial "energy=0" stubs with explicit Hypotheses so the proof is conditionally valid.
+
+**Status**: All 4 tasks completed. The proof is now "honestly conditional" on VK hypotheses.
 
 - [x] **Refactor VK Counts**: Replace `VK_annular_counts_exists` (which assumes 0 atoms) with a `Hypothesis_VK_Zero_Density` structure.
   - Added `zero_density_bound_from_hyp_nonneg` and `Zk_card_from_hyp_nonneg` lemmas
