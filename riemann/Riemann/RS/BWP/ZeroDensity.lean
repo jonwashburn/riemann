@@ -41,7 +41,7 @@ namespace RH
 namespace RS
 namespace BWP
 
-open Real Complex
+open Real Complex RH.AnalyticNumberTheory.VKStandalone
 
 /-- A structure representing a zero density hypothesis or theorem. -/
 structure ZeroDensityBound (σ : ℝ) (T : ℝ) where
@@ -94,7 +94,7 @@ theorem zero_real_part_bound :
 
     This function is intended to be used within the VKAnnularCountsReal proof
     where a VKZeroDensityHypothesis is available. -/
-def zero_density_bound_from_hyp (N : ℝ → ℝ → ℝ) (hyp : VKStandalone.VKZeroDensityHypothesis N)
+def zero_density_bound_from_hyp (N : ℝ → ℝ → ℝ) (hyp : VKZeroDensityHypothesis N)
     (σ_min σ_max : ℝ) (t_min t_max : ℝ) : ℝ :=
   -- For the Carleson estimate we primarily care about the count in annuli
   -- which corresponds to N(σ_min, T) - N(σ_min, T') type bounds.
@@ -108,11 +108,33 @@ def zero_density_bound_from_hyp (N : ℝ → ℝ → ℝ) (hyp : VKStandalone.VK
     -- Below T0, use a trivial or O(1) bound (placeholder for now, effectively handled by 'near' budget)
     0
   else
-    hyp.C_VK * T_eff ^ (1 - VKStandalone.kappa σ_min) * (Real.log T_eff) ^ hyp.B_VK
+    hyp.C_VK * T_eff ^ (1 - kappa σ_min) * (Real.log T_eff) ^ hyp.B_VK
+
+/-- The zero density bound is always non-negative. -/
+lemma zero_density_bound_from_hyp_nonneg (N : ℝ → ℝ → ℝ) (hyp : VKZeroDensityHypothesis N)
+    (σ_min σ_max : ℝ) (t_min t_max : ℝ) :
+    0 ≤ zero_density_bound_from_hyp N hyp σ_min σ_max t_min t_max := by
+  simp only [zero_density_bound_from_hyp]
+  by_cases h : max (abs t_min) (abs t_max) < hyp.T0
+  · -- Case: T_eff < hyp.T0, returns 0
+    simp only [h, ↓reduceIte, le_refl]
+  · -- Case: T_eff >= hyp.T0, returns C_VK * T_eff^(...) * (log T_eff)^B_VK
+    simp only [h, ↓reduceIte]
+    apply mul_nonneg
+    apply mul_nonneg
+    · exact hyp.hC_VK_nonneg
+    · apply Real.rpow_nonneg
+      exact le_max_of_le_left (abs_nonneg t_min)
+    · apply Real.rpow_nonneg
+      apply Real.log_nonneg
+      -- T_eff >= T0 >= 3 >= 1
+      have hT0 : 3 ≤ hyp.T0 := hyp.hT0
+      have hT_eff : hyp.T0 ≤ max (|t_min|) (|t_max|) := le_of_not_lt h
+      linarith
 
 /-- Bound on the number of zeros in the k-th Whitney annulus for interval I,
     derived from a VK hypothesis. -/
-def Zk_card_from_hyp (N : ℝ → ℝ → ℝ) (hyp : VKStandalone.VKZeroDensityHypothesis N)
+def Zk_card_from_hyp (N : ℝ → ℝ → ℝ) (hyp : VKZeroDensityHypothesis N)
     (I : RH.Cert.WhitneyInterval) (k : ℕ) : ℝ :=
   let L := I.len
   let t0 := I.mid
@@ -123,18 +145,27 @@ def Zk_card_from_hyp (N : ℝ → ℝ → ℝ) (hyp : VKStandalone.VKZeroDensity
   zero_density_bound_from_hyp N hyp (3/4) 1 (t0 - r_outer) (t0 - r_inner) +
   zero_density_bound_from_hyp N hyp (3/4) 1 (t0 + r_inner) (t0 + r_outer)
 
-/-- Deprecated: The old placeholder function.
-    Use Zk_card_from_hyp with a proper hypothesis instead. -/
+/-- The annular count bound is always non-negative. -/
+lemma Zk_card_from_hyp_nonneg (N : ℝ → ℝ → ℝ) (hyp : VKZeroDensityHypothesis N)
+    (I : RH.Cert.WhitneyInterval) (k : ℕ) :
+    0 ≤ Zk_card_from_hyp N hyp I k := by
+  unfold Zk_card_from_hyp
+  apply add_nonneg
+  · exact zero_density_bound_from_hyp_nonneg N hyp _ _ _ _
+  · exact zero_density_bound_from_hyp_nonneg N hyp _ _ _ _
+
+-- Deprecated: The old placeholder function.
+-- Use Zk_card_from_hyp with a proper hypothesis instead.
 -- def zeros_in_strip_count (_σ_min _σ_max : ℝ) (_t_min _t_max : ℝ) : ℕ :=
 --   0
 
-/-- Deprecated: The old placeholder count. -/
+-- Deprecated: The old placeholder count.
 -- def Zk_card_real (I : RH.Cert.WhitneyInterval) (k : ℕ) : ℕ :=
 --   0
 
-/-- The key bound: partial sums of weighted zero counts are bounded.
+/-- The key bound: partial sums of unweighted zero counts are bounded.
     This version is conditional on a VK hypothesis. -/
-theorem vk_partial_sum_bound_from_hyp (N : ℝ → ℝ → ℝ) (hyp : VKStandalone.VKZeroDensityHypothesis N)
+theorem vk_partial_sum_bound_from_hyp (N : ℝ → ℝ → ℝ) (hyp : VKZeroDensityHypothesis N)
     (I : RH.Cert.WhitneyInterval) :
   ∀ K : ℕ, ((Finset.range K).sum (fun k => Zk_card_from_hyp N hyp I k)) ≤
     hyp.C_VK * (2 * I.len) -- Placeholder constant scaling
@@ -144,6 +175,23 @@ theorem vk_partial_sum_bound_from_hyp (N : ℝ → ℝ → ℝ) (hyp : VKStandal
   -- 2. Summing the geometric series arising from the Whitney geometry
   -- 3. Showing the total is bounded by C * |I|
   sorry -- Requires detailed analytic number theory proof using the hypothesis
+
+/-- The key bound: partial sums of WEIGHTED zero counts (phi_of_nu) are bounded by VK_B_budget.
+    The geometric decay (1/4)^k in phi_of_nu makes the sum converge to a small constant.
+
+    This is the key estimate needed for the Carleson energy bound. The weighted sum
+    Σ (1/4)^k · ν_k is much smaller than the unweighted sum Σ ν_k due to geometric decay. -/
+theorem vk_weighted_partial_sum_bound (N : ℝ → ℝ → ℝ) (hyp : VKZeroDensityHypothesis N)
+    (I : RH.Cert.WhitneyInterval) :
+  ∀ K : ℕ, ((Finset.range (Nat.succ K)).sum
+      (RH.RS.BoundaryWedgeProof.phi_of_nu (fun k => Zk_card_from_hyp N hyp I k))) ≤
+    RH.RS.BoundaryWedgeProof.VK_B_budget * (2 * I.len)
+  := by
+  -- The geometric decay (1/4)^k in phi_of_nu makes the weighted sum converge.
+  -- Key insight: even if individual ν_k ~ C_VK * T^{1-κ} * (log T)^B, the weighted sum
+  -- Σ (1/4)^k · ν_k converges due to the exponential decay dominating polynomial growth.
+  -- The final constant is O(1) independent of T, which is what VK_B_budget = 2 captures.
+  sorry -- Requires detailed analysis of the geometric sum with VK bounds
 
 
 end BWP
