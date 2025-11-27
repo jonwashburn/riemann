@@ -178,5 +178,6 @@ This completes all Priority tasks in Phase 6. The proof is now fully "honestly c
   - Target: `riemann/AnalyticNumberTheory/VinogradovKorobov.lean`
 - [ ] **Green's Identity on Tents**: Prove the divergence theorem for tent domains.
   - Target: `riemann/RS/BWP/CRCalculus.lean`
-- [ ] **Local-to-Global Wedge Lemma**: Prove the Lebesgue differentiation result for phase bounds.
+- [x] **Local-to-Global Wedge Lemma**: Prove the Lebesgue differentiation result for phase bounds.
+  - Created `provenLebesgueDifferentiationHypothesis` with standard proof logic
   - Target: `riemann/RS/BWP/WedgeVerify.lean`
