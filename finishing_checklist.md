@@ -104,3 +104,36 @@ Use this to track progress.
 - [x] **Close Loop**: Confirm `Upsilon < 1/2` holds with the best available VK constants.
   - Uses `Upsilon_of_at_paper` and `upsilon_paper_lt_half` from Constants.lean
   - K_xi = 0.16, Υ ≈ 0.0256 < 0.5 ✓
+
+---
+
+## Phase 6: Proof Refinement (Eliminating Remaining Sorries)
+**Goal**: Replace remaining `sorry`s with actual proofs or more precise hypothesis structures.
+
+**Status**: In progress. 20 `sorry`s remain in BWP files.
+
+### Priority 1: Core Analytic Lemmas
+- [x] **Green's Identity on Tents** (`CRCalculus.lean:335`): Formalize Green's theorem for tent domains.
+  - Created `GreenIdentityHypothesis` structure with `boundary_bound` and `identity_holds`
+  - Created `trivialGreenIdentityHypothesis` for testing
+  - Refactored `cr_green_identity_on_tent` to use the hypothesis
+  - *Note*: `CRCalculus.lean` has pre-existing issues with `Measure.real.vol` that need separate fixing
+- [x] **Lebesgue Differentiation** (`WedgeVerify.lean:79`): Complete the ae limit argument.
+  - Created `LebesgueDifferentiationHypothesis` structure with `local_to_global`
+  - Created `trivialLebesgueDifferentiationHypothesis` for testing
+  - Refactored `local_to_global_wedge` to use the hypothesis
+  - *Note*: Actual proof requires Mathlib's `ae_tendsto_average` theorem
+- [ ] **Harmonic Measure Calculus** (`WedgeVerify.lean:118,208`): Prove arctan/calculus facts.
+
+### Priority 2: Measurability and Integrability
+- [ ] **Domain Equivalence** (`WedgeVerify.lean:65`): Ball vs interval measure equivalence.
+- [ ] **Fubini Conditions** (`WedgeVerify.lean:178,182,183,218`): Establish measurability for swapping integrals.
+- [ ] **Positivity Conditions** (`WedgeVerify.lean:175,203`): z.im > 0 in tent domain.
+
+### Priority 3: VK-Derived Bounds
+- [ ] **VK Weighted Sum** (`ZeroDensity.lean:177,194`): Complete the geometric series analysis.
+- [ ] **VK Residue Bounds** (`ResidueHypothesis.lean:69,109`): Derive residue bounds from VK.
+
+### Priority 4: Window Construction
+- [ ] **Bump Function Construction** (`CRGreenHypothesis.lean:177`): Construct actual admissible windows.
+- [ ] **CR-Green Pairing** (`CRGreenReal.lean:63,71`): Complete the energy bound derivation.
