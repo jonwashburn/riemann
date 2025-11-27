@@ -1,8 +1,4 @@
-/-
-Copyright (c) 2024. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Formalization Team
--/
+
 import Mathlib.MeasureTheory.Integral.CircleAverage
 import Mathlib.Analysis.SpecialFunctions.Log.PosLog
 import Mathlib.Analysis.Complex.Circle
@@ -70,12 +66,28 @@ lemma circleAverage_posLog_norm_div_le
   -- Technical note: The monotonicity of circle integrals for two functions
   -- (not just against a constant) is not directly available as a single lemma,
   -- but follows from the integral monotonicity for interval integrals.
-  have h_add : circleAverage (fun z => log⁺ ‖f z‖ + log⁺ ‖(g z)⁻¹‖) 0 r =
-      circleAverage (fun z => log⁺ ‖f z‖) 0 r +
-      circleAverage (fun z => log⁺ ‖(g z)⁻¹‖) 0 r :=
-    Real.circleAverage_add hf hg
-  -- The monotonicity step requires additional work with interval integrals
-  sorry
+  -- Monotonicity: circleAverage (f/g) ≤ circleAverage (f + g⁻¹) using interval integral mono
+  have h_pw : ∀ θ ∈ Set.Ioo 0 (2 * π),
+      log⁺ ‖f (circleMap 0 r θ) / g (circleMap 0 r θ)‖ ≤
+      log⁺ ‖f (circleMap 0 r θ)‖ + log⁺ ‖(g (circleMap 0 r θ))⁻¹‖ := by
+    intro θ _
+    have h_mem : circleMap 0 r θ ∈ sphere (0 : ℂ) |r| := circleMap_mem_sphere' 0 r θ
+    have hgx : g (circleMap 0 r θ) ≠ 0 := hg_ne _ h_mem
+    exact posLog_norm_div_le' (f (circleMap 0 r θ)) (g (circleMap 0 r θ)) hgx
+  -- Use interval integral monotonicity
+  have h_int_mono := intervalIntegral.integral_mono_on_of_le_Ioo
+    (by positivity : 0 ≤ 2 * π) hfg (hf.add hg) h_pw
+  -- The circle average of the sum equals the sum of circle averages
+  have h_add := Real.circleAverage_add hf hg
+  -- Scale by (2π)⁻¹ and combine
+  have h_scaled : circleAverage (fun z => log⁺ ‖f z / g z‖) 0 r ≤
+      circleAverage (fun z => log⁺ ‖f z‖ + log⁺ ‖(g z)⁻¹‖) 0 r := by
+    simp only [circleAverage_def, smul_eq_mul]
+    exact mul_le_mul_of_nonneg_left h_int_mono (by positivity)
+  calc circleAverage (fun z => log⁺ ‖f z / g z‖) 0 r
+      ≤ circleAverage (fun z => log⁺ ‖f z‖ + log⁺ ‖(g z)⁻¹‖) 0 r := h_scaled
+    _ = circleAverage (fun z => log⁺ ‖f z‖) 0 r +
+          circleAverage (fun z => log⁺ ‖(g z)⁻¹‖) 0 r := h_add
 
 /-! ### Circle average bounds for bounded functions -/
 
