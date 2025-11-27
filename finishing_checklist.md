@@ -35,7 +35,14 @@ Use this to track progress.
 ## Phase 2: Gap G1 (Phase-Velocity Identity)
 **Goal**: Prove $-w'(t) = \pi \mu + \text{atoms}$ without assuming it.
 
-- [ ] **Define Distributions**: Ensure `boundary_phase_derivative` is defined as a distribution on $\mathbb{R}$.
+- [x] **Define Distributions**: Ensure `boundary_phase_derivative` is defined as a distribution on $\mathbb{R}$.
+  - Created `PhaseVelocityHypothesis.lean` with:
+    - `boundary_phase_smoothed` and `boundary_phase_derivative_smoothed` functions
+    - `poisson_balayage` and `critical_atoms_total` for the limit measure
+    - `windowed_phase_integral` for integration over Whitney intervals
+    - `PhaseVelocityHypothesis` structure with uniform L1 bounds and convergence
+    - `poisson_plateau_lower_bound` and `phase_velocity_implies_lower_bound` theorems
+    - `mkPhaseVelocityFromVK` constructor connecting to VK hypothesis
 - [ ] **Smoothed Limit**: Prove the distributional limit of the smoothed phase derivative $\mathcal{H}[u_\epsilon']$ as $\epsilon \to 0$.
 - [ ] **Singular Inner**: Prove the `no_singular_inner_factor` lemma (showing the limit measure has no singular component).
 - [ ] **Atomic Positivity**: Prove `critical_atoms_nonneg` using the Argument Principle (residues are positive integers).
