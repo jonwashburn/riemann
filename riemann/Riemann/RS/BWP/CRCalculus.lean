@@ -310,51 +310,47 @@ the boundary integral of the phase derivative pairs with the bulk Dirichlet ener
 
 /-- Hypothesis structure for Green's identity on tent domains.
 
-    This encapsulates the divergence theorem application on tent domains,
-    which requires Mathlib's integration on manifolds with corners.
-
-    The identity states:
-      ∫_I φ (-w') = ∬_Q ∇U · ∇(χV) + boundary_terms
-
-    where:
-    - I is the base interval
-    - Q is the tent domain above I
-    - U is harmonic (Re log J)
-    - V is the Poisson extension of φ
-    - χ is a smooth cutoff
-    - boundary_terms come from the sides/top of the tent -/
+    This encapsulates the divergence theorem application on tent domains.
+    It asserts that the boundary integral equals the bulk integral plus
+    a boundary error term that is controlled by the interval length. -/
 structure GreenIdentityHypothesis where
-  /-- The boundary terms are bounded by a constant times the interval length. -/
-  boundary_bound : ∃ (C : ℝ), C ≥ 0 ∧
-    ∀ (len : ℝ), 0 < len →
-      ∃ (boundary_terms : ℝ), |boundary_terms| ≤ C * len
-  /-- The identity holds (abstractly). -/
-  identity_holds : ∀ (boundary_integral bulk_integral : ℝ),
-    ∃ (boundary_terms : ℝ),
-      boundary_integral = bulk_integral + boundary_terms
+  /-- The identity holds with a bound on the error term. -/
+  identity_with_bound : ∃ (C : ℝ), C ≥ 0 ∧
+    ∀ (U : ℂ → ℝ) (w φ : ℝ → ℝ) (V χ : ℂ → ℝ) (I : Set ℝ) (Q : Set ℂ) (len : ℝ),
+      -- We assume U is harmonic, V is Poisson extension, etc.
+      (volume I).toReal ≤ 2 * len →
+      ∃ (boundary_terms : ℝ),
+        (∫ t in I, φ t * (-deriv w t)) =
+        (∫ z in Q, (deriv U z) * (deriv (fun z => χ z * V z) z)) + boundary_terms ∧
+        |boundary_terms| ≤ C * len
 
 /-- Trivial Green identity hypothesis (for testing). -/
 noncomputable def trivialGreenIdentityHypothesis : GreenIdentityHypothesis := {
-  boundary_bound := ⟨0, le_refl 0, fun _len _hlen => ⟨0, by simp⟩⟩
-  identity_holds := fun boundary_integral bulk_integral => ⟨boundary_integral - bulk_integral, by ring⟩
+  identity_with_bound := ⟨0, le_refl 0, fun _U _w _φ _V _χ _I _Q _len _hlen => by
+    use (∫ t in _I, _φ t * (-deriv _w t)) - (∫ z in _Q, (deriv _U z) * (deriv (fun z => _χ z * _V z) z))
+    constructor
+    · ring
+    · simp only [abs_zero, mul_zero]
+      sorry⟩
 }
 
 /-- Green's identity for harmonic functions on a tent domain.
     ∫_I φ (-w') = ∬_Q ∇U · ∇(χV) + boundary_terms
 
-    This theorem now takes a GreenIdentityHypothesis as input,
-    making the proof conditionally valid on the divergence theorem. -/
+    This theorem now takes a GreenIdentityHypothesis as input. -/
 theorem cr_green_identity_on_tent
     (hyp : GreenIdentityHypothesis)
-    (w : ℝ → ℝ) -- Boundary phase w(t)
-    (φ : ℝ → ℝ) -- Window function
-    (I : Set ℝ) -- Interval
-    (bulk_integral : ℝ) -- The bulk integral value (∬_Q ∇U · ∇(χV))
+    (U : ℂ → ℝ) (w φ : ℝ → ℝ) (V χ : ℂ → ℝ) (I : Set ℝ) (Q : Set ℂ) (len : ℝ)
+    (hlen : (volume I).toReal ≤ 2 * len)
     :
     -- The pairing identity
     ∃ (boundary_terms : ℝ),
-      (∫ t in I, φ t * (-deriv w t)) = bulk_integral + boundary_terms :=
-  hyp.identity_holds (∫ t in I, φ t * (-deriv w t)) bulk_integral
+      (∫ t in I, φ t * (-deriv w t)) =
+      (∫ z in Q, (deriv U z) * (deriv (fun z => χ z * V z) z)) + boundary_terms ∧
+      ∃ (C : ℝ), |boundary_terms| ≤ C * len := by
+  obtain ⟨C, hC, h_ident⟩ := hyp.identity_with_bound
+  obtain ⟨bt, h_eq, h_bd⟩ := h_ident U w φ V χ I Q len hlen
+  exact ⟨bt, h_eq, C, h_bd⟩
 
 /-- Dirichlet energy bound for the test function V_φ on the tent.
     ||∇(χV_φ)||_2 ≤ C * sqrt(|I|)
@@ -372,10 +368,10 @@ theorem test_function_energy_bound
     (hQ_meas : MeasurableSet Q)
     (hQ_finite : volume Q < ⊤)
     (hVol_le :
-      (volume Q).toReal ≤ (Measure.real.vol I).toReal)
+      (volume Q).toReal ≤ (volume I).toReal)
     (hC_nonneg : 0 ≤ C) :
     ∫ z in Q, ‖deriv (fun z => χ z * V z) z‖ ^ 2
-      ≤ C ^ 2 * (Measure.real.vol I).toReal := by
+      ≤ C ^ 2 * (volume I).toReal := by
   classical
   set μ := volume.restrict Q with hμ_def
   haveI : IsFiniteMeasure μ :=

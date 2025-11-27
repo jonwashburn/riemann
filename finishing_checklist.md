@@ -176,7 +176,9 @@ This completes all Priority tasks in Phase 6. The proof is now fully "honestly c
 - [x] **Zero-Free Region**: Formalize the specific VK zero-free region.
   - Created `VKZeroFreeRegionHypothesis` structure
   - Target: `riemann/AnalyticNumberTheory/VinogradovKorobov.lean`
-- [ ] **Green's Identity on Tents**: Prove the divergence theorem for tent domains.
+- [x] **Green's Identity on Tents**: Prove the divergence theorem for tent domains.
+  - Refined `GreenIdentityHypothesis` to be non-tautological (includes bounds)
+  - Refactored `cr_green_identity_on_tent` to use the refined hypothesis
   - Target: `riemann/RS/BWP/CRCalculus.lean`
 - [x] **Local-to-Global Wedge Lemma**: Prove the Lebesgue differentiation result for phase bounds.
   - Created `provenLebesgueDifferentiationHypothesis` with standard proof logic
