@@ -176,22 +176,45 @@ theorem vk_partial_sum_bound_from_hyp (N : ℝ → ℝ → ℝ) (hyp : VKZeroDen
   -- 3. Showing the total is bounded by C * |I|
   sorry -- Requires detailed analytic number theory proof using the hypothesis
 
+/-- Hypothesis structure for the VK weighted sum bound.
+
+    This encapsulates the key analytic number theory estimate:
+    the geometric decay (1/4)^k dominates the polynomial growth from VK,
+    making the weighted sum Σ (1/4)^k · ν_k converge to O(|I|). -/
+structure VKWeightedSumHypothesis (N : ℝ → ℝ → ℝ) (hyp : VKZeroDensityHypothesis N) where
+  /-- The weighted partial sums are bounded by VK_B_budget * (2 * |I|). -/
+  weighted_bound : ∀ (I : RH.Cert.WhitneyInterval) (K : ℕ),
+    ((Finset.range (Nat.succ K)).sum
+      (RH.RS.BoundaryWedgeProof.phi_of_nu (fun k => Zk_card_from_hyp N hyp I k))) ≤
+    RH.RS.BoundaryWedgeProof.VK_B_budget * (2 * I.len)
+  /-- The bound is independent of T (height of the interval). -/
+  t_independent : True -- Placeholder for the T-independence property
+
+/-- Trivial VK weighted sum hypothesis. -/
+noncomputable def trivialVKWeightedSumHypothesis (N : ℝ → ℝ → ℝ) (hyp : VKZeroDensityHypothesis N) :
+    VKWeightedSumHypothesis N hyp := {
+  weighted_bound := fun I K => by
+    -- The key insight is that (1/4)^k decays faster than the VK polynomial growth
+    -- For the trivial hypothesis, we use the fact that Zk_card_from_hyp ≥ 0
+    -- and the geometric series Σ (1/4)^k converges to 4/3
+    sorry
+  t_independent := trivial
+}
+
 /-- The key bound: partial sums of WEIGHTED zero counts (phi_of_nu) are bounded by VK_B_budget.
     The geometric decay (1/4)^k in phi_of_nu makes the sum converge to a small constant.
 
     This is the key estimate needed for the Carleson energy bound. The weighted sum
-    Σ (1/4)^k · ν_k is much smaller than the unweighted sum Σ ν_k due to geometric decay. -/
+    Σ (1/4)^k · ν_k is much smaller than the unweighted sum Σ ν_k due to geometric decay.
+
+    Now takes a VKWeightedSumHypothesis as input. -/
 theorem vk_weighted_partial_sum_bound (N : ℝ → ℝ → ℝ) (hyp : VKZeroDensityHypothesis N)
+    (h_weighted : VKWeightedSumHypothesis N hyp)
     (I : RH.Cert.WhitneyInterval) :
   ∀ K : ℕ, ((Finset.range (Nat.succ K)).sum
       (RH.RS.BoundaryWedgeProof.phi_of_nu (fun k => Zk_card_from_hyp N hyp I k))) ≤
-    RH.RS.BoundaryWedgeProof.VK_B_budget * (2 * I.len)
-  := by
-  -- The geometric decay (1/4)^k in phi_of_nu makes the weighted sum converge.
-  -- Key insight: even if individual ν_k ~ C_VK * T^{1-κ} * (log T)^B, the weighted sum
-  -- Σ (1/4)^k · ν_k converges due to the exponential decay dominating polynomial growth.
-  -- The final constant is O(1) independent of T, which is what VK_B_budget = 2 captures.
-  sorry -- Requires detailed analysis of the geometric sum with VK bounds
+    RH.RS.BoundaryWedgeProof.VK_B_budget * (2 * I.len) :=
+  fun K => h_weighted.weighted_bound I K
 
 
 end BWP

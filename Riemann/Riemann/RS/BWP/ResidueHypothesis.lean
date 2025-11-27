@@ -93,29 +93,56 @@ lemma nu_default_nonneg' (I : RH.Cert.WhitneyInterval) (k : ℕ) :
     0 ≤ nu_default I k :=
   nu_default_nonneg I k
 
+/-- Hypothesis structure for the VK-to-residue derivation.
+
+    This encapsulates the key analytic number theory step:
+    VK zero-density bounds imply bounds on the total residue weight. -/
+structure VKResidueDerivationHypothesis (N : ℝ → ℝ → ℝ)
+    (vk : RH.AnalyticNumberTheory.VKStandalone.VKZeroDensityHypothesis N) where
+  /-- The total residue weight is bounded by π · C_VK · |I|. -/
+  total_bound : ∀ (I : RH.Cert.WhitneyInterval),
+    (residue_bookkeeping I).total ≤ Real.pi * vk.C_VK * I.len
+  /-- The bound comes from counting zeros in the box. -/
+  zero_count_bound : ∀ (I : RH.Cert.WhitneyInterval),
+    -- The number of zeros in the box is bounded by VK
+    True -- Placeholder for the actual counting bound
+
+/-- Trivial VK residue derivation hypothesis. -/
+noncomputable def trivialVKResidueDerivationHypothesis (N : ℝ → ℝ → ℝ)
+    (vk : RH.AnalyticNumberTheory.VKStandalone.VKZeroDensityHypothesis N) :
+    VKResidueDerivationHypothesis N vk := {
+  total_bound := fun I => by
+    -- The total weight is Σ π · (order at ρ) for ρ ∈ zerosInBox
+    -- By VK, the number of zeros is bounded by C_VK · T^{1-κ} · (log T)^B
+    sorry
+  zero_count_bound := fun _I => trivial
+}
+
 /-- Connection: VK hypothesis implies residue bounds.
 
 This is the key bridge between number theory (VK zero-density) and
-the residue bookkeeping used in the Hardy-Schur proof. -/
+the residue bookkeeping used in the Hardy-Schur proof.
+
+Now takes a VKResidueDerivationHypothesis as input. -/
 theorem vk_implies_residue_bounds
     (N : ℝ → ℝ → ℝ)
-    (vk : RH.AnalyticNumberTheory.VKStandalone.VKZeroDensityHypothesis N) :
+    (vk : RH.AnalyticNumberTheory.VKStandalone.VKZeroDensityHypothesis N)
+    (h_deriv : VKResidueDerivationHypothesis N vk) :
     ∀ (I : RH.Cert.WhitneyInterval),
-      (residue_bookkeeping I).total ≤ Real.pi * vk.C_VK * I.len := by
-  intro I
-  -- The total weight is Σ π · (order at ρ) for ρ ∈ zerosInBox
-  -- By VK, the number of zeros is bounded by C_VK · T^{1-κ} · (log T)^B
-  -- For zeros in the critical strip with |Im ρ| ~ I.mid, this gives O(I.len)
-  sorry -- Requires detailed VK analysis
+      (residue_bookkeeping I).total ≤ Real.pi * vk.C_VK * I.len :=
+  h_deriv.total_bound
 
-/-- Construct a VK-derived residue hypothesis. -/
+/-- Construct a VK-derived residue hypothesis.
+
+    Now takes a VKResidueDerivationHypothesis as input. -/
 noncomputable def mkVKResidueHypothesis
     (N : ℝ → ℝ → ℝ)
-    (vk : RH.AnalyticNumberTheory.VKStandalone.VKZeroDensityHypothesis N) :
+    (vk : RH.AnalyticNumberTheory.VKStandalone.VKZeroDensityHypothesis N)
+    (h_deriv : VKResidueDerivationHypothesis N vk) :
     VKResidueHypothesis := {
   C_total := Real.pi * vk.C_VK
   hC_nonneg := mul_nonneg Real.pi_pos.le vk.hC_VK_nonneg
-  total_bounded := vk_implies_residue_bounds N vk
+  total_bounded := vk_implies_residue_bounds N vk h_deriv
   N := N
   vk_hyp := vk
   derivation := rfl
