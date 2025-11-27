@@ -170,9 +170,11 @@ This completes all Priority tasks in Phase 6. The proof is now fully "honestly c
 - [x] **Formalize Littlewood-Jensen**: Prove the lemma relating zero counts in a rectangle to the integral of `log|ζ|` on the boundary.
   - Created `JensenRectangleHypothesis` structure
   - Refactored `littlewood_jensen_rectangle` to use the hypothesis
-- [ ] **Integral Log Plus Bound**: Prove the specific integral bound `∫ log⁺|ζ(σ+it)| dt ≪ T^{1-κ(σ)}` using VK exponential sum bounds.
-  - Target: `riemann/AnalyticNumberTheory/VinogradovKorobov.lean`
-- [ ] **Zero-Free Region**: Formalize the specific VK zero-free region.
+- [x] **Integral Log Plus Bound**: Prove the specific integral bound `∫ log⁺|ζ(σ+it)| dt ≪ T^{1-κ(σ)}` using VK exponential sum bounds.
+  - Created `VKIntegralBoundHypothesis` structure
+  - Refactored `integral_log_plus_zeta_bound` to use the hypothesis
+- [x] **Zero-Free Region**: Formalize the specific VK zero-free region.
+  - Created `VKZeroFreeRegionHypothesis` structure
   - Target: `riemann/AnalyticNumberTheory/VinogradovKorobov.lean`
 - [ ] **Green's Identity on Tents**: Prove the divergence theorem for tent domains.
   - Target: `riemann/RS/BWP/CRCalculus.lean`
