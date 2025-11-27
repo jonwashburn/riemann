@@ -571,9 +571,26 @@ lemma IsBoundedOnUnitDisc.proximity_bounded
     rw [intervalIntegrable_iff_integrableOn_Ioc_of_le h0_le_2pi]
     -- Use Measure.integrableOn_of_bounded for bounded functions on finite measure spaces.
     refine Measure.integrableOn_of_bounded (M := log⁺ C) measure_Ioc_lt_top.ne ?_ ?_
-    · -- AEStronglyMeasurable: The function is bounded, hence AEStronglyMeasurable
-      -- on the finite measure space. We use that bounded functions are in L^∞.
-      -- A rigorous proof would show G ∘ circleMap is measurable.
+    · -- AEStronglyMeasurable: The function θ ↦ log⁺ ‖G (circleMap 0 r θ)‖ is
+      -- AEStronglyMeasurable on the interval [0, 2π].
+      --
+      -- Proof strategy:
+      -- 1. `circleMap 0 r` is continuous ℝ → ℂ
+      -- 2. `G` is a function ℂ → ℂ; if G is measurable (which holds for Borel
+      --    measurable functions), then `G ∘ circleMap` is measurable
+      -- 3. `‖·‖` is continuous, hence measurable
+      -- 4. `log⁺` is continuous (by `Real.continuous_posLog'`), hence measurable
+      -- 5. The composition is measurable, hence AEStronglyMeasurable
+      --
+      -- For bounded functions on finite measure spaces, this follows from
+      -- the fact that measurable bounded functions are in L^∞ ⊂ L^1.
+      --
+      -- A fully rigorous proof requires showing G is Borel measurable.
+      -- For analytic G, this follows from continuity.
+      -- For the general IsBoundedOnUnitDisc case, we would need to add
+      -- a measurability hypothesis or derive it from boundedness + some regularity.
+      --
+      -- Technical gap: IsBoundedOnUnitDisc doesn't directly imply measurability.
       sorry
     · -- Bound by log⁺ C
       filter_upwards with θ
