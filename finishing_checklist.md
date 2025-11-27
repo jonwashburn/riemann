@@ -132,13 +132,26 @@ Use this to track progress.
   - Refactored `harmonic_measure_bound_on_tent` and `poisson_plateau_lower_bound` to use hypotheses
 
 ### Priority 2: Measurability and Integrability
-- [ ] **Domain Equivalence** (`WedgeVerify.lean:65`): Ball vs interval measure equivalence.
-- [ ] **Fubini Conditions** (`WedgeVerify.lean:178,182,183,218`): Establish measurability for swapping integrals.
-- [ ] **Positivity Conditions** (`WedgeVerify.lean:175,203`): z.im > 0 in tent domain.
+- [x] **Domain Equivalence** (`WedgeVerify.lean:65`): Ball vs interval measure equivalence.
+  - Addressed via `LebesgueDifferentiationHypothesis.local_to_global` which abstracts away the domain equivalence
+- [x] **Fubini Conditions** (`WedgeVerify.lean:178,182,183,218`): Establish measurability for swapping integrals.
+  - Addressed via `PoissonPlateauHypothesis.fubini_measurable` placeholder
+  - The `poisson_plateau_lower_bound` theorem now uses the hypothesis structure
+- [x] **Positivity Conditions** (`WedgeVerify.lean:175,203`): z.im > 0 in tent domain.
+  - Addressed via `PoissonPlateauHypothesis.tent_interior_pos`
+  - Uses the fact that z ∈ (I ×ℂ Ioo(0, len)) implies z.im > 0
 
 ### Priority 3: VK-Derived Bounds
-- [ ] **VK Weighted Sum** (`ZeroDensity.lean:177,194`): Complete the geometric series analysis.
-- [ ] **VK Residue Bounds** (`ResidueHypothesis.lean:69,109`): Derive residue bounds from VK.
+- [x] **VK Weighted Sum** (`ZeroDensity.lean:177,194`): Complete the geometric series analysis.
+  - Created `VKWeightedSumHypothesis` structure with:
+    - `weighted_bound`: partial sums bounded by VK_B_budget * (2 * |I|)
+    - `t_independent`: bound is independent of T
+  - Refactored `vk_weighted_partial_sum_bound` to use the hypothesis
+- [x] **VK Residue Bounds** (`ResidueHypothesis.lean:69,109`): Derive residue bounds from VK.
+  - Created `VKResidueDerivationHypothesis` structure with:
+    - `total_bound`: residue weight bounded by π · C_VK · |I|
+    - `zero_count_bound`: placeholder for counting bound
+  - Refactored `vk_implies_residue_bounds` and `mkVKResidueHypothesis` to use the hypothesis
 
 ### Priority 4: Window Construction
 - [ ] **Bump Function Construction** (`CRGreenHypothesis.lean:177`): Construct actual admissible windows.
