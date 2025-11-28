@@ -133,4 +133,45 @@ lemma circleAverage_posLog_norm_le_of_bounded
   rw [h_eq]
   exact h_pw (arg x)
 
+/-! ### Circle average of nonnegative functions -/
+
+/-- The circle average of a nonnegative function is nonnegative.
+This is a consequence of the integral of a nonnegative function being nonnegative. -/
+lemma circleAverage_nonneg {f : ℂ → ℝ} {c : ℂ} {R : ℝ}
+    (hf : CircleIntegrable f c R)
+    (hf_nonneg : ∀ z ∈ sphere c |R|, 0 ≤ f z) :
+    0 ≤ circleAverage f c R := by
+  -- circleAverage f c R = (2π)⁻¹ * ∫ θ in 0..2π, f(circleMap c R θ) dθ
+  -- Since f ≥ 0 on the sphere and circleMap lands on the sphere,
+  -- the integrand is nonnegative, hence the integral is nonnegative.
+  unfold circleAverage
+  rw [smul_eq_mul]
+  apply mul_nonneg
+  · exact inv_nonneg.mpr (le_of_lt Real.two_pi_pos)
+  · -- The interval integral of a nonnegative function is nonnegative
+    apply intervalIntegral.integral_nonneg (le_of_lt Real.two_pi_pos)
+    intro θ hθ
+    apply hf_nonneg
+    -- circleMap c R θ is on the sphere of radius |R|
+    simp only [mem_sphere, dist_eq_norm]
+    rw [circleMap_sub_center]
+    simp [Complex.norm_exp_ofReal_mul_I, abs_of_nonneg (abs_nonneg R)]
+
+/-- Monotonicity: if f ≤ g pointwise on the sphere, then circleAverage f ≤ circleAverage g. -/
+lemma circleAverage_mono {f g : ℂ → ℝ} {c : ℂ} {R : ℝ}
+    (hf : CircleIntegrable f c R)
+    (hg : CircleIntegrable g c R)
+    (h_le : ∀ z ∈ sphere c |R|, f z ≤ g z) :
+    circleAverage f c R ≤ circleAverage g c R := by
+  have h_diff : CircleIntegrable (fun z => g z - f z) c R := hg.sub hf
+  have h_nonneg : ∀ z ∈ sphere c |R|, 0 ≤ (g z - f z) := by
+    intro z hz
+    exact sub_nonneg.mpr (h_le z hz)
+  have h_avg_nonneg : 0 ≤ circleAverage (fun z => g z - f z) c R :=
+    circleAverage_nonneg h_diff h_nonneg
+  have h_avg_sub : circleAverage (fun z => g z - f z) c R =
+      circleAverage g c R - circleAverage f c R :=
+    circleAverage_sub hg hf
+  linarith
+
 end Nevanlinna
