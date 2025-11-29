@@ -57,7 +57,7 @@ import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.MeasurabilityLemmas
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.PosLogLemmas
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.HarmonicBounds
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.CircleAverageLemmas
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.MinimumModulues'
+import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.MinimumModulus
 --import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.CanonicalRepresentation'
 
 import Riemann.Aux
