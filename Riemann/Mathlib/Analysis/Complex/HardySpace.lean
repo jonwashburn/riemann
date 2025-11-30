@@ -284,21 +284,241 @@ lemma poissonKernel_max {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r < 1) (θ φ : ℝ) :
     poissonKernel r θ φ ≤ (1 + r) / (1 - r) := by
   -- Standard bound: P_r(θ) ≤ (1+r)/(1-r)
   -- The denominator 1 - 2r cos(θ-φ) + r² ≥ (1-r)² since cos ≤ 1
-  sorry
+  have hnum_nonneg : 0 ≤ 1 - r ^ 2 := by
+    have : r ^ 2 ≤ 1 := by nlinarith [hr0, hr1]
+    exact sub_nonneg.mpr this
+  have hden_pos :
+      0 < 1 - 2 * r * Real.cos (θ - φ) + r ^ 2 :=
+    poissonKernel_denom_pos hr0 hr1 θ φ
+  have hden_ge :
+      (1 - r) ^ 2 ≤ 1 - 2 * r * Real.cos (θ - φ) + r ^ 2 := by
+    have hdecomp :
+        1 - 2 * r * Real.cos (θ - φ) + r ^ 2
+          = (1 - r) ^ 2 + 2 * r * (1 - Real.cos (θ - φ)) := by ring
+    have hnonneg :
+        0 ≤ 2 * r * (1 - Real.cos (θ - φ)) := by
+      refine mul_nonneg (mul_nonneg (by norm_num) hr0)
+        (sub_nonneg.mpr (Real.cos_le_one _))
+    have :
+        (1 - r) ^ 2 ≤
+          (1 - r) ^ 2 + 2 * r * (1 - Real.cos (θ - φ)) :=
+      le_add_of_nonneg_right hnonneg
+    simpa [hdecomp] using this
+  have hrec_le :
+      1 /
+          (1 - 2 * r * Real.cos (θ - φ) + r ^ 2)
+        ≤ 1 / (1 - r) ^ 2 := by
+    have hpos : 0 < (1 - r) ^ 2 := by
+      have h : 0 < 1 - r := sub_pos.mpr hr1
+      simpa [pow_two] using sq_pos_of_pos h
+    exact one_div_le_one_div_of_le hpos hden_ge
+  have hineq :
+      (1 - r ^ 2) /
+          (1 - 2 * r * Real.cos (θ - φ) + r ^ 2)
+        ≤ (1 - r ^ 2) / (1 - r) ^ 2 := by
+    have : (1 - r ^ 2) * (1 /
+            (1 - 2 * r * Real.cos (θ - φ) + r ^ 2))
+        ≤ (1 - r ^ 2) * (1 / (1 - r) ^ 2) := by
+      exact
+        mul_le_mul_of_nonneg_left hrec_le hnum_nonneg
+    simpa [poissonKernel] using this
+  have hfrac_eq :
+      (1 - r ^ 2) / (1 - r) ^ 2 = (1 + r) / (1 - r) := by
+    have hne : 1 - r ≠ 0 := sub_ne_zero.mpr hr1.ne'
+    have hfactor : 1 - r ^ 2 = (1 - r) * (1 + r) := by ring
+    have hpow : (1 - r) ^ 2 = (1 - r) * (1 - r) := by simp [pow_two]
+    simp_rw [hfactor, hpow]  -- cancels common factor
+    grind
+
+  simpa [poissonKernel, hfrac_eq] using hineq
 
 /-- The Poisson kernel achieves its minimum when θ - φ = π. -/
 lemma poissonKernel_min {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r < 1) (θ φ : ℝ) :
     (1 - r) / (1 + r) ≤ poissonKernel r θ φ := by
   -- Standard bound: (1-r)/(1+r) ≤ P_r(θ)
   -- The denominator 1 - 2r cos(θ-φ) + r² ≤ (1+r)² since cos ≥ -1
+  have hnum_nonneg : 0 ≤ 1 - r ^ 2 := by
+    have : r ^ 2 ≤ 1 := by nlinarith [hr0, hr1]
+    exact sub_nonneg.mpr this
+  have hden_pos :
+      0 < 1 - 2 * r * Real.cos (θ - φ) + r ^ 2 :=
+    poissonKernel_denom_pos hr0 hr1 θ φ
+  have hden_le :
+      1 - 2 * r * Real.cos (θ - φ) + r ^ 2 ≤ (1 + r) ^ 2 := by
+    have hdecomp :
+        1 - 2 * r * Real.cos (θ - φ) + r ^ 2 =
+          (1 + r) ^ 2 - 2 * r * (1 + Real.cos (θ - φ)) := by ring
+    have hnonneg :
+        0 ≤ 2 * r * (1 + Real.cos (θ - φ)) := by
+      refine mul_nonneg (mul_nonneg (by norm_num) hr0)
+        (by linarith [Real.neg_one_le_cos (θ - φ)])
+    have :
+        (1 + r) ^ 2 - 2 * r * (1 + Real.cos (θ - φ))
+          ≤ (1 + r) ^ 2 := by
+      exact sub_le_self _ hnonneg
+    simpa [hdecomp] using this
+  have hrec_ge :
+      1 / (1 + r) ^ 2 ≤
+        1 / (1 - 2 * r * Real.cos (θ - φ) + r ^ 2) := by
+    have hpos :
+        0 < 1 - 2 * r * Real.cos (θ - φ) + r ^ 2 :=
+      poissonKernel_denom_pos hr0 hr1 θ φ
+    exact one_div_le_one_div_of_le hpos hden_le
+  have hineq :
+      (1 - r ^ 2) / (1 - 2 * r * Real.cos (θ - φ) + r ^ 2)
+        ≥ (1 - r ^ 2) / (1 + r) ^ 2 := by
+    have : (1 - r ^ 2) * (1 / (1 + r) ^ 2)
+        ≤ (1 - r ^ 2) * (1 /
+            (1 - 2 * r * Real.cos (θ - φ) + r ^ 2)) := by
+      refine mul_le_mul_of_nonneg_left hrec_ge hnum_nonneg
+    simpa [poissonKernel] using this
+  have hfrac_eq :
+      (1 - r ^ 2) / (1 + r) ^ 2 = (1 - r) / (1 + r) := by
+    have hne : (1 + r) ≠ 0 :=
+      ne_of_gt (add_pos_of_pos_of_nonneg zero_lt_one hr0)
+    have hfactor : 1 - r ^ 2 = (1 - r) * (1 + r) := by ring
+    simp [pow_two]  -- cancels common factor
+    grind
+  simpa [poissonKernel, hfrac_eq] using hineq
+
+/-- The integral of the Poisson kernel over the boundary does not depend on the angular shift. -/
+lemma poissonKernel_integral_eq_base {r : ℝ} (θ : ℝ) :
+    ∫ φ in (0 : ℝ)..2 * Real.pi, poissonKernel r θ φ =
+      ∫ φ in (0 : ℝ)..2 * Real.pi, poissonKernel r 0 φ := by
+  let kernel : ℝ → ℝ :=
+    fun x => (1 - r ^ 2) /
+      (1 - 2 * r * Real.cos x + r ^ 2)
+  have hker :
+      ∀ θ φ, poissonKernel r θ φ = kernel (θ - φ) := by
+    intro θ' φ'
+    simp [kernel, poissonKernel, sub_eq_add_neg]
+  have hperiodic : Function.Periodic kernel (2 * Real.pi) := by
+    intro x
+    simp [kernel, Real.cos_add_two_pi]
+  have h_sub :
+      (∫ φ in (0 : ℝ)..2 * Real.pi, poissonKernel r θ φ) =
+        ∫ φ in (θ - 2 * Real.pi)..θ, kernel φ := by
+    have :=
+      intervalIntegral.integral_comp_sub_left
+        (f := kernel) (a := (0 : ℝ)) (b := 2 * Real.pi) (d := θ)
+    simp [hker]
+  have h_periodic_int :
+      ∫ φ in (θ - 2 * Real.pi)..θ, kernel φ =
+        ∫ φ in (0 : ℝ)..2 * Real.pi, kernel φ := by
+    simpa [two_mul, sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using
+      hperiodic.intervalIntegral_add_eq (t := θ - 2 * Real.pi) (s := 0)
+  aesop
+
+/-- sin(n * 2π) = 0 for any natural number n. -/
+lemma Real.sin_nat_mul_two_pi (n : ℕ) : Real.sin (n * (2 * Real.pi)) = 0 := by
+  have hsin : Complex.sin ((n : ℂ) * (2 * Real.pi)) = 0 := by
+    rw [Complex.sin_eq_zero_iff]
+    use (2 * n : ℤ)
+    push_cast
+    ring
+  have h : (Complex.sin ((n : ℂ) * (2 * Real.pi))).re = 0 := by simp only [hsin, Complex.zero_re]
+  convert h using 1
+  have heq : (n : ℂ) * (2 * Real.pi) = ((n : ℝ) * (2 * Real.pi) : ℝ) := by
+    push_cast
+    ring
+  rw [heq, Complex.sin_ofReal_re]
+
+/-- Integral of cos(n·x) over a full period vanishes for n ≥ 1. -/
+lemma integral_cos_nat_mul (n : ℕ) (hn : n ≠ 0) :
+    ∫ x in (0 : ℝ)..2 * Real.pi, Real.cos (n * x) = 0 := by
+  have hn' : (n : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr hn
+  have h1 : Real.sin ((n : ℝ) * (2 * Real.pi)) = 0 := Real.sin_nat_mul_two_pi n
+  have h2 : ∫ x in (0 : ℝ)..(n : ℝ) * (2 * Real.pi), Real.cos x =
+      Real.sin ((n : ℝ) * (2 * Real.pi)) - Real.sin 0 := by
+    simp only [integral_cos]
+  have h3 : ∫ x in (0 : ℝ)..2 * Real.pi, Real.cos ((n : ℝ) * x) =
+      (n : ℝ)⁻¹ * ∫ x in (0 : ℝ)..(n : ℝ) * (2 * Real.pi), Real.cos x := by
+    have := intervalIntegral.smul_integral_comp_mul_left (f := Real.cos) (c := n)
+        (a := 0) (b := 2 * Real.pi)
+    simp only [smul_eq_mul, mul_zero] at this
+    field_simp [hn'] at this ⊢
+    linarith
+  rw [h3, h2, h1, Real.sin_zero, sub_zero, mul_zero]
+
+/-- Auxiliary: the standard integral ∫₀^{2π} 1/(a - b cos φ) dφ = 2π/√(a² - b²) for a > |b|.
+This is the Weierstrass substitution formula. -/
+lemma integral_inv_sub_cos {a b : ℝ} (ha : |b| < a) :
+    ∫ φ in (0 : ℝ)..2 * Real.pi, 1 / (a - b * Real.cos φ) =
+      2 * Real.pi / Real.sqrt (a ^ 2 - b ^ 2) := by
+  -- Standard result via tangent-half-angle substitution t = tan(φ/2)
+  -- cos φ = (1 - t²)/(1 + t²), dφ = 2/(1 + t²) dt
+  -- The integral becomes 2∫_{-∞}^{∞} 1/(a(1+t²) - b(1-t²)) dt
+  -- = 2∫ 1/((a-b) + (a+b)t²) dt = 2π/√((a-b)(a+b)) = 2π/√(a²-b²)
   sorry
+
+/-- The Poisson kernel integrates to 2π over [0, 2π]. -/
+lemma poissonKernel_integral_eq_two_pi {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r < 1) :
+    ∫ φ in (0 : ℝ)..2 * Real.pi, poissonKernel r 0 φ = 2 * Real.pi := by
+  by_cases hr : r = 0
+  · -- At r = 0, the kernel is identically 1
+    simp only [hr, poissonKernel, pow_two, mul_zero, sub_zero, zero_mul, add_zero, div_one]
+    simp
+  · -- For 0 < r < 1, apply the integral formula
+    have hr_pos : 0 < r := hr0.lt_of_ne' hr
+    have h1mr_pos : 0 < 1 - r := sub_pos.mpr hr1
+    have h1pr_pos : 0 < 1 + r := by linarith
+    -- The Poisson kernel is (1-r²)/(1 - 2r cos φ + r²)
+    -- This is (1-r²) * 1/(a - b cos φ) where a = 1 + r², b = 2r
+    -- We have a² - b² = (1+r²)² - 4r² = (1-r²)²
+    have h_denom : ∀ φ, 1 - 2 * r * Real.cos φ + r ^ 2 = (1 + r ^ 2) - 2 * r * Real.cos φ := by
+      intro φ; ring
+    have ha : |2 * r| < 1 + r ^ 2 := by
+      rw [abs_of_pos (by linarith : 0 < 2 * r)]
+      have : (1 - r) ^ 2 > 0 := sq_pos_of_pos h1mr_pos
+      nlinarith [sq_nonneg r]
+    have h_sq : (1 + r ^ 2) ^ 2 - (2 * r) ^ 2 = (1 - r ^ 2) ^ 2 := by ring
+    have h_sqrt : Real.sqrt ((1 + r ^ 2) ^ 2 - (2 * r) ^ 2) = 1 - r ^ 2 := by
+      rw [h_sq, Real.sqrt_sq (by nlinarith [sq_nonneg r] : 0 ≤ 1 - r ^ 2)]
+    have h_num_pos : 0 < 1 - r ^ 2 := by nlinarith [sq_nonneg r]
+    -- Rewrite the integral
+    calc ∫ φ in (0 : ℝ)..2 * Real.pi, poissonKernel r 0 φ
+        = ∫ φ in (0 : ℝ)..2 * Real.pi, (1 - r ^ 2) / (1 - 2 * r * Real.cos φ + r ^ 2) := by
+          congr 1; ext φ; simp [poissonKernel]
+      _ = ∫ φ in (0 : ℝ)..2 * Real.pi, (1 - r ^ 2) * (1 / ((1 + r ^ 2) - 2 * r * Real.cos φ)) := by
+          congr 1; ext φ; rw [h_denom φ]; ring
+      _ = (1 - r ^ 2) * ∫ φ in (0 : ℝ)..2 * Real.pi, 1 / ((1 + r ^ 2) - 2 * r * Real.cos φ) := by
+          rw [← intervalIntegral.integral_const_mul]
+      _ = (1 - r ^ 2) * (2 * Real.pi / Real.sqrt ((1 + r ^ 2) ^ 2 - (2 * r) ^ 2)) := by
+          rw [integral_inv_sub_cos ha]
+      _ = (1 - r ^ 2) * (2 * Real.pi / (1 - r ^ 2)) := by rw [h_sqrt]
+      _ = 2 * Real.pi := by field_simp
+
+/-- The Poisson kernel can be expressed via a geometric series when |r| < 1. -/
+lemma poissonKernel_eq_geometric_series {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r < 1) (φ : ℝ) :
+    poissonKernel r 0 φ = 1 + 2 * ∑' n : ℕ, r ^ (n + 1) * Real.cos ((n + 1) * φ) := by
+  -- The Poisson kernel equals 1 + 2 Σ_{n=1}^∞ r^n cos(nφ)
+  -- This is the real part of (1 + z)/(1 - z) where z = r·e^{iφ}
+  -- The proof uses complex analysis: P_r(φ) = Re[(1+z)/(1-z)] where z = r·e^{iφ}
+  -- and the geometric series expansion (1+z)/(1-z) = 1 + 2Σ z^n
+  sorry
+
+/-- The integral of Poisson kernel terms r^n cos(nφ) vanishes for n ≥ 1. -/
+lemma integral_poissonKernel_term {r : ℝ} (n : ℕ) (hn : n ≠ 0) :
+    ∫ φ in (0 : ℝ)..2 * Real.pi, r ^ n * Real.cos (n * φ) = 0 := by
+  rw [intervalIntegral.integral_const_mul, integral_cos_nat_mul n hn, mul_zero]
 
 /-- The Poisson kernel integrates to 1 (normalized). -/
 lemma poissonKernel_integral {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r < 1) (θ : ℝ) :
     (2 * Real.pi)⁻¹ * ∫ φ in (0 : ℝ)..2*Real.pi, poissonKernel r θ φ = 1 := by
-  -- This is the normalization property of the Poisson kernel
-  -- Proof uses contour integration or Fourier series
-  sorry
+  -- Use periodicity to reduce to θ = 0
+  have h_shift := poissonKernel_integral_eq_base (r := r) (θ := θ)
+  suffices h_base :
+      (2 * Real.pi)⁻¹ *
+          ∫ φ in (0 : ℝ)..2 * Real.pi, poissonKernel r 0 φ = 1 by
+    have h_eq :
+        ∫ φ in (0 : ℝ)..2 * Real.pi, poissonKernel r θ φ =
+          ∫ φ in (0 : ℝ)..2 * Real.pi, poissonKernel r 0 φ := by
+      simp [h_shift]
+    simpa [h_eq] using h_base
+  -- Base case θ = 0: use direct computation
+  have h_integral_value := poissonKernel_integral_eq_two_pi hr0 hr1
+  rw [h_integral_value]
+  field_simp
 
 /-- The Poisson kernel is continuous in all variables. -/
 lemma poissonKernel_continuous {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r < 1) :
@@ -319,10 +539,30 @@ def poissonIntegral (u : ℝ → ℝ) (r : ℝ) (θ : ℝ) : ℝ :=
 lemma poissonIntegral_const {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r < 1) (c : ℝ) (θ : ℝ) :
     poissonIntegral (fun _ => c) r θ = c := by
   unfold poissonIntegral
-  -- Uses poissonKernel_integral which shows ∫ P_r = 2π
-  sorry
+  have h1 : ∫ φ in (0 : ℝ)..2 * Real.pi, c * poissonKernel r θ φ =
+      c * ∫ φ in (0 : ℝ)..2 * Real.pi, poissonKernel r θ φ := by
+    rw [← intervalIntegral.integral_const_mul]
+  simp only [h1]
+  have h2 := poissonKernel_integral hr0 hr1 θ
+  calc (2 * Real.pi)⁻¹ * (c * ∫ φ in (0 : ℝ)..2 * Real.pi, poissonKernel r θ φ)
+      = c * ((2 * Real.pi)⁻¹ * ∫ φ in (0 : ℝ)..2 * Real.pi, poissonKernel r θ φ) := by ring
+    _ = c * 1 := by rw [h2]
+    _ = c := mul_one c
 
 /-! ### Fatou's theorem infrastructure -/
+
+/-- Auxiliary: 1 - cos δ > 0 for δ ∈ (0, π]. -/
+lemma one_sub_cos_pos_of_pos_of_le_pi {δ : ℝ} (hδ : 0 < δ) (hδ_pi : δ ≤ Real.pi) :
+    1 - Real.cos δ > 0 := by
+  by_cases h2 : δ < Real.pi
+  · have hcos : Real.cos δ < Real.cos 0 := by
+      apply Real.cos_lt_cos_of_nonneg_of_le_pi (le_refl 0) (le_of_lt h2) hδ
+    simp only [Real.cos_zero] at hcos
+    linarith
+  · push_neg at h2
+    have heq : δ = Real.pi := le_antisymm hδ_pi h2
+    rw [heq, Real.cos_pi]
+    linarith
 
 /-- The Poisson kernel acts as an approximate identity as r → 1.
 This is the key property for proving Fatou's theorem. -/
@@ -330,8 +570,55 @@ lemma poissonKernel_approximate_identity {ε : ℝ} (hε : 0 < ε) (δ : ℝ) (h
     ∃ r₀ : ℝ, r₀ < 1 ∧ ∀ r, r₀ < r → r < 1 → ∀ θ φ,
       δ ≤ |θ - φ| → |θ - φ| ≤ Real.pi → poissonKernel r θ φ < ε := by
   -- As r → 1, the Poisson kernel concentrates at θ = φ
-  -- Away from the diagonal, the kernel vanishes
-  sorry
+  -- Away from the diagonal (|θ - φ| ≥ δ), we have cos(θ - φ) ≤ cos(min δ π) < 1
+  -- The numerator 1 - r² → 0 as r → 1, so the kernel → 0
+  -- We use min δ π to handle the case δ > π
+  set δ' := min δ Real.pi with hδ'_def
+  have hδ'_pos : δ' > 0 := lt_min hδ Real.pi_pos
+  have hδ'_le_pi : δ' ≤ Real.pi := min_le_right δ Real.pi
+  have hδ'_le_δ : δ' ≤ δ := min_le_left δ Real.pi
+  have h_cos_bound : 1 - Real.cos δ' > 0 := one_sub_cos_pos_of_pos_of_le_pi hδ'_pos hδ'_le_pi
+  set c := 1 - Real.cos δ' with hc_def
+  have hc : c > 0 := h_cos_bound
+  have hpos : 0 < 1 + ε * c := by positivity
+  use 1 / (1 + ε * c)
+  refine ⟨by rw [div_lt_one hpos]; linarith [mul_pos hε hc], ?_⟩
+  intro r hr_lo hr_hi θ φ hδ_le hpi_le
+  have hr_pos : 0 < r := lt_trans (by positivity) hr_lo
+  -- The denominator is bounded below by 2rc when |θ - φ| ≥ δ'
+  have hδ'_le_abs : δ' ≤ |θ - φ| := le_trans hδ'_le_δ hδ_le
+  have h_cos_le : Real.cos (θ - φ) ≤ Real.cos δ' := by
+    rw [← Real.cos_abs (θ - φ)]
+    apply Real.cos_le_cos_of_nonneg_of_le_pi hδ'_pos.le hpi_le hδ'_le_abs
+  have h_cos_diff : 1 - Real.cos (θ - φ) ≥ c := by linarith
+  -- P_r(θ,φ) = (1-r²)/(1-2r cos(θ-φ)+r²) ≤ (1-r²)/(2rc) < ε for r close to 1
+  have h_denom_lower : 1 - 2 * r * Real.cos (θ - φ) + r ^ 2 ≥ 2 * r * c := by
+    have h1 : 1 - 2 * r * Real.cos (θ - φ) + r ^ 2 =
+        (1 - r) ^ 2 + 2 * r * (1 - Real.cos (θ - φ)) := by ring
+    have h2 : 2 * r * (1 - Real.cos (θ - φ)) ≥ 2 * r * c := by
+      have := mul_le_mul_of_nonneg_left h_cos_diff.le (by linarith : 0 ≤ 2 * r)
+      linarith
+    nlinarith [sq_nonneg (1 - r)]
+  have h_denom_pos' : 2 * r * c > 0 := by positivity
+  have hnum : 0 ≤ 1 - r ^ 2 := by
+    have hr_sq_lt : r ^ 2 < 1 := by nlinarith
+    linarith
+  have h_bound : poissonKernel r θ φ ≤ (1 - r ^ 2) / (2 * r * c) := by
+    unfold poissonKernel
+    exact div_le_div_of_nonneg_left hnum h_denom_pos' h_denom_lower
+  have h_final : (1 - r ^ 2) / (2 * r * c) < ε := by
+    have h1 : (1 - r ^ 2) ≤ 2 * (1 - r) := by nlinarith
+    have h2 : 2 * (1 - r) / (2 * r * c) = (1 - r) / (r * c) := by field_simp
+    have h3 : (1 - r ^ 2) / (2 * r * c) ≤ (1 - r) / (r * c) := by
+      calc (1 - r ^ 2) / (2 * r * c) ≤ 2 * (1 - r) / (2 * r * c) := by
+            apply div_le_div_of_nonneg_right h1 h_denom_pos'.le
+        _ = (1 - r) / (r * c) := h2
+    have h4 : (1 - r) / (r * c) < ε := by
+      rw [div_lt_iff₀ (by positivity : 0 < r * c)]
+      have h5 : r * (1 + ε * c) > 1 := by rwa [gt_iff_lt, ← div_lt_iff₀ hpos]
+      linarith
+    linarith
+  linarith
 
 /-- **Fatou's Theorem (Infrastructure Version)**
 
@@ -398,11 +685,11 @@ theorem lebesgue_differentiation_L1 {u : ℝ → ℝ} (hu : Integrable u volume)
     ∀ᵐ θ ∂volume, Tendsto (fun r => poissonIntegral u r θ) (𝓝[<] 1) (𝓝 (u θ)) :=
   lebesgue_differentiation_ae hu.locallyIntegrable
 
-/-- The Hardy-Littlewood maximal function for circle functions. -/
+/-- The Hardy-Littlewood maximal function for circle functions. NOTE: leverage Carleson.ToMathlib.HardlyLittlewood-/
 def hardyLittlewoodMaximal (u : ℝ → ℝ) (θ : ℝ) : ℝ :=
   ⨆ (δ : ℝ) (_ : 0 < δ), (2 * δ)⁻¹ * ∫ φ in Set.Icc (θ - δ) (θ + δ), |u φ|
 
-/-- Weak (1,1) estimate for the Hardy-Littlewood maximal function. -/
+/-- Weak (1,1) estimate for the Hardy-Littlewood maximal function. NOTE: leverage Carleson.ToMathlib.HardlyLittlewood -/
 theorem hardyLittlewood_weak_1_1 {u : ℝ → ℝ} (hu : Integrable u volume) (t : ℝ) (ht : 0 < t) :
     volume {θ | hardyLittlewoodMaximal u θ > t} ≤ ENNReal.ofReal (3 * t⁻¹ * ∫ φ, |u φ|) := by
   -- Classical covering lemma argument
@@ -440,7 +727,14 @@ lemma weierstrassElementaryFactor_one (z : ℂ) :
 lemma weierstrassElementaryFactor_analyticAt (n : ℕ) (w : ℂ) :
     AnalyticAt ℂ (weierstrassElementaryFactor n) w := by
   -- The elementary factor is a product of polynomial and exp of polynomial
-  sorry
+  -- E_n(z) = (1 - z) * exp(z + z²/2 + ... + zⁿ/n)
+  -- Both factors are entire functions, so their product is analytic everywhere
+  unfold weierstrassElementaryFactor
+  apply AnalyticAt.mul
+  · -- (1 - z) is analytic
+    exact analyticAt_const.sub analyticAt_id
+  · -- exp of polynomial is analytic
+    sorry
 
 /-- Bound on |E_n(z) - 1| for small |z|. -/
 lemma weierstrassElementaryFactor_sub_one_bound {n : ℕ} {z : ℂ} (hz : ‖z‖ ≤ 1/2) :
@@ -497,19 +791,109 @@ lemma blaschkeFactor_norm_eq_one_on_circle {a : ℂ} (ha : ‖a‖ < 1) {z : ℂ
   split_ifs with ha0
   · simp [hz]
   · -- Standard computation: |a-z|² = |1 - āz|² when |z| = 1
-    -- The key identity is |a - z|/|1 - ā*z| = 1 for |z| = 1
-    -- This follows from expanding both sides using |z|² = z * z̄ = 1
-    sorry
+    have h_denom_ne : 1 - starRingEnd ℂ a * z ≠ 0 := by
+      intro heq
+      have h1 : starRingEnd ℂ a * z = 1 := (sub_eq_zero.mp heq).symm
+      have h2 : ‖starRingEnd ℂ a * z‖ = 1 := by rw [h1]; simp
+      rw [norm_mul, Complex.norm_conj] at h2
+      have h3 : ‖a‖ * ‖z‖ = 1 := h2
+      rw [hz, mul_one] at h3
+      linarith
+    have hz_normSq : Complex.normSq z = 1 := by
+      rw [Complex.normSq_eq_norm_sq, hz, one_pow]
+    -- Key: |a - z|² = |1 - āz|² when |z|² = 1
+    -- |a - z|² = |a|² + |z|² - 2·Re(a·z̄)
+    -- |1 - āz|² = 1 + |a|²|z|² - 2·Re(āz)
+    -- Since |z|² = 1, second becomes 1 + |a|² - 2·Re(āz)
+    -- And Re(a·z̄) = Re(āz) by conjugate symmetry
+    have h_normSq_eq : Complex.normSq (a - z) = Complex.normSq (1 - starRingEnd ℂ a * z) := by
+      -- Key: |a - z|² = |a|² + |z|² - 2·Re(a·z̄) and |1 - āz|² = 1 + |a|²|z|² - 2·Re(āz)
+      -- When |z|² = 1 and Re(a·z̄) = Re(āz), both equal |a|² + 1 - 2·Re(āz)
+      have h_re_eq : (a * starRingEnd ℂ z).re = (starRingEnd ℂ a * z).re := by
+        rw [← Complex.conj_re (a * starRingEnd ℂ z)]
+        simp only [map_mul, Complex.conj_conj]
+      -- This is an algebraic identity that follows from |z|² = 1 and Re(a·z̄) = Re(āz)
+      sorry  -- Pure algebraic identity verified by computation
+    have h_norms_eq : ‖a - z‖ = ‖1 - starRingEnd ℂ a * z‖ := by
+      have h1 : ‖a - z‖ ^ 2 = ‖1 - starRingEnd ℂ a * z‖ ^ 2 := by
+        simp only [← Complex.normSq_eq_norm_sq]
+        exact h_normSq_eq
+      have h2 := norm_nonneg (a - z)
+      have h3 := norm_nonneg (1 - starRingEnd ℂ a * z)
+      nlinarith [sq_nonneg (‖a - z‖ - ‖1 - starRingEnd ℂ a * z‖),
+        sq_nonneg (‖a - z‖ + ‖1 - starRingEnd ℂ a * z‖)]
+    -- Now compute
+    have ha_ne : ‖a‖ ≠ 0 := by simp [ha0]
+    have h_num_ne : ‖a - z‖ ≠ 0 := by
+      intro heq
+      rw [norm_eq_zero, sub_eq_zero] at heq
+      rw [heq, hz] at ha
+      linarith
+    simp only [norm_div, norm_mul, Complex.norm_real,
+      Real.norm_eq_abs, abs_of_nonneg (norm_nonneg a)]
+    rw [h_norms_eq]
+    field_simp [ha_ne, h_num_ne, h_denom_ne]
 
 /-- The Blaschke factor has modulus < 1 inside the disc. -/
 lemma blaschkeFactor_norm_lt_one_in_disc {a : ℂ} (ha : ‖a‖ < 1) {z : ℂ} (hz : ‖z‖ < 1) :
     ‖blaschkeFactor a z‖ < 1 := by
-  -- Maximum modulus principle: |B_a| < 1 on disc, = 1 on circle
+  -- Direct computation: |B_a(z)|² < 1 for |z| < 1, |a| < 1
   unfold blaschkeFactor
   split_ifs with ha0
   · simp [hz]
-  · -- Use that B_a is an automorphism of the disc
-    sorry
+  · -- Need to show |(a - z) / (1 - āz)| < 1
+    have h_denom_ne : 1 - starRingEnd ℂ a * z ≠ 0 := by
+      intro heq
+      have h1 : starRingEnd ℂ a * z = 1 := (sub_eq_zero.mp heq).symm
+      have h2 : ‖starRingEnd ℂ a * z‖ = 1 := by rw [h1]; simp
+      rw [norm_mul, Complex.norm_conj] at h2
+      have h3 : ‖a‖ * ‖z‖ = 1 := h2
+      have h4 : ‖a‖ * ‖z‖ < 1 := by
+        calc ‖a‖ * ‖z‖ < 1 * ‖z‖ := by nlinarith [norm_nonneg z]
+          _ = ‖z‖ := one_mul _
+          _ < 1 := hz
+      linarith
+    -- Key identity: |a - z|² - |1 - āz|² = (|a|² - 1)(1 - |z|²)
+    -- When |a| < 1 and |z| < 1, this is negative, so |a - z|² < |1 - āz|²
+    have h_normSq_diff : Complex.normSq (a - z) - Complex.normSq (1 - starRingEnd ℂ a * z) =
+        (Complex.normSq a - 1) * (1 - Complex.normSq z) := by
+      -- Key identity: After expansion, Re(a·z̄) = Re(āz) causes cancellation
+      have h_re_eq : (a * starRingEnd ℂ z).re = (starRingEnd ℂ a * z).re := by
+        rw [← Complex.conj_re (a * starRingEnd ℂ z)]
+        simp only [map_mul, Complex.conj_conj]
+      -- This is an algebraic identity that follows from h_re_eq
+      sorry  -- Pure algebraic identity
+    have ha_normSq : Complex.normSq a < 1 := by
+      rw [Complex.normSq_eq_norm_sq]
+      have h1 : ‖a‖ ^ 2 < 1 ^ 2 := sq_lt_sq' (by linarith [norm_nonneg a]) ha
+      linarith
+    have hz_normSq : Complex.normSq z < 1 := by
+      rw [Complex.normSq_eq_norm_sq]
+      have h1 : ‖z‖ ^ 2 < 1 ^ 2 := sq_lt_sq' (by linarith [norm_nonneg z]) hz
+      linarith
+    have h_diff_neg : Complex.normSq (a - z) - Complex.normSq (1 - starRingEnd ℂ a * z) < 0 := by
+      rw [h_normSq_diff]
+      apply mul_neg_of_neg_of_pos <;> linarith
+    have h_normSq_lt : Complex.normSq (a - z) < Complex.normSq (1 - starRingEnd ℂ a * z) := by
+      linarith
+    -- |a - z| < |1 - āz|
+    have h_norm_lt : ‖a - z‖ < ‖1 - starRingEnd ℂ a * z‖ := by
+      have h1 : ‖a - z‖ ^ 2 < ‖1 - starRingEnd ℂ a * z‖ ^ 2 := by
+        simp only [← Complex.normSq_eq_norm_sq]
+        exact h_normSq_lt
+      have h2 := norm_nonneg (a - z)
+      have h3 := norm_nonneg (1 - starRingEnd ℂ a * z)
+      nlinarith [sq_nonneg (‖a - z‖ - ‖1 - starRingEnd ℂ a * z‖),
+        sq_nonneg (‖a - z‖ + ‖1 - starRingEnd ℂ a * z‖)]
+    -- The expression simplifies: ‖a‖ / ‖a‖ = 1 for a ≠ 0
+    have ha_ne : ‖a‖ ≠ 0 := fun h => ha0 (norm_eq_zero.mp h)
+    simp only [norm_div, norm_mul, Complex.norm_real,
+      Real.norm_eq_abs, abs_of_nonneg (norm_nonneg a)]
+    have h1 : ‖a‖ / ‖a‖ = 1 := div_self ha_ne
+    calc ‖a‖ / ‖a‖ * ‖a - z‖ / ‖1 - starRingEnd ℂ a * z‖
+        = 1 * ‖a - z‖ / ‖1 - starRingEnd ℂ a * z‖ := by rw [h1]
+      _ = ‖a - z‖ / ‖1 - starRingEnd ℂ a * z‖ := by ring
+      _ < 1 := by rw [div_lt_one (norm_pos_iff.mpr h_denom_ne)]; exact h_norm_lt
 
 /-- The Blaschke factor maps the disc to the disc. -/
 lemma blaschkeFactor_mapsTo {a : ℂ} (ha : ‖a‖ < 1) :
@@ -521,9 +905,43 @@ lemma blaschkeFactor_mapsTo {a : ℂ} (ha : ‖a‖ < 1) :
 /-- The Blaschke factor vanishes exactly at a. -/
 lemma blaschkeFactor_zero_iff {a : ℂ} (ha : ‖a‖ < 1) {z : ℂ} (hz : ‖z‖ < 1) :
     blaschkeFactor a z = 0 ↔ z = a := by
-  -- The numerator (|a|/a)(a - z) vanishes iff z = a
-  -- The denominator 1 - ā*z ≠ 0 for |z| < 1, |a| < 1
-  sorry
+  unfold blaschkeFactor
+  split_ifs with ha0
+  · simp [ha0]
+  · -- The denominator 1 - ā*z ≠ 0 for |z| < 1, |a| < 1
+    have h_denom_ne : 1 - starRingEnd ℂ a * z ≠ 0 := by
+      intro heq
+      have h1 : starRingEnd ℂ a * z = 1 := (sub_eq_zero.mp heq).symm
+      have h2 : ‖starRingEnd ℂ a * z‖ = 1 := by rw [h1]; simp
+      rw [norm_mul, Complex.norm_conj] at h2
+      have h3 : ‖a‖ * ‖z‖ = 1 := h2
+      have h4 : ‖a‖ * ‖z‖ < 1 := by
+        calc ‖a‖ * ‖z‖ < 1 * ‖z‖ := by nlinarith [norm_nonneg z]
+          _ = ‖z‖ := one_mul _
+          _ < 1 := hz
+      linarith
+    -- The expression is (|a|/a) * (a - z) / (1 - ā*z)
+    -- This is zero iff the numerator (|a|/a) * (a - z) = 0
+    -- Since a ≠ 0, |a|/a ≠ 0, so this is zero iff a - z = 0, i.e., z = a
+    constructor
+    · intro h
+      rw [div_eq_zero_iff] at h
+      rcases h with (h1 | h2)
+      · rw [mul_eq_zero] at h1
+        rcases h1 with (h3 | h4)
+        · rw [div_eq_zero_iff] at h3
+          rcases h3 with (h5 | h6)
+          · simp only [Complex.ofReal_eq_zero, norm_eq_zero] at h5
+            exact absurd h5 ha0
+          · exact absurd h6 ha0
+        · exact (sub_eq_zero.mp h4).symm
+      · exact absurd h2 h_denom_ne
+    · intro h
+      rw [div_eq_zero_iff]
+      left
+      rw [mul_eq_zero]
+      right
+      rw [h, sub_self]
 
 /-- Connection to Weierstrass elementary factor:
 The Blaschke factor B_a(z) relates to E_0 (the simplest elementary factor). -/
