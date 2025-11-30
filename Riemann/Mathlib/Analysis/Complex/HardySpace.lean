@@ -636,15 +636,26 @@ Poisson integral context.
 -/
 theorem fatou_ae_convergence {f : ℂ → ℂ} (hf : IsInHInfty f) :
     ∀ᵐ θ ∂volume, ∃ L : ℂ, Tendsto (fun r => f (circleMap 0 r θ)) (𝓝[<] 1) (𝓝 L) := by
-  -- The proof uses:
-  -- 1. Represent f via Poisson integral of boundary values
-  -- 2. Use that Poisson kernel is approximate identity
-  -- 3. Apply Lebesgue differentiation theorem
+  -- **Fatou's Theorem for H^∞ Functions**
   --
-  -- For the liminf/limsup formulation:
-  -- lim inf_{r→1} ∫ |f(r·e^{iθ}) - L|² P_r(θ-φ) dφ ≤ lim inf of circle averages
-  -- At Lebesgue points, this converges to 0.
-  sorry
+  -- The proof uses the fact that bounded analytic functions have non-tangential
+  -- limits almost everywhere on the boundary. Key steps:
+  --
+  -- 1. Since f is bounded, |f(z)| ≤ M for all z in the disc
+  -- 2. The real and imaginary parts of f are bounded harmonic functions
+  -- 3. Bounded harmonic functions are Poisson integrals of their boundary values
+  -- 4. By the Lebesgue differentiation theorem, the Poisson integral converges
+  --    to the boundary value at almost every point
+  --
+  -- This is a classical result. The proof requires:
+  -- - Poisson representation for bounded harmonic functions
+  -- - Lebesgue differentiation theorem (MeasureTheory.Covering.Differentiation)
+  -- - Connecting radial limits to non-tangential limits for bounded functions
+  --
+  -- For the radial approach, we use that:
+  -- - f(r·e^{iθ}) = Poisson integral of boundary values at radius r
+  -- - As r → 1, this converges to the boundary value at Lebesgue points
+  sorry  -- Requires Poisson representation + Lebesgue differentiation
 
 /-- **Fatou's Lemma for Poisson Integrals**
 
@@ -659,7 +670,11 @@ theorem fatou_poisson_integral {u : ℕ → ℝ → ℝ} (hu_nonneg : ∀ n θ, 
       ⨅ n, ⨆ i, poissonIntegral (u (n + i)) r θ := by
   -- Apply Fatou's lemma (lintegral_liminf_le) with the Poisson kernel as weight
   -- The Poisson kernel is nonnegative, so the inequality holds
-  sorry
+  --
+  -- The proof uses MeasureTheory.lintegral_liminf_le applied to the product
+  -- of the Poisson kernel with the sequence of functions.
+  -- Since the Poisson kernel P_r(θ - φ) ≥ 0 for r ∈ [0,1), Fatou's lemma applies.
+  sorry  -- Requires connecting to MeasureTheory.lintegral_liminf_le
 
 /-! ### Lebesgue differentiation infrastructure -/
 
@@ -678,7 +693,14 @@ theorem lebesgue_differentiation_ae {u : ℝ → ℝ} (hu : LocallyIntegrable u 
     ∀ᵐ θ ∂volume, Tendsto (fun r => poissonIntegral u r θ) (𝓝[<] 1) (𝓝 (u θ)) := by
   -- The Poisson kernel concentrates at θ as r → 1
   -- At Lebesgue points (which form a set of full measure), this gives convergence
-  sorry
+  -- This uses MeasureTheory.Covering.ae_tendsto_average_norm_sub for Lebesgue points
+  -- combined with poissonKernel_approximate_identity
+  --
+  -- Key facts:
+  -- 1. Almost every point is a Lebesgue point (ae_isLebesguePoint)
+  -- 2. The Poisson kernel concentrates at the diagonal (poissonKernel_approximate_identity)
+  -- 3. At Lebesgue points, approximate identity convolution converges to function value
+  sorry  -- Requires MeasureTheory.Covering.Differentiation infrastructure
 
 /-- Lebesgue differentiation for L¹ functions. -/
 theorem lebesgue_differentiation_L1 {u : ℝ → ℝ} (hu : Integrable u volume) :
@@ -689,11 +711,20 @@ theorem lebesgue_differentiation_L1 {u : ℝ → ℝ} (hu : Integrable u volume)
 def hardyLittlewoodMaximal (u : ℝ → ℝ) (θ : ℝ) : ℝ :=
   ⨆ (δ : ℝ) (_ : 0 < δ), (2 * δ)⁻¹ * ∫ φ in Set.Icc (θ - δ) (θ + δ), |u φ|
 
-/-- Weak (1,1) estimate for the Hardy-Littlewood maximal function. NOTE: leverage Carleson.ToMathlib.HardlyLittlewood -/
+/-- Weak (1,1) estimate for the Hardy-Littlewood maximal function.
+
+NOTE: This can be obtained from Carleson.ToMathlib.HardyLittlewood once the
+type conflicts with ENormedSpace are resolved. The proof uses the Vitali covering
+lemma: given the set {θ | M u θ > t}, select a disjoint subcollection of intervals
+that covers a constant fraction of the total measure.
+-/
 theorem hardyLittlewood_weak_1_1 {u : ℝ → ℝ} (hu : Integrable u volume) (t : ℝ) (ht : 0 < t) :
     volume {θ | hardyLittlewoodMaximal u θ > t} ≤ ENNReal.ofReal (3 * t⁻¹ * ∫ φ, |u φ|) := by
   -- Classical covering lemma argument
-  sorry
+  -- For each θ in {M u > t}, there exists δ > 0 with (2δ)⁻¹ ∫_{θ-δ}^{θ+δ} |u| > t
+  -- Select a Vitali subcollection of disjoint intervals
+  -- Sum gives: measure × t ≤ 3 × ∫ |u|
+  sorry  -- Requires Vitali covering lemma from MeasureTheory.Covering
 
 /-- Maximal function estimate for Poisson integrals.
 The radial maximal function is dominated by the Hardy-Littlewood maximal function. -/
@@ -733,8 +764,22 @@ lemma weierstrassElementaryFactor_analyticAt (n : ℕ) (w : ℂ) :
   apply AnalyticAt.mul
   · -- (1 - z) is analytic
     exact analyticAt_const.sub analyticAt_id
-  · -- exp of polynomial is analytic
-    sorry
+  · -- exp of polynomial is analytic (polynomial sum composed with exp)
+    -- The sum ∑_{k=0}^{n-1} z^{k+1}/(k+1) is a polynomial, hence analytic
+    -- exp composed with analytic function is analytic
+    apply AnalyticAt.cexp
+    -- Sum of analytic functions is analytic (by induction on n)
+    induction n with
+    | zero =>
+      simp only [Finset.range_zero, Finset.sum_empty]
+      exact analyticAt_const
+    | succ m ih =>
+      simp only [Finset.sum_range_succ]
+      -- z^{m+1} / (m+1) is scalar multiple of z^{m+1}
+      have h_term : AnalyticAt ℂ (fun z => z ^ (m + 1) / ((m : ℂ) + 1)) w := by
+        apply AnalyticAt.div (analyticAt_id.pow (m + 1)) analyticAt_const
+        simp [Nat.cast_add_one_ne_zero]
+      exact ih.add h_term
 
 /-- Bound on |E_n(z) - 1| for small |z|. -/
 lemma weierstrassElementaryFactor_sub_one_bound {n : ℕ} {z : ℂ} (hz : ‖z‖ ≤ 1/2) :
@@ -782,7 +827,43 @@ lemma blaschkeFactor_analyticOn {a : ℂ} (ha : ‖a‖ < 1) :
     AnalyticOn ℂ (blaschkeFactor a) unitDisc := by
   -- The Blaschke factor is a rational function, analytic where denominator ≠ 0
   -- For |z| < 1 and |a| < 1, the denominator 1 - ā*z ≠ 0
-  sorry
+  --
+  -- B_a(z) = z when a = 0, and (‖a‖/a) * (a-z)/(1-āz) otherwise
+  -- Both cases are analytic on the unit disc.
+  intro z hz
+  unfold blaschkeFactor
+  by_cases ha0 : a = 0
+  · -- Case a = 0: B_0(z) = z is analytic
+    simp only [ha0, ↓reduceDIte]
+    exact analyticWithinAt_id
+  · -- Case a ≠ 0: B_a(z) = (‖a‖/a) * (a-z)/(1-āz)
+    simp only [ha0, ↓reduceDIte]
+    -- Denominator 1 - āz ≠ 0 when |a| < 1 and |z| < 1
+    have h_denom_ne : 1 - starRingEnd ℂ a * z ≠ 0 := by
+      intro heq
+      have h1 : starRingEnd ℂ a * z = 1 := (sub_eq_zero.mp heq).symm
+      have h2 : ‖starRingEnd ℂ a * z‖ = 1 := by rw [h1]; simp
+      rw [norm_mul, Complex.norm_conj] at h2
+      have hz_lt : ‖z‖ < 1 := hz
+      have h_prod_lt : ‖a‖ * ‖z‖ < 1 := by
+        have h1 : ‖a‖ * ‖z‖ ≤ ‖a‖ * 1 := mul_le_mul_of_nonneg_left hz_lt.le (norm_nonneg a)
+        calc ‖a‖ * ‖z‖ ≤ ‖a‖ := by linarith
+          _ < 1 := ha
+      linarith
+    -- (a - z) is analytic
+    have h_num : AnalyticAt ℂ (fun w => a - w) z := analyticAt_const.sub analyticAt_id
+    -- (1 - āz) is analytic
+    have h_denom : AnalyticAt ℂ (fun w => 1 - starRingEnd ℂ a * w) z :=
+      analyticAt_const.sub (analyticAt_const.mul analyticAt_id)
+    -- The ratio is analytic where denominator ≠ 0
+    have h_ratio : AnalyticAt ℂ (fun w => (a - w) / (1 - starRingEnd ℂ a * w)) z :=
+      h_num.div h_denom h_denom_ne
+    -- Multiply by constant (‖a‖/a) and then divide by denominator
+    have h_full : AnalyticAt ℂ (fun w => (↑‖a‖ / a) * (a - w) / (1 - starRingEnd ℂ a * w)) z := by
+      have h1 : AnalyticAt ℂ (fun w => (↑‖a‖ / a) * (a - w)) z :=
+        analyticAt_const.mul h_num
+      exact h1.div h_denom h_denom_ne
+    exact h_full.analyticWithinAt
 
 /-- The Blaschke factor has modulus 1 on the unit circle. -/
 lemma blaschkeFactor_norm_eq_one_on_circle {a : ℂ} (ha : ‖a‖ < 1) {z : ℂ} (hz : ‖z‖ = 1) :
@@ -812,8 +893,14 @@ lemma blaschkeFactor_norm_eq_one_on_circle {a : ℂ} (ha : ‖a‖ < 1) {z : ℂ
       have h_re_eq : (a * starRingEnd ℂ z).re = (starRingEnd ℂ a * z).re := by
         rw [← Complex.conj_re (a * starRingEnd ℂ z)]
         simp only [map_mul, Complex.conj_conj]
-      -- This is an algebraic identity that follows from |z|² = 1 and Re(a·z̄) = Re(āz)
-      sorry  -- Pure algebraic identity verified by computation
+      simp only [Complex.normSq_sub, Complex.normSq_one, Complex.normSq_mul, Complex.normSq_conj,
+        hz_normSq, mul_one]
+      -- Goal reduces to: normSq a + 1 - 2 * inner a z = 1 + normSq a - 2 * inner 1 (conj a * z)
+      -- where inner x y = re(x * conj y), so inner 1 y = re(conj y) = re(y).re for 1
+      -- Actually inner 1 (conj a * z) = re(1 * conj(conj a * z)) = re(a * conj z)
+      -- So both sides are normSq a + 1 - 2 * re(a * conj z)
+      simp only [one_mul, map_mul, Complex.conj_conj]
+      linarith [h_re_eq]
     have h_norms_eq : ‖a - z‖ = ‖1 - starRingEnd ℂ a * z‖ := by
       have h1 : ‖a - z‖ ^ 2 = ‖1 - starRingEnd ℂ a * z‖ ^ 2 := by
         simp only [← Complex.normSq_eq_norm_sq]
@@ -857,12 +944,18 @@ lemma blaschkeFactor_norm_lt_one_in_disc {a : ℂ} (ha : ‖a‖ < 1) {z : ℂ} 
     -- When |a| < 1 and |z| < 1, this is negative, so |a - z|² < |1 - āz|²
     have h_normSq_diff : Complex.normSq (a - z) - Complex.normSq (1 - starRingEnd ℂ a * z) =
         (Complex.normSq a - 1) * (1 - Complex.normSq z) := by
-      -- Key identity: After expansion, Re(a·z̄) = Re(āz) causes cancellation
       have h_re_eq : (a * starRingEnd ℂ z).re = (starRingEnd ℂ a * z).re := by
         rw [← Complex.conj_re (a * starRingEnd ℂ z)]
         simp only [map_mul, Complex.conj_conj]
-      -- This is an algebraic identity that follows from h_re_eq
-      sorry  -- Pure algebraic identity
+      simp only [Complex.normSq_sub, Complex.normSq_one, Complex.normSq_mul, Complex.normSq_conj,
+        Complex.inner, one_mul, map_mul, Complex.conj_conj]
+      -- After simp with inner expanded:
+      -- LHS = normSq a + normSq z - 2 * re(a * conj z) - (1 + normSq a * normSq z - 2 * re(a * conj z))
+      --     = normSq a + normSq z - 1 - normSq a * normSq z
+      --     = normSq a * (1 - normSq z) + (normSq z - 1)
+      --     = normSq a * (1 - normSq z) - (1 - normSq z)
+      --     = (normSq a - 1) * (1 - normSq z)
+      ring
     have ha_normSq : Complex.normSq a < 1 := by
       rw [Complex.normSq_eq_norm_sq]
       have h1 : ‖a‖ ^ 2 < 1 ^ 2 := sq_lt_sq' (by linarith [norm_nonneg a]) ha
@@ -988,7 +1081,18 @@ lemma analyticOn_div_of_matching_zeros {f g : ℂ → ℂ}
     (h_zeros : ∀ z ∈ unitDisc, g z = 0 → f z = 0) :
     AnalyticOn ℂ (fun z => if g z = 0 then 0 else f z / g z) unitDisc := by
   -- Uses removable singularity theorem
-  sorry
+  -- Key insight: if ord_z(g) ≤ ord_z(f) for all z where g(z) = 0,
+  -- then f/g has removable singularities at those points.
+  --
+  -- The proof requires:
+  -- 1. At points where g ≠ 0: f/g is analytic (ratio of analytic functions)
+  -- 2. At points where g = 0: f also vanishes (by h_zeros), so we need to show
+  --    the singularity is removable, which requires ord_z(f) ≥ ord_z(g)
+  --
+  -- For the general case, we need the AnalyticAt.order API from Mathlib
+  -- and the fact that the quotient can be written as a power series
+  -- when orders match.
+  sorry  -- Requires AnalyticAt.order API and removable singularity theorem
 
 /-- The quotient G = f/B in canonical factorization is bounded. -/
 lemma factorization_quotient_bounded {f B : ℂ → ℂ}
@@ -997,7 +1101,25 @@ lemma factorization_quotient_bounded {f B : ℂ → ℂ}
     (hB_bound : ∀ z ∈ unitDisc, ‖B z‖ ≤ 1) :
     ∃ M : ℝ, ∀ z ∈ unitDisc, B z ≠ 0 → ‖f z / B z‖ ≤ M := by
   -- Maximum modulus principle on approximating subproducts
-  sorry
+  --
+  -- Key idea: For Blaschke products, |B(z)| = 1 on the unit circle
+  -- Since f is bounded by some M_f and |B| ≤ 1 in the disc with |B| = 1 on ∂𝔻,
+  -- the quotient f/B extends analytically (by removable singularities)
+  -- and is bounded by M_f on ∂𝔻.
+  --
+  -- By maximum modulus principle, |f/B| ≤ M_f throughout the disc.
+  --
+  -- The proof:
+  -- 1. G = f/B is analytic on the disc (removable singularities at zeros)
+  -- 2. On circles of radius r < 1: |G| = |f|/|B| ≤ M_f/|B|
+  -- 3. As r → 1, |B| → 1 on the boundary, so |G| ≤ M_f
+  -- 4. By maximum modulus, |G| ≤ M_f everywhere
+  obtain ⟨M_f, hM_f⟩ := hf.bounded
+  refine ⟨M_f, fun z hz hB_ne => ?_⟩
+  -- |f(z)/B(z)| ≤ |f(z)|/|B(z)| ≤ M_f/|B(z)| ≤ M_f (since |B(z)| ≤ 1 but we need |B| ≥ something)
+  -- Actually we need a lower bound on |B(z)| away from zeros, which comes from
+  -- the maximum modulus principle for 1/B
+  sorry  -- Requires careful application of maximum modulus to G = f/B
 
 end Infrastructure
 
@@ -1694,15 +1816,36 @@ theorem IsInHInfty.canonical_factorization {f : ℂ → ℂ} (hf : IsInHInfty f)
   -- Step 1: Enumerate zeros with multiplicities
   have h_zeros_countable := hf.zeros_countable hf_ne
 
-  -- The full construction requires:
-  -- - Enumeration of the countable zero set with multiplicities
-  -- - Convergence of the infinite product for Blaschke products
-  -- - Removable singularity theorem for G = f/B
-  -- - Maximum principle for boundedness of G
+  -- **Detailed Construction:**
   --
-  -- This infrastructure is partially available in Mathlib but requires
-  -- substantial glue code for the full theorem.
-  sorry
+  -- Step 2: Get zero enumeration from countability
+  -- This gives zeros : ℕ → ℂ and mult : ℕ → ℕ satisfying the axioms
+  --
+  -- Step 3: Verify Blaschke condition
+  -- By blaschke_condition: ∑_n (1 - |aₙ|) * mult(n) < ∞
+  -- This is the key analytic input from Jensen's formula
+  --
+  -- Step 4: Construct Blaschke product
+  -- B(z) = ∏_n (blaschkeFactor (zeros n) z)^{mult n}
+  -- Converges uniformly on compact subsets by Weierstrass M-test
+  --
+  -- Step 5: Define G = f/B
+  -- At zeros: use removable singularity (orders match by construction)
+  -- Away from zeros: direct division
+  --
+  -- Step 6: Verify G ∈ H^∞
+  -- |G| = |f|/|B| is bounded since |B| → 1 on ∂𝔻 and |f| ≤ M
+  -- By maximum modulus principle applied to f_r/B_r for r < 1
+  --
+  -- Step 7: Verify G nonvanishing
+  -- B captures all zeros of f, so G has no zeros
+  --
+  -- This infrastructure requires:
+  -- - AnalyticAt.order API for multiplicities
+  -- - Infinite product convergence (blaschke_product_converges)
+  -- - Removable singularity theorem (analyticOn_div_of_matching_zeros)
+  -- - Maximum modulus principle for quotients
+  sorry  -- Requires the above infrastructure lemmas
 
 end Complex
 
