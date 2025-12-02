@@ -1502,6 +1502,46 @@ lemma norm_exp_sub_one_le_two_mul' {w : ℂ} (hw : ‖w‖ ≤ 1/2) :
     ‖Complex.exp w - 1‖ ≤ 2 * ‖w‖ :=
   norm_exp_sub_one_le_two_mul hw
 
+/-- The tail of the log series: -log(1-z) - P_n(z) = ∑_{k≥n+1} z^k/k.
+
+This is the key identity connecting the Weierstrass elementary factor to the log series. -/
+lemma neg_log_sub_partialLogSum_eq_tail {z : ℂ} (hz : ‖z‖ < 1) (hz1 : z ≠ 1) (n : ℕ) :
+    -Complex.log (1 - z) - partialLogSum n z = ∑' k : ℕ, z ^ (n + 1 + k) / (n + 1 + k) := by
+  -- From Complex.log_one_sub_eq_neg_tsum: log(1-z) = -∑_{k≥1} z^k/k
+  -- So -log(1-z) = ∑_{k≥1} z^k/k = P_n(z) + ∑_{k≥n+1} z^k/k
+  -- Thus -log(1-z) - P_n(z) = ∑_{k≥n+1} z^k/k
+  have h_log := Complex.log_one_sub_eq_neg_tsum hz
+  -- -log(1-z) = ∑_{k≥1} z^k/k
+  have h_neg_log : -Complex.log (1 - z) = ∑' k : ℕ, z ^ (k + 1) / (k + 1) := by
+    rw [h_log]; ring
+  -- Split the sum: ∑_{k≥1} = ∑_{k=1}^n + ∑_{k≥n+1}
+  rw [h_neg_log]
+  unfold partialLogSum
+  -- Use the fact that tsum splits as finite sum + tail
+  have h_summable := Complex.summable_pow_div_succ hz
+  have h_split := h_summable.hasSum.tsum_eq
+  -- The sum from 0 to n-1 equals the finite sum, and the rest is the tail
+  rw [sub_eq_iff_eq_add]
+  symm
+  -- ∑_{k=0}^{n-1} z^{k+1}/(k+1) + ∑_{k≥n} z^{k+1}/(k+1) = ∑_{k≥0} z^{k+1}/(k+1)
+  have h_eq : ∑' k : ℕ, z ^ (k + 1) / (k + 1) =
+      ∑ k ∈ Finset.range n, z ^ (k + 1) / (k + 1) +
+      ∑' k : ℕ, z ^ (n + k + 1) / (n + k + 1) := by
+    rw [← sum_add_tsum_nat_add n h_summable]
+    congr 1
+    ext k
+    congr 1 <;> ring
+  rw [h_eq]
+  congr 1
+  apply tsum_congr
+  intro k
+  congr 1 <;> ring
+
+/-- Bound on the tail of the log series: |∑_{k≥n+1} z^k/k| ≤ |z|^{n+1}/(1-|z|). -/
+lemma norm_log_tail_le {z : ℂ} (hz : ‖z‖ < 1) (n : ℕ) :
+    ‖∑' k : ℕ, z ^ (n + 1 + k) / (n + 1 + k)‖ ≤ ‖z‖ ^ (n + 1) / (1 - ‖z‖) :=
+  Complex.norm_tsum_pow_div_succ_tail_le hz n
+
 /-! ### Weierstrass product infrastructure -/
 
 /-- Weierstrass elementary factor of order n:
