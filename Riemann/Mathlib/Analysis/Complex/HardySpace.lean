@@ -1114,67 +1114,108 @@ theorem poissonIntegral_maximal_bound {u : ℝ → ℝ} (hu : LocallyIntegrable 
   --    sum over dyadic annuli to get another maximal function bound
   sorry
 
-/-! ### Complex logarithm and exponential infrastructure
+/-! ### Exponential and logarithm bounds
 
-These lemmas provide the analytic infrastructure for Weierstrass products and
-Blaschke product convergence. The key estimates are:
-1. |exp(w) - 1| ≤ |w| · exp(|w|) for all w
-2. |exp(w) - 1| ≤ 2|w| for |w| ≤ 1/2
-3. Tail estimates for logarithm series
+Fundamental inequalities for exp and log needed for product convergence.
 -/
+
+/-- The function g(t) = (1-t) * exp(t) has derivative -t * exp(t). -/
+lemma Real.hasDerivAt_one_sub_mul_exp (t : ℝ) :
+    HasDerivAt (fun s => (1 - s) * Real.exp s) (-t * Real.exp t) t := by
+  have h1 : HasDerivAt (fun s => 1 - s) (-1) t := by
+    simpa using (hasDerivAt_const t (1 : ℝ)).sub (hasDerivAt_id t)
+  have h2 : HasDerivAt Real.exp (Real.exp t) t := Real.hasDerivAt_exp t
+  convert h1.mul h2 using 1
+  ring
+
+/-- The function g(t) = (1-t) * exp(t) is strictly decreasing on [0, ∞). -/
+lemma Real.strictAntiOn_one_sub_mul_exp :
+    StrictAntiOn (fun t => (1 - t) * Real.exp t) (Set.Ici 0) := by
+  apply strictAntiOn_of_deriv_neg (convex_Ici 0)
+  · exact ((continuous_const.sub continuous_id).mul Real.continuous_exp).continuousOn
+  · intro x hx
+    simp only [Set.nonempty_Iio, interior_Ici', Set.mem_Ioi] at hx
+    rw [(Real.hasDerivAt_one_sub_mul_exp x).deriv]
+    exact mul_neg_of_neg_of_pos (neg_neg_of_pos hx) (Real.exp_pos x)
+
+/-- For x > 0, we have (1-x) * exp(x) < 1. -/
+lemma Real.one_sub_mul_exp_lt_one {x : ℝ} (hx : 0 < x) : (1 - x) * Real.exp x < 1 := by
+  have h0 : (1 - (0 : ℝ)) * Real.exp 0 = 1 := by simp
+  have h_mem_0 : (0 : ℝ) ∈ Set.Ici 0 := left_mem_Ici
+  have h_mem_x : x ∈ Set.Ici 0 := le_of_lt hx
+  calc (1 - x) * Real.exp x < (1 - 0) * Real.exp 0 :=
+        Real.strictAntiOn_one_sub_mul_exp h_mem_0 h_mem_x hx
+    _ = 1 := h0
+
+/-- For 0 < x < 1, we have exp(x) < 1/(1-x).
+
+This follows from (1-x)*exp(x) < 1 for x > 0, which is proved using
+the fact that g(t) = (1-t)*exp(t) is strictly decreasing (g'(t) = -t*exp(t) < 0). -/
+lemma Real.exp_lt_one_div_one_sub {x : ℝ} (hx0 : 0 < x) (hx1 : x < 1) :
+    Real.exp x < 1 / (1 - x) := by
+  have h1mx_pos : 0 < 1 - x := by linarith
+  rw [lt_div_iff₀ h1mx_pos, mul_comm]
+  exact Real.one_sub_mul_exp_lt_one hx0
+
+/-- The derivative of t ↦ exp(t • w) is w * exp(t • w). -/
+lemma Complex.hasDerivAt_exp_smul (w : ℂ) (t : ℝ) :
+    HasDerivAt (fun s : ℝ => Complex.exp (s • w)) (w * Complex.exp (t • w)) t := by
+  have h1 : HasDerivAt (fun s : ℝ => (s : ℂ) • w) w t := by
+    have := hasDerivAt_id t
+    convert HasDerivAt.smul_const this w
+    simp
+  have h2 : HasDerivAt Complex.exp (Complex.exp (t • w)) ((t : ℂ) • w) :=
+    Complex.hasDerivAt_exp _
+  convert HasDerivAt.comp t h2 h1 using 1
+  ring
+
+/-- Bound on |exp(t • w)| for t ∈ [0, 1]: |exp(t • w)| ≤ exp(|w|). -/
+lemma Complex.norm_exp_smul_le {w : ℂ} {t : ℝ} (ht0 : 0 ≤ t) (ht1 : t ≤ 1) :
+    ‖Complex.exp (t • w)‖ ≤ Real.exp ‖w‖ := by
+  rw [Complex.norm_exp]
+  apply Real.exp_le_exp_of_le
+  simp only [Complex.smul_re, Complex.ofReal_re]
+  calc t * w.re ≤ t * |w.re| := mul_le_mul_of_nonneg_left (le_abs_self _) ht0
+    _ ≤ 1 * |w.re| := mul_le_mul_of_nonneg_right ht1 (abs_nonneg _)
+    _ = |w.re| := one_mul _
+    _ ≤ ‖w‖ := Complex.abs_re_le_norm w
 
 /-- Exponential bound: |exp(w) - 1| ≤ |w| · exp(|w|).
 
 This is a fundamental estimate for product convergence. The proof uses the
-mean value theorem applied to t ↦ exp(t·w) on [0,1]:
-  exp(w) - 1 = ∫₀¹ w · exp(t·w) dt
-  |exp(w) - 1| ≤ |w| · ∫₀¹ |exp(t·w)| dt ≤ |w| · exp(|w|)
-
-Reference: Rudin, Real and Complex Analysis, Chapter 10. -/
+integral representation exp(w) - 1 = ∫₀¹ w · exp(t·w) dt from FTC. -/
 lemma norm_exp_sub_one_le (w : ℂ) : ‖Complex.exp w - 1‖ ≤ ‖w‖ * Real.exp ‖w‖ := by
-  -- The proof uses the integral representation:
-  -- exp(w) - 1 = ∫₀¹ w · exp(t·w) dt
-  -- Hence |exp(w) - 1| ≤ |w| · ∫₀¹ |exp(t·w)| dt
-  --                    ≤ |w| · ∫₀¹ exp(t·|w|) dt  (since |exp(z)| = exp(Re z) ≤ exp(|z|))
-  --                    = |w| · [exp(t·|w|)/|w|]₀¹
-  --                    = exp(|w|) - 1
-  --                    ≤ |w| · exp(|w|)
-  --
-  -- We prove the last inequality directly: exp(x) - 1 ≤ x · exp(x) for x ≥ 0
   by_cases hw : w = 0
   · simp [hw]
-  · -- For w ≠ 0, we use the mean value theorem approach
-    -- The key bound is |exp(w) - 1| ≤ |w| · sup_{t∈[0,1]} |exp(t·w)|
-    --                              ≤ |w| · sup_{t∈[0,1]} exp(t·|w|)
-    --                              = |w| · exp(|w|)
-    have h_bound : ∀ t : ℝ, 0 ≤ t → t ≤ 1 → ‖Complex.exp (t • w)‖ ≤ Real.exp ‖w‖ := by
-      intro t ht0 ht1
-      -- |exp(t·w)| = exp(Re(t·w)) = exp(t · Re(w))
-      have h_norm : ‖Complex.exp (t • w)‖ = Real.exp ((t • w).re) := by
-        rw [Complex.norm_exp]
-      rw [h_norm]
-      -- Re(t·w) = t · Re(w) ≤ t · |Re(w)| ≤ t · |w| ≤ |w|
-      have h_re : (t • w).re = t * w.re := by simp
-      rw [h_re]
-      apply Real.exp_le_exp_of_le
-      calc t * w.re ≤ t * |w.re| := by
-            apply mul_le_mul_of_nonneg_left (le_abs_self _) ht0
-        _ ≤ 1 * |w.re| := by apply mul_le_mul_of_nonneg_right ht1 (abs_nonneg _)
-        _ = |w.re| := one_mul _
-        _ ≤ ‖w‖ := Complex.abs_re_le_norm w
-    -- Now use the integral bound via FTC
-    -- exp(w) - exp(0) = ∫₀¹ d/dt[exp(t·w)] dt = ∫₀¹ w·exp(t·w) dt
-    --
-    -- The rigorous proof requires:
-    -- 1. HasDerivAt (fun s => exp(s • w)) (w * exp(t • w)) t (chain rule)
-    -- 2. FTC: exp(w) - 1 = ∫₀¹ w·exp(t·w) dt
-    -- 3. Triangle inequality: |∫ f| ≤ ∫ |f|
-    -- 4. Bound |w·exp(t·w)| ≤ |w|·exp(|w|) using h_bound
-    -- 5. Integrate constant to get |w|·exp(|w|)
-    --
-    -- This is a standard result in complex analysis.
-    -- The technical details require careful handling of the interval integral API.
-    sorry
+  · -- Use FTC: exp(w) - exp(0) = ∫₀¹ d/dt[exp(t·w)] dt = ∫₀¹ w·exp(t·w) dt
+    have h_deriv : ∀ t ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt (fun s => Complex.exp (s • w))
+        (w * Complex.exp (t • w)) t := fun t _ => Complex.hasDerivAt_exp_smul w t
+    -- The derivative function is continuous, hence integrable
+    have h_cont : Continuous (fun t : ℝ => w * Complex.exp (t • w)) :=
+      continuous_const.mul (Complex.continuous_exp.comp (continuous_ofReal.smul continuous_const))
+    have h_int : IntervalIntegrable (fun t => w * Complex.exp (t • w)) MeasureTheory.volume 0 1 :=
+      h_cont.intervalIntegrable 0 1
+    -- Apply FTC: ∫₀¹ f'(t) dt = f(1) - f(0)
+    have h_ftc : ∫ t in (0 : ℝ)..1, w * Complex.exp (t • w) =
+        Complex.exp ((1 : ℝ) • w) - Complex.exp ((0 : ℝ) • w) :=
+      intervalIntegral.integral_eq_sub_of_hasDerivAt h_deriv h_int
+    simp only [one_smul, zero_smul, Complex.exp_zero] at h_ftc
+    -- Bound on integrand norm
+    have h_bound : ∀ t ∈ Set.Icc (0 : ℝ) 1, ‖w * Complex.exp (t • w)‖ ≤ ‖w‖ * Real.exp ‖w‖ := by
+      intro t ht
+      rw [norm_mul]
+      apply mul_le_mul_of_nonneg_left _ (norm_nonneg w)
+      exact Complex.norm_exp_smul_le ht.1 ht.2
+    -- Now bound the integral
+    calc ‖Complex.exp w - 1‖ = ‖∫ t in (0:ℝ)..1, w * Complex.exp (t • w)‖ := by rw [h_ftc]
+      _ ≤ ∫ t in (0:ℝ)..1, ‖w * Complex.exp (t • w)‖ :=
+          intervalIntegral.norm_integral_le_integral_norm (by linarith : (0:ℝ) ≤ 1)
+      _ ≤ ∫ t in (0:ℝ)..1, ‖w‖ * Real.exp ‖w‖ := by
+          apply intervalIntegral.integral_mono_on (by linarith : (0:ℝ) ≤ 1)
+          · exact h_cont.norm.intervalIntegrable 0 1
+          · exact continuous_const.intervalIntegrable 0 1
+          · exact h_bound
+      _ = ‖w‖ * Real.exp ‖w‖ := by simp
 
 /-- For small |w|, |exp(w) - 1| ≤ 2|w|.
 
@@ -1184,19 +1225,19 @@ lemma norm_exp_sub_one_le_two_mul {w : ℂ} (hw : ‖w‖ ≤ 1/2) :
   -- For |w| ≤ 1/2, we have exp(|w|) ≤ exp(1/2) < 2
   -- So |exp(w) - 1| ≤ |w| · exp(|w|) ≤ |w| · 2 = 2|w|
   have h_exp_half_lt_two : Real.exp (1/2 : ℝ) < 2 := by
-    -- exp(1/2) ≈ 1.6487 < 2
-    -- We prove this using the Taylor series bound:
-    -- exp(x) = 1 + x + x²/2! + x³/3! + ... ≤ 1 + x + x² + x³ + ... = 1/(1-x) for 0 ≤ x < 1
-    -- At x = 1/2: exp(1/2) ≤ 1/(1/2) = 2
-    -- For strict inequality, note that x²/2! < x² for x > 0, so the bound is strict.
+    -- We prove exp(1/2) < 2 using the bound exp(x) < 1/(1-x) for 0 < x < 1.
+    -- This follows from comparing Taylor series:
+    --   exp(x) = 1 + x + x²/2! + x³/3! + ...
+    --   1/(1-x) = 1 + x + x² + x³ + ...
+    -- For x > 0, we have x^n/n! < x^n for n ≥ 2, so exp(x) < 1/(1-x).
     --
-    -- Alternatively, use that log(2) > 1/2, which is equivalent to exp(1/2) < 2.
-    -- log(2) > 1/2 because log(2) = ∫₁² (1/t) dt > ∫₁² (1/2) dt = 1/2
-    -- (since 1/t > 1/2 for t ∈ [1, 2))
+    -- At x = 1/2: exp(1/2) < 1/(1-1/2) = 2.
     --
-    -- For the Mathlib proof, we use Real.log_two_gt_half if available,
-    -- or prove it directly using integral bounds.
-    sorry
+    -- We use the Mathlib bound Real.exp_bound or prove directly.
+    have h_bound : Real.exp (1/2 : ℝ) < 1 / (1 - 1/2) :=
+      Real.exp_lt_one_div_one_sub (by linarith : (0:ℝ) < 1/2) (by linarith : (1:ℝ)/2 < 1)
+    calc Real.exp (1/2) < 1 / (1 - 1/2) := h_bound
+      _ = 2 := by norm_num
   calc ‖Complex.exp w - 1‖ ≤ ‖w‖ * Real.exp ‖w‖ := norm_exp_sub_one_le w
     _ ≤ ‖w‖ * Real.exp (1/2) := by
         apply mul_le_mul_of_nonneg_left _ (norm_nonneg w)
@@ -1237,17 +1278,229 @@ lemma norm_tsum_pow_tail_le {z : ℂ} (hz : ‖z‖ < 1) (n : ℕ) :
     _ ≤ ‖z‖ ^ n / (1 - ‖z‖) := by
         apply div_le_div_of_nonneg_left (pow_nonneg (norm_nonneg z) n) h1mr_pos h_denom_bound
 
+/-- The power series ∑_{k≥0} z^{k+1}/(k+1) converges absolutely for |z| < 1. -/
+lemma Complex.summable_pow_div_succ {z : ℂ} (hz : ‖z‖ < 1) :
+    Summable (fun k : ℕ => z ^ (k + 1) / (k + 1)) := by
+  have h_geom : Summable (fun k : ℕ => ‖z‖ ^ k) := summable_geometric_of_lt_one (norm_nonneg z) hz
+  refine Summable.of_norm_bounded (g := fun k => ‖z‖ ^ k) h_geom ?_
+  intro k
+  rw [norm_div, norm_pow]
+  have hk_pos : (0 : ℝ) < (k : ℕ) + 1 := Nat.cast_add_one_pos k
+  have h_norm_eq : ‖((k : ℂ) + 1)‖ = (k : ℝ) + 1 := by
+    have h1 : ((k : ℂ) + 1) = ((k + 1 : ℕ) : ℂ) := by simp
+    rw [h1, Complex.norm_natCast]
+    simp
+  rw [h_norm_eq]
+  have h1 : ‖z‖ ^ (k + 1) / ((k : ℕ) + 1) ≤ ‖z‖ ^ (k + 1) := by
+    apply div_le_self (pow_nonneg (norm_nonneg z) _)
+    have : (0 : ℝ) ≤ k := Nat.cast_nonneg k
+    linarith
+  calc ‖z‖ ^ (k + 1) / ((k : ℕ) + 1) ≤ ‖z‖ ^ (k + 1) := h1
+    _ = ‖z‖ ^ k * ‖z‖ := by ring
+    _ ≤ ‖z‖ ^ k * 1 := mul_le_mul_of_nonneg_left (le_of_lt hz) (pow_nonneg (norm_nonneg z) k)
+    _ = ‖z‖ ^ k := mul_one _
+
+/-- Tail bound for the geometric series: ∑_{k≥0} r^{n+1+k} = r^{n+1}/(1-r) for 0 ≤ r < 1. -/
+lemma Real.tsum_pow_tail_eq {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r < 1) (n : ℕ) :
+    ∑' k, r ^ (n + 1 + k) = r ^ (n + 1) / (1 - r) := by
+  have h1mr_pos : 0 < 1 - r := sub_pos.mpr hr1
+  have h_geom := hasSum_geometric_of_lt_one hr0 hr1
+  -- Rewrite using r^{n+1+k} = r^{n+1} * r^k
+  have h_eq : (fun k => r ^ (n + 1 + k)) = (fun k => r ^ (n + 1) * r ^ k) := by
+    funext k; rw [← pow_add, add_comm]
+  rw [h_eq, tsum_mul_left, h_geom.tsum_eq, div_eq_mul_inv]
+
+/-- Bound on norm of power divided by index. -/
+lemma Complex.norm_pow_div_nat_le {z : ℂ} (m : ℕ) (hm : 0 < m) :
+    ‖z ^ m / (m : ℂ)‖ ≤ ‖z‖ ^ m := by
+  rw [norm_div, norm_pow, Complex.norm_natCast]
+  exact div_le_self (pow_nonneg (norm_nonneg z) m) (Nat.one_le_cast.mpr hm)
+
+/-- Summability of power series with factorial-like denominators. -/
+lemma Complex.summable_pow_div_add {z : ℂ} (hz : ‖z‖ < 1) (n : ℕ) :
+    Summable (fun k => z ^ (n + 1 + k) / ((n + 1 + k : ℕ) : ℂ)) := by
+  have h_geom : Summable (fun k : ℕ => ‖z‖ ^ k) := summable_geometric_of_lt_one (norm_nonneg z) hz
+  apply Summable.of_norm_bounded (g := fun k => ‖z‖ ^ k) h_geom
+  intro k
+  have hm : 0 < n + 1 + k := by omega
+  calc ‖z ^ (n + 1 + k) / ((n + 1 + k : ℕ) : ℂ)‖
+      ≤ ‖z‖ ^ (n + 1 + k) := Complex.norm_pow_div_nat_le (n + 1 + k) hm
+    _ = ‖z‖ ^ (n + 1) * ‖z‖ ^ k := by rw [show n + 1 + k = (n + 1) + k by omega, pow_add]
+    _ ≤ 1 * ‖z‖ ^ k := mul_le_mul_of_nonneg_right
+        (pow_le_one₀ (norm_nonneg z) (le_of_lt hz)) (pow_nonneg (norm_nonneg z) k)
+    _ = ‖z‖ ^ k := one_mul _
+
+/-- Tail bound for the log series: |∑_{k≥0} z^{n+1+k}/(n+1+k)| ≤ |z|^{n+1}/(1-|z|) for |z| < 1.
+
+This is a key estimate for Weierstrass elementary factors. The bound follows from
+|z^m/m| ≤ |z|^m and summing the geometric series. -/
+lemma Complex.norm_tsum_pow_div_succ_tail_le {z : ℂ} (hz : ‖z‖ < 1) (n : ℕ) :
+    ‖∑' k, z ^ (n + 1 + k) / ((n + 1 + k : ℕ) : ℂ)‖ ≤ ‖z‖ ^ (n + 1) / (1 - ‖z‖) := by
+  have h1mr_pos : 0 < 1 - ‖z‖ := sub_pos.mpr hz
+  by_cases hz0 : z = 0
+  · simp [hz0]
+  · -- Summability
+    have h_summable := Complex.summable_pow_div_add hz n
+    have h_geom : Summable (fun k : ℕ => ‖z‖ ^ k) := summable_geometric_of_lt_one (norm_nonneg z) hz
+    -- Bound on each term
+    have h_term_bound : ∀ k, ‖z ^ (n + 1 + k) / ((n + 1 + k : ℕ) : ℂ)‖ ≤ ‖z‖ ^ (n + 1 + k) := by
+      intro k
+      exact Complex.norm_pow_div_nat_le (n + 1 + k) (by omega)
+    -- Geometric series bound
+    have h_geom_summable : Summable (fun k => ‖z‖ ^ (n + 1 + k)) := by
+      refine h_geom.mul_left (‖z‖ ^ (n + 1)) |>.congr ?_
+      intro k
+      simp only [pow_add, mul_comm]
+    -- Apply triangle inequality and sum bounds
+    calc ‖∑' k, z ^ (n + 1 + k) / ((n + 1 + k : ℕ) : ℂ)‖
+        ≤ ∑' k, ‖z ^ (n + 1 + k) / ((n + 1 + k : ℕ) : ℂ)‖ := norm_tsum_le_tsum_norm h_summable.norm
+      _ ≤ ∑' k, ‖z‖ ^ (n + 1 + k) := h_summable.norm.tsum_le_tsum h_term_bound h_geom_summable
+      _ = ‖z‖ ^ (n + 1) / (1 - ‖z‖) := Real.tsum_pow_tail_eq (norm_nonneg z) hz n
+
+set_option maxHeartbeats 800000 in
 /-- The complex logarithm series: log(1-z) = -∑_{k≥1} z^k/k for |z| < 1.
 
 This is the Taylor series for the principal branch of log around 1.
-The series converges absolutely for |z| < 1. -/
+The series converges absolutely for |z| < 1.
+
+We use `Complex.hasSum_taylorSeries_neg_log` from Mathlib which gives
+`∑_{n≥0} z^n/n = -log(1-z)`. The n=0 term vanishes, giving the shifted form. -/
 lemma Complex.log_one_sub_eq_neg_tsum {z : ℂ} (hz : ‖z‖ < 1) :
     Complex.log (1 - z) = -∑' k : ℕ, z ^ (k + 1) / (k + 1) := by
-  -- The proof uses that d/dz log(1-z) = -1/(1-z) = -∑_{k≥0} z^k
-  -- Integrating term by term gives log(1-z) = -∑_{k≥1} z^k/k
-  -- This requires the fundamental theorem of calculus for complex integrals
-  -- and uniform convergence of the series
-  sorry
+  -- From Mathlib: hasSum_taylorSeries_neg_log gives ∑_{n≥0} z^n/n = -log(1-z)
+  have h_hasSum := Complex.hasSum_taylorSeries_neg_log hz
+  -- Negate to get: log(1-z) = -∑_{n≥0} z^n/n
+  have h1 : Complex.log (1 - z) = -(∑' n : ℕ, z ^ n / (n : ℂ)) := by
+    rw [h_hasSum.tsum_eq]; ring
+  rw [h1]
+  congr 1
+  -- The n=0 term is z^0/0 = 0, so ∑_{n≥0} z^n/n = ∑_{k≥0} z^{k+1}/(k+1)
+  -- Use Summable.tsum_eq_zero_add on the original summable
+  have h_eq := h_hasSum.summable.tsum_eq_zero_add
+  simp only [pow_zero, Nat.cast_zero, div_zero, zero_add] at h_eq
+  convert h_eq using 2 <;> simp only [Nat.cast_add, Nat.cast_one]
+
+/-! ### Deep Infrastructure: Infinite Products and Convergence -/
+
+/-- A tprod containing a zero term equals zero. -/
+lemma tprod_eq_zero_of_eq_zero {α : Type*} [CommMonoidWithZero α] [TopologicalSpace α]
+    [T2Space α] {f : ℕ → α} (n : ℕ) (hfn : f n = 0) :
+    ∏' k, f k = 0 := by
+  have h : ∃ k, f k = 0 := ⟨n, hfn⟩
+  exact tprod_of_exists_eq_zero h
+
+/-- For a power with zero base, the result is zero when exponent is positive. -/
+lemma pow_eq_zero_of_base_zero' {α : Type*} [MonoidWithZero α] [NoZeroDivisors α]
+    {n : ℕ} (hn : n ≠ 0) : (0 : α) ^ n = 0 :=
+  zero_pow hn
+
+/-- The partial sum of z^k/k for k = 1 to n. -/
+def partialLogSum (n : ℕ) (z : ℂ) : ℂ :=
+  ∑ k ∈ Finset.range n, z ^ (k + 1) / (k + 1)
+
+/-- The partial log sum at 0 is 0. -/
+lemma partialLogSum_zero (n : ℕ) : partialLogSum n 0 = 0 := by
+  unfold partialLogSum
+  apply Finset.sum_eq_zero
+  intro k _
+  simp only [zero_pow (Nat.succ_ne_zero k), zero_div]
+
+/-- The partial log sum for n = 0 is 0. -/
+lemma partialLogSum_range_zero (z : ℂ) : partialLogSum 0 z = 0 := by
+  unfold partialLogSum
+  simp only [Finset.range_zero, Finset.sum_empty]
+
+/-- Bound on partial log sum: |P_n(z)| ≤ |z|/(1-|z|) for |z| < 1. -/
+lemma norm_partialLogSum_le {n : ℕ} {z : ℂ} (hz : ‖z‖ < 1) :
+    ‖partialLogSum n z‖ ≤ ‖z‖ / (1 - ‖z‖) := by
+  unfold partialLogSum
+  have h1mr_pos : 0 < 1 - ‖z‖ := sub_pos.mpr hz
+  have h_geom := hasSum_geometric_of_lt_one (norm_nonneg z) hz
+  -- Each term |z^{k+1}/(k+1)| ≤ |z|^{k+1}
+  have h_term_bound : ∀ k : ℕ, ‖z ^ (k + 1) / ((k : ℂ) + 1)‖ ≤ ‖z‖ ^ (k + 1) := fun k => by
+    rw [norm_div, norm_pow]
+    apply div_le_self (pow_nonneg (norm_nonneg z) _)
+    have hk : ‖((k : ℂ) + 1)‖ = (k : ℝ) + 1 := by
+      have h1 : ((k : ℂ) + 1) = ((k + 1 : ℕ) : ℂ) := by push_cast; ring
+      rw [h1, Complex.norm_natCast]; simp
+    rw [hk]
+    have hk_pos : (1 : ℝ) ≤ (k : ℝ) + 1 := by
+      have : (0 : ℝ) ≤ (k : ℝ) := Nat.cast_nonneg k
+      linarith
+    exact hk_pos
+  -- Sum ≤ ∑_{k=0}^{n-1} |z|^{k+1} ≤ |z| * ∑_{k≥0} |z|^k = |z|/(1-|z|)
+  calc ‖∑ k ∈ Finset.range n, z ^ (k + 1) / (k + 1)‖
+      ≤ ∑ k ∈ Finset.range n, ‖z ^ (k + 1) / ((k : ℂ) + 1)‖ := norm_sum_le _ _
+    _ ≤ ∑ k ∈ Finset.range n, ‖z‖ ^ (k + 1) := Finset.sum_le_sum (fun k _ => h_term_bound k)
+    _ = ‖z‖ * ∑ k ∈ Finset.range n, ‖z‖ ^ k := by
+        rw [Finset.mul_sum]
+        congr 1
+        ext k
+        rw [pow_succ, mul_comm]
+    _ ≤ ‖z‖ * (1 / (1 - ‖z‖)) := by
+        apply mul_le_mul_of_nonneg_left _ (norm_nonneg z)
+        -- Finite sum ≤ infinite sum for nonneg terms
+        have h_le : ∑ k ∈ Finset.range n, ‖z‖ ^ k ≤ ∑' k, ‖z‖ ^ k :=
+          h_geom.summable.sum_le_tsum (Finset.range n) (fun k _ => pow_nonneg (norm_nonneg z) k)
+        calc ∑ k ∈ Finset.range n, ‖z‖ ^ k ≤ ∑' k, ‖z‖ ^ k := h_le
+          _ = 1 / (1 - ‖z‖) := by rw [h_geom.tsum_eq, one_div]
+    _ = ‖z‖ / (1 - ‖z‖) := by ring
+
+/-- For x ≤ 1/2 with x ≥ 0, we have 1/(1-x) ≤ 2. -/
+lemma one_div_one_sub_le_two {x : ℝ} (hx : x ≤ 1/2) (hx_nn : 0 ≤ x) :
+    1 / (1 - x) ≤ 2 := by
+  have h1mx_pos : 0 < 1 - x := by linarith
+  rw [div_le_iff₀ h1mx_pos]
+  linarith
+
+/-- For |z| ≤ 1/2, we have |z|/(1-|z|) ≤ 2|z|. -/
+lemma norm_div_one_sub_le_two_mul {z : ℂ} (hz : ‖z‖ ≤ 1/2) :
+    ‖z‖ / (1 - ‖z‖) ≤ 2 * ‖z‖ := by
+  have h1mr_pos : 0 < 1 - ‖z‖ := by
+    have := norm_nonneg z
+    linarith
+  rw [div_le_iff₀ h1mr_pos]
+  calc ‖z‖ = 1 * ‖z‖ := by ring
+    _ ≤ 2 * (1 - ‖z‖) * ‖z‖ := by
+        apply mul_le_mul_of_nonneg_right _ (norm_nonneg z)
+        have h1mx : 1 - ‖z‖ ≥ 1/2 := by linarith
+        linarith
+    _ = 2 * ‖z‖ * (1 - ‖z‖) := by ring
+
+/-- For |z| ≤ 1/2 and n ≥ 1, we have |z|^{n+1}/(1-|z|) ≤ 2|z|^{n+1}. -/
+lemma norm_pow_div_one_sub_le {z : ℂ} {n : ℕ} (hz : ‖z‖ ≤ 1/2) :
+    ‖z‖ ^ (n + 1) / (1 - ‖z‖) ≤ 2 * ‖z‖ ^ (n + 1) := by
+  have h1mr_pos : 0 < 1 - ‖z‖ := by
+    have := norm_nonneg z
+    linarith
+  rw [div_le_iff₀ h1mr_pos]
+  have h_bound : 1 ≤ 2 * (1 - ‖z‖) := by linarith
+  calc ‖z‖ ^ (n + 1) = 1 * ‖z‖ ^ (n + 1) := by ring
+    _ ≤ 2 * (1 - ‖z‖) * ‖z‖ ^ (n + 1) := by
+        apply mul_le_mul_of_nonneg_right h_bound (pow_nonneg (norm_nonneg z) _)
+    _ = 2 * ‖z‖ ^ (n + 1) * (1 - ‖z‖) := by ring
+
+/-- For |z| ≤ 1/2, we have |z|^{n+1} ≤ 1/4 when n ≥ 1. -/
+lemma norm_pow_succ_le_quarter {z : ℂ} {n : ℕ} (hz : ‖z‖ ≤ 1/2) (hn : 1 ≤ n) :
+    ‖z‖ ^ (n + 1) ≤ 1/4 := by
+  have hz_nn : 0 ≤ ‖z‖ := norm_nonneg z
+  -- |z|^{n+1} ≤ |z|^2 ≤ (1/2)^2 = 1/4
+  have hz_le1 : ‖z‖ ≤ 1 := le_trans hz (by norm_num)
+  have hn2 : 2 ≤ n + 1 := by omega
+  have h1 : ‖z‖ ^ (n + 1) ≤ ‖z‖ ^ 2 := by
+    rcases eq_or_lt_of_le hz_nn with hz0 | hz_pos
+    · simp [← hz0]
+    · have hz_lt1 : ‖z‖ < 1 := lt_of_le_of_lt hz (by norm_num)
+      rw [pow_le_pow_iff_right_of_lt_one₀ hz_pos hz_lt1]
+      exact hn2
+  have h2 : ‖z‖ ^ 2 ≤ (1/2 : ℝ) ^ 2 := by
+    apply sq_le_sq' (by linarith) hz
+  linarith [h1, h2]
+
+/-- For |w| ≤ 1/2, we have |exp(w) - 1| ≤ 2|w|. -/
+lemma norm_exp_sub_one_le_two_mul' {w : ℂ} (hw : ‖w‖ ≤ 1/2) :
+    ‖Complex.exp w - 1‖ ≤ 2 * ‖w‖ :=
+  norm_exp_sub_one_le_two_mul hw
 
 /-! ### Weierstrass product infrastructure -/
 
@@ -1261,6 +1514,41 @@ def weierstrassElementaryFactor (n : ℕ) (z : ℂ) : ℂ :=
 lemma weierstrassElementaryFactor_zero (z : ℂ) : weierstrassElementaryFactor 0 z = 1 - z := by
   simp only [weierstrassElementaryFactor, Finset.range_zero, Finset.sum_empty, Complex.exp_zero,
     mul_one]
+
+/-- The Weierstrass elementary factor at z = 0 is 1. -/
+@[simp]
+lemma weierstrassElementaryFactor_at_zero (n : ℕ) :
+    weierstrassElementaryFactor n 0 = 1 := by
+  unfold weierstrassElementaryFactor
+  have h_sum : (∑ k ∈ Finset.range n, (0 : ℂ) ^ (k + 1) / (k + 1)) = 0 := by
+    apply Finset.sum_eq_zero
+    intro k _
+    simp only [zero_pow (Nat.succ_ne_zero k), zero_div]
+  simp only [sub_zero, h_sum, Complex.exp_zero, mul_one]
+
+/-- The Weierstrass elementary factor equals 0 iff z = 1. -/
+lemma weierstrassElementaryFactor_eq_zero_iff {n : ℕ} {z : ℂ} :
+    weierstrassElementaryFactor n z = 0 ↔ z = 1 := by
+  unfold weierstrassElementaryFactor
+  simp only [mul_eq_zero, Complex.exp_ne_zero, or_false]
+  constructor
+  · intro h
+    have : (1 : ℂ) - z = 0 := h
+    have hz1 : z = 1 := by
+      have := congrArg (· + z) this
+      simp at this
+      exact this.symm
+    exact hz1
+  · intro h
+    simp [h]
+
+/-- For |z| < 1, the Weierstrass elementary factor is nonzero. -/
+lemma weierstrassElementaryFactor_ne_zero {n : ℕ} {z : ℂ} (hz : ‖z‖ < 1) :
+    weierstrassElementaryFactor n z ≠ 0 := by
+  intro h
+  rw [weierstrassElementaryFactor_eq_zero_iff] at h
+  rw [h] at hz
+  simp at hz
 
 /-- The elementary factor E₁(z) = (1 - z) * exp(z). -/
 lemma weierstrassElementaryFactor_one (z : ℂ) :
@@ -1335,24 +1623,27 @@ lemma weierstrassElementaryFactor_sub_one_bound {n : ℕ} {z : ℂ} (hz : ‖z�
       _ = ‖z‖ := norm_neg z
       _ ≤ 2 * ‖z‖ ^ 1 := by simp only [pow_one]; linarith [norm_nonneg z]
   · -- For n ≥ 1, we use the logarithmic analysis
-    -- The rigorous proof requires:
-    -- 1. Complex logarithm series: log(1-z) = -∑_{k≥1} z^k/k for |z| < 1
-    -- 2. Tail estimate: |∑_{k≥n+1} z^k/k| ≤ |z|^{n+1}/(1-|z|)
-    -- 3. Exponential estimate: |e^w - 1| ≤ |w|e^{|w|} for all w
+    have hz_lt : ‖z‖ < 1 := lt_of_le_of_lt hz (by norm_num : (1 : ℝ) / 2 < 1)
+    have h1mr_pos : 0 < 1 - ‖z‖ := sub_pos.mpr hz_lt
+    -- Key: E_n(z) = (1-z) * exp(P_n(z)) where P_n(z) = z + z²/2 + ... + zⁿ/n
+    -- log(E_n(z)) = log(1-z) + P_n(z) = -∑_{k≥n+1} z^k/k (the tail of -log(1-z))
+    -- For |z| ≤ 1/2: |log(E_n(z))| ≤ |z|^{n+1}/(1-|z|) ≤ 2|z|^{n+1}
+    -- Then |E_n(z) - 1| = |exp(log E_n(z)) - 1| ≤ |log E_n(z)| · e^{|log E_n(z)|}
     --
-    -- For |z| ≤ 1/2:
-    -- |log(E_n(z))| = |∑_{k≥n+1} z^k/k| ≤ |z|^{n+1}/(1-|z|) ≤ 2|z|^{n+1}
+    -- For the constant 2: when |z| ≤ 1/2, we have 1/(1-|z|) ≤ 2
+    -- So |log E_n(z)| ≤ 2|z|^{n+1}
+    -- And |E_n(z) - 1| ≤ 2|z|^{n+1} · e^{2|z|^{n+1}}
     --
-    -- Then |E_n(z) - 1| ≤ |log(E_n(z))| · e^{|log(E_n(z))|}
-    --                  ≤ 2|z|^{n+1} · e^{2|z|^{n+1}}
-    --                  ≤ 2|z|^{n+1} · e^{2·(1/2)^{n+1}}
-    --                  ≤ 2|z|^{n+1} · e  (since (1/2)^{n+1} ≤ 1/2 for n ≥ 0)
+    -- Since |z| ≤ 1/2 and n ≥ 1, we have |z|^{n+1} ≤ (1/2)^2 = 1/4
+    -- So e^{2|z|^{n+1}} ≤ e^{1/2} < 2
+    -- Thus |E_n(z) - 1| ≤ 2|z|^{n+1} · 2 = 4|z|^{n+1}
     --
-    -- For the stated bound 2|z|^{n+1}, we need a tighter analysis using
-    -- the specific structure of E_n. The constant 2 works for |z| ≤ 1/2.
+    -- For the tighter bound of 2|z|^{n+1}, we need the observation that
+    -- |exp(w) - 1| ≤ 2|w| for |w| ≤ 1/2 (from norm_exp_sub_one_le_two_mul)
     --
-    -- This is Lemma 15.8 in Rudin "Real and Complex Analysis" or
-    -- Theorem 5.12 in Ahlfors "Complex Analysis".
+    -- The full proof requires connecting E_n to the log series, which needs
+    -- careful handling of the complex logarithm branch.
+    -- This is Lemma 15.8 in Rudin "Real and Complex Analysis".
     sorry
 
 /-- **Weierstrass M-test for infinite products**
@@ -1902,9 +2193,8 @@ theorem blaschke_product_zeros {zeros : ℕ → ℂ} {mult : ℕ → ℕ}
     have h_pow_zero : (blaschkeFactor (zeros n) z) ^ mult n = 0 := by
       rw [h_factor_zero]
       exact zero_pow hmult_ne
-    -- The tprod of a sequence containing 0 is 0 (if it converges)
-    -- This requires the tprod API
-    sorry
+    -- The tprod of a sequence containing 0 is 0
+    exact tprod_eq_zero_of_eq_zero n h_pow_zero
 
 /-! ### Jensen's formula infrastructure -/
 
