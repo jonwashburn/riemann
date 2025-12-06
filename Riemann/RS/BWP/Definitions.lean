@@ -1,6 +1,10 @@
 import Mathlib.Analysis.NormedSpace.Connected
 import Mathlib.NumberTheory.Harmonic.ZetaAsymp
 import Riemann.RS.BWP.Constants
+-- Consolidated Mathlib-style imports (general lemmas now available from these):
+-- import Riemann.Mathlib.Analysis.Analytic.PowerSeriesCoefficients
+-- import Riemann.Mathlib.Topology.FilterNhdsWithin
+-- import Riemann.Mathlib.Analysis.Complex.SchurFunction
 
 /-!
 # Boundary Wedge Proof - Basic Definitions
@@ -14,6 +18,19 @@ This module contains the fundamental definitions used throughout the boundary we
 - Product constant calibration
 - Decay functions and weights
 - Residue bookkeeping
+
+## Consolidation Note
+
+The following general lemmas have been consolidated into Mathlib-style files:
+
+* `HasFPowerSeriesAt.iteratedDeriv_eq_coeff` → `Riemann.Mathlib.Analysis.Analytic.PowerSeriesCoefficients`
+* `AnalyticAt.eventually_eq_zero_or_exists_coeff_ne_zero` → same file
+* `AnalyticAt.eventually_eq_zero_or_exists_deriv_ne_zero` → same file
+* `Filter.eventually_nhdsWithin_iff` → `Riemann.Mathlib.Topology.FilterNhdsWithin`
+* `TopologicalSpace.discreteTopology_iff_isOpen_singleton_mem` → same file
+
+These lemmas are retained here for backward compatibility with the existing RS codebase.
+For new code, prefer importing from the consolidated locations above.
 -/
 
 namespace HasFPowerSeriesAt

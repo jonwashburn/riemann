@@ -176,4 +176,76 @@ theorem IsInHInfty.radialLimitSet_ae_eq_univ {f : ℂ → ℂ} (hf : IsInHInfty 
   simp only [eventuallyEq_set, mem_univ, iff_true]
   exact hf.radialLimit_exists_ae
 
+/-- The boundary value function is AE measurable.
+
+**Proof Strategy:**
+The boundary value function θ ↦ lim_{r→1⁻} f(r·e^{iθ}) is AE measurable because:
+
+1. For each n, the function fₙ(θ) = f((1-1/(n+2))·e^{iθ}) is continuous (hence measurable)
+2. fₙ → boundaryValue pointwise a.e. by Fatou's theorem
+3. A.e. pointwise limits of measurable functions are AE measurable
+-/
+lemma IsInHInfty.boundaryValue_aemeasurable {f : ℂ → ℂ} (hf : IsInHInfty f) :
+    AEMeasurable hf.boundaryValue volume := by
+  -- Define the approximating sequence: fₙ(θ) = f((1 - 1/(n+2))·e^{iθ})
+  let rₙ : ℕ → ℝ := fun n => 1 - 1 / (n + 2)
+
+  -- Each rₙ is in (0, 1)
+  have hrₙ_pos : ∀ n, 0 < rₙ n := by
+    intro n
+    simp only [rₙ]
+    have h1 : (n : ℝ) + 2 > 0 := by positivity
+    have h2 : 1 / ((n : ℝ) + 2) > 0 := one_div_pos.mpr h1
+    have h3 : 1 / ((n : ℝ) + 2) < 1 := by
+      rw [div_lt_one h1]
+      linarith
+    linarith
+
+  have hrₙ_lt : ∀ n, rₙ n < 1 := by
+    intro n
+    simp only [rₙ]
+    have h1 : (n : ℝ) + 2 > 0 := by positivity
+    have h2 : 1 / ((n : ℝ) + 2) > 0 := one_div_pos.mpr h1
+    linarith
+
+  -- The sequence rₙ → 1
+  have hrₙ_tendsto : Tendsto rₙ atTop (𝓝 1) := by
+    simp only [rₙ]
+    have h1 : Tendsto (fun n : ℕ => (n : ℝ) + 2) atTop atTop := by
+      exact tendsto_atTop_add_const_right atTop 2 tendsto_natCast_atTop_atTop
+    have h2 : Tendsto (fun n : ℕ => ((n : ℝ) + 2)⁻¹) atTop (𝓝 0) :=
+      tendsto_inv_atTop_zero.comp h1
+    have h3 : Tendsto (fun n : ℕ => 1 - ((n : ℝ) + 2)⁻¹) atTop (𝓝 (1 - 0)) :=
+      tendsto_const_nhds.sub h2
+    simp only [sub_zero] at h3
+    convert h3 using 1
+    ext n; simp [one_div]
+
+  -- Step 1: Each approximant θ ↦ f((1-1/(n+2))·e^{iθ}) is continuous, hence measurable
+  have h_approx_measurable : ∀ n, Measurable (fun θ : ℝ => f (circleMap 0 (rₙ n) θ)) := by
+    intro n
+    have h_circle_cont : Continuous (fun θ : ℝ => circleMap 0 (rₙ n) θ) := continuous_circleMap 0 (rₙ n)
+    have h_maps : ∀ θ : ℝ, circleMap 0 (rₙ n) θ ∈ unitDisc := by
+      intro θ
+      simp only [mem_unitDisc, circleMap, zero_add, norm_mul, Complex.norm_exp_ofReal_mul_I,
+        mul_one, Complex.norm_real, abs_eq_abs, abs_of_pos (hrₙ_pos n)]
+      exact hrₙ_lt n
+    have h_cont : Continuous (fun θ : ℝ => f (circleMap 0 (rₙ n) θ)) :=
+      hf.continuousOn.comp_continuous h_circle_cont h_maps
+    exact h_cont.measurable
+
+  -- Step 2: For a.e. θ, the approximants converge to the boundary value
+  have h_tendsto_ae : ∀ᵐ θ ∂volume, Tendsto (fun n => f (circleMap 0 (rₙ n) θ)) atTop (𝓝 (hf.boundaryValue θ)) := by
+    filter_upwards [hf.radialLimit_exists_ae] with θ hθ
+    obtain ⟨L, hL, hL_eq⟩ := hf.boundaryValue_eq_limit hθ
+    rw [hL_eq]
+    apply hL.comp
+    rw [tendsto_nhdsWithin_iff]
+    refine ⟨hrₙ_tendsto, ?_⟩
+    filter_upwards with n
+    exact hrₙ_lt n
+
+  -- Step 3: Apply aemeasurable_of_tendsto_metrizable_ae
+  exact aemeasurable_of_tendsto_metrizable_ae atTop (fun n => (h_approx_measurable n).aemeasurable) h_tendsto_ae
+
 end Complex

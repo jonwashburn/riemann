@@ -145,4 +145,9 @@ lemma norm_exp_sub_one_le_two_mul' {w : ℂ} (hw : ‖w‖ ≤ 1/2) :
         apply mul_le_mul_of_nonneg_left (le_of_lt h_exp_half_lt_two) (norm_nonneg w)
     _ = 2 * ‖w‖ := by ring
 
+-- Note: Complex logarithm series and related bounds are in PowerSeriesBounds.lean:
+-- * log_one_sub_eq_neg_tsum
+-- * summable_pow_div_add
+-- * norm_tsum_pow_div_succ_tail_le
+
 end Complex
