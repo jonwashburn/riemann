@@ -1,33 +1,36 @@
-# Build artifacts
-*.olean
-*.ilean
-*.c
-*.o
-*.trace
-
-# Lake build dirs
-.lake/
-**/.lake/
-
-# Sandbox and temporary workspaces
-sandbox_det2/
-
-# Editor / OS
+## macOS
 .DS_Store
-.vscode/
-.idea/
-
-# Python/Node caches (if present)
-__pycache__/
-node_modules/
-
-# Large bundle files
-complete_lean_bundle_v*.txt
-
-# Documentation files (excluded from recognition-riemann)
-*.tex
-*.txt
-*.pdf
-*.md
-
-old-rh/
+## Lake
+.lake/*
+.cache/*
+## Blueprint
+/blueprint/print/print.log
+/blueprint/web/
+/blueprint/src/web.paux
+/blueprint/src/web.bbl
+/blueprint/print/
+## TeX
+*.aux
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+*.fmt
+*.fot
+*.cb
+*.cb2
+.*.lb
+*.bbl
+*.bcf
+*.blg
+*-blx.aux
+*-blx.bib
+*.run.xml
+*.fdb_latexmk
+*.synctex
+*.synctex(busy)
+*.synctex.gz
+*.synctex.gz(busy)
+*.pdfsync
