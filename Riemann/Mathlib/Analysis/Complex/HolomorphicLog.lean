@@ -1,5 +1,3 @@
-
-import Mathlib
 import Riemann.Mathlib.Analysis.Complex.TaxicabPrimitive
 
 /-!
