@@ -155,7 +155,7 @@ lemma convex_rightHalfPlane : Convex ℝ rightHalfPlane := by
 lemma rectangularConvex_rightHalfPlane : RectangularConvex rightHalfPlane := by
   intro x y hx hy
   simp only [rightHalfPlane, mem_setOf_eq, add_re, mul_re, I_re, I_im, mul_zero, mul_one,
-             sub_zero] at hx hy ⊢
+    Complex.ofReal_re, Complex.ofReal_im, sub_self, add_zero] at hx hy ⊢
   exact ⟨hx, hy⟩
 
 lemma nonempty_rightHalfPlane : rightHalfPlane.Nonempty := ⟨1, by simp [rightHalfPlane]⟩
