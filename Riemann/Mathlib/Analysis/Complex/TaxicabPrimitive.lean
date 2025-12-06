@@ -1,9 +1,4 @@
-/-
-Copyright (c) 2025. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Mariagrazia
--/
-import Mathlib
+import Mathlib.Analysis.Complex.HasPrimitives
 import StrongPNT.PNT1_ComplexAnalysis
 
 /-!
