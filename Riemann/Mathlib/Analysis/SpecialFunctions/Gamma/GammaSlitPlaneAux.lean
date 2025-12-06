@@ -62,7 +62,9 @@ lemma differentiableOn_logGamma : DifferentiableOn ℂ logGamma rightHalfPlane :
 lemma exp_logGamma {z : ℂ} (hz : z ∈ rightHalfPlane) : exp (logGamma z) = Gamma z := by
   let g := Classical.choose exists_logGamma_aux
   have hexp : ∀ w ∈ rightHalfPlane, exp (g w) = Gamma w := (Classical.choose_spec exists_logGamma_aux).2
-  have h1 : 1 ∈ rightHalfPlane := HolomorphicLog.nonempty_rightHalfPlane.some_mem
+  have h1 : 1 ∈ rightHalfPlane := by
+    simp only [rightHalfPlane, mem_setOf_eq, one_re]
+    exact zero_lt_one
   simp only [logGamma]
   rw [exp_sub, hexp z hz, hexp 1 h1]
   rw [Complex.Gamma_one, div_one]
