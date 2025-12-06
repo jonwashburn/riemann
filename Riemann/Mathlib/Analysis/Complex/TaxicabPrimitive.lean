@@ -224,6 +224,7 @@ lemma mem_segment_add_re_of_mem_uIcc {a b x y : ℝ} (hy : y ∈ uIcc a b) :
   simp only [Complex.real_smul, Complex.ofReal_add, Complex.ofReal_sub, Complex.ofReal_mul, smul_eq_mul]
   ring
 
+omit [NormedSpace ℂ E] [CompleteSpace E] in
 lemma intervalIntegrable_seg_h {U : Set ℂ} {f : ℂ → E} (hf : ContinuousOn f U)
     {a b y : ℝ} (h_seg : segment ℝ ((a : ℂ) + y * I) ((b : ℂ) + y * I) ⊆ U) :
     IntervalIntegrable (fun x => f (x + y * I)) volume a b := by
@@ -233,6 +234,7 @@ lemma intervalIntegrable_seg_h {U : Set ℂ} {f : ℂ → E} (hf : ContinuousOn 
   apply h_seg
   exact mem_segment_add_im_of_mem_uIcc hx
 
+omit [NormedSpace ℂ E] [CompleteSpace E] in
 lemma intervalIntegrable_seg_v {U : Set ℂ} {f : ℂ → E} (hf : ContinuousOn f U)
     {a b x : ℝ} (h_seg : segment ℝ ((x : ℂ) + a * I) ((x : ℂ) + b * I) ⊆ U) :
     IntervalIntegrable (fun y => f (x + y * I)) volume a b := by
@@ -375,22 +377,13 @@ theorem DifferentiableOn.isExactOn_rectangularConvex {U : Set ℂ} (hU_open : Is
       -- Simplify the coordinates of P and R
       simp only [P, R, Complex.add_re, Complex.add_im, Complex.ofReal_re, Complex.ofReal_im,
                  Complex.mul_re, Complex.mul_im, Complex.I_re, Complex.I_im,
-                 mul_zero, mul_one, zero_mul, sub_zero, add_zero, zero_add]
-      -- Normalize remaining integrands using congrArg f and ring
-      -- LHS unnormalized: ∫ c.re..z.re, f (↑x + ↑c.im * I)
-      have heL1 : ∫ x in c.re..z.re, f (↑x + ↑c.im * I) = ∫ x in c.re..z.re, f (↑c.im * I + ↑x) :=
-        intervalIntegral.integral_congr fun x _ => congrArg f (add_comm _ _)
-      -- RHS unnormalized terms
-      have heR1 : ∫ x in z.re..w.re, f (↑x + ↑c.im * I) = ∫ x in z.re..w.re, f (↑c.im * I + ↑x) :=
-        intervalIntegral.integral_congr fun x _ => congrArg f (add_comm _ _)
-      have heR2 : ∫ y in c.im..z.im, f (↑w.re + ↑y * I) = ∫ y in c.im..z.im, f (I * ↑y + ↑w.re) :=
-        intervalIntegral.integral_congr fun y _ => congrArg f (by ring)
-      have heR3 : ∫ x in w.re..z.re, f (↑x + ↑z.im * I) = ∫ x in w.re..z.re, f (I * ↑z.im + ↑x) :=
-        intervalIntegral.integral_congr fun x _ => congrArg f (by ring)
-      have heR4 : ∫ y in z.im..c.im, f (↑z.re + ↑y * I) = ∫ y in z.im..c.im, f (I * ↑y + ↑z.re) :=
-        intervalIntegral.integral_congr fun y _ => congrArg f (by ring)
-      rw [heL1, heR1, heR2, heR3, heR4]
-      -- Now the integrands match. Use integral identities.
+                 mul_zero, mul_one, sub_zero, add_zero, zero_add]
+      -- All integrands need normalization to canonical form
+      -- Convert all f(a + b*I) to f(b*I + a) or f(I*b + a)
+      have hNorm := fun (a b : ℂ) => congrArg f (show a + b = b + a from add_comm a b)
+      -- The goal has many integral terms. Rather than rewriting each individually,
+      -- we use a more direct approach: show both sides are equal after simplification
+      -- First combine the integrals using add_adjacent
       have hc_eq : (c.re : ℂ) + c.im * I = c := by simp
       have h1 := intervalIntegrable_seg_h hf.continuousOn
                    (hU_convex.segment_subset (by rw [hc_eq]; exact hc) hc_z)
@@ -399,10 +392,40 @@ theorem DifferentiableOn.isExactOn_rectangularConvex {U : Set ℂ} (hU_open : Is
       have h3 := intervalIntegrable_seg_v hf.continuousOn (hU_convex.segment_subset hc_w hz_w)
       have h4 := intervalIntegrable_seg_v hf.continuousOn
                    (hU_convex.segment_subset hz_w (by rw [hw_eq]; exact hw_in_U))
-      simp_rw [← intervalIntegral.integral_add_adjacent_intervals h1 h2]
+      -- Combine c.re..z.re + z.re..w.re = c.re..w.re at height c.im
+      rw [← intervalIntegral.integral_add_adjacent_intervals h1 h2]
+      -- Combine c.im..z.im + z.im..w.im = c.im..w.im at x=w.re
       rw [← intervalIntegral.integral_add_adjacent_intervals h3 h4]
+      -- Apply integral symmetry to normalize bounds
       rw [intervalIntegral.integral_symm w.re z.re, intervalIntegral.integral_symm z.im c.im]
-      simp only [smul_add, smul_neg, neg_smul]
+      rw [intervalIntegral.integral_symm c.im z.im]
+      -- Distribute smul and simplify
+      simp only [smul_add, neg_neg]
+      -- Normalize integrands: f(a+b) = f(b+a)
+      have hn1 : ∫ x in c.re..z.re, f (↑x + ↑c.im * I) = ∫ x in c.re..z.re, f (↑c.im * I + ↑x) :=
+        intervalIntegral.integral_congr fun x _ => hNorm _ _
+      have hn2 : ∫ x in z.re..w.re, f (↑x + ↑z.im * I) = ∫ x in z.re..w.re, f (↑z.im * I + ↑x) :=
+        intervalIntegral.integral_congr fun x _ => hNorm _ _
+      have hn3 : ∫ y in c.im..z.im, f (↑z.re + ↑y * I) = ∫ y in c.im..z.im, f (↑y * I + ↑z.re) :=
+        intervalIntegral.integral_congr fun y _ => hNorm _ _
+      have hn4 : ∫ y in z.im..c.im, f (↑z.re + ↑y * I) = ∫ y in z.im..c.im, f (↑y * I + ↑z.re) :=
+        intervalIntegral.integral_congr fun y _ => hNorm _ _
+      rw [hn1, hn2, hn3, hn4]
+      -- Normalize more integrands on RHS
+      have hn5 : ∫ x in w.re..z.re, f (↑x + ↑c.im * I) = ∫ x in w.re..z.re, f (↑c.im * I + ↑x) :=
+        intervalIntegral.integral_congr fun x _ => hNorm _ _
+      have hn6 : ∫ x in w.re..z.re, f (↑x + ↑z.im * I) = ∫ x in w.re..z.re, f (↑z.im * I + ↑x) :=
+        intervalIntegral.integral_congr fun x _ => hNorm _ _
+      rw [hn5, hn6]
+      -- Use symmetry: ∫ a..b = -∫ b..a (for the RHS)
+      have hsym1 : ∫ x in w.re..z.re, f (↑z.im * I + ↑x) = -∫ x in z.re..w.re, f (↑z.im * I + ↑x) := by
+        rw [intervalIntegral.integral_symm]
+      have hsym2 : I • ∫ y in z.im..c.im, f (↑y * I + ↑z.re) = -I • ∫ y in c.im..z.im, f (↑y * I + ↑z.re) := by
+        rw [intervalIntegral.integral_symm, smul_neg, neg_smul]
+      rw [hsym1, hsym2]
+      -- Normalize -1 • I • A to (-1 * I) • A = -I • A
+      simp only [neg_smul]
+      -- Now all terms cancel
       abel
     rw [← sub_eq_zero, sub_add_eq_sub_sub, h_sum]
     have h_rect_zero : wedgeIntegral P R f = - wedgeIntegral R P f :=
