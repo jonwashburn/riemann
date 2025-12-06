@@ -297,31 +297,67 @@ theorem reproducing_property (F : Space E) (w : ℂ) :
         ∫ t, kernel E w t * star (F t) ∂ E.measure :=
     inner_kernel_integral_scalar (E := E) F w
 
-  -- Step 3 (analytic core, to be filled): show that
-  --   `⟨F, K_w⟩ = conj (F w)`,
-  -- by comparing `hI` with the conjugate of `hC'` using the Hermitian symmetry
-  -- of the kernel and de Branges’ growth/Poisson–Nevanlinna theory.
+  -- Step 3 (partial analytic step): rewrite `conj (F w)` as an integral using `hC'`
+  -- and `integral_conj`, leaving the comparison with `hI` as a separate analytic `TODO`.
+  have hC_conj :
+      Complex.conj (F w) =
+        ∫ t, Complex.conj (kernel E w t * F t) ∂ E.measure := by
+    -- Take conjugates of the Cauchy representation.
+    have h0 := congrArg Complex.conj hC'
+    -- Use `integral_conj` to move conjugation inside the integral.
+    have h1 :
+        Complex.conj (∫ t, kernel E w t * F t ∂ E.measure) =
+          ∫ t, Complex.conj (kernel E w t * F t) ∂ E.measure := by
+      -- `integral_conj` says `∫ conj (g t) dμ = conj (∫ g t dμ)`, so we use the symmetric form.
+      simpa [MeasureTheory.integral_conj] using
+        (MeasureTheory.integral_conj
+          (μ := E.measure)
+          (f := fun t : ℝ => kernel E w t * F t)).symm
+    exact h0.trans h1
+
+  -- Re-orient `hC_conj` as an equality with the integral on the left.
+  have hC_conj_int :
+      ∫ t, Complex.conj (kernel E w t * F t) ∂ E.measure =
+        Complex.conj (F w) := by
+    simpa [hC_conj]
+
+  -- Analytic core: compare the two scalar integrals.
+  have h_symm :
+      ∫ t, kernel E w t * star (F t) ∂ E.measure =
+        ∫ t, Complex.conj (kernel E w t * F t) ∂ E.measure := by
+    -- Reduce to an a.e. equality of integrands and apply `integral_congr_ae`.
+    have h_ae :
+        (fun t : ℝ => kernel E w t * star (F t)) =ᵐ[E.measure]
+        (fun t : ℝ => Complex.conj (kernel E w t * F t)) := by
+      /- TODO (analytic core):
+         * Use `Complex.conj_mul` and identification `star = Complex.conj` on `ℂ`
+           to rewrite `Complex.conj (kernel E w t * F t)` as
+           `Complex.conj (kernel E w t) * star (F t)`.
+         * Show that, for `E.measure`-a.e. real `t`, one has
+           `kernel E w t = Complex.conj (kernel E w t)` (or the corresponding
+           identity induced by the Hermitian symmetry `kernel E w z = conj (kernel E z w)`
+           and the de Branges admissibility/growth properties),
+           so that the two integrands coincide a.e.
+         * This is exactly the place where the analytic structure of the
+           de Branges kernel on the real axis is needed.
+      -/
+      sorry
+    exact MeasureTheory.integral_congr_ae h_ae
+
+  -- From the two integral expressions, deduce `⟨F, K_w⟩ = conj (F w)`.
   have h_conj :
       inner ℂ F (Kernel E w) = Complex.conj (F w) := by
-    /- TODO:
-       * Take the complex conjugate of `hC'` to express `conj (F w)` as an
-         integral with integrand involving `conj (kernel E w t * F t)`.
-       * Use the Hermitian symmetry of the kernel (cf. `kernel_off_diag`,
-         `kernel_diag` and the `kernel_conj_symm`-type lemmas) and the
-         admissibility of `F/E`, `F#/E` to identify this integral with
-         the `L²(μ_E)` inner product integral `hI`.
-       * This is the analytic heart of de Branges’ Theorem 11/19.
-    -/
-    sorry
+    calc
+      inner ℂ F (Kernel E w)
+          = ∫ t, kernel E w t * star (F t) ∂ E.measure := hI
+      _ = ∫ t, Complex.conj (kernel E w t * F t) ∂ E.measure := h_symm
+      _ = Complex.conj (F w) := hC_conj_int
 
   -- Step 4: Use conjugate symmetry of the inner product to flip the arguments.
-  -- From `⟨F, K_w⟩ = conj (F w)` we get `⟨K_w, F⟩ = F w`.
   have := congrArg Complex.conj h_conj
   -- `conj (⟨F, K_w⟩) = conj (conj (F w)) = F w`, and
   -- `conj (⟨F, K_w⟩) = ⟨K_w, F⟩` by `inner_conj_symm`.
   simpa [inner_conj_symm] using this
-
-
 
 
 end DeBranges

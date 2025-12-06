@@ -24,3 +24,6 @@ name = "VD"
 
 [[lean_lib]]
 name = "PhysLean"
+
+[[lean_lib]]
+name = "Carleson"

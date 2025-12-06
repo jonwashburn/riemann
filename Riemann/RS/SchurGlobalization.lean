@@ -11,6 +11,19 @@ import Mathlib.Tactic
 import Mathlib.Topology.Instances.Complex
 import Mathlib.Topology.MetricSpace.Basic
 import Riemann.academic_framework.Domain
+-- Consolidated Mathlib-style import (general Schur/Cayley lemmas):
+-- import Riemann.Mathlib.Analysis.Complex.SchurFunction
+
+/-!
+## Consolidation Note
+
+General Schur function lemmas (`IsSchurOn`, `schur_of_cayley_re_nonneg_on`,
+`SchurOnRectangles`, `schur_pinches_to_one`) have been consolidated into
+`Riemann.Mathlib.Analysis.Complex.SchurFunction`.
+
+The versions below are specialized for the zeta/RH context and are retained
+for backward compatibility with the existing RS codebase.
+-/
 
 noncomputable section
 
