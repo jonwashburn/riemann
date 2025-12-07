@@ -1,8 +1,4 @@
-/-
-Copyright (c) 2024. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: [Your Name]
--/
+
 import Mathlib
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetKernel
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetFormula
@@ -179,11 +175,11 @@ theorem stirling_asymptotic :
   · exact factorial_asymptotic
   · filter_upwards [Filter.eventually_gt_atTop 0] with n hn
     apply ne_of_gt
-    apply mul_pos (Real.sqrt_pos.mpr _) (rpow_pos_of_pos _ _)
-    · have : (0 : ℝ) < n := Nat.cast_pos.mpr hn
-      positivity
-    · have : (0 : ℝ) < n := Nat.cast_pos.mpr hn
-      positivity
+    have hn_pos : (0 : ℝ) < n := Nat.cast_pos.mpr hn
+    apply mul_pos (Real.sqrt_pos.mpr _) (pow_pos _ _)
+    · positivity
+    · have : 0 < n / Real.exp 1 := div_pos hn_pos (Real.exp_pos 1)
+      linarith
 
 end Stirling
 
