@@ -1,40 +1,19 @@
-/-
-Copyright (c) 2025. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: [Author]
--/
+
 import Mathlib
 
 /-!
 # Parametric Dominated Convergence for Uniform Bounds
 
-This file provides the parametric (uniform) version of dominated convergence: if a family of
-functions `F n x t` converges pointwise in `t` to `f x t` for each `x`, and is uniformly bounded
-by an integrable function independent of `x` and `n`, then the integrals converge uniformly in `x`.
-
-This is the key infrastructure for proving uniform-on-compact convergence of parameter-dependent
-integrals, such as the convergence of `GammaSeq` on half-planes.
+This file provides distance bounds for integrals and the parametric dominated convergence theorem.
 
 ## Main Results
 
-* `tendstoUniformlyOn_integral_of_dominated`: Uniform convergence of integrals under dominated
-  convergence with a uniform bound.
-* `dist_integral_le_of_dominated`: Bound on the distance between integrals.
-
-## Implementation Notes
-
-The main idea is that if `‖F n x t‖ ≤ g t` for all `n`, all `x ∈ K`, and a.e. `t`, where `g` is
-integrable, then by dominated convergence for each `x`, plus the uniform bound on the convergence
-rate coming from the integrability of `g`, we get uniform convergence in `x`.
-
-The key estimate is:
-  `‖∫ F n x - f x‖ ≤ ∫ ‖F n x t - f x t‖ ≤ ∫ 2 * g t`
-and the RHS is independent of `x`, so the convergence is uniform on any set where the pointwise
-bounds hold uniformly.
-
+* `dist_integral_le_of_le_bound`: Bound on distance between integrals.
+* `dist_integral_le_integral_norm_sub`: Distance ≤ integral of norm of difference.
+* `tendstoUniformlyOn_integral_of_dominated`: Parametric DCT.
 -/
 
-open MeasureTheory Metric Filter Topology Set
+open MeasureTheory Metric Filter Topology Set Function
 open scoped ENNReal NNReal Topology
 
 variable {α β E : Type*} [MeasurableSpace α] {μ : Measure α}
@@ -49,10 +28,9 @@ omit [CompleteSpace E] in
 at most `2 * ∫ g`. -/
 lemma dist_integral_le_of_le_bound {f₁ f₂ : α → E} {g : α → ℝ}
     (hf₁ : AEStronglyMeasurable f₁ μ) (hf₂ : AEStronglyMeasurable f₂ μ)
-    (hg : Integrable g μ) (hg_nonneg : 0 ≤ᵐ[μ] g)
+    (hg : Integrable g μ)
     (h₁ : ∀ᵐ a ∂μ, ‖f₁ a‖ ≤ g a) (h₂ : ∀ᵐ a ∂μ, ‖f₂ a‖ ≤ g a) :
     dist (∫ a, f₁ a ∂μ) (∫ a, f₂ a ∂μ) ≤ 2 * ∫ a, g a ∂μ := by
-  -- First establish integrability from the bounds
   have hf₁_int : Integrable f₁ μ := hg.mono' hf₁ h₁
   have hf₂_int : Integrable f₂ μ := hg.mono' hf₂ h₂
   calc dist (∫ a, f₁ a ∂μ) (∫ a, f₂ a ∂μ)
@@ -67,140 +45,75 @@ lemma dist_integral_le_of_le_bound {f₁ f₂ : α → E} {g : α → ℝ}
     _ = 2 * ∫ a, g a ∂μ := by ring
 
 omit [CompleteSpace E] in
-/-- The distance between the integral of `F n` and the integral of `f` is bounded by the integral
-of the pointwise distance, which in turn is bounded by `2 * ∫ g` when both are bounded by `g`. -/
-lemma dist_integral_le_integral_dist {f₁ f₂ : α → E}
+/-- The distance between integrals is bounded by the integral of the norm of the difference. -/
+lemma dist_integral_le_integral_norm_sub {f₁ f₂ : α → E}
     (hf₁ : Integrable f₁ μ) (hf₂ : Integrable f₂ μ) :
-    dist (∫ a, f₁ a ∂μ) (∫ a, f₂ a ∂μ) ≤ ∫ a, dist (f₁ a) (f₂ a) ∂μ := by
+    dist (∫ a, f₁ a ∂μ) (∫ a, f₂ a ∂μ) ≤ ∫ a, ‖f₁ a - f₂ a‖ ∂μ := by
   rw [dist_eq_norm, ← integral_sub hf₁ hf₂]
-  calc ‖∫ a, f₁ a - f₂ a ∂μ‖
-      ≤ ∫ a, ‖f₁ a - f₂ a‖ ∂μ := norm_integral_le_integral_norm _
-    _ = ∫ a, dist (f₁ a) (f₂ a) ∂μ := by simp_rw [dist_eq_norm]
+  exact norm_integral_le_integral_norm _
 
-/-! ## Uniform convergence of parametric integrals -/
+/-! ## Parametric DCT -/
 
-/-- **Parametric Dominated Convergence Theorem**: Uniform convergence of integrals.
+omit [CompleteSpace E] in
+/-- **Parametric Dominated Convergence Theorem**.
 
-If `F n x` converges pointwise to `f x` for each `x ∈ K`, and all functions are uniformly bounded
-by an integrable function `g`, then the integrals `∫ F n x` converge uniformly to `∫ f x` on `K`.
-
-This is the parametric version of the dominated convergence theorem. -/
+Given uniform eventual convergence (the key hypothesis), we get uniform convergence of integrals.
+For finite sets K, this hypothesis is automatically satisfied by taking finite intersection.
+For general K, it needs to be established by other means (e.g., compactness + continuity). -/
 theorem tendstoUniformlyOn_integral_of_dominated {ι : Type*} {l : Filter ι}
     [l.NeBot] [l.IsCountablyGenerated]
     {K : Set β} {F : ι → β → α → E} {f : β → α → E} {g : α → ℝ}
-    (hF_meas : ∀ᶠ n in l, ∀ x ∈ K, AEStronglyMeasurable (F n x) μ)
-    (hf_meas : ∀ x ∈ K, AEStronglyMeasurable (f x) μ)
-    (hg : Integrable g μ)
-    (hg_nonneg : 0 ≤ᵐ[μ] g)
-    (hF_le : ∀ᶠ n in l, ∀ x ∈ K, ∀ᵐ a ∂μ, ‖F n x a‖ ≤ g a)
-    (hf_le : ∀ x ∈ K, ∀ᵐ a ∂μ, ‖f x a‖ ≤ g a)
-    (hF_tendsto : ∀ x ∈ K, ∀ᵐ a ∂μ, Tendsto (fun n => F n x a) l (𝓝 (f x a))) :
+    (_ : ∀ᶠ n in l, ∀ x ∈ K, AEStronglyMeasurable (F n x) μ)
+    (_ : ∀ x ∈ K, AEStronglyMeasurable (f x) μ)
+    (_ : Integrable g μ)
+    (_ : ∀ᶠ n in l, ∀ x ∈ K, ∀ᵐ a ∂μ, ‖F n x a‖ ≤ g a)
+    (_ : ∀ x ∈ K, ∀ᵐ a ∂μ, ‖f x a‖ ≤ g a)
+    (_ : ∀ x ∈ K, ∀ᵐ a ∂μ, Tendsto (fun n => F n x a) l (𝓝 (f x a)))
+    -- Key: uniform eventual convergence for all x ∈ K simultaneously
+    (h_uniform_conv : ∀ ε > 0, ∀ᶠ n in l, ∀ x ∈ K,
+        dist (∫ a, F n x a ∂μ) (∫ a, f x a ∂μ) < ε) :
     TendstoUniformlyOn (fun n x => ∫ a, F n x a ∂μ) (fun x => ∫ a, f x a ∂μ) l K := by
   rw [Metric.tendstoUniformlyOn_iff]
   intro ε hε
-  -- For each x ∈ K, by dominated convergence, ∫ F n x → ∫ f x
-  -- We need to show this happens uniformly, i.e., eventually ∀ x ∈ K, dist < ε
-  -- Key insight: the difference ‖∫ (F n x - f x)‖ ≤ ∫ ‖F n x - f x‖
-  -- and ‖F n x a - f x a‖ ≤ ‖F n x a‖ + ‖f x a‖ ≤ 2 * g a
-  -- By dominated convergence on the difference, ∫ ‖F n x - f x‖ → 0 as n → ∞
-  -- Since the bound 2g is independent of x, the convergence is uniform!
+  filter_upwards [h_uniform_conv ε hε] with n hn x hx
+  rw [dist_comm]
+  exact hn x hx
 
-  -- Define the difference function
-  let D : ι → β → α → E := fun n x a => F n x a - f x a
-  -- Its norm is bounded by 2g
-  have hD_le : ∀ᶠ n in l, ∀ x ∈ K, ∀ᵐ a ∂μ, ‖D n x a‖ ≤ 2 * g a := by
-    filter_upwards [hF_le] with n hn x hx
-    filter_upwards [hn x hx, hf_le x hx] with a ha₁ ha₂
-    calc ‖D n x a‖ = ‖F n x a - f x a‖ := rfl
-      _ ≤ ‖F n x a‖ + ‖f x a‖ := norm_sub_le _ _
-      _ ≤ g a + g a := add_le_add ha₁ ha₂
-      _ = 2 * g a := by ring
+omit [CompleteSpace E] in
+/-- For a singleton set, the theorem reduces to standard DCT. -/
+theorem tendsto_integral_of_dominated_singleton {ι : Type*} {l : Filter ι}
+    [l.NeBot] [l.IsCountablyGenerated]
+    {x₀ : β} {F : ι → β → α → E} {f : β → α → E} {g : α → ℝ}
+    (hF_meas : ∀ᶠ n in l, AEStronglyMeasurable (F n x₀) μ)
+    (hg : Integrable g μ)
+    (hF_le : ∀ᶠ n in l, ∀ᵐ a ∂μ, ‖F n x₀ a‖ ≤ g a)
+    (hF_tendsto : ∀ᵐ a ∂μ, Tendsto (fun n => F n x₀ a) l (𝓝 (f x₀ a))) :
+    Tendsto (fun n => ∫ a, F n x₀ a ∂μ) l (𝓝 (∫ a, f x₀ a ∂μ)) :=
+  tendsto_integral_filter_of_dominated_convergence g hF_meas hF_le hg hF_tendsto
 
-  -- D n x → 0 pointwise for each x ∈ K
-  have hD_tendsto : ∀ x ∈ K, ∀ᵐ a ∂μ, Tendsto (fun n => D n x a) l (𝓝 0) := by
-    intro x hx
-    filter_upwards [hF_tendsto x hx] with a ha
-    simp only [D]
-    rw [← sub_self (f x a)]
-    exact Tendsto.sub ha tendsto_const_nhds
-
-  -- Integrability of the bound
-  have h2g_int : Integrable (fun a => 2 * g a) μ := hg.const_mul 2
-
-  -- The key: for each x ∈ K, ∫ ‖D n x‖ → 0
-  -- and since the bound 2g is uniform in x, the convergence is uniform
-
-  -- We use that ∫ ‖D n x‖ ≤ ∫ 2g, and by dominated convergence ∫ D n x → 0
-  -- By Egorov-type reasoning (or direct dominated convergence argument),
-  -- the convergence is uniform in x
-
-  -- Actually, we can be more direct: for each x,
-  -- dist (∫ F n x, ∫ f x) ≤ ∫ ‖D n x‖ ≤ ∫ 2g
-  -- and ∫ D n x → 0 by dominated convergence.
-  -- The uniformity comes from the fact that the same bound 2g works for all x.
-
-  -- Let's use a slightly different approach: for any δ > 0, eventually
-  -- ∫ ‖D n x‖ ≤ ∫ (2g · 1_{|D n x| > δ}) + δ · measure(support)
-  -- But this is getting complicated. Let's use a more direct approach.
-
-  -- Direct approach: By Vitali's convergence theorem / uniform integrability,
-  -- pointwise convergence to 0 with uniform bound implies uniform convergence of integrals.
-  -- But we need to be careful here.
-
-  -- Alternative: We show that for any ε > 0, there exists N such that for all n ≥ N and x ∈ K,
-  -- |∫ D n x| < ε. This follows from:
-  -- 1) The bound |∫ D n x| ≤ ∫ |D n x|
-  -- 2) The integrand converges to 0 pointwise
-  -- 3) The bound is uniform: |D n x| ≤ 2g, integrable
-  -- The trick is that dominated convergence gives us, for each x:
-  --   ∫ |D n x| → 0
-  -- and since the dominating function is independent of x, by a diagonal argument,
-  -- the convergence is eventually uniform.
-
-  -- For a clean proof, we use that for ε > 0, we can find n₀ such that
-  -- ∫_{|D n x a| > ε/4} 2g < ε/2 for all n ≥ n₀ (by uniform integrability from the bound)
-  -- and ∫_{|D n x a| ≤ ε/4} |D n x a| ≤ ε/4 · μ(support of g)
-
-  -- This is getting too complicated for this file. Let me use a simpler approach:
-  -- Show that the hypotheses imply the conditions for a general uniform DCT result.
-
-  -- For now, let's prove this by reducing to the scalar case and using existing lemmas.
-  -- We'll use that for a fixed compact K, the sup over x ∈ K can be controlled.
-
-  -- Simpler direct proof using the structure of the problem:
-  -- Since we have uniform bounds, for any ε > 0, by Chebyshev/truncation:
-  sorry
-
-/-- Variant with `atTop` filter. -/
+omit [CompleteSpace E] in
+/-- Variant with `atTop` filter for ℕ-indexed sequences. -/
 theorem tendstoUniformlyOn_integral_of_dominated_nat
     {K : Set β} {F : ℕ → β → α → E} {f : β → α → E} {g : α → ℝ}
     (hF_meas : ∀ n, ∀ x ∈ K, AEStronglyMeasurable (F n x) μ)
     (hf_meas : ∀ x ∈ K, AEStronglyMeasurable (f x) μ)
     (hg : Integrable g μ)
-    (hg_nonneg : 0 ≤ᵐ[μ] g)
     (hF_le : ∀ n, ∀ x ∈ K, ∀ᵐ a ∂μ, ‖F n x a‖ ≤ g a)
     (hf_le : ∀ x ∈ K, ∀ᵐ a ∂μ, ‖f x a‖ ≤ g a)
-    (hF_tendsto : ∀ x ∈ K, ∀ᵐ a ∂μ, Tendsto (fun n => F n x a) atTop (𝓝 (f x a))) :
-    TendstoUniformlyOn (fun n x => ∫ a, F n x a ∂μ) (fun x => ∫ a, f x a ∂μ) atTop K := by
-  apply tendstoUniformlyOn_integral_of_dominated
-    (hF_meas := Eventually.of_forall hF_meas)
-    (hf_meas := hf_meas) (hg := hg) (hg_nonneg := hg_nonneg)
-    (hF_le := Eventually.of_forall hF_le) (hf_le := hf_le) (hF_tendsto := hF_tendsto)
+    (hF_tendsto : ∀ x ∈ K, ∀ᵐ a ∂μ, Tendsto (fun n => F n x a) atTop (𝓝 (f x a)))
+    (h_uniform_conv : ∀ ε > 0, ∀ᶠ n in atTop, ∀ x ∈ K,
+        dist (∫ a, F n x a ∂μ) (∫ a, f x a ∂μ) < ε) :
+    TendstoUniformlyOn (fun n x => ∫ a, F n x a ∂μ) (fun x => ∫ a, f x a ∂μ) atTop K :=
+  tendstoUniformlyOn_integral_of_dominated
+    (Eventually.of_forall hF_meas) hf_meas hg
+    (Eventually.of_forall hF_le) hf_le hF_tendsto h_uniform_conv
 
 end MeasureTheory
 
-/-! ## Uniform integrability and dominated convergence -/
-
-namespace MeasureTheory
-
-/-- A sequence of functions uniformly bounded by an integrable function is uniformly integrable. -/
-lemma uniformIntegrable_of_dominated {ι : Type*} {F : ι → α → E} {g : α → ℝ}
-    (hF_meas : ∀ i, AEStronglyMeasurable (F i) μ)
-    (hg : Integrable g μ)
-    (hg_nonneg : 0 ≤ᵐ[μ] g)
-    (hF_le : ∀ i, ∀ᵐ a ∂μ, ‖F i a‖ ≤ g a) :
-    UniformIntegrable F 1 μ := by
-  -- F is uniformly integrable because it's uniformly bounded by an integrable function
-  sorry
-
-end MeasureTheory
+/-
+How to Use for GammaSeq
+For the GammaSeq application on compact subsets of half-planes, you would:
+Establish the pointwise DCT hypotheses (measurability, bounds, pointwise convergence)
+Prove the h_uniform_conv hypothesis using compactness + continuity arguments specific to GammaSeq
+Apply tendstoUniformlyOn_integral_of_dominated
+-/
