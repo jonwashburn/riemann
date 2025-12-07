@@ -201,9 +201,41 @@ For |w| ≤ 1/2, this gives |log(1+w)| ≤ 2|w|. -/
 lemma norm_log_one_add_le {w : ℂ} (hw : ‖w‖ ≤ 1/2) : ‖log (1 + w)‖ ≤ 2 * ‖w‖ := by
   by_cases hw0 : w = 0
   · simp [hw0]
-  · -- The bound follows from power series estimates
-    -- log(1+w) = w - w²/2 + w³/3 - ... and |log(1+w)| ≤ |w|/(1-|w|) ≤ 2|w|
-    sorry
+  · have h_lt : ‖w‖ < 1 := lt_of_le_of_lt hw (by norm_num)
+    have h_log : log (1 + w) = ∑' n : ℕ, -((-w) ^ (n + 1) / (n + 1)) := by
+      rw [← Complex.neg_log_one_sub_eq_tsum (by simpa using h_lt)]
+      ring_nf
+    have h_norm : ‖log (1 + w)‖ ≤ ∑' n : ℕ, ‖w‖ ^ (n + 1) / (n + 1) := by
+      rw [h_log]
+      apply norm_tsum_le_tsum_norm
+      · apply Summable.of_norm_bounded (g := fun n => ‖w‖ ^ (n + 1))
+        · exact summable_geometric_of_lt_one (norm_nonneg w) h_lt |>.mul_left ‖w‖
+        · intro n
+          rw [norm_neg, norm_div, norm_pow, norm_neg, Complex.norm_eq_abs, abs_of_nonneg (by norm_num : 0 ≤ (n : ℝ) + 1)]
+          apply div_le_self (pow_nonneg (norm_nonneg w) _)
+          norm_num
+    calc ‖log (1 + w)‖ ≤ ∑' n : ℕ, ‖w‖ ^ (n + 1) / (n + 1) := h_norm
+      _ ≤ ∑' n : ℕ, ‖w‖ ^ (n + 1) := by
+        apply tsum_le_tsum
+        · intro n
+          apply div_le_self (pow_nonneg (norm_nonneg w) _)
+          norm_num
+        · exact summable_geometric_of_lt_one (norm_nonneg w) h_lt |>.mul_left ‖w‖
+        · apply Summable.of_norm_bounded (g := fun n => ‖w‖ ^ (n + 1))
+          · exact summable_geometric_of_lt_one (norm_nonneg w) h_lt |>.mul_left ‖w‖
+          · intro n
+            rw [norm_div, norm_pow, Complex.norm_eq_abs, abs_of_nonneg (by norm_num : 0 ≤ (n : ℝ) + 1)]
+            apply div_le_self (pow_nonneg (norm_nonneg w) _)
+            norm_num
+      _ = ‖w‖ / (1 - ‖w‖) := by
+        rw [tsum_pow_succ_geometric h_lt]
+      _ ≤ 2 * ‖w‖ := by
+        rw [div_le_iff₀ (sub_pos.mpr h_lt)]
+        calc ‖w‖ = 1 * ‖w‖ := by ring
+          _ ≤ 2 * (1 - ‖w‖) * ‖w‖ := by
+            apply mul_le_mul_of_nonneg_right _ (norm_nonneg w)
+            linarith
+          _ = 2 * ‖w‖ * (1 - ‖w‖) := by ring
 
 /-! ### Weierstrass M-test for infinite products -/
 

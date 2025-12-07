@@ -27,3 +27,6 @@ name = "PhysLean"
 
 [[lean_lib]]
 name = "Carleson"
+
+[[lean_lib]]
+name = "DeRhamCohomology"
