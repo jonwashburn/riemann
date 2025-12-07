@@ -80,10 +80,10 @@ theorem log_factorial_theta {n : ℕ} (hn : 0 < n) :
 /-- Helper for exp(log x / 2) = sqrt x. -/
 lemma exp_half_log {x : ℝ} (hx : 0 < x) :
     Real.exp (Real.log x / 2) = Real.sqrt x := by
-  rw [eq_comm, Real.sqrt_eq_iff_sq_eq (Real.exp_pos _).le hx.le]
-  rw [sq, ← Real.exp_add, ← two_mul, mul_div_cancel₀]
-  · exact Real.exp_log hx
-  · norm_num
+  rw [Real.sqrt_eq_rpow]
+  rw [Real.rpow_def_of_pos hx]
+  congr 1
+  ring
 
 /-- Exponentiating the Stirling formula with θ < 1 gives the upper bound.
 
@@ -104,23 +104,28 @@ theorem factorial_upper_robbins (n : ℕ) (hn : 0 < n) :
     rw [hlog]; linarith
   have h_exp := Real.exp_le_exp.mpr hlog_ub
   rw [Real.exp_log (Nat.cast_pos.mpr (Nat.factorial_pos n))] at h_exp
-  have h_pow_eq : (n : ℝ) ^ n / Real.exp n = ((n : ℝ) / Real.exp 1) ^ n := by
-    rw [div_rpow (Nat.cast_nonneg n) (Real.exp_pos 1).le, Real.rpow_natCast, Real.rpow_natCast]
-  have h_exp_n : Real.exp ((n : ℝ) * Real.log n) = (n : ℝ) ^ n := by
-    rw [← Real.rpow_natCast, ← Real.rpow_def_of_pos hn_pos, mul_comm]
+  have h_pow_eq : (n : ℝ) ^ (n : ℝ) / Real.exp n = ((n : ℝ) / Real.exp 1) ^ n := by
+    have h1 : Real.exp n = (Real.exp 1) ^ n := by rw [← Real.exp_one_rpow, Real.rpow_natCast]
+    rw [h1]
+    have h2 : (n : ℝ) ^ (n : ℝ) = (n : ℝ) ^ n := Real.rpow_natCast n n
+    rw [h2, div_pow]
+  have h_exp_n : Real.exp ((n : ℝ) * Real.log n) = (n : ℝ) ^ (n : ℝ) := by
+    rw [mul_comm, Real.rpow_def_of_pos hn_pos]
   have h_sqrt : Real.exp (Real.log (2 * Real.pi * n) / 2) = Real.sqrt (2 * Real.pi * n) :=
     exp_half_log (by positivity : 0 < 2 * Real.pi * n)
   calc (n.factorial : ℝ)
       ≤ Real.exp (n * Real.log n - n + Real.log (2 * Real.pi * n) / 2 + 1 / (12 * n)) := h_exp
     _ = Real.exp (n * Real.log n) * Real.exp (-n) *
         Real.exp (Real.log (2 * Real.pi * n) / 2) * Real.exp (1 / (12 * n)) := by
-        rw [Real.exp_add, Real.exp_add, Real.exp_add]; ring_nf
-    _ = (n : ℝ) ^ n * Real.exp (-n) *
+        have h : (n : ℝ) * Real.log n - n + Real.log (2 * Real.pi * n) / 2 + 1 / (12 * n) =
+            n * Real.log n + -n + Real.log (2 * Real.pi * n) / 2 + 1 / (12 * n) := by ring
+        rw [h, Real.exp_add, Real.exp_add, Real.exp_add]
+    _ = (n : ℝ) ^ (n : ℝ) * Real.exp (-n) *
         Real.sqrt (2 * Real.pi * n) * Real.exp (1 / (12 * n)) := by
         rw [h_exp_n, h_sqrt]
-    _ = Real.sqrt (2 * Real.pi * n) * ((n : ℝ) ^ n * Real.exp (-n)) *
+    _ = Real.sqrt (2 * Real.pi * n) * ((n : ℝ) ^ (n : ℝ) * Real.exp (-n)) *
         Real.exp (1 / (12 * n)) := by ring
-    _ = Real.sqrt (2 * Real.pi * n) * ((n : ℝ) ^ n / Real.exp n) *
+    _ = Real.sqrt (2 * Real.pi * n) * ((n : ℝ) ^ (n : ℝ) / Real.exp n) *
         Real.exp (1 / (12 * n)) := by
         congr 2
         rw [Real.exp_neg, div_eq_mul_inv]

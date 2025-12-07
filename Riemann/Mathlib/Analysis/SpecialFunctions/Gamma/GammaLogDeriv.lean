@@ -354,136 +354,6 @@ lemma GammaSeq_tendsto_uniformlyOn_compact {ε : ℝ} (hε : 0 < ε) {K : Set �
     TendstoUniformlyOn (fun n z => GammaSeq z n) Gamma atTop K :=
   GammaSeq_tendsto_uniformlyOn_halfplane' hε hK_compact hK_subset
 
-/-- Uniform convergence of `GammaSeq` on closed half-planes.
-
-For any `ε > 0`, `GammaSeq z n` converges to `Gamma z` uniformly on `{z | ε ≤ Re(z)}`.
-The key insight is that the dominated convergence bound in the Gamma integral is
-independent of `z` for `z` in a half-plane: the bound `exp(-x) * x^(ε-1)` works
-for all `z` with `Re(z) ≥ ε`, so the convergence rate is uniform.
-
-Note: This result follows from the parametric dominated convergence theorem with
-uniform bounds. The full proof requires extracting the uniform rate from the
-dominated convergence argument in `approx_Gamma_integral_tendsto_Gamma_integral`.
-For the locally uniform result (which is what's needed for the derivative
-interchange theorem), see `tendstoLocallyUniformlyOn_GammaSeq` which uses
-`GammaSeq_tendsto_uniformlyOn_compact` and doesn't require this unbounded result. -/
-lemma GammaSeq_tendsto_uniformlyOn_halfplane {ε : ℝ} (hε : 0 < ε) :
-    TendstoUniformlyOn (fun n z => GammaSeq z n) Gamma atTop {z : ℂ | ε ≤ z.re} := by
-  -- The proof strategy:
-  -- 1. For z in {ε ≤ Re(z)}, the Gamma integrand |x^(z-1)| = x^(Re(z)-1) satisfies:
-  --    - For 0 < x ≤ 1: x^(Re(z)-1) ≤ x^(ε-1) (monotonicity in exponent)
-  --    - For x > 1: dominated by exp(-x) regardless of Re(z)
-  -- 2. The approximation error |(1-x/n)^n - exp(-x)| → 0 uniformly on [0,n]
-  --    with rate O(x²/n) by Taylor expansion
-  -- 3. Thus the integral error → 0 at a rate that depends on n and ε, not on Re(z)
-  --
-  -- The uniform bound is: for all z with Re(z) ≥ ε and all n ≥ 1,
-  --   |GammaSeq z n - Gamma z| ≤ C(ε) / n for some constant C(ε)
-  -- This requires formalizing the error bound from the dominated convergence.
-  --
-  -- For applications, use `tendstoLocallyUniformlyOn_GammaSeq` which handles
-  -- compact subsets via `GammaSeq_tendsto_uniformlyOn_compact`.
-  rw [Metric.tendstoUniformlyOn_iff]
-  intro δ hδ
-  -- The uniform N comes from the dominated convergence rate
-  -- For each z, GammaSeq z n → Gamma z by Complex.GammaSeq_tendsto_Gamma
-  -- The rate is controlled by:
-  --   ∫₀^n |(1-x/n)^n - exp(-x)| × x^(ε-1) dx + ∫_n^∞ exp(-x) × x^(ε-1) dx
-  -- Both terms → 0 as n → ∞ at a rate independent of z (for Re(z) ≥ ε)
-
-  -- Use pointwise convergence at reference point ε to get a candidate N
-  have h_ref := GammaSeq_tendsto_Gamma ε
-  rw [Metric.tendsto_atTop] at h_ref
-  obtain ⟨N₀, hN₀⟩ := h_ref δ hδ
-
-  -- The dominated convergence structure ensures this N₀ works for all z in the half-plane
-  -- because the integrand bound exp(-x) × x^(ε-1) is z-independent
-  filter_upwards [eventually_ge_atTop (max N₀ 1)] with n hn
-  intro z hz
-  rw [dist_comm]
-  have hz_pos : 0 < z.re := lt_of_lt_of_le hε hz
-  have hn_ge : n ≥ N₀ := le_of_max_le_left hn
-  have hn_pos : 1 ≤ n := le_of_max_le_right hn
-  -- Use pointwise convergence for z
-  have h_z := GammaSeq_tendsto_Gamma z
-  rw [Metric.tendsto_atTop] at h_z
-  obtain ⟨M, hM⟩ := h_z δ hδ
-  by_cases hnM : n ≥ M
-  · exact hM n hnM
-  · -- When n < M: the dominated convergence argument shows that the convergence
-    -- rate at z is controlled by the same quantities as at ε.
-    -- Specifically, the error bound involves:
-    --   ∫₀^n |exp(-x) - (1-x/n)^n| × x^(Re(z)-1) dx ≤ ∫₀^n |...| × x^(ε-1) dx
-    -- for 0 < x ≤ 1 (using Re(z) ≥ ε), and similar for x > 1.
-    -- Thus if the bound at ε is < δ for n ≥ N₀, the same holds for all z.
-    --
-    -- For the formal proof, we would extract the explicit error bound from
-    -- approx_Gamma_integral_tendsto_Gamma_integral. The key observation is that
-    -- the dominating function exp(-x) × x^(ε-1) is z-independent.
-    push_neg at hnM
-    -- The uniform bound from DCT gives us the result
-    -- N₀ was chosen to make the error at ε < δ, and the error at z is bounded
-    -- by the error at ε (by the monotonicity of x^(σ-1) in σ for x ≤ 1)
-    have h_eq := GammaSeq_eq_approx_Gamma_integral hz_pos
-      (Nat.one_le_iff_ne_zero.mp hn_pos)
-    rw [h_eq]
-    have h_int := approx_Gamma_integral_tendsto_Gamma_integral hz_pos
-    rw [Metric.tendsto_atTop] at h_int
-    obtain ⟨K, hK⟩ := h_int δ hδ
-    by_cases hnK : n ≥ K
-    · exact dist_comm (Gamma z) _ ▸ (hK n hnK)
-    · -- Use the uniform bound structure
-      -- The error at z is bounded by the error at ε plus a small correction
-      -- For a full proof, formalize the error bound from the DCT
-      -- Here we note that the structure is correct; the details require
-      -- extracting the explicit rate from one_sub_div_pow_le_exp_neg
-      push_neg at hnK
-      -- The bound hN₀ applies at ε; by monotonicity it applies at z
-      -- This requires showing |integral error at z| ≤ |integral error at ε|
-      -- which follows from |x^(z-1)| = x^(Re(z)-1) ≤ x^(ε-1) for x ∈ (0,1]
-      sorry
-
-/-- GammaSeq tends to Gamma locally uniformly on the right half-plane.
-
-This uses uniform convergence on compact subsets of half-planes. -/
-lemma tendstoLocallyUniformlyOn_GammaSeq :
-    TendstoLocallyUniformlyOn (fun n z => GammaSeq z n) Gamma atTop {z : ℂ | 0 < z.re} := by
-  -- Use the characterization: locally uniform on open set iff uniform on compact subsets
-  have h_open : IsOpen {z : ℂ | 0 < z.re} := isOpen_lt continuous_const continuous_re
-  refine (tendstoLocallyUniformlyOn_iff_forall_isCompact h_open).2 ?_
-  intro K hKsubset hKcompact
-  -- K is compact and K ⊆ {z | 0 < Re z}
-  -- Find ε > 0 such that ε ≤ Re(z) for all z ∈ K
-  by_cases hK_empty : K.Nonempty
-  · -- K is nonempty, so we can find a lower bound for Re on K
-    -- Since K is compact and nonempty, and Re is continuous, Re(K) has a minimum
-    have h_compact_image : IsCompact (re '' K) := hKcompact.image continuous_re
-    have h_nonempty_image : (re '' K).Nonempty := hK_empty.image _
-    -- Get the inf of Re on K
-    have h_bdd_below : BddBelow (re '' K) := h_compact_image.isBounded.bddBelow
-    let m := sInf (re '' K)
-    have hm_mem : m ∈ re '' K := h_compact_image.isClosed.csInf_mem h_nonempty_image h_bdd_below
-    obtain ⟨z₀, hz₀_K, hz₀_re⟩ := hm_mem
-    have hm_pos : 0 < m := by
-      rw [← hz₀_re]
-      exact hKsubset hz₀_K
-    -- Choose ε = m/2 > 0
-    let ε := m / 2
-    have hε_pos : 0 < ε := by positivity
-    have hK_in_halfplane : K ⊆ {z : ℂ | ε ≤ z.re} := fun z hz => by
-      simp only [mem_setOf_eq]
-      have hmem : z.re ∈ re '' K := mem_image_of_mem _ hz
-      have hz_ge_m : m ≤ z.re := csInf_le h_bdd_below hmem
-      have hε_def : ε = m / 2 := rfl
-      have hm_pos' : 0 < m := hm_pos
-      linarith
-    -- Apply the compact uniform convergence result
-    exact GammaSeq_tendsto_uniformlyOn_compact hε_pos hKcompact hK_in_halfplane
-  · -- K is empty, trivially uniform
-    simp only [Set.not_nonempty_iff_eq_empty] at hK_empty
-    rw [hK_empty]
-    exact tendstoUniformlyOn_empty
-
 /-- For Re(z) > 0, the Euler sequence for digamma converges to digamma(z).
 
 The proof uses `logDeriv_tendsto`: if F_n → F locally uniformly and each F_n is
@@ -577,9 +447,9 @@ lemma tendsto_digamma_euler_seq {z : ℂ} (hz : ∀ n : ℕ, z ≠ -n) :
     -- Iterating m times: digamma(z) = digamma(z+m) - ∑_{k=0}^{m-1} 1/(z+k)
     have h_func_eq : digamma z = digamma (z + m) - correction := by
       unfold digamma correction
-      -- Use the Gamma recurrence: Γ(z+m) = (z+m-1)...(z) Γ(z)
-      -- log Γ(z) = log Γ(z+m) - ∑_{k=0}^{m-1} log(z+k)
-      -- Taking derivative: digamma z = digamma(z+m) - ∑_{k=0}^{m-1} 1/(z+k)
+      -- Use the digamma_add_one recurrence iterated m times
+      -- ψ(z) = ψ(z+1) - 1/z, hence ψ(z) = ψ(z+m) - Σ_{k=0}^{m-1} 1/(z+k)
+      -- This is a standard result from the Gamma function recurrence.
       sorry
     rw [h_func_eq]
     -- Show: digamma_euler_seq z n - digamma_euler_seq (z+m) n → -correction
@@ -608,7 +478,8 @@ lemma tendsto_digamma_euler_seq {z : ℂ} (hz : ∀ n : ℕ, z ≠ -n) :
         rw [h1, ← Finset.sum_sub_distrib]
       simp_rw [h_eq]
       -- The telescoping sum converges to -correction
-      -- This requires showing the tail ∑_{k=n+1}^{n+m} 1/(z+k) → 0
+      -- ∑_{j≤n} (1/(z+m+j) - 1/(z+j)) = -∑_{k<m} 1/(z+k) + tail → -correction
+      -- as the tail sum ∑_{k=n+1}^{n+m} 1/(z+k) → 0
       sorry
     -- Combine: digamma_euler_seq z = (diff) + digamma_euler_seq (z+m)
     have h_eq : digamma_euler_seq z = fun n =>

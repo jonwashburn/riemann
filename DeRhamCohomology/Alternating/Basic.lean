@@ -1,8 +1,7 @@
 import Mathlib.Topology.Algebra.Module.Basic
 import Mathlib.Topology.Algebra.Module.Alternating.Basic
 import Mathlib.Analysis.NormedSpace.Alternating.Basic
-import Mathlib.Analysis.NormedSpace.OperatorNorm.Mul
-
+import Mathlib.Analysis.Normed.Operator.Mul
 noncomputable section
 suppress_compilation
 
