@@ -1,6 +1,4 @@
-
-import Mathlib
-import Mathlib.MeasureTheory.Function.LpSeminorm.Defs
+import Mathlib.MeasureTheory.Function.LpSeminorm.CompareExp
 
 /-!
 # Lp Space Monotonicity with Finite Measure Support
@@ -153,16 +151,20 @@ end LpMonotonicity
 
 section Interpolation
 
+omit [NormedSpace ℝ E] in
 /-- Hölder interpolation: if `f ∈ L^p ∩ L^q` then `f ∈ L^r` for `p ≤ r ≤ q`.
 
 This is a simplified version focusing on finite measure support. -/
 theorem Memℒp.interpolate_of_finite_support {f : α → E} {S : Set α}
     {p q r : ℝ≥0∞}
-    (hp : 1 ≤ p) (hq : p ≤ q) (hr : p ≤ r) (hrq : r ≤ q)
-    (hfp : MemLp f p μ) (hfq : MemLp f q μ)
+    (_ : 1 ≤ p) (_ : p ≤ q) (_ : p ≤ r) (hrq : r ≤ q)
+    (_ : MemLp f p μ) (hfq : MemLp f q μ)
     (hsupp : Function.support f ⊆ S) (hS : μ S < ⊤) : MemLp f r μ := by
-  -- Use that on finite measure spaces, higher Lp implies lower Lp
-  sorry
+  -- f is zero outside S
+  have hf_zero : ∀ x, x ∉ S → f x = 0 := fun x hx =>
+    Function.notMem_support.mp (fun h => hx (hsupp h))
+  -- Use monotonicity: L^q ⊂ L^r for r ≤ q on sets of finite measure
+  exact hfq.mono_exponent_of_measure_support_ne_top hf_zero hS.ne hrq
 
 end Interpolation
 
