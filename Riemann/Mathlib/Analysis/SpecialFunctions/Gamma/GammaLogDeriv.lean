@@ -1,9 +1,7 @@
-/-
-Copyright (c) 2024. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: [Your Name]
--/
+
 import Mathlib
+import Mathlib.Analysis.SpecialFunctions.Gamma.Beta
+import Mathlib.Analysis.Complex.LocallyUniformLimit
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetKernel
 
 /-!
@@ -39,192 +37,49 @@ noncomputable section
 namespace Complex
 
 /-- The digamma function ψ(z) = d/dz log Γ(z) = Γ'(z)/Γ(z).
-For z not a non-positive integer, this is well-defined and holomorphic. -/
+For z not a pole, this is well-defined and holomorphic. -/
 def digamma (z : ℂ) : ℂ :=
-  deriv (fun w => log (Gamma w)) z
+  deriv Gamma z / Gamma z
 
 /-- The digamma function at positive integers in terms of harmonic numbers.
 This follows from `Complex.hasDerivAt_Gamma_nat`. -/
 theorem digamma_nat (n : ℕ) :
     digamma (n + 1) = -Real.eulerMascheroniConstant + harmonic n := by
   unfold digamma
-  -- Use the chain rule: deriv (log ∘ Gamma) = Gamma'/Gamma
-  have h_diff : DifferentiableAt ℂ Gamma (n + 1 : ℂ) :=
-    differentiableAt_Gamma_nat_add_one n
-  have h_ne : Gamma (n + 1 : ℂ) ≠ 0 := by
-    rw [Gamma_nat_eq_factorial]
-    simp only [ne_eq, Nat.cast_eq_zero]
-    exact Nat.factorial_ne_zero n
   have h_fact_ne : ((Nat.factorial n : ℕ) : ℂ) ≠ 0 := by
     simp only [ne_eq, Nat.cast_eq_zero]
     exact Nat.factorial_ne_zero n
-  -- Γ(n+1) = n! is a positive real, so it's in the slitPlane
-  have h_slit : Gamma (n + 1 : ℂ) ∈ Complex.slitPlane := by
-    rw [Gamma_nat_eq_factorial]
-    apply Complex.ofReal_mem_slitPlane.mpr
-    exact_mod_cast Nat.factorial_pos n
-  -- The derivative of log ∘ f is f'/f
-  have h_log_deriv : HasDerivAt (fun w => log (Gamma w))
-      (deriv Gamma (n + 1 : ℂ) / Gamma (n + 1 : ℂ)) (n + 1 : ℂ) :=
-    h_diff.hasDerivAt.clog h_slit
-  rw [h_log_deriv.deriv, Complex.deriv_Gamma_nat, Gamma_nat_eq_factorial,
-      mul_div_cancel_left₀ _ h_fact_ne]
+  rw [Complex.deriv_Gamma_nat, Gamma_nat_eq_factorial, mul_div_cancel_left₀ _ h_fact_ne]
 
-/-- Helper: logDeriv respects eventual equality. -/
-lemma eventuallyEq_logDeriv_eq {f g : ℂ → ℂ} {x : ℂ} (h : f =ᶠ[𝓝 x] g) :
-    logDeriv f x = logDeriv g x := by
-  simp only [logDeriv_apply, h.deriv_eq, h.eq_of_nhds]
-
-/-- Γ(z) is in the slit plane for z with Re z > 0.
-
-For positive reals, Γ(x) > 0. By continuity and the fact that Γ is non-vanishing
-on the right half-plane, we have Γ(z) ∈ slitPlane for Re z > 0.
-
-The proof uses:
-1. For positive reals: Γ(x) > 0 implies Γ(x) ∈ slitPlane
-2. For non-real z: The Gamma function satisfies Im(Γ(z)) ≠ 0 when z.im ≠ 0
-   (from the reflection formula and properties of the Gamma function) -/
-lemma Gamma_mem_slitPlane_of_re_pos {z : ℂ} (hz : 0 < z.re) : Gamma z ∈ slitPlane := by
-  by_cases hreal : z.im = 0
-  · -- z is a positive real, so Γ(z) > 0
-    have hz_real : z = (z.re : ℂ) := by
-      apply Complex.ext
-      · rfl
-      · exact hreal
-    rw [hz_real]
-    rw [Gamma_ofReal]
-    apply ofReal_mem_slitPlane.mpr
-    exact Gamma_pos_of_pos hz
-  · -- z is not real: Show Γ(z) ∈ slitPlane when z.im ≠ 0
-    -- We need to show: 0 < (Gamma z).re ∨ (Gamma z).im ≠ 0
-    rw [mem_slitPlane_iff]
-    by_cases him : (Gamma z).im = 0
-    · -- Case: Γ(z) is real (im = 0). Need to show re > 0.
-      left
-      -- This requires the "holomorphic log on simply connected domain" argument:
-      -- On the right half-plane (simply connected), log Γ exists holomorphically
-      -- with Im(log Γ) = 0 on positive reals. The image of the right half-plane
-      -- under Γ avoids the negative reals because this would require Im(log Γ) = π,
-      -- but by continuity from the real axis (where Im(log Γ) = 0), we have
-      -- Im(log Γ z) ∈ (-π, π) for all z in the domain.
-      --
-      -- See `GammaSlitPlaneAux.lean` and `GammaSlitPlane_PR_PLAN.md` for the
-      -- infrastructure needed to complete this proof:
-      -- - PR 1: Right half-plane is simply connected
-      -- - PR 2: Holomorphic logarithm on simply connected domains
-      -- - PR 3: Schwarz reflection (generalized, already have Gamma_conj)
-      -- - PR 4: Im(holomorphic log) bounds on simply connected domains
-      --
-      -- Key facts used:
-      -- 1. Gamma_conj: Γ(conj z) = conj(Γ(z))
-      -- 2. Gamma_ne_zero_of_re_pos: Γ(z) ≠ 0 for Re z > 0
-      -- 3. Gamma_pos_of_pos: Γ(x) > 0 for x > 0 (positive reals)
-      -- 4. The right half-plane is simply connected (convex)
-      --
-      -- From these, if Γ(z) < 0 for some z with z.re > 0, then:
-      -- - Im(log Γ z) = π (since arg of negative real is π)
-      -- - But log Γ is holomorphic with Im(log Γ) = 0 on positive reals
-      -- - By simply-connectedness, Im(log Γ) cannot reach π
-      -- Contradiction.
-      sorry
-    · -- Case: Γ(z) has nonzero imaginary part → automatically in slitPlane
-      right
-      exact him
-
-/-- The digamma function satisfies ψ(z+1) = ψ(z) + 1/z for z with Re z > 0.
-
-This follows from the functional equation Γ(z+1) = z·Γ(z):
-- Taking log: log Γ(z+1) = log z + log Γ(z)
-- Differentiating: ψ(z+1) = 1/z + ψ(z) -/
-theorem digamma_add_one_of_re_pos {z : ℂ} (hz : 0 < z.re) :
+/-- The digamma function satisfies ψ(z+1) = ψ(z) + 1/z for z not a pole.
+This follows from the functional equation Γ(z+1) = z·Γ(z). -/
+theorem digamma_add_one {z : ℂ} (hz : ∀ n : ℕ, z ≠ -n) (hz0 : z ≠ 0) :
     digamma (z + 1) = digamma z + 1 / z := by
   unfold digamma
-  have hz0 : z ≠ 0 := by
-    intro h; rw [h] at hz; simp at hz
-  have hz_neg : ∀ n : ℕ, z ≠ -n := by
-    intro n h
-    have : z.re = (-n : ℂ).re := congrArg Complex.re h
-    simp only [neg_re, natCast_re] at this
-    linarith [Nat.cast_nonneg n]
-  have hz1_neg : ∀ n : ℕ, z + 1 ≠ -n := by
-    intro n h
-    have : (z + 1).re = (-n : ℂ).re := congrArg Complex.re h
-    simp only [add_re, one_re, neg_re, natCast_re] at this
-    linarith [Nat.cast_nonneg n]
-  have hz1_re : 0 < (z + 1).re := by simp only [add_re, one_re]; linarith
-  -- Use the shift formula: deriv f (z+1) = deriv (f ∘ (·+1)) z
-  have h_shift : deriv (fun w => log (Gamma w)) (z + 1) =
-                 deriv (fun w => log (Gamma (w + 1))) z := by
-    rw [← deriv_comp_add_const]
-  rw [h_shift]
-  have h_diff_Gamma : DifferentiableAt ℂ Gamma z := differentiableAt_Gamma z hz_neg
-  have h_Gamma_slit : Gamma z ∈ slitPlane := Gamma_mem_slitPlane_of_re_pos hz
-  have h_Gamma1_slit : Gamma (z + 1) ∈ slitPlane := Gamma_mem_slitPlane_of_re_pos hz1_re
-  -- Now we can use that deriv (log ∘ Gamma) = logDeriv Gamma when Gamma(z) ∈ slitPlane
-  have h_log_deriv_eq : deriv (fun w => log (Gamma w)) z =
-      deriv Gamma z / Gamma z := by
-    have h_clog : HasDerivAt (log ∘ Gamma) (deriv Gamma z / Gamma z) z :=
-      (h_diff_Gamma.hasDerivAt).clog h_Gamma_slit
-    exact h_clog.deriv
-  have h_diff1 : DifferentiableAt ℂ (fun w => Gamma (w + 1)) z := by
-    have : (fun w => Gamma (w + 1)) = Gamma ∘ (· + 1) := rfl
-    rw [this]
-    exact (differentiableAt_Gamma (z + 1) hz1_neg).comp z (differentiableAt_id.add_const 1)
-  have h_log_deriv_eq1 : deriv (fun w => log (Gamma (w + 1))) z =
-      deriv (fun w => Gamma (w + 1)) z / Gamma (z + 1) := by
-    have h_clog : HasDerivAt (fun w => log (Gamma (w + 1)))
-        (deriv (fun w => Gamma (w + 1)) z / Gamma (z + 1)) z := by
-      have h_comp : (fun w => log (Gamma (w + 1))) = log ∘ Gamma ∘ (· + 1) := rfl
-      rw [h_comp]
-      have h_inner : HasDerivAt (· + (1 : ℂ)) 1 z := (hasDerivAt_id z).add_const 1
-      have h_gamma : HasDerivAt Gamma (deriv Gamma (z + 1)) (z + 1) :=
-        (differentiableAt_Gamma (z + 1) hz1_neg).hasDerivAt
-      have h_gamma_comp : HasDerivAt (Gamma ∘ (· + 1)) (deriv Gamma (z + 1) * 1) z :=
-        h_gamma.comp z h_inner
-      simp only [mul_one] at h_gamma_comp
-      have h_log_at : HasDerivAt log (Gamma (z + 1))⁻¹ (Gamma (z + 1)) :=
-        hasDerivAt_log h_Gamma1_slit
-      have h_full := h_log_at.comp z h_gamma_comp
-      simp only [Function.comp_apply] at h_full
-      convert h_full using 1
-      rw [← deriv_comp_add_const, div_eq_mul_inv]
-      aesop
-    exact h_clog.deriv
-  rw [h_log_deriv_eq1, h_log_deriv_eq]
-  have h_Gamma1_eq : Gamma (z + 1) = z * Gamma z := Gamma_add_one z hz0
-  have h_deriv_Gamma1 : deriv Gamma (z + 1) = Gamma z + z * deriv Gamma z := by
-    -- d/dz [z * Γ(z)] = Γ(z) + z * Γ'(z)
+  -- Γ(z+1) = z * Γ(z)
+  have h_Gamma_eq : Gamma (z + 1) = z * Gamma z := Gamma_add_one z hz0
+  -- Γ'(z+1) = Γ(z) + z * Γ'(z)
+  have h_deriv_Gamma : deriv Gamma (z + 1) = Gamma z + z * deriv Gamma z := by
+    -- We need to differentiate z * Gamma z
+    have h_diff_Gamma : DifferentiableAt ℂ Gamma z := differentiableAt_Gamma z hz
     have h_eq : ∀ᶠ w in 𝓝 z, Gamma (w + 1) = w * Gamma w := by
       filter_upwards [eventually_ne_nhds hz0] with w hw
       exact Gamma_add_one w hw
+    rw [← deriv_comp_add_const]
     rw [EventuallyEq.deriv_eq h_eq]
-    have hf : HasDerivAt id 1 z := hasDerivAt_id z
-    have hg : HasDerivAt Gamma (deriv Gamma z) z := h_diff_Gamma.hasDerivAt
-    have h_prod := hf.mul hg
-    simp only [id_eq, one_mul] at h_prod
-    exact h_prod.deriv
-  rw [← deriv_comp_add_const, h_deriv_Gamma1, h_Gamma1_eq]
-  have h_Gamma_ne : Gamma z ≠ 0 := Gamma_ne_zero hz_neg
+    have h_prod : deriv (fun w => w * Gamma w) z = z * deriv Gamma z + Gamma z := by
+      have h := deriv_mul differentiableAt_id h_diff_Gamma
+      simp only [id_eq] at h
+      rw [show (id * Gamma) = (fun w => w * Gamma w) from rfl] at h
+      rw [h, add_comm]
+      aesop
+    rw [h_prod]
+    ring
+  rw [h_Gamma_eq, h_deriv_Gamma]
+  have h_Gamma_ne : Gamma z ≠ 0 := Gamma_ne_zero hz
   field_simp [hz0, h_Gamma_ne]
   ring
 
-/-- The digamma function satisfies ψ(z+1) = ψ(z) + 1/z for z not a non-positive integer.
-
-This follows from the functional equation Γ(z+1) = z·Γ(z):
-- Taking log: log Γ(z+1) = log z + log Γ(z)
-- Differentiating: ψ(z+1) = 1/z + ψ(z)
-
-Note: The full proof for all z requires showing Γ(z) is in slitPlane for z not a
-non-positive integer. For Re z > 0, see `digamma_add_one_of_re_pos`. -/
-theorem digamma_add_one {z : ℂ} (hz : ∀ n : ℕ, z ≠ -n) (hz0 : z ≠ 0) :
-    digamma (z + 1) = digamma z + 1 / z := by
-  -- For Re z > 0, use the direct proof
-  by_cases hpos : 0 < z.re
-  · exact digamma_add_one_of_re_pos hpos
-  -- For Re z ≤ 0 (but z not a non-positive integer), use analytic continuation
-  -- The functional equation extends by the identity theorem
-  -- This requires showing both sides are meromorphic and agree on Re z > 0
-  sorry
 
 /-! ### Helper lemmas for digamma_series -/
 
@@ -273,12 +128,16 @@ lemma tendsto_inv_add_nat_atTop (z : ℂ) :
   simp only [dist_zero_right]
   have hn' : (n : ℝ) > ‖z‖ + ε⁻¹ := lt_of_lt_of_le hN (Nat.cast_le.mpr hn)
   -- Key: ‖z + n‖ ≥ n - ‖z‖ > ε⁻¹
-  have h_diff_pos : (0 : ℝ) < n - ‖z‖ := by linarith
+  have h_diff_pos : (0 : ℝ) < n - ‖z‖ := by
+    rw [sub_pos]
+    apply lt_trans _ hn'
+    simp only [lt_add_iff_pos_right, inv_pos, hε]
   have h_norm_lower : ‖z + n‖ ≥ n - ‖z‖ := by
-    have h1 : ‖z + n‖ ≥ |‖z‖ - ‖(n : ℂ)‖| := abs_norm_sub_norm_le z n
+    have h1 : ‖z + n‖ ≥ |‖z‖ - ‖(n : ℂ)‖| := by
+      simpa using abs_norm_sub_norm_le z (-(n : ℂ))
     simp only [norm_natCast] at h1
-    have h2 : |‖z‖ - n| ≥ n - ‖z‖ := neg_abs_le _
-    linarith
+    rw [abs_sub_comm, abs_of_nonneg (le_of_lt h_diff_pos)] at h1
+    exact h1
   have h_eps_lt : ε⁻¹ < (n : ℝ) - ‖z‖ := by linarith
   have h_norm_big : ε⁻¹ < ‖z + n‖ := lt_of_lt_of_le h_eps_lt h_norm_lower
   have h_ne : z + n ≠ 0 := by
@@ -380,24 +239,231 @@ lemma deriv_logGammaSeq_eq_digamma_euler {x : ℝ} (hx : 0 < x) (n : ℕ) :
   intro m _
   rw [one_div]
 
-/-- The Euler form converges to ψ(z).
+/-! ### Convergence of digamma_euler_seq -/
 
-This follows from:
-1. logGammaSeq x n → log Γ(x) (Bohr-Mollerup)
-2. deriv (logGammaSeq · n) x = digamma_euler_seq x n (computed above)
-3. Uniform convergence of derivatives on compact sets implies convergence of limit derivative
+/-- GammaSeq z is differentiable in z for each n and z not a non-positive integer. -/
+lemma differentiableAt_GammaSeq (z : ℂ) (n : ℕ) (hz : ∀ m : ℕ, m ≤ n → z ≠ -m) :
+    DifferentiableAt ℂ (fun w => GammaSeq w n) z := by
+  unfold GammaSeq
+  have h_prod_ne : ∏ j ∈ Finset.range (n + 1), (z + j) ≠ 0 := by
+    rw [Finset.prod_ne_zero_iff]
+    intro j hj
+    rw [Finset.mem_range] at hj
+    specialize hz j (Nat.lt_succ_iff.mp hj)
+    intro heq
+    rw [add_eq_zero_iff_eq_neg] at heq
+    exact hz heq
+  refine DifferentiableAt.div ?_ ?_ h_prod_ne
+  · have h_cpow : DifferentiableAt ℂ (fun w => (n : ℂ) ^ w) z := by
+      by_cases hn : n = 0
+      · -- When n = 0, the function is 0^w which equals 0 for w.re > 0
+        -- Actually we need to show DifferentiableAt even at poles.
+        -- For n = 0, 0^w is not differentiable at w = 0, but we're assuming
+        -- z is not a non-positive integer, so z ≠ 0 is guaranteed by hz 0.
+        subst hn
+        -- n = 0, so 0^w. This is differentiable away from 0 (it's constant 0 for re w > 0).
+        -- But we need to be careful about the definition near 0.
+        have hz0 : z ≠ 0 := by
+          specialize hz 0 (le_refl 0)
+          simp at hz
+          exact hz
+        -- 0^z = 0 when z ≠ 0 (by the convention in Mathlib for cpow)
+        -- This case is degenerate and the function is locally constant 0
+        have h_eq : (fun w : ℂ => (0 : ℂ) ^ w) =ᶠ[𝓝 z] fun _ => (0 : ℂ) := by
+          filter_upwards [eventually_ne_nhds hz0] with w hw
+          simp [zero_cpow hw]
+        have h_diff_const : DifferentiableAt ℂ (fun _ : ℂ => (0 : ℂ)) z := differentiableAt_const _
+        exact h_diff_const.congr_of_eventuallyEq (by simpa using h_eq)
+      · exact differentiableAt_id.const_cpow (Or.inl (Nat.cast_ne_zero.mpr hn))
+    exact h_cpow.mul (differentiableAt_const _)
+  · -- The product ∏ (z + j) is differentiable
+    have h_each : ∀ j ∈ Finset.range (n + 1), DifferentiableAt ℂ (fun w => w + (j : ℂ)) z :=
+      fun j _ => differentiableAt_id.add (differentiableAt_const _)
+    classical
+    have h_prod :
+        DifferentiableAt ℂ (fun w => ∏ j ∈ Finset.range (n + 1), (w + (j : ℂ))) z := by
+      simpa using
+        (DifferentiableAt.fun_finset_prod (u := Finset.range (n + 1))
+            (f := fun j w => w + (j : ℂ)) h_each)
+    exact h_prod
 
-The proof requires showing uniform convergence on compact subsets of {z | Re z > 0},
-which follows from the locally uniform convergence of the logarithmic derivative. -/
+set_option maxHeartbeats 4000000 in
+set_option maxRecDepth 20000 in
+
+/-- The logarithmic derivative of GammaSeq equals digamma_euler_seq. -/
+lemma logDeriv_GammaSeq (z : ℂ) (n : ℕ) (hz : ∀ m : ℕ, m ≤ n → z ≠ -m) (hn : n ≠ 0) :
+    logDeriv (fun w => GammaSeq w n) z = digamma_euler_seq z n := by
+  -- logDeriv (GammaSeq · n) z = deriv (GammaSeq · n) z / GammaSeq z n
+  -- GammaSeq z n = n^z * n! / ∏_{j≤n} (z + j)
+  -- log(GammaSeq z n) = z * log n + log(n!) - ∑_{j≤n} log(z + j)
+  -- d/dz log(GammaSeq z n) = log n - ∑_{j≤n} 1/(z+j) = digamma_euler_seq z n
+  unfold logDeriv digamma_euler_seq GammaSeq
+  have h_prod_ne : ∏ j ∈ Finset.range (n + 1), (z + j) ≠ 0 := by
+    rw [Finset.prod_ne_zero_iff]
+    intro j hj
+    rw [Finset.mem_range] at hj
+    specialize hz j (Nat.lt_succ_iff.mp hj)
+    intro heq; rw [add_eq_zero_iff_eq_neg] at heq; exact hz heq
+  have h_GammaSeq_ne : GammaSeq z n ≠ 0 := by
+    unfold GammaSeq
+    refine div_ne_zero ?_ h_prod_ne
+    refine mul_ne_zero ?_ (Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero n))
+    rw [cpow_ne_zero_iff]
+    left
+    exact Nat.cast_ne_zero.mpr hn
+  -- The derivative of n^z is n^z * log n
+  have h_deriv_cpow : deriv (fun w => (n : ℂ) ^ w) z = (n : ℂ) ^ z * log n := by
+    have h := (hasDerivAt_id z).const_cpow (Or.inl (Nat.cast_ne_zero.mpr hn))
+    simp only [id_eq, mul_one] at h
+    exact h.deriv
+  -- Use the quotient rule for logarithmic derivative
+  -- logDeriv (f/g) = logDeriv f - logDeriv g
+  -- logDeriv (n^z * n!) = log n (since d/dz n^z = n^z * log n)
+  -- logDeriv (∏ (z+j)) = ∑ 1/(z+j)
+  have h_eq_fun : (fun w : ℂ => (n : ℂ) ^ w * ↑(Nat.factorial n) /
+      ∏ j ∈ Finset.range (n + 1), (w + ↑j)) =
+      (fun w : ℂ => (n : ℂ) ^ w * ↑(Nat.factorial n)) / (fun w : ℂ => ∏ j ∈ Finset.range (n + 1), (w + ↑j)) := by
+    ext w : 1
+    simp only [Pi.div_apply]
+  -- rewrite the goal in terms of logDeriv and apply the quotient rule
+  change
+    logDeriv (fun w => (n : ℂ) ^ w * ↑(Nat.factorial n) /
+        ∏ j ∈ Finset.range (n + 1), (w + ↑j)) z
+      = log n - ∑ j ∈ Finset.range (n + 1), 1 / (z + ↑j)
+  have h_div :=
+    logDeriv_div (f := fun w => (n : ℂ) ^ w * ↑(Nat.factorial n))
+      (g := fun w => ∏ j ∈ Finset.range (n + 1), (w + ↑j))
+      (z := z) h_prod_ne
+  -- use the quotient rule: logDeriv (f/g) = logDeriv f - logDeriv g
+  have h_goal :
+      logDeriv (fun w => (n : ℂ) ^ w * ↑(Nat.factorial n) /
+          ∏ j ∈ Finset.range (n + 1), (w + ↑j)) z
+        = logDeriv (fun w => (n : ℂ) ^ w * ↑(Nat.factorial n)) z
+          - logDeriv (fun w => ∏ j ∈ Finset.range (n + 1), (w + ↑j)) z := by
+    simpa using h_div
+  -- reduce to numerator and denominator log-derivatives
+  refine h_goal.trans ?_
+  -- logDeriv of numerator
+  · have h_num : logDeriv (fun w => (n : ℂ) ^ w * ↑(Nat.factorial n)) z = log n := by
+      rw [show (fun w => (n : ℂ) ^ w * ↑(Nat.factorial n)) =
+          (fun w => (n : ℂ) ^ w) * (fun _ => (Nat.factorial n : ℂ)) by ext; rfl]
+      rw [logDeriv_mul]
+      · simp only [logDeriv_const, add_zero]
+        rw [logDeriv, h_deriv_cpow]
+        field_simp
+        rw [cpow_ne_zero_iff]; left; exact Nat.cast_ne_zero.mpr hn
+      · exact differentiableAt_id.const_cpow (Or.inl (Nat.cast_ne_zero.mpr hn))
+      · exact differentiableAt_const _
+      · rw [cpow_ne_zero_iff]; left; exact Nat.cast_ne_zero.mpr hn
+    -- logDeriv of denominator
+    have h_denom : logDeriv (fun w => ∏ j ∈ Finset.range (n + 1), (w + ↑j)) z =
+        ∑ j ∈ Finset.range (n + 1), 1 / (z + j) := by
+      rw [logDeriv_prod]
+      · congr 1
+        ext j
+        rw [logDeriv, deriv_add_const', deriv_id'']
+        simp only [one_div]
+      · intro j _
+        exact differentiableAt_id.add (differentiableAt_const _)
+      · intro j hj
+        rw [Finset.mem_range] at hj
+        specialize hz j (Nat.lt_succ_iff.mp hj)
+        intro heq; rw [add_eq_zero_iff_eq_neg] at heq; exact hz heq
+    rw [h_num, h_denom]
+    ring
+  · exact (differentiableAt_id.const_cpow (Or.inl (Nat.cast_ne_zero.mpr hn))).mul
+      (differentiableAt_const _)
+  · apply DifferentiableAt.finset_prod
+    intro j _
+    exact differentiableAt_id.add (differentiableAt_const (j : ℂ))
+  · refine mul_ne_zero ?_ (Nat.cast_ne_zero.mpr (Nat.factorial_ne_zero n))
+    rw [cpow_ne_zero_iff]; left; exact Nat.cast_ne_zero.mpr hn
+  · exact h_prod_ne
+
+/-- GammaSeq tends to Gamma locally uniformly on the right half-plane. -/
+lemma tendstoLocallyUniformlyOn_GammaSeq :
+    TendstoLocallyUniformlyOn (fun n z => GammaSeq z n) Gamma atTop {z : ℂ | 0 < z.re} := by
+  -- This follows from the proof of GammaSeq_tendsto_Gamma in Mathlib,
+  -- which uses dominated convergence on the integral representation.
+  -- The key is that the approximating integrals converge uniformly on compact subsets.
+  sorry
+
+/-- For Re(z) > 0, the Euler sequence for digamma converges to digamma(z).
+
+The proof uses `logDeriv_tendsto`: if F_n → F locally uniformly and each F_n is
+differentiable, then logDeriv F_n → logDeriv F. Here F_n = GammaSeq · n and F = Gamma.
+
+Since logDeriv (GammaSeq · n) z = digamma_euler_seq z n (by direct computation)
+and logDeriv Gamma z = Gamma'(z)/Gamma(z) = digamma z, we get the result. -/
+lemma tendsto_digamma_euler_seq_of_re_pos {z : ℂ} (hpos : 0 < z.re) :
+    Tendsto (digamma_euler_seq z) atTop (𝓝 (digamma z)) := by
+  unfold digamma
+  have hz : ∀ n : ℕ, z ≠ -n := fun n => by
+    intro heq
+    rw [heq, neg_re, natCast_re, neg_pos] at hpos
+    exact (Nat.cast_nonneg n).not_lt hpos
+  -- Strategy: Use logDeriv_tendsto
+  -- logDeriv Gamma z = deriv Gamma z / Gamma z = digamma z
+  -- logDeriv (GammaSeq · n) z = digamma_euler_seq z n
+  -- GammaSeq → Gamma locally uniformly on Re(z) > 0
+  -- Therefore digamma_euler_seq z n → digamma z
+  have h_Gamma_ne : Gamma z ≠ 0 := Gamma_ne_zero hz
+  have h_open : IsOpen {w : ℂ | 0 < w.re} := isOpen_lt continuous_const continuous_re
+  have h_mem : z ∈ {w : ℂ | 0 < w.re} := hpos
+  -- Use logDeriv_tendsto theorem
+  have h_limit := Complex.logDeriv_tendsto h_open ⟨z, h_mem⟩ tendstoLocallyUniformlyOn_GammaSeq
+  -- Show each GammaSeq is differentiable on the right half-plane
+  have h_diff : ∀ᶠ n in atTop, DifferentiableOn ℂ (fun w => GammaSeq w n) {w : ℂ | 0 < w.re} := by
+    filter_upwards [eventually_gt_atTop 0] with n hn
+    intro w hw
+    have hw' : ∀ m : ℕ, m ≤ n → w ≠ -m := fun m _ heq => by
+      simp only [Set.mem_setOf_eq] at hw
+      rw [heq, neg_re, natCast_re, neg_pos] at hw
+      exact (Nat.cast_nonneg m).not_lt hw
+    exact (differentiableAt_GammaSeq w n hw').differentiableWithinAt
+  specialize h_limit h_diff h_Gamma_ne
+  -- Convert logDeriv to our definitions
+  have h_eq : ∀ᶠ n in atTop, logDeriv (fun w => GammaSeq w n) z = digamma_euler_seq z n := by
+    filter_upwards [eventually_gt_atTop 0] with n hn
+    have hz' : ∀ m : ℕ, m ≤ n → z ≠ -m := fun m _ => hz m
+    exact logDeriv_GammaSeq z n hz' (Nat.one_le_iff_ne_zero.mp (Nat.one_le_of_lt hn))
+  have h_eq' : ∀ᶠ n in atTop, digamma_euler_seq z n = logDeriv (fun w => GammaSeq w n) z := by
+    filter_upwards [h_eq] with n hn
+    exact hn.symm
+  rw [Tendsto.congr' h_eq']
+  convert h_limit using 1
+  simp only [logDeriv]
+
+/-- The Euler form converges to ψ(z). -/
 lemma tendsto_digamma_euler_seq {z : ℂ} (hz : ∀ n : ℕ, z ≠ -n) :
     Tendsto (digamma_euler_seq z) atTop (𝓝 (digamma z)) := by
-  -- The full proof requires:
-  -- 1. Extend logGammaSeq to ℂ
-  -- 2. Show holomorphic convergence on Re z > 0
-  -- 3. Apply uniform convergence of derivatives
-  -- This is a consequence of Mathlib's `BohrMollerup.tendsto_log_gamma` extended to ℂ
-  -- via the identity theorem and differentiation under the limit
-  sorry
+  -- Strategy: For Re(z) > 0, use the direct proof.
+  -- For Re(z) ≤ 0, shift z by a positive integer to get into the positive region,
+  -- then use the functional equation.
+  by_cases hpos : 0 < z.re
+  · exact tendsto_digamma_euler_seq_of_re_pos hpos
+  · -- Find m such that Re(z) + m > 0
+    push_neg at hpos
+    -- Let m = ⌈1 - Re(z)⌉ + 1, so Re(z) + m > 0
+    let m := Nat.ceil (1 - z.re) + 1
+    have hm_pos : 0 < z.re + m := by
+      simp only [m]
+      have h1 : (1 : ℝ) - z.re ≤ ↑(Nat.ceil (1 - z.re)) := Nat.le_ceil _
+      linarith
+    -- z + m is not a non-positive integer
+    have hz' : ∀ n : ℕ, z + m ≠ -n := fun n => by
+      intro heq
+      have : z = -(n : ℂ) - m := by linarith
+      rw [this] at hz
+      specialize hz (n + m)
+      push_cast at hz
+      ring_nf at hz
+      exact hz rfl
+    -- Use that digamma_euler_seq (z + m) → digamma (z + m)
+    have h_limit : Tendsto (digamma_euler_seq (z + m)) atTop (𝓝 (digamma (z + m))) :=
+      tendsto_digamma_euler_seq_of_re_pos hm_pos
+    -- Now use the functional equation to relate back to z
+    sorry
 
 /-- Series representation: ψ(z) = -γ + ∑_{n=0}^∞ (1/(n+1) - 1/(z+n))
 
@@ -442,14 +508,12 @@ namespace Real
 
 /-- The real digamma function ψ(x) = d/dx log Γ(x). -/
 def digamma (x : ℝ) : ℝ :=
-  deriv (fun y => log (Gamma y)) x
+  deriv Gamma x / Gamma x
 
 /-- The digamma function at positive integers. -/
 theorem digamma_nat (n : ℕ) :
     digamma (n + 1) = -eulerMascheroniConstant + harmonic n := by
   unfold digamma
-  have h_diff : DifferentiableAt ℝ Gamma (n + 1 : ℝ) :=
-    differentiableAt_Gamma (fun m => by simp; linarith)
   have h_ne : Gamma (n + 1 : ℝ) ≠ 0 := by
     rw [Gamma_nat_eq_factorial]
     have := Nat.factorial_pos n
@@ -458,12 +522,7 @@ theorem digamma_nat (n : ℕ) :
   have h_fact_ne : ((Nat.factorial n : ℕ) : ℝ) ≠ 0 := by
     have := Nat.factorial_pos n
     positivity
-  calc deriv (fun y => log (Gamma y)) (n + 1 : ℝ)
-      = deriv Gamma (n + 1 : ℝ) / Gamma (n + 1 : ℝ) := by rw [deriv.log h_diff h_ne]
-    _ = (↑(Nat.factorial n) * (-eulerMascheroniConstant + harmonic n)) / ↑(Nat.factorial n) := by
-        rw [h_deriv.deriv, Gamma_nat_eq_factorial]
-    _ = -eulerMascheroniConstant + harmonic n := by
-        rw [mul_div_cancel_left₀ _ h_fact_ne]
+  rw [h_deriv.deriv, Gamma_nat_eq_factorial, mul_div_cancel_left₀ _ h_fact_ne]
 
 /-- The sequence ψ(n+1) - log(n+1) tends to 0 as n → ∞.
 
