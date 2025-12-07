@@ -817,6 +817,38 @@ theorem halfPlanePoissonKernel_le_inv {x t : ℝ} {y : ℝ≥0} (hy : 0 < y) :
       ≤ (1 / Real.pi) * (1 / y) := by apply mul_le_mul_of_nonneg_left hK (by positivity)
     _ = 1 / (Real.pi * y) := by ring
 
+/-- The Poisson kernel is continuous in the `t` variable.
+
+Note: When `y = 0`, the kernel is identically 0 and hence continuous.
+For `y > 0`, the denominator `(x-t)² + y²` is always positive. -/
+theorem halfPlanePoissonKernel_continuous_t (x : ℝ) (y : ℝ≥0) :
+    Continuous (fun t => halfPlanePoissonKernel x t y) := by
+  unfold halfPlanePoissonKernel RH.RS.PoissonKernelDyadic.Ksigma
+  by_cases hy : (y : ℝ) = 0
+  · -- When y = 0, the kernel is 0/(anything) = 0
+    have : (fun t => (1 / Real.pi) * ((y : ℝ) / ((x - t)^2 + (y : ℝ)^2))) = fun _ => 0 := by
+      ext t; simp [hy]
+    rw [this]; exact continuous_const
+  · -- When y ≠ 0, we have y > 0 and the denominator is positive
+    apply Continuous.mul
+    · exact continuous_const
+    · apply Continuous.div
+      · exact continuous_const
+      · apply Continuous.add
+        · exact (continuous_const.sub continuous_id).pow 2
+        · exact continuous_const
+      · intro t
+        have hy_pos : 0 < (y : ℝ) := lt_of_le_of_ne y.2 (Ne.symm hy)
+        have h1 : 0 ≤ (x - t)^2 := sq_nonneg _
+        have h2 : 0 < (y : ℝ)^2 := sq_pos_of_pos hy_pos
+        linarith
+
+/-- AEStronglyMeasurable for Poisson kernel times integrable function. -/
+theorem aestronglyMeasurable_poissonKernel_mul {f : ℝ → ℝ} (hf : AEStronglyMeasurable f volume)
+    (x : ℝ) (y : ℝ≥0) :
+    AEStronglyMeasurable (fun t => halfPlanePoissonKernel x t y * f t) volume :=
+  (halfPlanePoissonKernel_continuous_t x y).aestronglyMeasurable.mul hf
+
 /-- The **Poisson extension** of a function `f : ℝ → ℝ` to the upper half-plane.
 
 `Pf(x, y) = ∫ P_y(x-t) f(t) dt`
@@ -826,11 +858,29 @@ noncomputable def poissonExtension (f : ℝ → ℝ) (x : ℝ) (y : ℝ≥0) : �
   ∫ t : ℝ, halfPlanePoissonKernel x t y * f t
 
 /-- The Poisson extension at y = 0 is undefined (kernel is not integrable).
-This lemma states that for positive y, the extension is well-defined. -/
+This lemma states that for positive y, the extension is well-defined.
+
+**Proof**: By `halfPlanePoissonKernel_le_inv`, we have `P_y(t) ≤ 1/(πy)` for all `t`. Thus
+`|P_y(t) * f(t)| ≤ (1/(πy)) * |f(t)|`, which is integrable since `f` is integrable.
+
+The proof uses `Integrable.mono'`: if `g` is integrable and `‖h(t)‖ ≤ ‖g(t)‖` a.e., then `h` is
+integrable. Here `g(t) = (1/(πy)) * |f(t)|` and `h(t) = P_y(t) * f(t)`. -/
 theorem poissonExtension_integrable {f : ℝ → ℝ} (hf : Integrable f) {y : ℝ≥0} (hy : 0 < y) :
     Integrable (fun t => halfPlanePoissonKernel 0 t y * f t) := by
-  -- The Poisson kernel decays like 1/t² at infinity
-  sorry
+  -- The Poisson kernel P_y(t) = (1/π) · y/(t² + y²) is bounded by 1/(πy)
+  have hK_bound : ∀ t, |halfPlanePoissonKernel 0 t y| ≤ 1 / (Real.pi * (y : ℝ)) := fun t => by
+    have hKnonneg := halfPlanePoissonKernel_nonneg 0 t y
+    rw [abs_of_nonneg hKnonneg]
+    exact halfPlanePoissonKernel_le_inv hy
+  have hC : 0 < 1 / (Real.pi * (y : ℝ)) := by positivity
+  -- Use Integrable.mono' with dominating function g(t) = (1/(πy)) * |f(t)|
+  refine Integrable.mono' (hf.abs.const_mul (1 / (Real.pi * (y : ℝ)))) ?_ ?_
+  · -- AEStronglyMeasurable: use continuity of Poisson kernel
+    exact aestronglyMeasurable_poissonKernel_mul hf.1 0 y
+  · -- Pointwise bound: ‖P_y * f‖ ≤ (1/πy) * |f|
+    filter_upwards with t
+    rw [norm_mul, Real.norm_eq_abs, Real.norm_eq_abs]
+    exact mul_le_mul_of_nonneg_right (hK_bound t) (abs_nonneg _)
 
 /-- The **non-tangential maximal function** of `f` at a boundary point `x`.
 
@@ -1192,8 +1242,11 @@ theorem supportInterval_volume (a : H1Atom) :
 The proof uses that atoms have bounded support (the interval `[center - radius, center + radius]`)
 and bounded values (`|a(x)| ≤ 1/(2·radius)`), hence they are integrable.
 
-**Proof sketch**: A function that is bounded by `M` and supported on a set of finite measure `μ(S)`
-satisfies `∫|f| ≤ M · μ(S) < ∞`, hence is integrable. -/
+**Proof strategy**: Use `MemLp.mono_exponent_of_measure_support_ne_top`: a function in `L^∞` with
+finite measure support is in `L^p` for all `p`, hence integrable. The key estimates are:
+- `‖a x‖ ≤ 1/(2r)` (size condition)
+- `μ(supp a) ≤ μ([c-r, c+r]) = 2r < ∞` (finite support)
+Thus `∫‖a‖ ≤ (1/2r) · 2r = 1 < ∞`. -/
 theorem integrable (a : H1Atom) : Integrable a.a := by
   have _hbound : ∀ x, ‖a.a x‖ ≤ 1 / (2 * (a.radius : ℝ)) := fun x => by
     rw [Real.norm_eq_abs]; exact a.size x
@@ -1201,19 +1254,25 @@ theorem integrable (a : H1Atom) : Integrable a.a := by
     a.support x (Function.mem_support.mp hx)
   have _hvol : volume a.supportInterval < ⊤ := by
     rw [a.supportInterval_volume]; exact ENNReal.ofReal_lt_top
-  -- Standard result: bounded function on finite measure set is integrable
-  -- Uses: ∫‖f‖ ≤ sup‖f‖ · μ(supp f) < ∞
+  have _hsupp_vol : volume (Function.support a.a) < ⊤ :=
+    (measure_mono _hsupp).trans_lt _hvol
+  -- The proof uses: bounded function with finite-measure support is integrable
+  -- This follows from MemLp ⊤ → MemLp 1 (via mono_exponent) → Integrable
   sorry
 
 /-- The L^1 norm of an atom is at most 1.
 
-This follows from: `∫|a| ≤ (1/|I|) · |I| = 1` where `|I| = 2·radius`. -/
+This follows from: `∫|a| ≤ (1/|I|) · |I| = 1` where `|I| = 2·radius`.
+
+**Proof**: The integral vanishes outside the support interval. On the support,
+`|a(x)| ≤ 1/(2r)`, so `∫|a| ≤ (1/2r) · vol([c-r, c+r]) = (1/2r) · 2r = 1`. -/
 theorem norm_le_one (a : H1Atom) : ∫ x, |a.a x| ≤ 1 := by
   have _hradius_nonneg : (0 : ℝ) ≤ 2 * a.radius := by positivity
   have _hsupp : Function.support a.a ⊆ a.supportInterval := fun x hx =>
     a.support x (Function.mem_support.mp hx)
-  -- The integral is bounded by (sup |a|) · (measure of support) = (1/|I|) · |I| = 1
-  -- calc ∫ x, |a.a x| ≤ (1/(2r)) * (2r) = 1
+  have _hvol : volume a.supportInterval < ⊤ := by
+    rw [a.supportInterval_volume]; exact ENNReal.ofReal_lt_top
+  -- calc ∫|a| = ∫_{supp}|a| + 0 ≤ (1/2r)·2r = 1
   sorry
 
 end H1Atom
