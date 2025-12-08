@@ -5,6 +5,7 @@ import Mathlib.MeasureTheory.Covering.Vitali
 import Mathlib.Topology.MetricSpace.ProperSpace
 import Carleson.ToMathlib.HardyLittlewood
 import Riemann.Mathlib.MeasureTheory.Function.MaximalFunction
+import Carleson
 
 /-!
 # Calderón-Zygmund Decomposition on Doubling Metric Measure Spaces
@@ -17,7 +18,7 @@ inequality and many other results in harmonic analysis.
 
 * `MeasureTheory.CZCoveringBalls`: A covering of the superlevel set by balls with
   controlled averages
-* `MeasureTheory.CZDecompDoublingSpace`: The CZ decomposition structure for doubling spaces
+* `MeasureTheory.CZDecompDoubling`: The CZ decomposition structure for doubling spaces
 
 ## Main Results
 
@@ -47,6 +48,24 @@ variable (μ : Measure α) [ProperSpace α] [IsUnifLocDoublingMeasure μ]
 
 /-! ### Auxiliary Lemmas for Average-Measure Relationships -/
 
+/-- The set average as a real number equals the integral divided by the measure.
+This is a key identity for converting between average bounds and integral bounds. -/
+lemma setAverage_abs_eq_integral_div {s : Set α} (hμ : μ s ≠ ⊤) {f : α → ℝ}
+    (_ : IntegrableOn f s μ) :
+    ⨍ x in s, |f x| ∂μ = (∫ x in s, |f x| ∂μ) / (μ s).toReal := by
+  rw [setAverage_eq, smul_eq_mul, measureReal_def]
+  ring
+
+/-- From an average lower bound, derive an integral lower bound.
+If `level < ⨍_s |f|`, then `level * μ(s) < ∫_s |f|`. -/
+lemma integral_gt_of_setAverage_gt {s : Set α}
+    {f : α → ℝ} (hf : IntegrableOn f s μ) {level : ℝ}
+    (havg : level < ⨍ x in s, |f x| ∂μ) (hμ : μ s ≠ 0) (hμ' : μ s ≠ ⊤) :
+    level * (μ s).toReal < ∫ x in s, |f x| ∂μ := by
+  have hpos : 0 < (μ s).toReal := ENNReal.toReal_pos hμ hμ'
+  rw [setAverage_abs_eq_integral_div μ hμ' hf] at havg
+  exact (lt_div_iff₀ hpos).mp havg
+
 /-- If the average exceeds a threshold, then the measure is bounded by the integral.
 
 This is the key estimate used in the CZ decomposition: from `level < ⨍ |f|` we derive
@@ -55,14 +74,45 @@ that `μ(B) ≤ (1/level) · ∫ |f|`.
 **Proof outline**:
 1. From `level < ⨍_s |f| = (∫_s |f|) / μ(s)` we get `level · μ(s) < ∫_s |f|`
 2. Dividing by `level` gives `μ(s) < (1/level) · ∫_s |f|`
-3. Convert to `ℝ≥0∞` using `ENNReal.ofReal` and relate to `lintegral` of `‖·‖₊` -/
+3. Convert to `ℝ≥0∞` and relate Bochner integral to Lebesgue integral -/
 lemma measure_le_of_average_gt {s : Set α} (hs : MeasurableSet s)
     {f : α → ℝ} (hf : IntegrableOn f s μ) {level : ℝ} (hlevel : 0 < level)
     (havg : level < ⨍ x in s, |f x| ∂μ) (hμ : μ s ≠ 0) (hμ' : μ s ≠ ⊤) :
     μ s ≤ ENNReal.ofReal (1 / level) * ∫⁻ x in s, ‖f x‖₊ ∂μ := by
-  -- The detailed proof requires careful handling of ENNReal/Real conversions
-  -- For now, we provide the statement and defer the proof
-  sorry
+  -- Step 1: From level < ⨍ |f| we get level * μ(s) < ∫ |f|
+  have hpos : 0 < (μ s).toReal := ENNReal.toReal_pos hμ hμ'
+  have h1 : level * (μ s).toReal < ∫ x in s, |f x| ∂μ :=
+    integral_gt_of_setAverage_gt μ hf havg hμ hμ'
+  -- Step 2: Hence μ(s) < (1/level) * ∫ |f|
+  have h1' : (μ s).toReal * level < ∫ x in s, |f x| ∂μ := by linarith
+  have h2 : (μ s).toReal < level⁻¹ * ∫ x in s, |f x| ∂μ := by
+    have h3 : (μ s).toReal < (∫ x in s, |f x| ∂μ) / level := by
+      rw [lt_div_iff₀ hlevel]; exact h1'
+    calc (μ s).toReal < (∫ x in s, |f x| ∂μ) / level := h3
+      _ = (∫ x in s, |f x| ∂μ) * level⁻¹ := by rw [div_eq_mul_inv]
+      _ = level⁻¹ * ∫ x in s, |f x| ∂μ := by ring
+  -- Step 3: The integral of |f| is nonnegative
+  have hint : 0 ≤ ∫ x in s, |f x| ∂μ := setIntegral_nonneg hs (fun _ _ => abs_nonneg _)
+  -- Step 4: Convert to ENNReal
+  have h3 : (μ s).toReal ≤ level⁻¹ * ∫ x in s, |f x| ∂μ := h2.le
+  -- Step 5: ENNReal conversion
+  calc μ s = ENNReal.ofReal (μ s).toReal := (ENNReal.ofReal_toReal hμ').symm
+    _ ≤ ENNReal.ofReal (level⁻¹ * ∫ x in s, |f x| ∂μ) := ENNReal.ofReal_le_ofReal h3
+    _ = ENNReal.ofReal level⁻¹ * ENNReal.ofReal (∫ x in s, |f x| ∂μ) := by
+        rw [ENNReal.ofReal_mul (inv_nonneg.mpr hlevel.le)]
+    _ = ENNReal.ofReal (1 / level) * ENNReal.ofReal (∫ x in s, |f x| ∂μ) := by
+        rw [one_div]
+    _ ≤ ENNReal.ofReal (1 / level) * ∫⁻ x in s, ‖f x‖₊ ∂μ := by
+        gcongr
+        -- Convert Bochner integral of |f| to Lebesgue integral of ‖f‖₊
+        -- Key: ∫ |f| ≤ ∫⁻ ‖f‖₊ via ofReal_integral_eq_lintegral_ofReal
+        rw [ofReal_integral_eq_lintegral_ofReal hf.abs (ae_of_all _ (fun _ => abs_nonneg _))]
+        apply lintegral_mono
+        intro x
+        -- For real f: ENNReal.ofReal |f x| = ‖f x‖ₑ = ‖f x‖₊
+        -- |f x| = ‖f x‖ for real values, and ofReal ‖·‖ = enorm = nnnorm
+        simp only [← Real.norm_eq_abs]
+        simp
 
 /-! ### Calderón-Zygmund Covering by Balls -/
 
@@ -144,9 +194,10 @@ theorem czCovering_measure_bound {f : α → ℝ} {level : ℝ} (hlevel : 0 < le
       ENNReal.ofReal (1 / level) * ∫⁻ x in ball (cz.centers n) (cz.radii n), ‖f x‖₊ ∂μ := by
     intro n
     have havg := cz.avg_lower n
-    -- level < ⨍ |f| means level * μ(B) < ∫_B |f|
-    -- hence μ(B) < (1/level) * ∫_B |f|
-    -- This requires converting between Bochner and Lebesgue integrals
+    have hr := cz.radii_pos n
+    -- Apply measure_le_of_average_gt
+    -- For IsUnifLocDoublingMeasure on proper spaces, balls have positive and finite measure
+    -- The lower bound havg implies μ(B) ≤ (1/level) * ∫_B |f| by the key averaging lemma
     sorry
   -- Step 2: Sum over balls
   calc ∑' n, μ (ball (cz.centers n) (cz.radii n))
@@ -267,7 +318,7 @@ theorem CZDecompDoubling.badPart_integrable {f : α → ℝ} {level : ℝ}
 4. Combining gives `‖b‖₁ ≤ 2C · ‖f‖₁` -/
 theorem CZDecompDoubling.totalBadPart_L1_bound {f : α → ℝ} {level : ℝ}
     (cz : CZDecompDoubling μ f level) (hf : Integrable f μ) (hlevel : 0 < level) :
-    ∃ C : ℝ≥0∞, ∫⁻ x, ‖(cz.totalBadPart (μ := μ)) x‖₊ ∂μ ≤ C * ∫⁻ x, ‖f x‖₊ ∂μ := by
+    ∃ C : ℝ≥0∞, ∫⁻ x, ‖(CZDecompDoubling.totalBadPart (μ := μ) cz) x‖₊ ∂μ ≤ C * ∫⁻ x, ‖f x‖₊ ∂μ := by
   -- The key estimate: for each ball Bⱼ,
   -- ∫_{Bⱼ} |bⱼ| ≤ ∫_{Bⱼ} |f| + μ(Bⱼ) · |⨍_{Bⱼ} f|
   --             ≤ ∫_{Bⱼ} |f| + ∫_{Bⱼ} |f|
@@ -334,6 +385,7 @@ theorem whitney_exists {Ω : Set α} (hΩ_open : IsOpen Ω) (hΩ_nonempty : Ω.N
 
 /-! ### Application: Oscillation Control on Whitney Balls -/
 
+omit [BorelSpace α] [ProperSpace α] [IsUnifLocDoublingMeasure μ] in
 /-- For a function with bounded mean oscillation, the oscillation on Whitney balls
 is controlled by the BMO seminorm times the level.
 
@@ -369,25 +421,18 @@ theorem bmo_telescoping {f : α → ℝ} {M : ℝ} (hM : 0 < M)
       (1 + 2 * IsUnifLocDoublingMeasure.scalingConstantOf μ (r₀ / r)) * M := by
   -- The proof uses a chaining argument:
   --
-  -- Step 1: Use triangle inequality
-  -- |f_{B'} - f_B| ≤ ⨍_{B'} |f - f_{B'}| + ⨍_{B'} |f_{B'} - f_B|
-  --               = ⨍_{B'} |f - f_{B'}| + |f_{B'} - f_B| (second term is constant)
-  -- This gives |f_{B'} - f_B| ≤ ⨍_{B'} |f - f_{B'}|   -- WRONG, need different approach
-  --
-  -- Correct approach:
   -- |f_{B'} - f_B| = |⨍_{B'} f - ⨍_B f|
   --               = |⨍_{B'} (f - f_B)|   (since ⨍_{B'} f_B = f_B)
   --               ≤ ⨍_{B'} |f - f_B|
-  --               ≤ ⨍_{B'} (|f - f_{B'}| + |f_{B'} - f_B|)
   --
-  -- Key insight: Use |f - f_B| ≤ |f - f_{B'}| + |f_{B'} - f_B|
-  -- Then: ⨍_{B'} |f - f_B| ≤ ⨍_{B'} |f - f_{B'}| + |f_{B'} - f_B|
-  --                        ≤ M + |f_{B'} - f_B|
+  -- Now use: |f - f_B| ≤ |f - f_{B'}| + |f_{B'} - f_B| on B'
+  -- Taking averages over B':
+  -- ⨍_{B'} |f - f_B| ≤ ⨍_{B'} |f - f_{B'}| + |f_{B'} - f_B|
+  --                  ≤ M + |f_{B'} - f_B|
   --
-  -- This gives: |f_{B'} - f_B| ≤ M + |f_{B'} - f_B|, which is trivial!
-  --
-  -- Need the more sophisticated chaining argument using intermediate balls
-  -- or the formula involving scaling constants.
+  -- This would give a trivial bound! Instead, use the chaining through B:
+  -- |f_{B'} - f_B| ≤ ⨍_{B'} |f - f_B| ≤ (μ(B) / μ(B')) · ⨍_B |f - f_B|
+  --               ≤ scaling_const · M
   sorry
 
 end MeasureTheory
