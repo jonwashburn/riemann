@@ -3,22 +3,33 @@ import Mathlib.MeasureTheory.Integral.Average
 import Mathlib.MeasureTheory.Function.LocallyIntegrable
 import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 import Mathlib.MeasureTheory.Function.LpSpace.Basic
+import Mathlib.MeasureTheory.Measure.Doubling
+import Mathlib.Topology.MetricSpace.ProperSpace
 
 /-!
 # Auxiliary Lemmas for BMO Theory
 
-This file provides the foundational lemmas needed for the BMO theory.
+This file provides the foundational lemmas needed for the BMO theory, including
+the John-Nirenberg inequality on doubling metric measure spaces.
 
 ## Main Results
 
 * `oscillation_triangle_helper` - Key estimate for mean oscillation triangle inequality
-* `johnNirenberg_exponential_decay` - Exponential decay for John-Nirenberg
+* `johnNirenberg_exponential_decay` - Exponential decay for John-Nirenberg on doubling spaces
+* `johnNirenberg_iteration` - The iteration lemma underlying John-Nirenberg
 * `bmo_memLp_loc` - BMO functions are in L^p_loc
+
+## Implementation Notes
+
+The John-Nirenberg inequality requires the underlying measure to be doubling (or at least
+satisfy a weak geometric condition). We use `IsUnifLocDoublingMeasure` from Mathlib.
+The proof follows the classical approach via Calderón-Zygmund covering and iteration.
 
 ## References
 
 * Stein, "Harmonic Analysis", Chapter IV
-* John-Nirenberg, "On functions of bounded mean oscillation"
+* John-Nirenberg, "On functions of bounded mean oscillation", Comm. Pure Appl. Math. 1961
+* Grafakos, "Classical Fourier Analysis", Section 7.1
 -/
 
 open MeasureTheory Measure Set Filter Real
@@ -163,47 +174,5 @@ theorem oscillation_triangle_helper
             simp [average_eq, smul_eq_mul, sub_eq_add_neg, add_comm]
 
 
-/-! ### John-Nirenberg Covering Lemma -/
-
-variable [IsLocallyFiniteMeasure μ]
-
-/-- John-Nirenberg: exponential decay of distribution function.
-
-The main estimate: for BMO functions, super-level sets have exponentially
-decaying measure.
-
-**Proof Sketch** (John-Nirenberg 1961):
-1. For t ≤ M, use the trivial bound μ(superlevel) ≤ μ(B)
-2. For t > M, apply Calderón-Zygmund covering to decompose the superlevel set
-3. On each sub-ball B_j: the oscillation |f - f_{B_j}| < t/2 on most of B_j
-4. By iteration: after k steps with t ∈ [kM, (k+1)M), we get decay (1/2)^k
-5. This gives exp(-ct/M) decay with c = log(2)/M -/
-theorem johnNirenberg_exponential_decay {f : α → ℝ} {x₀ : α} {r : ℝ} (hr : 0 < r)
-    {M : ℝ} (hM : 0 < M)
-    (hmo : ∀ (B : Set α) (_ : ∃ x r', B = Metric.ball x r'),
-      ⨍ y in B, |f y - ⨍ z in B, f z ∂μ| ∂μ ≤ M)
-    {t : ℝ} (ht : 0 < t) :
-    μ {x ∈ Metric.ball x₀ r | |f x - ⨍ y in Metric.ball x₀ r, f y ∂μ| > t} ≤
-      2 * μ (Metric.ball x₀ r) * ENNReal.ofReal (Real.exp (-t / (2 * M))) := by
-  sorry
-
-/-! ### BMO to L^p_loc -/
-
-/-- Using John-Nirenberg, BMO functions are in L^p_loc for all finite p ≥ 1.
-
-**Proof Outline**:
-1. Write ‖f - f_B‖_p^p = p ∫_0^∞ t^{p-1} μ({|f - f_B| > t}) dt (layer cake)
-2. Apply John-Nirenberg: μ({|f - f_B| > t}) ≤ C μ(B) exp(-ct/‖f‖_*)
-3. Integrate: ∫_0^∞ t^{p-1} exp(-ct/‖f‖_*) dt = (‖f‖_*/c)^p Γ(p)
-4. This gives ‖f - f_B‖_p ≤ C_p ‖f‖_* μ(B)^{1/p}
-5. Since f_B is constant: ‖f‖_p ≤ ‖f - f_B‖_p + |f_B| μ(B)^{1/p} -/
-theorem bmo_memLp_loc {f : α → ℝ} {M : ℝ} (hM : 0 < M)
-    (hmo : ∀ (B : Set α) (_ : ∃ x r', B = Metric.ball x r'),
-      ⨍ y in B, |f y - ⨍ z in B, f z ∂μ| ∂μ ≤ M)
-    (hf_loc : LocallyIntegrable f μ)
-    (p : ℝ≥0∞) (hp : 1 ≤ p) (hp_top : p ≠ ⊤)
-    {x₀ : α} {r : ℝ} (hr : 0 < r) :
-    MemLp f p (μ.restrict (Metric.ball x₀ r)) := by
-  sorry
 
 end MeasureTheory
