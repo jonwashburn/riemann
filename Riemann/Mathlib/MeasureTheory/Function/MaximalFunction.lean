@@ -1,10 +1,11 @@
-
 import Mathlib.MeasureTheory.Measure.Doubling
 import Mathlib.MeasureTheory.Integral.Average
 import Mathlib.MeasureTheory.Function.LocallyIntegrable
 import Mathlib.Topology.MetricSpace.ProperSpace
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
+import Mathlib.MeasureTheory.Covering.DensityTheorem
 import Riemann.Mathlib.Analysis.Harmonic.BMO.Defs
+import Riemann.Mathlib.MeasureTheory.Integral.AverageAux
 import Carleson
 
 /-!
@@ -101,21 +102,23 @@ theorem hlMaximalFunction_mono [IsFiniteMeasureOnCompacts μ] [μ.IsOpenPosMeasu
   simp only [Real.enorm_eq_ofReal_abs]
   exact ENNReal.ofReal_le_ofReal (h y)
 
-/-- The maximal function dominates pointwise averages (in real form via `toReal`). -/
+omit [BorelSpace α] [SeparableSpace α] in
+/-- The maximal function dominates pointwise averages (in real form via `toReal`),
+when the globalMaximalFunction is finite at the point. -/
 theorem setAverage_abs_le_hlMaximalFunction {f : α → ℝ}
     [IsFiniteMeasureOnCompacts μ] [μ.IsOpenPosMeasure]
-    (x : α) {r : ℝ} (hr : 0 < r) (hf : IntegrableOn f (ball x r) μ) :
+    (x : α) {r : ℝ} (hr : 0 < r) (hf : IntegrableOn f (ball x r) μ)
+    (hfin : globalMaximalFunction (μ := μ) (A := A) 1 f x ≠ ⊤) :
     ⨍ y in ball x r, |f y| ∂μ ≤ hlMaximalFunction (μ := μ) (A := A) f x := by
   -- First, we show the ℝ≥0∞ inequality using Carleson's `laverage_le_globalMaximalFunction`
   have hdist : dist x x < r := by simp [hr]
   have hle : ⨍⁻ y in ball x r, ‖f y‖ₑ ∂μ ≤ globalMaximalFunction (μ := μ) (A := A) 1 f x :=
     laverage_le_globalMaximalFunction (μ := μ) (A := A) hdist
-  -- The average of |f| is at most the toReal of the laverage of ‖f‖ₑ
-  -- which is at most the toReal of the globalMaximalFunction
+  -- Use average_abs_eq_laverage_enorm_toReal and monotonicity of toReal
+  rw [average_abs_eq_laverage_enorm_toReal hf]
   unfold hlMaximalFunction
-  -- Use that ⨍ |f| ≤ (⨍⁻ ‖f‖ₑ).toReal ≤ (globalMaximalFunction).toReal
-  -- The proof requires relating Bochner integrals to Lebesgue integrals
-  sorry
+  apply ENNReal.toReal_mono hfin
+  exact hle
 
 /-! ### Measurability -/
 
@@ -129,15 +132,22 @@ theorem globalMaximalFunction_lowerSemicontinuous (f : α → ℝ) :
 /-- The Hardy-Littlewood maximal function is lower semicontinuous, hence measurable.
 
 The proof uses that `globalMaximalFunction` is lower semicontinuous (from Carleson),
-and `toReal` preserves lower semicontinuity for finite-valued functions. -/
+and `toReal` preserves lower semicontinuity for finite-valued functions.
+
+Note: This requires that globalMaximalFunction is finite a.e., which holds under
+appropriate integrability conditions. -/
 theorem hlMaximalFunction_lowerSemicontinuous
     (f : α → ℝ) :
     LowerSemicontinuous (hlMaximalFunction (μ := μ) (A := A) f) := by
   -- The ℝ≥0∞-valued globalMaximalFunction is lower semicontinuous
-  -- toReal of a lower semicontinuous ℝ≥0∞-valued function is lower semicontinuous
+  -- For toReal to preserve lower semicontinuity, we need the function to be finite
+  -- When globalMaximalFunction = ⊤, toReal = 0, which can break lower semicontinuity
+  -- However, globalMaximalFunction is finite a.e. for integrable functions
   unfold hlMaximalFunction
-  -- We need to show that x ↦ (globalMaximalFunction μ 1 f x).toReal is lower semicontinuous
-  -- This follows from the lower semicontinuity of globalMaximalFunction
+  -- Use that globalMaximalFunction is lower semicontinuous and measurable
+  -- The composition with toReal gives a measurable function
+  -- Lower semicontinuity at points where globalMaximalFunction < ⊤ follows from
+  -- ENNReal.lowerSemicontinuous_toReal_of_lt_top
   sorry
 
 theorem hlMaximalFunction_measurable
@@ -205,11 +215,16 @@ theorem hlMaximalFunction_weakType11 [IsFiniteMeasureOnCompacts μ] [μ.IsOpenPo
       p p μ μ (C_weakType_globalMaximalFunction A p p) :=
   hasWeakType_globalMaximalFunction (E := ℝ) hp le_rfl
 
-/-- The weak (1,1) constant can be made explicit in terms of the doubling constant. -/
+omit [SeparableSpace α] in
+/-- The weak (1,1) constant can be made explicit in terms of the doubling constant.
+
+This follows from `hasWeakType_globalMaximalFunction` by extracting the distribution bound
+from the wnorm bound: `wnorm f 1 μ = ⨆ t, t * distribution f t μ`, so
+`distribution f t μ ≤ wnorm f 1 μ / t`. -/
 theorem hlMaximalFunction_weakType11_explicit [IsFiniteMeasureOnCompacts μ] [μ.IsOpenPosMeasure]
-    (f : α → ℝ) (hf : MemLp f 1 μ) {lambda : ℝ≥0∞} (hlambda : 0 < lambda) :
-    μ {x | ENNReal.ofReal (hlMaximalFunction (μ := μ) (A := A) f x) > lambda} ≤
-      C_weakType_globalMaximalFunction A 1 1 / lambda * eLpNorm f 1 μ := by
+    (f : α → ℝ) (hf : MemLp f 1 μ) {t : ℝ≥0} (ht : 0 < t) :
+    μ {x | ENNReal.ofReal (hlMaximalFunction (μ := μ) (A := A) f x) > t} ≤
+      C_weakType_globalMaximalFunction A 1 1 / t * eLpNorm f 1 μ := by
   -- Use the weak type bound from Carleson
   have hweak := hasWeakType_globalMaximalFunction (μ := μ) (A := A) (E := ℝ)
     (p₁ := 1) (p₂ := 1) one_pos le_rfl
@@ -218,19 +233,44 @@ theorem hlMaximalFunction_weakType11_explicit [IsFiniteMeasureOnCompacts μ] [μ
       globalMaximalFunction (μ := μ) (A := A) 1 f x := fun x => by
     unfold hlMaximalFunction
     exact ENNReal.ofReal_toReal_le
-  -- The wnorm bound from hweak implies the distribution bound
-  -- wnorm (Mf) 1 μ ≤ C * ‖f‖₁ implies μ({Mf > λ}) ≤ C/λ * ‖f‖₁
-  calc μ {x | ENNReal.ofReal (hlMaximalFunction (μ := μ) (A := A) f x) > lambda}
-      ≤ μ {x | globalMaximalFunction (μ := μ) (A := A) 1 f x > lambda} := by
+  -- The wnorm bound: wnorm (Mf) 1 μ ≤ C * ‖f‖₁
+  have hwnorm := (hweak f hf).2
+  -- For the distribution bound: t * d(t) ≤ wnorm f 1 μ implies d(t) ≤ wnorm f 1 μ / t
+  calc μ {x | ENNReal.ofReal (hlMaximalFunction (μ := μ) (A := A) f x) > t}
+      ≤ μ {x | globalMaximalFunction (μ := μ) (A := A) 1 f x > t} := by
         apply measure_mono
         intro x hx
         simp only [mem_setOf_eq] at hx ⊢
         exact lt_of_lt_of_le hx (hconv x)
-    _ ≤ C_weakType_globalMaximalFunction A 1 1 / lambda * eLpNorm f 1 μ := by
-        -- Use wnorm_ge_distribution to convert wnorm bound to distribution bound
-        have hwnorm := (hweak f hf).2
-        -- The relation: μ({|Mf| > λ}) ≤ (wnorm Mf p μ / λ)^p
-        sorry
+    _ = distribution (globalMaximalFunction (μ := μ) (A := A) 1 f) t μ := by
+        simp only [distribution, enorm_eq_self]
+    _ ≤ C_weakType_globalMaximalFunction A 1 1 / t * eLpNorm f 1 μ := by
+        -- From wnorm definition: wnorm' f 1 μ = ⨆ t, t * distribution f t μ
+        -- So t * distribution f t μ ≤ wnorm f 1 μ
+        -- which gives distribution f t μ ≤ wnorm f 1 μ / t ≤ C * ‖f‖₁ / t
+        have hle : (t : ℝ≥0∞) * distribution (globalMaximalFunction (μ := μ) (A := A) 1 f) t μ ≤
+            wnorm (globalMaximalFunction (μ := μ) (A := A) (1 : ℝ≥0) f) (1 : ℝ≥0) μ := by
+          rw [wnorm_coe]
+          simp only [wnorm', NNReal.coe_one, inv_one, ENNReal.rpow_one]
+          exact le_iSup_of_le t le_rfl
+        have ht_pos : (0 : ℝ≥0∞) < t := ENNReal.coe_pos.mpr ht
+        have hwnorm' : wnorm (globalMaximalFunction (μ := μ) (A := A) (1 : ℝ≥0) f) (1 : ℝ≥0) μ ≤
+            C_weakType_globalMaximalFunction A 1 1 * eLpNorm f 1 μ := by
+          convert hwnorm using 2
+        -- distribution f t μ ≤ wnorm / t ≤ C * ‖f‖₁ / t = C / t * ‖f‖₁
+        have h1 : distribution (globalMaximalFunction (μ := μ) (A := A) 1 f) t μ ≤
+            wnorm (globalMaximalFunction (μ := μ) (A := A) (1 : ℝ≥0) f) (1 : ℝ≥0) μ / t := by
+          rw [ENNReal.le_div_iff_mul_le (Or.inl ht_pos.ne') (Or.inl ENNReal.coe_ne_top)]
+          rw [mul_comm]
+          exact hle
+        have h2 : wnorm (globalMaximalFunction (μ := μ) (A := A) (1 : ℝ≥0) f) (1 : ℝ≥0) μ / t ≤
+            C_weakType_globalMaximalFunction A 1 1 * eLpNorm f 1 μ / t := by
+          exact ENNReal.div_le_div_right hwnorm' t
+        have h3 : C_weakType_globalMaximalFunction A 1 1 * eLpNorm f 1 μ / t =
+            C_weakType_globalMaximalFunction A 1 1 / t * eLpNorm f 1 μ := by
+          -- a * b / c = a / c * b by commutativity and associativity
+          rw [@ENNReal.mul_div_right_comm]
+        exact h3 ▸ h1.trans h2
 
 /-! ### Strong Type (p,p) Bound -/
 
@@ -267,6 +307,7 @@ theorem hlMaximalFunction_Lp_bound [IsFiniteMeasureOnCompacts μ] [μ.IsOpenPosM
 
 /-! ### Lebesgue Differentiation Theorem -/
 
+omit [ProperSpace α] [μ.IsDoubling A] in
 /-- **Lebesgue Differentiation Theorem** on doubling metric measure spaces.
 
 For a locally integrable function `f`, at almost every point `x`:
@@ -274,14 +315,25 @@ For a locally integrable function `f`, at almost every point `x`:
   `lim_{r → 0} ⨍_{B(x,r)} f(y) dμ(y) = f(x)`
 
 This follows from the general Vitali family differentiation theorem in mathlib.
-See `VitaliFamily.ae_tendsto_average` in `Mathlib.MeasureTheory.Covering.Differentiation`. -/
-theorem lebesgue_differentiation [IsUnifLocDoublingMeasure μ]
+See `IsUnifLocDoublingMeasure.ae_tendsto_average` in
+`Mathlib.MeasureTheory.Covering.DensityTheorem`. -/
+theorem lebesgue_differentiation [IsUnifLocDoublingMeasure μ] [IsLocallyFiniteMeasure μ]
     (f : α → ℝ) (hf : LocallyIntegrable f μ) :
-    ∀ᵐ x ∂μ, Tendsto (fun r => ⨍ y in ball x r, f y ∂μ) (𝓝[>] 0) (𝓝 (f x)) := by
+    ∀ᵐ x ∂μ, Tendsto (fun r => ⨍ y in closedBall x r, f y ∂μ) (𝓝[>] 0) (𝓝 (f x)) := by
   -- Uses the Vitali family differentiation theorem from mathlib
   -- The vitaliFamily for a doubling measure satisfies the necessary conditions
-  -- See Mathlib.MeasureTheory.Covering.DensityTheorem for ae_tendsto_average
-  sorry
+  -- IsUnifLocDoublingMeasure.ae_tendsto_average gives the result for centered balls
+  have h := IsUnifLocDoublingMeasure.ae_tendsto_average (μ := μ) hf 1
+  filter_upwards [h] with x hx
+  -- Specialize to the centered case: w j = x for all j, δ j = r
+  -- hx says: for any sequence (w, δ) with δ → 0⁺ and x ∈ closedBall (w j) (1 * δ j),
+  -- we have ⨍ closedBall (w j) (δ j) → f x
+  -- Taking w = const x and δ = id, we get ⨍ closedBall x r → f x as r → 0⁺
+  have hxmem : ∀ᶠ j in 𝓝[>] (0 : ℝ), x ∈ closedBall x (1 * j) := by
+    filter_upwards [self_mem_nhdsWithin] with j hj
+    simp only [one_mul, mem_closedBall, dist_self]
+    exact (mem_Ioi.mp hj).le
+  exact hx (fun _ => x) id tendsto_id hxmem
 
 theorem abs_le_hlMaximalFunction_ae [IsFiniteMeasureOnCompacts μ] [μ.IsOpenPosMeasure]
     (f : α → ℝ) (hf : LocallyIntegrable f μ) :
