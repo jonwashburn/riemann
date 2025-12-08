@@ -1,12 +1,7 @@
-import Mathlib.MeasureTheory.Measure.Doubling
-import Mathlib.MeasureTheory.Integral.Average
-import Mathlib.MeasureTheory.Function.LocallyIntegrable
-import Mathlib.Topology.MetricSpace.ProperSpace
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+import Carleson.ToMathlib.HardyLittlewood
+import Carleson.ToMathlib.MeasureTheory.Function.LocallyIntegrable
 import Mathlib.MeasureTheory.Covering.DensityTheorem
-import Riemann.Mathlib.Analysis.Harmonic.BMO.Defs
 import Riemann.Mathlib.MeasureTheory.Integral.AverageAux
-import Carleson
 
 /-!
 # Hardy-Littlewood Maximal Function
@@ -129,31 +124,32 @@ theorem globalMaximalFunction_lowerSemicontinuous (f : α → ℝ) :
     LowerSemicontinuous (globalMaximalFunction (μ := μ) (A := A) 1 f) :=
   lowerSemiContinuous_globalMaximalFunction
 
-/-- The Hardy-Littlewood maximal function is lower semicontinuous, hence measurable.
+omit [BorelSpace α] [SeparableSpace α] in
+/-- The Hardy-Littlewood maximal function is lower semicontinuous when the
+underlying `globalMaximalFunction` is everywhere finite.
 
 The proof uses that `globalMaximalFunction` is lower semicontinuous (from Carleson),
 and `toReal` preserves lower semicontinuity for finite-valued functions.
 
-Note: This requires that globalMaximalFunction is finite a.e., which holds under
-appropriate integrability conditions. -/
+For L∞ functions, `globalMaximalFunction_lt_top` provides the finiteness. -/
 theorem hlMaximalFunction_lowerSemicontinuous
-    (f : α → ℝ) :
+    (f : α → ℝ) (hfin : ∀ x, globalMaximalFunction (μ := μ) (A := A) 1 f x ≠ ⊤) :
     LowerSemicontinuous (hlMaximalFunction (μ := μ) (A := A) f) := by
-  -- The ℝ≥0∞-valued globalMaximalFunction is lower semicontinuous
-  -- For toReal to preserve lower semicontinuity, we need the function to be finite
-  -- When globalMaximalFunction = ⊤, toReal = 0, which can break lower semicontinuity
-  -- However, globalMaximalFunction is finite a.e. for integrable functions
   unfold hlMaximalFunction
-  -- Use that globalMaximalFunction is lower semicontinuous and measurable
-  -- The composition with toReal gives a measurable function
-  -- Lower semicontinuity at points where globalMaximalFunction < ⊤ follows from
-  -- ENNReal.lowerSemicontinuous_toReal_of_lt_top
-  sorry
+  exact ENNReal.lowerSemicontinuous_toReal_of_lt_top
+    (globalMaximalFunction_lowerSemicontinuous (μ := μ) (A := A) f) hfin
 
+omit [SeparableSpace α] in
+/-- The Hardy-Littlewood maximal function is measurable.
+
+This follows from the measurability of `globalMaximalFunction` (which is lower
+semicontinuous) and `toReal` (which is Borel measurable). -/
 theorem hlMaximalFunction_measurable
     (f : α → ℝ) :
-    Measurable (hlMaximalFunction (μ := μ) (A := A) f) :=
-  (hlMaximalFunction_lowerSemicontinuous (μ := μ) (A := A) f).measurable
+    Measurable (hlMaximalFunction (μ := μ) (A := A) f) := by
+  unfold hlMaximalFunction
+  exact ENNReal.measurable_toReal.comp
+    (globalMaximalFunction_lowerSemicontinuous (μ := μ) (A := A) f).measurable
 
 /-! ### Weak Type (1,1) Bound -/
 
@@ -335,13 +331,201 @@ theorem lebesgue_differentiation [IsUnifLocDoublingMeasure μ] [IsLocallyFiniteM
     exact (mem_Ioi.mp hj).le
   exact hx (fun _ => x) id tendsto_id hxmem
 
+/-! ### Auxiliary Lemmas for Lebesgue Point Bound -/
+
+/-- Conversion lemma: if `1 < p` in `ℝ≥0∞`, then `1 < p.toNNReal`. -/
+lemma one_lt_toNNReal_of_one_lt {p : ℝ≥0∞} (hp : 1 < p) (hptop : p ≠ ⊤) :
+    (1 : ℝ≥0) < p.toNNReal := by
+  have h1 : (1 : ℝ≥0∞).toNNReal = 1 := ENNReal.toNNReal_one
+  rw [← h1]
+  exact (ENNReal.toNNReal_lt_toNNReal ENNReal.one_ne_top hptop).mpr hp
+
+omit [SeparableSpace α] in
+/-- The global maximal function is a.e. finite for functions in `Lp` with `p > 1`.
+This follows from `globalMaximalFunction_ae_lt_top` in the Carleson project. -/
+lemma globalMaximalFunction_ae_lt_top_of_memLp
+    [IsFiniteMeasureOnCompacts μ] [μ.IsOpenPosMeasure]
+    {p : ℝ≥0∞} (hp : 1 < p) (hptop : p ≠ ⊤)
+    (f : α → ℝ) (hf : MemLp f p μ) :
+    ∀ᵐ x ∂μ, globalMaximalFunction (μ := μ) (A := A) 1 f x < ⊤ := by
+  have hp' : (1 : ℝ≥0) < p.toNNReal := one_lt_toNNReal_of_one_lt hp hptop
+  have hfnn : MemLp f (p.toNNReal) μ := by rwa [ENNReal.coe_toNNReal hptop]
+  exact globalMaximalFunction_ae_lt_top one_pos hp' hfnn
+
+omit [BorelSpace α] [SeparableSpace α] in
+/-- The average of `|f|` over an open ball is bounded by the maximal function,
+when the global maximal function is finite at the center. -/
+lemma setAverage_abs_ball_le_hlMaximalFunction
+    [IsFiniteMeasureOnCompacts μ] [μ.IsOpenPosMeasure]
+    {f : α → ℝ} (hf_loc : LocallyIntegrable f μ)
+    (x : α) {r : ℝ} (hr : 0 < r)
+    (hfin : globalMaximalFunction (μ := μ) (A := A) 1 f x ≠ ⊤) :
+    ⨍ y in ball x r, |f y| ∂μ ≤ hlMaximalFunction (μ := μ) (A := A) f x := by
+  have hdist : dist x x < r := by simp [hr]
+  -- f is integrable on the ball (since ball ⊂ closedBall which is compact)
+  have hf_int : IntegrableOn f (ball x r) μ := by
+    have hcb : IntegrableOn f (closedBall x r) μ :=
+      hf_loc.integrableOn_isCompact (isCompact_closedBall x r)
+    exact hcb.mono_set ball_subset_closedBall
+  have hle_lavg : ⨍⁻ y in ball x r, ‖f y‖ₑ ∂μ ≤ globalMaximalFunction (μ := μ) (A := A) 1 f x :=
+    laverage_le_globalMaximalFunction (μ := μ) (A := A) hdist
+  -- Convert Bochner average of |f| to laverage of ‖f‖ₑ
+  calc ⨍ y in ball x r, |f y| ∂μ
+      = (⨍⁻ y in ball x r, ‖f y‖ₑ ∂μ).toReal := average_abs_eq_laverage_enorm_toReal hf_int
+    _ ≤ (globalMaximalFunction (μ := μ) (A := A) 1 f x).toReal := ENNReal.toReal_mono hfin hle_lavg
+    _ = hlMaximalFunction (μ := μ) (A := A) f x := rfl
+
+/-- The pointwise absolute value is dominated by the maximal function a.e., for functions
+in `Lp` with `p > 1`.
+
+The proof combines:
+1. Lebesgue differentiation: averages of `|f|` over balls converge to `|f(x)|` a.e.
+2. Ball average bounds: each average is bounded by `Mf(x)` (from `laverage_le_globalMaximalFunction`)
+3. Finiteness: `Mf(x) < ⊤` a.e. for `Lp` functions with `p > 1` (from `globalMaximalFunction_ae_lt_top`)
+
+The key insight is that `|f(x)| = lim_{r→0} ⨍ ball x r |f| ≤ Mf(x)`. -/
 theorem abs_le_hlMaximalFunction_ae [IsFiniteMeasureOnCompacts μ] [μ.IsOpenPosMeasure]
-    (f : α → ℝ) (hf : LocallyIntegrable f μ) :
+    [IsUnifLocDoublingMeasure μ] [IsLocallyFiniteMeasure μ]
+    {p : ℝ≥0∞} (hp : 1 < p) (hptop : p ≠ ⊤) (f : α → ℝ) (hf : MemLp f p μ) :
     ∀ᵐ x ∂μ, |f x| ≤ hlMaximalFunction (μ := μ) (A := A) f x := by
-  -- Consequence of Lebesgue differentiation: if averages converge to f(x),
-  -- then |f(x)| = lim of |averages| ≤ sup of averages = Mf(x)
-  -- Uses that averages of |f| converge to |f(x)| a.e.
-  sorry
+  -- Step 1: Get a.e. finiteness of globalMaximalFunction
+  have hfin : ∀ᵐ x ∂μ, globalMaximalFunction (μ := μ) (A := A) 1 f x < ⊤ :=
+    globalMaximalFunction_ae_lt_top_of_memLp (μ := μ) (A := A) hp hptop f hf
+  -- Step 2: Get Lebesgue differentiation for |f|
+  have hp1 : 1 ≤ p := hp.le
+  have hf_loc : LocallyIntegrable f μ := hf.locallyIntegrable hp1
+  have habs_loc : LocallyIntegrable (fun x => |f x|) μ := hf_loc.norm
+  have hdiff : ∀ᵐ x ∂μ, Tendsto (fun r => ⨍ y in closedBall x r, |f y| ∂μ)
+      (𝓝[>] 0) (𝓝 |f x|) := lebesgue_differentiation (μ := μ) (fun x => |f x|) habs_loc
+  -- Step 3: Combine the a.e. conditions and conclude
+  filter_upwards [hfin, hdiff] with x hx_fin hx_diff
+  have hfin' : globalMaximalFunction (μ := μ) (A := A) 1 f x ≠ ⊤ := hx_fin.ne
+  -- Ball averages bounded by Mf(x)
+  have hball_bound : ∀ r > 0, ⨍ y in ball x r, |f y| ∂μ ≤ hlMaximalFunction (μ := μ) (A := A) f x :=
+    fun r hr => setAverage_abs_ball_le_hlMaximalFunction (μ := μ) (A := A) hf_loc x hr hfin'
+  -- Ball averages also converge to |f(x)| (same limit as closedBall)
+  -- Strategy: use that ball ⊂ closedBall, and both averages converge to |f(x)|
+  -- For r > 0: ball x r ⊆ closedBall x r ⊆ ball x (2r)
+  -- The averages over nested sets converge to the same limit by Lebesgue differentiation
+  have hdiff_ball : Tendsto (fun r => ⨍ y in ball x r, |f y| ∂μ) (𝓝[>] 0) (𝓝 |f x|) := by
+    -- Use squeeze: for r/2 < ρ < r, we have closedBall x ρ ⊂ ball x r ⊂ closedBall x r
+    -- Average over closedBall x ρ → |f x| and average over closedBall x r → |f x|
+    rw [Metric.tendsto_nhds]
+    intro ε hε
+    -- Use ε/2 for both bounds
+    have hcb := Metric.tendsto_nhds.mp hx_diff (ε / 2) (half_pos hε)
+    rw [eventually_nhdsWithin_iff] at hcb ⊢
+    rw [Metric.eventually_nhds_iff] at hcb ⊢
+    obtain ⟨δ, hδ_pos, hδ⟩ := hcb
+    -- For r < δ, ⨍ closedBall x r |f| is within ε of |f x|
+    -- Use that ball x r = ⋃ ρ<r closedBall x ρ, and integrals/measures converge
+    refine ⟨δ, hδ_pos, fun r hr hr_pos => ?_⟩
+    have hr' : 0 < r := mem_Ioi.mp hr_pos
+    have hr_lt_δ : r < δ := by simpa [abs_of_pos hr'] using hr
+    -- Integrability on ball
+    have hf_int_cb : ∀ ρ, IntegrableOn (fun y => |f y|) (closedBall x ρ) μ := fun ρ =>
+      habs_loc.integrableOn_isCompact (isCompact_closedBall x ρ)
+    have hf_int_ball : IntegrableOn (fun y => |f y|) (ball x r) μ :=
+      (hf_int_cb r).mono_set ball_subset_closedBall
+    -- Key: ball x r = ⋃_{n} closedBall x (r * (1 - 1/(n+2)))
+    -- Use monotone convergence for integrals and measures
+    -- Define approximating sequence ρₙ = r * (1 - 1/(n+2)) → r
+    let ρ : ℕ → ℝ := fun n => r * (1 - 1 / (n + 2 : ℝ))
+    have hρ_mono : Monotone ρ := by
+      intro m n hmn
+      have hm2 : (0 : ℝ) < (m : ℝ) + 2 := by norm_cast; linarith
+      have hn2 : (m : ℝ) + 2 ≤ (n : ℝ) + 2 := by
+        have := Nat.cast_le (α := ℝ).mpr hmn
+        linarith
+      have hdiv : (1 : ℝ) / ((n : ℝ) + 2) ≤ 1 / ((m : ℝ) + 2) :=
+        one_div_le_one_div_of_le hm2 hn2
+      have hr_nonneg : 0 ≤ r := le_of_lt hr'
+      -- ρ m = r * (1 - 1/(m+2)), ρ n = r * (1 - 1/(n+2))
+      have hsub : 1 - 1 / ((m : ℝ) + 2) ≤ 1 - 1 / ((n : ℝ) + 2) := by linarith
+      have hmul := mul_le_mul_of_nonneg_left hsub hr_nonneg
+      simpa [ρ] using hmul
+    have hρ_pos : ∀ n, 0 < ρ n := by
+      intro n
+      simp only [ρ]
+      apply mul_pos hr'
+      have hn2 : (0 : ℝ) < n + 2 := by norm_cast; linarith
+      have h1 : (1 : ℝ) / (n + 2) < 1 := (div_lt_one hn2).mpr (by linarith)
+      linarith
+    have hρ_lt_r : ∀ n, ρ n < r := by
+      intro n
+      simp only [ρ]
+      have h1 : 1 - 1 / (n + 2 : ℝ) < 1 := by
+        have : 0 < 1 / (n + 2 : ℝ) := by positivity
+        linarith
+      calc r * (1 - 1 / (n + 2)) < r * 1 := by
+            apply mul_lt_mul_of_pos_left h1 hr'
+        _ = r := mul_one r
+    have hρ_tendsto : Tendsto ρ atTop (𝓝 r) := by
+      simp only [ρ]
+      have h1 : Tendsto (fun n : ℕ => (n : ℝ) + 2) atTop atTop := by
+        apply Filter.Tendsto.atTop_add tendsto_natCast_atTop_atTop
+        exact tendsto_const_nhds
+      have h2 : Tendsto (fun n : ℕ => 1 / ((n : ℝ) + 2)) atTop (𝓝 0) := by
+        simp only [one_div]
+        exact tendsto_inv_atTop_zero.comp h1
+      have h3 : Tendsto (fun n : ℕ => 1 - 1 / ((n : ℝ) + 2)) atTop (𝓝 1) := by
+        convert tendsto_const_nhds.sub h2 using 1; ring_nf
+      convert h3.const_mul r using 1; ring_nf
+    -- ⋃ n, closedBall x (ρ n) = ball x r
+    have hUnion : ⋃ n, closedBall x (ρ n) = ball x r := by
+      apply Set.eq_of_subset_of_subset
+      · exact iUnion_subset fun n => closedBall_subset_ball (hρ_lt_r n)
+      · intro y hy
+        rw [mem_ball] at hy
+        -- Find n such that dist y x < ρ n
+        have : ∀ᶠ n in atTop, dist y x < ρ n := hρ_tendsto.eventually (eventually_gt_nhds hy)
+        obtain ⟨n, hn⟩ := this.exists
+        exact mem_iUnion.mpr ⟨n, mem_closedBall.mpr hn.le⟩
+    -- Use monotone convergence
+    have hsm : ∀ n, MeasurableSet (closedBall x (ρ n)) := fun n => measurableSet_closedBall
+    have hf_int_union : IntegrableOn (fun y => |f y|) (⋃ n, closedBall x (ρ n)) μ := by
+      rw [hUnion]; exact hf_int_ball
+    have h_int_conv := tendsto_setIntegral_of_monotone hsm
+      (fun m n hmn => closedBall_subset_closedBall (hρ_mono hmn)) hf_int_union
+    rw [hUnion] at h_int_conv
+    have h_meas_conv : Tendsto (fun n => μ (closedBall x (ρ n))) atTop (𝓝 (μ (ball x r))) := by
+      rw [← hUnion]
+      exact tendsto_measure_iUnion_atTop (fun m n hmn => closedBall_subset_closedBall (hρ_mono hmn))
+    -- Average convergence: ⨍ closedBall (ρ n) → ⨍ ball r as n → ∞
+    have h_avg_conv : Tendsto (fun n => ⨍ y in closedBall x (ρ n), |f y| ∂μ) atTop
+        (𝓝 (⨍ y in ball x r, |f y| ∂μ)) := by
+      have hμ_ball_pos : 0 < μ (ball x r) := measure_ball_pos μ x hr'
+      have hμ_ball_ne_top : μ (ball x r) ≠ ⊤ := by exact measure_ball_ne_top --measure_ball_ne_top x r
+      -- Use that average = inv(measure) * integral, and both converge
+      simp only [setAverage_eq, smul_eq_mul]
+      apply Tendsto.mul
+      · -- (μ (closedBall x (ρ n)).toReal)⁻¹ → (μ (ball x r).toReal)⁻¹
+        apply Tendsto.inv₀
+        · exact (ENNReal.tendsto_toReal hμ_ball_ne_top).comp h_meas_conv
+        · exact (ENNReal.toReal_pos hμ_ball_pos.ne' hμ_ball_ne_top).ne'
+      · exact h_int_conv
+    -- Now use that ⨍ closedBall x (ρ n) is eventually within ε/2 of |f x|
+    have h_cb_close : ∀ᶠ n in atTop, dist (⨍ y in closedBall x (ρ n), |f y| ∂μ) |f x| < ε / 2 := by
+      have : ∀ᶠ n in atTop, ρ n < δ := hρ_tendsto.eventually (eventually_lt_nhds hr_lt_δ)
+      filter_upwards [this] with n hn
+      apply hδ
+      · rw [dist_zero_right, Real.norm_eq_abs, abs_of_pos (hρ_pos n)]
+        exact hn
+      · exact mem_Ioi.mpr (hρ_pos n)
+    -- Take limit: ⨍ ball x r = lim ⨍ closedBall x (ρ n), each within ε/2 of limit
+    have hconv := h_avg_conv.eventually (Metric.ball_mem_nhds _ (half_pos hε))
+    obtain ⟨n, hn_close, hn_dist⟩ := (hconv.and h_cb_close).exists
+    have hn_close' : dist (⨍ y in closedBall x (ρ n), |f y| ∂μ) (⨍ y in ball x r, |f y| ∂μ) < ε / 2 :=
+      Metric.mem_ball.mp hn_close
+    calc dist (⨍ y in ball x r, |f y| ∂μ) |f x|
+        ≤ dist (⨍ y in ball x r, |f y| ∂μ) (⨍ y in closedBall x (ρ n), |f y| ∂μ) +
+          dist (⨍ y in closedBall x (ρ n), |f y| ∂μ) |f x| := dist_triangle _ _ _
+      _ < ε / 2 + ε / 2 := add_lt_add (by rw [dist_comm]; exact hn_close') hn_dist
+      _ = ε := add_halves ε
+  -- Conclude: |f(x)| = lim ⨍ ball r |f| ≤ Mf(x)
+  refine le_of_tendsto hdiff_ball ?_
+  filter_upwards [self_mem_nhdsWithin] with r hr
+  exact hball_bound r (mem_Ioi.mp hr)
 
 /-! ### Comparison of Centered and Uncentered Maximal Functions -/
 
