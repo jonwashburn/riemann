@@ -890,10 +890,21 @@ where `Γ_α(x) = { (t,y) : |t-x| < αy }` is the cone of aperture `α`. -/
 noncomputable def nonTangentialMaximal (f : ℝ → ℝ) (α : ℝ) (x : ℝ) : ℝ≥0∞ :=
   ⨆ (y : ℝ≥0) (t : ℝ) (_ht : |t - x| < α * y), ‖poissonExtension f t y‖₊
 
-/-- The non-tangential maximal function is measurable. -/
+/-- The non-tangential maximal function is measurable.
+
+The proof uses that the supremum can be taken over a countable dense subset of parameters
+(rationals), and countable suprema of measurable functions are measurable.
+
+**Proof sketch**:
+1. The Poisson extension `Pf(t, y)` is jointly continuous in `(t, y)` for fixed `f`
+2. The cone condition `|t - x| < α · y` defines an open set
+3. The supremum over a separable space equals the supremum over a countable dense subset
+4. Countable suprema of measurable functions are measurable -/
 theorem nonTangentialMaximal_measurable (f : ℝ → ℝ) (α : ℝ) :
     Measurable (nonTangentialMaximal f α) := by
-  -- Supremum of measurable functions over a measurable index set
+  unfold nonTangentialMaximal
+  -- The proof requires showing that the iSup over (y, t, proof) is measurable
+  -- This follows from general results about measurability of suprema
   sorry
 
 /-- The **Carleson embedding operator** from boundary functions to the half-space.
@@ -902,9 +913,19 @@ For a function `f` on ℝ, this gives its Poisson extension to ℝ × ℝ≥0. -
 noncomputable def carlesonEmbedding (f : ℝ → ℝ) : ℝ × ℝ≥0 → ℝ :=
   fun ⟨x, y⟩ => poissonExtension f x y
 
-/-- The Carleson embedding is measurable for integrable functions. -/
-theorem carlesonEmbedding_measurable {f : ℝ → ℝ} (hf : Integrable f) :
+/-- The Carleson embedding is measurable for integrable functions.
+
+The Poisson extension is measurable because it's a parameter-dependent integral
+of a measurable integrand.
+
+**Proof sketch**:
+1. The Poisson kernel `K_y(x-t) = (1/π) · y / ((x-t)² + y²)` is jointly measurable in `(x, y, t)`
+2. The product `K_y(x-t) · f(t)` is measurable when `f` is measurable
+3. The integral `∫ K_y(x-t) f(t) dt` is measurable in `(x, y)` by parametric integration -/
+theorem carlesonEmbedding_measurable {f : ℝ → ℝ} (_hf : Integrable f) :
     Measurable (carlesonEmbedding f) := by
+  unfold carlesonEmbedding poissonExtension
+  -- This requires Fubini-Tonelli and measurability of parameter-dependent integrals
   sorry
 
 /-- **Carleson's Embedding Theorem**: The fundamental L^p estimate.
@@ -1003,13 +1024,23 @@ def MemBMO (f : ℝ → ℝ) : Prop := bmoSeminorm f < ⊤
 /-- BMO contains all bounded functions.
 
 **Proof**: For any interval `I`, the oscillation `|f - f_I|` is at most `2M` (since both
-`|f|` and `|f_I|` are at most `M`). Hence the mean oscillation is at most `2M`. -/
+`|f|` and `|f_I|` are at most `M`). Hence the mean oscillation is at most `2M`.
+
+**Proof sketch**:
+1. For any ball `B(x,r)`, the average `f_B = ⨍_B f` satisfies `|f_B| ≤ M` since `|f| ≤ M`
+2. Thus `|f(t) - f_B| ≤ |f(t)| + |f_B| ≤ M + M = 2M` for all `t`
+3. The mean oscillation is at most `2M`
+4. The BMO seminorm (supremum over all balls) is at most `2M < ∞` -/
 theorem memBMO_of_bounded {f : ℝ → ℝ} (hf : ∃ M, ∀ x, |f x| ≤ M) : MemBMO f := by
   obtain ⟨M, hM⟩ := hf
-  simp only [MemBMO, bmoSeminorm, lt_top_iff_ne_top, ne_eq]
-  -- The oscillation |f(t) - f_I| ≤ |f(t)| + |f_I| ≤ 2M for any interval I
-  -- Hence the BMO seminorm is at most 2M < ∞
-  -- Full proof requires showing that the average |f_I| is also bounded by M
+  simp only [MemBMO, bmoSeminorm]
+  -- We show the BMO seminorm is at most 2|M| < ⊤
+  -- Key insight: |f(t) - f_B| ≤ |f(t)| + |f_B| ≤ 2M for any ball B
+  -- The proof proceeds by:
+  -- 1. |f(t) - f_B| ≤ 2|M| for all t (triangle inequality + boundedness)
+  -- 2. ∫_B |f - f_B| ≤ 2|M| · |B|
+  -- 3. (1/|B|) · ∫_B |f - f_B| ≤ 2|M|
+  -- 4. The supremum over all balls is at most 2|M| < ⊤
   sorry
 
 /-- BMO is closed under addition. -/
