@@ -1,6 +1,8 @@
 import Mathlib.MeasureTheory.Integral.Average
 import Mathlib.MeasureTheory.Integral.Bochner.Basic
 import Mathlib.Topology.Semicontinuous
+import Mathlib.MeasureTheory.Measure.Doubling
+import Mathlib.Topology.MetricSpace.Basic
 
 /-!
 # Auxiliary Lemmas for Averages and Lower Semicontinuity
@@ -69,5 +71,89 @@ theorem average_abs_eq_laverage_enorm_toReal {f : α → ℝ}
   simp only [Measure.restrict_apply_univ, measureReal_def]
   rw [ENNReal.toReal_div]
   ring
+
+/-! ## Measure ratio bounds for nested balls
+
+For uniformly locally doubling measures, we can bound the ratio of measures of
+nested balls. The key API is `measure_mul_le_scalingConstantOf_mul` which gives:
+
+  μ(closedBall x (t * r)) ≤ scalingConstantOf μ K * μ(closedBall x r)
+
+for t ∈ (0, K] and r ≤ scalingScaleOf μ K.
+
+We provide variants for open balls and different hypotheses.
+-/
+
+section MeasureRatio
+
+open Metric
+
+variable {X : Type*} [PseudoMetricSpace X] [MeasurableSpace X] [BorelSpace X]
+  {μ : Measure X} [IsUnifLocDoublingMeasure μ]
+
+/-- For concentric closed balls, the measure ratio is bounded by the scaling constant.
+This is the core bound from which other variants follow.
+
+For r ≤ scalingScaleOf μ K and t ∈ (0, K]:
+  μ(closedBall x (t * r)) ≤ scalingConstantOf μ K * μ(closedBall x r) -/
+lemma measure_closedBall_le_scalingConstantOf_mul {x : X} {r K : ℝ}
+    (hK : 0 < K) (hr_scale : r ≤ IsUnifLocDoublingMeasure.scalingScaleOf μ K) :
+    μ (closedBall x (K * r)) ≤
+      IsUnifLocDoublingMeasure.scalingConstantOf μ K * μ (closedBall x r) := by
+  have hK_mem : K ∈ Set.Ioc 0 K := Set.mem_Ioc.mpr ⟨hK, le_refl K⟩
+  exact @IsUnifLocDoublingMeasure.measure_mul_le_scalingConstantOf_mul X _ _ μ _ K x K r hK_mem hr_scale
+
+/-- For nested closed balls (with the same center), the measure ratio is controlled.
+This version works for small radii (r ≤ scalingScaleOf). -/
+lemma measure_closedBall_ratio_le_scalingConstantOf {x : X} {r r₀ : ℝ}
+    (hr : 0 < r) (hr₀ : 0 < r₀)
+    (hr_scale : r ≤ IsUnifLocDoublingMeasure.scalingScaleOf μ (r₀ / r)) :
+    μ (closedBall x r₀) ≤
+      IsUnifLocDoublingMeasure.scalingConstantOf μ (r₀ / r) * μ (closedBall x r) := by
+  have hK : 0 < r₀ / r := div_pos hr₀ hr
+  have hK_mem : (r₀ / r) ∈ Set.Ioc 0 (r₀ / r) := Set.mem_Ioc.mpr ⟨hK, le_refl _⟩
+  have hr₀_eq : r₀ = (r₀ / r) * r := by field_simp
+  conv_lhs => rw [hr₀_eq]
+  exact @IsUnifLocDoublingMeasure.measure_mul_le_scalingConstantOf_mul X _ _ μ _ (r₀/r) x (r₀/r) r hK_mem hr_scale
+
+/-- For nested balls B(x, r) ⊆ B(x₀, r₀), the larger ball's measure is bounded.
+
+**Geometric insight**: If ball x r ⊆ ball x₀ r₀, then x ∈ ball x₀ r₀, so dist(x, x₀) < r₀.
+By triangle inequality, ball x₀ r₀ ⊆ closedBall x (2r₀).
+
+For small radii (r ≤ scalingScaleOf μ (2r₀/r)), we get:
+  μ(ball x₀ r₀) ≤ scalingConstantOf μ (2r₀/r) * μ(closedBall x r)
+
+Note: The RHS uses closedBall because that's what the doubling API provides. -/
+lemma measure_ball_le_scalingConstantOf_mul_closedBall {x x₀ : X} {r r₀ : ℝ}
+    (hr : 0 < r) (hr₀ : 0 < r₀) (h : ball x r ⊆ ball x₀ r₀)
+    (hr_scale : r ≤ IsUnifLocDoublingMeasure.scalingScaleOf μ (2 * r₀ / r)) :
+    μ (ball x₀ r₀) ≤
+      IsUnifLocDoublingMeasure.scalingConstantOf μ (2 * r₀ / r) * μ (closedBall x r) := by
+  -- x ∈ ball x₀ r₀ from the containment
+  have hx_in : x ∈ ball x₀ r₀ := h (mem_ball_self hr)
+  have hdist : dist x x₀ < r₀ := mem_ball.mp hx_in
+  -- ball x₀ r₀ ⊆ closedBall x (2r₀) by triangle inequality
+  have hcontain : ball x₀ r₀ ⊆ closedBall x (2 * r₀) := by
+    intro y hy
+    rw [mem_ball] at hy
+    rw [mem_closedBall]
+    have hdist' : dist x₀ x < r₀ := by rw [dist_comm]; exact hdist
+    have h1 : dist y x ≤ dist y x₀ + dist x₀ x := dist_triangle y x₀ x
+    have h2 : dist y x₀ + dist x₀ x < r₀ + r₀ := by linarith [hy]
+    linarith
+  -- Apply the doubling bound
+  set K := 2 * r₀ / r with hK_def
+  have hK : 0 < K := by positivity
+  have h2r₀ : 2 * r₀ = K * r := by simp only [hK_def]; field_simp [hr.ne']
+  have hr_scale' : r ≤ IsUnifLocDoublingMeasure.scalingScaleOf μ K := by
+    simp only [hK_def] at hr_scale ⊢; exact hr_scale
+  calc μ (ball x₀ r₀)
+      ≤ μ (closedBall x (2 * r₀)) := measure_mono hcontain
+    _ = μ (closedBall x (K * r)) := by rw [h2r₀]
+    _ ≤ IsUnifLocDoublingMeasure.scalingConstantOf μ K * μ (closedBall x r) :=
+        measure_closedBall_le_scalingConstantOf_mul (x := x) hK hr_scale'
+
+end MeasureRatio
 
 end MeasureTheory
