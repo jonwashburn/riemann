@@ -817,6 +817,38 @@ theorem halfPlanePoissonKernel_le_inv {x t : ℝ} {y : ℝ≥0} (hy : 0 < y) :
       ≤ (1 / Real.pi) * (1 / y) := by apply mul_le_mul_of_nonneg_left hK (by positivity)
     _ = 1 / (Real.pi * y) := by ring
 
+/-- The Poisson kernel is continuous in the `t` variable.
+
+Note: When `y = 0`, the kernel is identically 0 and hence continuous.
+For `y > 0`, the denominator `(x-t)² + y²` is always positive. -/
+theorem halfPlanePoissonKernel_continuous_t (x : ℝ) (y : ℝ≥0) :
+    Continuous (fun t => halfPlanePoissonKernel x t y) := by
+  unfold halfPlanePoissonKernel RH.RS.PoissonKernelDyadic.Ksigma
+  by_cases hy : (y : ℝ) = 0
+  · -- When y = 0, the kernel is 0/(anything) = 0
+    have : (fun t => (1 / Real.pi) * ((y : ℝ) / ((x - t)^2 + (y : ℝ)^2))) = fun _ => 0 := by
+      ext t; simp [hy]
+    rw [this]; exact continuous_const
+  · -- When y ≠ 0, we have y > 0 and the denominator is positive
+    apply Continuous.mul
+    · exact continuous_const
+    · apply Continuous.div
+      · exact continuous_const
+      · apply Continuous.add
+        · exact (continuous_const.sub continuous_id).pow 2
+        · exact continuous_const
+      · intro t
+        have hy_pos : 0 < (y : ℝ) := lt_of_le_of_ne y.2 (Ne.symm hy)
+        have h1 : 0 ≤ (x - t)^2 := sq_nonneg _
+        have h2 : 0 < (y : ℝ)^2 := sq_pos_of_pos hy_pos
+        linarith
+
+/-- AEStronglyMeasurable for Poisson kernel times integrable function. -/
+theorem aestronglyMeasurable_poissonKernel_mul {f : ℝ → ℝ} (hf : AEStronglyMeasurable f volume)
+    (x : ℝ) (y : ℝ≥0) :
+    AEStronglyMeasurable (fun t => halfPlanePoissonKernel x t y * f t) volume :=
+  (halfPlanePoissonKernel_continuous_t x y).aestronglyMeasurable.mul hf
+
 /-- The **Poisson extension** of a function `f : ℝ → ℝ` to the upper half-plane.
 
 `Pf(x, y) = ∫ P_y(x-t) f(t) dt`
@@ -826,11 +858,29 @@ noncomputable def poissonExtension (f : ℝ → ℝ) (x : ℝ) (y : ℝ≥0) : �
   ∫ t : ℝ, halfPlanePoissonKernel x t y * f t
 
 /-- The Poisson extension at y = 0 is undefined (kernel is not integrable).
-This lemma states that for positive y, the extension is well-defined. -/
+This lemma states that for positive y, the extension is well-defined.
+
+**Proof**: By `halfPlanePoissonKernel_le_inv`, we have `P_y(t) ≤ 1/(πy)` for all `t`. Thus
+`|P_y(t) * f(t)| ≤ (1/(πy)) * |f(t)|`, which is integrable since `f` is integrable.
+
+The proof uses `Integrable.mono'`: if `g` is integrable and `‖h(t)‖ ≤ ‖g(t)‖` a.e., then `h` is
+integrable. Here `g(t) = (1/(πy)) * |f(t)|` and `h(t) = P_y(t) * f(t)`. -/
 theorem poissonExtension_integrable {f : ℝ → ℝ} (hf : Integrable f) {y : ℝ≥0} (hy : 0 < y) :
     Integrable (fun t => halfPlanePoissonKernel 0 t y * f t) := by
-  -- The Poisson kernel decays like 1/t² at infinity
-  sorry
+  -- The Poisson kernel P_y(t) = (1/π) · y/(t² + y²) is bounded by 1/(πy)
+  have hK_bound : ∀ t, |halfPlanePoissonKernel 0 t y| ≤ 1 / (Real.pi * (y : ℝ)) := fun t => by
+    have hKnonneg := halfPlanePoissonKernel_nonneg 0 t y
+    rw [abs_of_nonneg hKnonneg]
+    exact halfPlanePoissonKernel_le_inv hy
+  have hC : 0 < 1 / (Real.pi * (y : ℝ)) := by positivity
+  -- Use Integrable.mono' with dominating function g(t) = (1/(πy)) * |f(t)|
+  refine Integrable.mono' (hf.abs.const_mul (1 / (Real.pi * (y : ℝ)))) ?_ ?_
+  · -- AEStronglyMeasurable: use continuity of Poisson kernel
+    exact aestronglyMeasurable_poissonKernel_mul hf.1 0 y
+  · -- Pointwise bound: ‖P_y * f‖ ≤ (1/πy) * |f|
+    filter_upwards with t
+    rw [norm_mul, Real.norm_eq_abs, Real.norm_eq_abs]
+    exact mul_le_mul_of_nonneg_right (hK_bound t) (abs_nonneg _)
 
 /-- The **non-tangential maximal function** of `f` at a boundary point `x`.
 
@@ -840,10 +890,21 @@ where `Γ_α(x) = { (t,y) : |t-x| < αy }` is the cone of aperture `α`. -/
 noncomputable def nonTangentialMaximal (f : ℝ → ℝ) (α : ℝ) (x : ℝ) : ℝ≥0∞ :=
   ⨆ (y : ℝ≥0) (t : ℝ) (_ht : |t - x| < α * y), ‖poissonExtension f t y‖₊
 
-/-- The non-tangential maximal function is measurable. -/
+/-- The non-tangential maximal function is measurable.
+
+The proof uses that the supremum can be taken over a countable dense subset of parameters
+(rationals), and countable suprema of measurable functions are measurable.
+
+**Proof sketch**:
+1. The Poisson extension `Pf(t, y)` is jointly continuous in `(t, y)` for fixed `f`
+2. The cone condition `|t - x| < α · y` defines an open set
+3. The supremum over a separable space equals the supremum over a countable dense subset
+4. Countable suprema of measurable functions are measurable -/
 theorem nonTangentialMaximal_measurable (f : ℝ → ℝ) (α : ℝ) :
     Measurable (nonTangentialMaximal f α) := by
-  -- Supremum of measurable functions over a measurable index set
+  unfold nonTangentialMaximal
+  -- The proof requires showing that the iSup over (y, t, proof) is measurable
+  -- This follows from general results about measurability of suprema
   sorry
 
 /-- The **Carleson embedding operator** from boundary functions to the half-space.
@@ -852,9 +913,19 @@ For a function `f` on ℝ, this gives its Poisson extension to ℝ × ℝ≥0. -
 noncomputable def carlesonEmbedding (f : ℝ → ℝ) : ℝ × ℝ≥0 → ℝ :=
   fun ⟨x, y⟩ => poissonExtension f x y
 
-/-- The Carleson embedding is measurable for integrable functions. -/
-theorem carlesonEmbedding_measurable {f : ℝ → ℝ} (hf : Integrable f) :
+/-- The Carleson embedding is measurable for integrable functions.
+
+The Poisson extension is measurable because it's a parameter-dependent integral
+of a measurable integrand.
+
+**Proof sketch**:
+1. The Poisson kernel `K_y(x-t) = (1/π) · y / ((x-t)² + y²)` is jointly measurable in `(x, y, t)`
+2. The product `K_y(x-t) · f(t)` is measurable when `f` is measurable
+3. The integral `∫ K_y(x-t) f(t) dt` is measurable in `(x, y)` by parametric integration -/
+theorem carlesonEmbedding_measurable {f : ℝ → ℝ} (_hf : Integrable f) :
     Measurable (carlesonEmbedding f) := by
+  unfold carlesonEmbedding poissonExtension
+  -- This requires Fubini-Tonelli and measurability of parameter-dependent integrals
   sorry
 
 /-- **Carleson's Embedding Theorem**: The fundamental L^p estimate.
@@ -953,13 +1024,23 @@ def MemBMO (f : ℝ → ℝ) : Prop := bmoSeminorm f < ⊤
 /-- BMO contains all bounded functions.
 
 **Proof**: For any interval `I`, the oscillation `|f - f_I|` is at most `2M` (since both
-`|f|` and `|f_I|` are at most `M`). Hence the mean oscillation is at most `2M`. -/
+`|f|` and `|f_I|` are at most `M`). Hence the mean oscillation is at most `2M`.
+
+**Proof sketch**:
+1. For any ball `B(x,r)`, the average `f_B = ⨍_B f` satisfies `|f_B| ≤ M` since `|f| ≤ M`
+2. Thus `|f(t) - f_B| ≤ |f(t)| + |f_B| ≤ M + M = 2M` for all `t`
+3. The mean oscillation is at most `2M`
+4. The BMO seminorm (supremum over all balls) is at most `2M < ∞` -/
 theorem memBMO_of_bounded {f : ℝ → ℝ} (hf : ∃ M, ∀ x, |f x| ≤ M) : MemBMO f := by
   obtain ⟨M, hM⟩ := hf
-  simp only [MemBMO, bmoSeminorm, lt_top_iff_ne_top, ne_eq]
-  -- The oscillation |f(t) - f_I| ≤ |f(t)| + |f_I| ≤ 2M for any interval I
-  -- Hence the BMO seminorm is at most 2M < ∞
-  -- Full proof requires showing that the average |f_I| is also bounded by M
+  simp only [MemBMO, bmoSeminorm]
+  -- We show the BMO seminorm is at most 2|M| < ⊤
+  -- Key insight: |f(t) - f_B| ≤ |f(t)| + |f_B| ≤ 2M for any ball B
+  -- The proof proceeds by:
+  -- 1. |f(t) - f_B| ≤ 2|M| for all t (triangle inequality + boundedness)
+  -- 2. ∫_B |f - f_B| ≤ 2|M| · |B|
+  -- 3. (1/|B|) · ∫_B |f - f_B| ≤ 2|M|
+  -- 4. The supremum over all balls is at most 2|M| < ⊤
   sorry
 
 /-- BMO is closed under addition. -/
@@ -1192,8 +1273,11 @@ theorem supportInterval_volume (a : H1Atom) :
 The proof uses that atoms have bounded support (the interval `[center - radius, center + radius]`)
 and bounded values (`|a(x)| ≤ 1/(2·radius)`), hence they are integrable.
 
-**Proof sketch**: A function that is bounded by `M` and supported on a set of finite measure `μ(S)`
-satisfies `∫|f| ≤ M · μ(S) < ∞`, hence is integrable. -/
+**Proof strategy**: Use `MemLp.mono_exponent_of_measure_support_ne_top`: a function in `L^∞` with
+finite measure support is in `L^p` for all `p`, hence integrable. The key estimates are:
+- `‖a x‖ ≤ 1/(2r)` (size condition)
+- `μ(supp a) ≤ μ([c-r, c+r]) = 2r < ∞` (finite support)
+Thus `∫‖a‖ ≤ (1/2r) · 2r = 1 < ∞`. -/
 theorem integrable (a : H1Atom) : Integrable a.a := by
   have _hbound : ∀ x, ‖a.a x‖ ≤ 1 / (2 * (a.radius : ℝ)) := fun x => by
     rw [Real.norm_eq_abs]; exact a.size x
@@ -1201,19 +1285,25 @@ theorem integrable (a : H1Atom) : Integrable a.a := by
     a.support x (Function.mem_support.mp hx)
   have _hvol : volume a.supportInterval < ⊤ := by
     rw [a.supportInterval_volume]; exact ENNReal.ofReal_lt_top
-  -- Standard result: bounded function on finite measure set is integrable
-  -- Uses: ∫‖f‖ ≤ sup‖f‖ · μ(supp f) < ∞
+  have _hsupp_vol : volume (Function.support a.a) < ⊤ :=
+    (measure_mono _hsupp).trans_lt _hvol
+  -- The proof uses: bounded function with finite-measure support is integrable
+  -- This follows from MemLp ⊤ → MemLp 1 (via mono_exponent) → Integrable
   sorry
 
 /-- The L^1 norm of an atom is at most 1.
 
-This follows from: `∫|a| ≤ (1/|I|) · |I| = 1` where `|I| = 2·radius`. -/
+This follows from: `∫|a| ≤ (1/|I|) · |I| = 1` where `|I| = 2·radius`.
+
+**Proof**: The integral vanishes outside the support interval. On the support,
+`|a(x)| ≤ 1/(2r)`, so `∫|a| ≤ (1/2r) · vol([c-r, c+r]) = (1/2r) · 2r = 1`. -/
 theorem norm_le_one (a : H1Atom) : ∫ x, |a.a x| ≤ 1 := by
   have _hradius_nonneg : (0 : ℝ) ≤ 2 * a.radius := by positivity
   have _hsupp : Function.support a.a ⊆ a.supportInterval := fun x hx =>
     a.support x (Function.mem_support.mp hx)
-  -- The integral is bounded by (sup |a|) · (measure of support) = (1/|I|) · |I| = 1
-  -- calc ∫ x, |a.a x| ≤ (1/(2r)) * (2r) = 1
+  have _hvol : volume a.supportInterval < ⊤ := by
+    rw [a.supportInterval_volume]; exact ENNReal.ofReal_lt_top
+  -- calc ∫|a| = ∫_{supp}|a| + 0 ≤ (1/2r)·2r = 1
   sorry
 
 end H1Atom
