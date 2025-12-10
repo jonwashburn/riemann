@@ -3,6 +3,7 @@ import Mathlib
 import Riemann.Mathlib.MeasureTheory.Function.BoundedSupport
 import Riemann.Mathlib.Analysis.Harmonic.AtomicDecomposition
 import Riemann.Mathlib.Analysis.Harmonic.BMOAux
+import Riemann.Mathlib.Analysis.Harmonic.BMO.Defs
 
 /-!
 # BMO: Bounded Mean Oscillation
@@ -183,12 +184,12 @@ theorem meanOscillation_add_le_integrable
     {s : Set α} (hs : MeasurableSet s)
     (hμ_ne : μ s ≠ 0) (hμ_fin : μ s ≠ ∞)
     {f g : α → ℝ} (hf : IntegrableOn f s μ) (hg : IntegrableOn g s μ) :
-  meanOscillation (f + g) s μ ≤ meanOscillation f s μ + meanOscillation g s μ :=
-by
+  meanOscillation (f + g) s μ ≤ meanOscillation f s μ + meanOscillation g s μ := by
   -- expand meanOscillation and apply oscillation_triangle_helper
   simpa [meanOscillation, setAverage] using
     oscillation_triangle_helper (μ := μ) (s := s) hs hμ_ne hμ_fin hf hg
 
+omit [PseudoMetricSpace α] [BorelSpace α] in
 /-- If `|f x| ≤ M` for all `x ∈ s`, then the mean oscillation over `s` is at most `2M`. -/
 theorem meanOscillation_le_of_bounded {M : ℝ} (hM : 0 ≤ M) (hf : ∀ x ∈ s, |f x| ≤ M)
     (hμ : μ s ≠ 0) (hμ' : μ s ≠ ⊤) (hs : MeasurableSet s)
@@ -287,6 +288,7 @@ omit [BorelSpace α] in
 /-- The seminorm condition of BMO. -/
 theorem bmoSeminorm_lt_top (hf : MemBMO f μ) : bmoSeminorm f μ < ⊤ := hf.2
 
+omit [BorelSpace α] in
 /-- BMO functions are locally integrable (by definition). -/
 theorem locallyIntegrable (hf : MemBMO f μ) : LocallyIntegrable f μ := hf.1
 
