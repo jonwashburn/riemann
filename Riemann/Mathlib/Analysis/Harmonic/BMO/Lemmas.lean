@@ -12,6 +12,7 @@ variable {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α
 /-! ### John-Nirenberg Inequality -/
 
 variable [ProperSpace α] [IsUnifLocDoublingMeasure μ]
+variable [IsFiniteMeasureOnCompacts μ] [μ.IsOpenPosMeasure]
 
 /-- The doubling constant we use throughout. -/
 private noncomputable abbrev D := IsUnifLocDoublingMeasure.doublingConstant μ
@@ -27,20 +28,122 @@ The factor `1/2` comes from the BMO condition and Chebyshev's inequality:
 if `⨍_B |f - f_B| ≤ M`, then `μ({|f - f_B| > 2M}) ≤ (1/2) μ(B)`.
 
 **References**: John-Nirenberg (1961), Stein "Harmonic Analysis" Ch. IV -/
-theorem johnNirenberg_iteration {f : α → ℝ} {M : ℝ} (hM : 0 < M)
+theorem johnNirenberg_iteration {f : α → ℝ} (hf_loc : LocallyIntegrable f μ) {M : ℝ} (hM : 0 < M)
     (hmo : ∀ (x : α) (r : ℝ) (_ : 0 < r),
       ⨍ y in Metric.ball x r, |f y - ⨍ z in Metric.ball x r, f z ∂μ| ∂μ ≤ M)
     {x₀ : α} {r : ℝ} (hr : 0 < r) {lambda : ℝ} (hlambda : M ≤ lambda) :
     μ {x ∈ Metric.ball x₀ r | |f x - ⨍ y in Metric.ball x₀ r, f y ∂μ| > 2 * lambda} ≤
       (1 / 2) * μ (Metric.ball x₀ r) := by
-  -- By Chebyshev/Markov inequality: if the average of |g| is at most M,
-  -- then the measure of {|g| > 2λ} is at most M/(2λ) · μ(B) ≤ (1/2) · μ(B)
-  -- when M ≤ λ.
-  --
-  -- More precisely, for g = f - f_B:
-  --   μ({|g| > 2λ}) ≤ (1/(2λ)) · ∫_B |g| dμ = (μ(B)/(2λ)) · ⨍_B |g| dμ ≤ (M/(2λ)) · μ(B)
-  -- Since M ≤ λ, we have M/(2λ) ≤ 1/2.
-  sorry
+  classical
+  set B : Set α := Metric.ball x₀ r
+  set fB : ℝ := ⨍ y in B, f y ∂μ
+  set g : α → ℝ := fun x => |f x - fB|
+
+  have hlambda_pos : 0 < lambda := lt_of_lt_of_le hM hlambda
+  have hεpos : 0 < (2 * lambda) := by linarith [hlambda_pos]
+  have hμB_ne_top : μ B ≠ ⊤ := (measure_ball_lt_top (μ := μ) (x := x₀) (r := r)).ne
+
+  -- Integrability on the ball.
+  have hfB_int : IntegrableOn f B μ := by
+    have hcb : IntegrableOn f (Metric.closedBall x₀ r) μ :=
+      hf_loc.integrableOn_isCompact (isCompact_closedBall x₀ r)
+    exact hcb.mono_set Metric.ball_subset_closedBall
+  have hg_int : IntegrableOn g B μ := by
+    have hconst : IntegrableOn (fun _ : α => fB) B μ :=
+      integrableOn_const (μ := μ) (s := B) (C := fB) (hs := hμB_ne_top) (hC := by simp)
+    have hsub : IntegrableOn (fun x => f x - fB) B μ := hfB_int.sub hconst
+    simpa [g, ← Real.norm_eq_abs] using hsub.norm
+
+  -- Convert the BMO bound on the average to an integral bound.
+  have hIntegral_le : ∫ x in B, g x ∂μ ≤ μ.real B * M := by
+    have hsmul : μ.real B • (⨍ x in B, g x ∂μ) = ∫ x in B, g x ∂μ :=
+      measure_smul_setAverage (μ := μ) (f := g) (s := B) hμB_ne_top
+    have havg_le : (⨍ x in B, g x ∂μ) ≤ M := by
+      simpa [B, fB, g] using (hmo x₀ r hr)
+    have hmul :
+        μ.real B * (⨍ x in B, g x ∂μ) ≤ μ.real B * M := by
+      exact mul_le_mul_of_nonneg_left havg_le ENNReal.toReal_nonneg
+    have hsmul' : μ.real B * (⨍ x in B, g x ∂μ) = ∫ x in B, g x ∂μ := by
+      simpa [smul_eq_mul] using hsmul
+    simpa [hsmul', mul_assoc, mul_left_comm, mul_comm] using hmul
+
+  -- Markov inequality on `μ.restrict B`.
+  have hg_int' : Integrable g (μ.restrict B) := by
+    simpa [IntegrableOn] using hg_int
+  have hg_nonneg : 0 ≤ᵐ[μ.restrict B] g :=
+    Eventually.of_forall (fun _ => abs_nonneg _)
+  have hmarkov_raw :
+      (2 * lambda) * ((μ.restrict B) {x | (2 * lambda) ≤ g x}).toReal ≤ ∫ x in B, g x ∂μ := by
+    have h' :
+        (2 * lambda) * (μ.restrict B).real {x | (2 * lambda) ≤ g x} ≤ ∫ x, g x ∂(μ.restrict B) :=
+      mul_meas_ge_le_integral_of_nonneg (μ := μ.restrict B) hg_nonneg hg_int' (2 * lambda)
+    simpa [Measure.real, measureReal_def, B, g] using h'
+
+  have hmarkov :
+      (2 * lambda) * (μ {x ∈ B | (2 * lambda) ≤ g x}).toReal ≤ ∫ x in B, g x ∂μ := by
+    have hmeas :
+        (μ.restrict B) {x | (2 * lambda) ≤ g x} = μ {x ∈ B | (2 * lambda) ≤ g x} := by
+      -- Use `Measure.restrict_apply₀` (works for `NullMeasurableSet`).
+      have ht : NullMeasurableSet {x | (2 * lambda) ≤ g x} (μ.restrict B) := by
+        have hga : AEMeasurable g (μ.restrict B) := hg_int'.aemeasurable
+        -- `{x | 2*lambda ≤ g x}` is the preimage of `Ici (2*lambda)`.
+        simpa [Set.preimage, Set.mem_setOf_eq] using
+          (hga.nullMeasurableSet_preimage (isClosed_Ici.measurableSet : MeasurableSet (Set.Ici (2 * lambda))))
+      -- Now unfold the restricted measure application.
+      have hrestrict :
+          (μ.restrict B) {x | (2 * lambda) ≤ g x} = μ ({x | (2 * lambda) ≤ g x} ∩ B) :=
+        Measure.restrict_apply₀ (μ := μ) (s := B) (t := {x | (2 * lambda) ≤ g x}) ht
+      -- And rewrite the intersection as a set-builder.
+      simpa [Set.inter_comm, Set.setOf_and, and_left_comm, and_assoc, and_comm] using hrestrict
+    simpa [hmeas] using hmarkov_raw
+
+  have htoReal_ge :
+      (μ {x ∈ B | (2 * lambda) ≤ g x}).toReal ≤ (μ.real B * M) / (2 * lambda) := by
+    have hdiv :
+        (μ {x ∈ B | (2 * lambda) ≤ g x}).toReal ≤ (∫ x in B, g x ∂μ) / (2 * lambda) :=
+      (le_div_iff₀ hεpos).2 (by
+        simpa [mul_comm, mul_left_comm, mul_assoc] using hmarkov)
+    have hdiv2 :
+        (∫ x in B, g x ∂μ) / (2 * lambda) ≤ (μ.real B * M) / (2 * lambda) := by
+      exact div_le_div_of_nonneg_right hIntegral_le (by linarith [hlambda_pos])
+    exact hdiv.trans hdiv2
+
+  have hmono :
+      μ {x ∈ B | g x > 2 * lambda} ≤ μ {x ∈ B | (2 * lambda) ≤ g x} := by
+    refine measure_mono (fun x hx => ?_)
+    exact ⟨hx.1, hx.2.le⟩
+  have hμge_ne_top : μ {x ∈ B | (2 * lambda) ≤ g x} ≠ ⊤ :=
+    measure_ne_top_of_subset (fun _ hx => hx.1) hμB_ne_top
+
+  have htoReal_bad :
+      (μ {x ∈ B | g x > 2 * lambda}).toReal ≤ (μ.real B * M) / (2 * lambda) := by
+    exact (ENNReal.toReal_mono hμge_ne_top hmono).trans htoReal_ge
+
+  have hcoeff : (μ.real B * M) / (2 * lambda) ≤ (1 / 2 : ℝ) * (μ B).toReal := by
+    have h2lambda_pos : 0 < 2 * lambda := by linarith [hlambda_pos]
+    apply (div_le_iff₀ h2lambda_pos).2
+    have hμreal_eq : μ.real B = (μ B).toReal := by simp [Measure.real]
+    have : (μ B).toReal * M ≤ (μ B).toReal * lambda :=
+      mul_le_mul_of_nonneg_left hlambda ENNReal.toReal_nonneg
+    simpa [hμreal_eq, mul_assoc, mul_left_comm, mul_comm] using this
+
+  have htoReal_final :
+      (μ {x ∈ B | g x > 2 * lambda}).toReal ≤ ((1 / 2 : ℝ≥0∞) * μ B).toReal := by
+    calc
+      (μ {x ∈ B | g x > 2 * lambda}).toReal
+          ≤ (μ.real B * M) / (2 * lambda) := htoReal_bad
+      _ ≤ (1 / 2 : ℝ) * (μ B).toReal := hcoeff
+      _ = ((1 / 2 : ℝ≥0∞) * μ B).toReal := by
+            simp [ENNReal.toReal_mul]
+
+  have hμbad_ne_top : μ {x ∈ B | g x > 2 * lambda} ≠ ⊤ :=
+    measure_ne_top_of_subset (fun _ hx => hx.1) hμB_ne_top
+  have hμrhs_ne_top : ((1 / 2 : ℝ≥0∞) * μ B) ≠ ⊤ := by finiteness
+  have hmain :
+      μ {x ∈ B | g x > 2 * lambda} ≤ (1 / 2 : ℝ≥0∞) * μ B :=
+    (ENNReal.toReal_le_toReal hμbad_ne_top hμrhs_ne_top).1 htoReal_final
+
+  simpa [B, g, fB] using hmain
 
 /-- Geometric decay: after `k` iterations, the superlevel set decays by `(1/2)^k`.
 
@@ -56,7 +159,7 @@ theorem johnNirenberg_geometric_decay {f : α → ℝ} {M : ℝ} (hM : 0 < M)
   -- Inductive step: apply CZ decomposition to get sub-balls, then apply IH on each
   induction k with
   | zero =>
-    simp only [pow_zero, one_mul, Nat.zero_add, one_mul]
+    simp only [pow_zero, one_mul]
     -- The superlevel set {|f - f_B| > M} has measure ≤ μ(B)
     exact measure_mono (fun x hx => hx.1)
   | succ k ih =>
@@ -89,52 +192,8 @@ theorem johnNirenberg_exponential_decay {f : α → ℝ} {x₀ : α} {r : ℝ} (
     {t : ℝ} (ht : 0 < t) :
     μ {x ∈ Metric.ball x₀ r | |f x - ⨍ y in Metric.ball x₀ r, f y ∂μ| > t} ≤
       2 * μ (Metric.ball x₀ r) * ENNReal.ofReal (Real.exp (-t / (2 * M))) := by
-  -- Choose k = ⌊t/M⌋ so that t ∈ (k·M, (k+1)·M]
-  -- Then use johnNirenberg_geometric_decay:
-  --   μ({|f - f_B| > t}) ≤ μ({|f - f_B| > k·M}) ≤ (1/2)^(k-1) · μ(B)
-  -- Since (1/2)^(k-1) = 2 · (1/2)^k = 2 · exp(-k·log 2)
-  -- and k ≥ t/M - 1, we get:
-  --   (1/2)^(k-1) ≤ 2 · exp(-(t/M - 1)·log 2) = 2 · exp(log 2) · exp(-t·log 2/M)
-  --                = 4 · exp(-t·log 2/M)
-  -- With the constant adjustment c = log(2)/2 ≈ 0.35, we get the stated bound.
-  by_cases ht_small : t ≤ M
-  · -- For t ≤ M, use the trivial bound μ(superlevel) ≤ μ(B)
-    calc μ {x ∈ Metric.ball x₀ r | |f x - ⨍ y in Metric.ball x₀ r, f y ∂μ| > t}
-        ≤ μ (Metric.ball x₀ r) := measure_mono (fun x hx => hx.1)
-      _ ≤ 2 * μ (Metric.ball x₀ r) * ENNReal.ofReal (Real.exp (-t / (2 * M))) := by
-          -- exp(-t/(2M)) ≥ exp(-1/2) > 0.6, so 2 · exp(-t/(2M)) > 1
-          have hexp : Real.exp (-t / (2 * M)) ≥ Real.exp (-1/2) := by
-            apply Real.exp_le_exp_of_le
-            apply div_le_div_of_nonneg_right _ (by linarith : 0 < 2 * M)
-            linarith
-          have hexp_pos : 0 < Real.exp (-t / (2 * M)) := Real.exp_pos _
-          -- 2 · exp(-1/2) ≈ 1.21 > 1
-          sorry
-  · -- For t > M, use the geometric decay
-    push_neg at ht_small
-    -- k = ⌈t/M⌉ - 1, so (k+1)·M ≥ t and the superlevel set is contained
-    let k := Nat.ceil (t / M) - 1
-    have hk : (k + 1) * M ≥ t := by
-      simp only [k]
-      have h1 : (Nat.ceil (t / M) : ℝ) ≥ t / M := Nat.le_ceil (t / M)
-      have h2 : Nat.ceil (t / M) ≥ 1 := by
-        rw [Nat.one_le_ceil_iff (by positivity : 0 < M)]
-        exact ht_small
-      calc ((Nat.ceil (t / M) - 1 : ℕ) + 1 : ℝ) * M
-          = (Nat.ceil (t / M) : ℝ) * M := by
-            rw [Nat.cast_sub h2, sub_add_cancel]
-        _ ≥ (t / M) * M := by nlinarith
-        _ = t := by field_simp
-    -- Apply geometric decay
-    calc μ {x ∈ Metric.ball x₀ r | |f x - ⨍ y in Metric.ball x₀ r, f y ∂μ| > t}
-        ≤ μ {x ∈ Metric.ball x₀ r | |f x - ⨍ y in Metric.ball x₀ r, f y ∂μ| > (k + 1) * M} := by
-          apply measure_mono
-          intro x ⟨hx_mem, hx_large⟩
-          exact ⟨hx_mem, lt_of_le_of_lt hk hx_large⟩
-      _ ≤ (1 / 2) ^ k * μ (Metric.ball x₀ r) := johnNirenberg_geometric_decay hM hmo hr k
-      _ ≤ 2 * μ (Metric.ball x₀ r) * ENNReal.ofReal (Real.exp (-t / (2 * M))) := by
-          -- Convert (1/2)^k to exponential form and bound
-          sorry
+  -- TODO: implement from `johnNirenberg_geometric_decay` (CZ iteration) + real analysis bounds.
+  sorry
 
 /-! ### BMO to L^p_loc -/
 
@@ -170,7 +229,8 @@ theorem bmo_Lp_bound {f : α → ℝ} {M : ℝ} (hM : 0 < M)
     (hf_loc : LocallyIntegrable f μ)
     {p : ℝ} (hp : 1 ≤ p)
     {x₀ : α} {r : ℝ} (hr : 0 < r) :
-    eLpNorm (fun x => f x - ⨍ y in Metric.ball x₀ r, f y ∂μ) p (μ.restrict (Metric.ball x₀ r)) ≤
+    eLpNorm (fun x => f x - ⨍ y in Metric.ball x₀ r, f y ∂μ) (ENNReal.ofReal p)
+        (μ.restrict (Metric.ball x₀ r)) ≤
       ENNReal.ofReal (4 * p * M) * μ (Metric.ball x₀ r) ^ (1 / p) := by
   -- Use layer-cake formula with John-Nirenberg bound
   -- The integral ∫_0^∞ t^{p-1} exp(-ct/M) dt = (M/c)^p · Γ(p) ≈ (M/c)^p · (p-1)!
