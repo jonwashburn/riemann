@@ -241,6 +241,331 @@ theorem target_integrable : Integrable ad.target volume := by
 
 end AtomicDecomposition
 
+/-! ### Atomic H¹ (Tier A): norm defined by infimum over decompositions -/
+
+/-- An atomic decomposition *of* a fixed function `f` is an `AtomicDecomposition` whose `target`
+is `f`.
+
+This is the (Tier A) notion used to define the atomic Hardy-space seminorm by taking an infimum
+over all decompositions.
+-/
+abbrev AtomicDecompositionOf (f : ℝ → ℝ) : Type :=
+  {ad : AtomicDecomposition // ad.target = f}
+
+namespace AtomicDecomposition
+
+variable (ad : AtomicDecomposition)
+
+/-- A basic triangle-inequality bound for the L¹ norm of the target.
+
+If `f = ∑ λₙ aₙ` in the L¹ sense, and `‖aₙ‖₁ ≤ 1`, then `‖f‖₁ ≤ ∑ |λₙ|`.
+
+This is the key estimate needed to relate the atomic H¹ seminorm to the ambient L¹ norm. -/
+theorem integral_abs_target_le_h1Norm : (∫ x, |ad.target x| ∂volume) ≤ ad.h1Norm := by
+  classical
+  -- Partial sums.
+  let S : ℕ → (ℝ → ℝ) :=
+    fun N x => ∑ n ∈ Finset.range N, ad.coeffs n • (ad.atoms n).f x
+
+  have hS_int : ∀ N, Integrable (S N) volume := by
+    intro N
+    refine integrable_finset_sum (μ := volume) (s := Finset.range N)
+      (f := fun n x => ad.coeffs n • (ad.atoms n).f x) ?_
+    intro n hn
+    simpa [Pi.smul_apply] using (H1Atom.integrable (ad.atoms n)).smul (ad.coeffs n)
+
+  have htarget_int : Integrable ad.target volume := ad.target_integrable
+  have hdiff_int : ∀ N, Integrable (fun x => ad.target x - S N x) volume := fun N =>
+    htarget_int.sub (hS_int N)
+
+  -- Convert the `lintegral`-convergence in the structure to a real `L¹` convergence.
+  have hdiff_tendsto :
+      Tendsto (fun N => ∫ x, |ad.target x - S N x| ∂volume) atTop (𝓝 0) := by
+    let L : ℕ → ℝ≥0∞ := fun N => ∫⁻ x, ENNReal.ofReal |ad.target x - S N x| ∂volume
+    have hL : Tendsto L atTop (𝓝 0) := by
+      simpa [L, S] using ad.converges
+    have htoReal : Tendsto (fun N => (L N).toReal) atTop (𝓝 0) :=
+      (ENNReal.tendsto_toReal (a := 0) (by simp)).comp hL
+    have hEq : (fun N => ∫ x, |ad.target x - S N x| ∂volume) = fun N => (L N).toReal := by
+      funext N
+      have hnonneg : 0 ≤ᵐ[volume] (fun x => |ad.target x - S N x|) := by
+        filter_upwards with x
+        exact abs_nonneg _
+      have hmeas :
+          AEStronglyMeasurable (fun x => |ad.target x - S N x|) volume := by
+        -- Use integrability of the difference.
+        simpa [Real.norm_eq_abs] using (hdiff_int N).aestronglyMeasurable.norm
+      -- `integral = toReal(lintegral)` for a nonnegative integrand.
+      simpa [L] using (integral_eq_lintegral_of_nonneg_ae (μ := volume) hnonneg hmeas)
+    simpa [hEq] using htoReal
+
+  -- Bound the L¹ norm of the partial sums by the partial sums of `|coeffs|`.
+  have hS_bound : ∀ N, (∫ x, |S N x| ∂volume) ≤ ∑ n ∈ Finset.range N, |ad.coeffs n| := by
+    intro N
+    induction N with
+    | zero =>
+        simp [S]
+    | succ N ih =>
+        have hS_succ : S (N + 1) = fun x => S N x + ad.coeffs N • (ad.atoms N).f x := by
+          funext x
+          simp [S, Finset.sum_range_succ, add_comm]
+        have hterm_int : Integrable (fun x => ad.coeffs N • (ad.atoms N).f x) volume := by
+          simpa [Pi.smul_apply] using (H1Atom.integrable (ad.atoms N)).smul (ad.coeffs N)
+        have hS_int' : Integrable (S N) volume := hS_int N
+        have hadd :
+            (∫ x, |S (N + 1) x| ∂volume) ≤
+              (∫ x, |S N x| ∂volume) + ∫ x, |ad.coeffs N • (ad.atoms N).f x| ∂volume := by
+          -- Use `|f+g| ≤ |f|+|g|` and monotonicity of the integral.
+          have hle : (fun x => |S (N + 1) x|) ≤ fun x => |S N x| + |ad.coeffs N • (ad.atoms N).f x| := by
+            intro x
+            -- rewrite `S (N+1)` as `S N + term`
+            have : S (N + 1) x = S N x + ad.coeffs N • (ad.atoms N).f x := by
+              simp [hS_succ]
+            -- apply triangle inequality
+            simpa [this] using (abs_add_le (S N x) (ad.coeffs N • (ad.atoms N).f x))
+          have hleft_int : Integrable (fun x => |S (N + 1) x|) volume := by
+            have : Integrable (S (N + 1)) volume := hS_int (N + 1)
+            simpa [Real.norm_eq_abs] using this.norm
+          have h1 : Integrable (fun x => |S N x|) volume := by
+            simpa [Real.norm_eq_abs] using hS_int'.norm
+          have h2 : Integrable (fun x => |ad.coeffs N • (ad.atoms N).f x|) volume := by
+            simpa [Real.norm_eq_abs] using hterm_int.norm
+          have hright_int : Integrable (fun x => |S N x| + |ad.coeffs N • (ad.atoms N).f x|) volume :=
+            h1.add h2
+          have hmono :
+              (∫ x, |S (N + 1) x| ∂volume) ≤
+                ∫ x, |S N x| + |ad.coeffs N • (ad.atoms N).f x| ∂volume :=
+            integral_mono hleft_int hright_int hle
+          -- Rewrite the RHS integral of a sum as a sum of integrals.
+          calc
+            (∫ x, |S (N + 1) x| ∂volume)
+                ≤ ∫ x, |S N x| + |ad.coeffs N • (ad.atoms N).f x| ∂volume := hmono
+            _ = (∫ x, |S N x| ∂volume) + ∫ x, |ad.coeffs N • (ad.atoms N).f x| ∂volume := by
+                simpa using (integral_add (μ := volume) h1 h2)
+        have hterm_bound : (∫ x, |ad.coeffs N • (ad.atoms N).f x| ∂volume) ≤ |ad.coeffs N| := by
+          -- `∫ |c·a| = |c| ∫ |a| ≤ |c|`.
+          have habs : (fun x => |ad.coeffs N • (ad.atoms N).f x|) =
+              fun x => |ad.coeffs N| * |(ad.atoms N).f x| := by
+            funext x
+            simp
+          calc
+            (∫ x, |ad.coeffs N • (ad.atoms N).f x| ∂volume)
+                = ∫ x, |ad.coeffs N| * |(ad.atoms N).f x| ∂volume := by
+                    simp
+            _ = |ad.coeffs N| * ∫ x, |(ad.atoms N).f x| ∂volume := by
+                    simpa using
+                      (integral_const_mul (μ := volume) (|ad.coeffs N|) (fun x => |(ad.atoms N).f x|))
+            _ ≤ |ad.coeffs N| * 1 := by
+                    gcongr
+                    exact H1Atom.norm_le_one (ad.atoms N)
+            _ = |ad.coeffs N| := by simp
+        calc
+          (∫ x, |S (N + 1) x| ∂volume)
+              ≤ (∫ x, |S N x| ∂volume) + ∫ x, |ad.coeffs N • (ad.atoms N).f x| ∂volume := hadd
+          _ ≤ (∑ n ∈ Finset.range N, |ad.coeffs n|) + |ad.coeffs N| := by
+              gcongr
+          _ = ∑ n ∈ Finset.range (N + 1), |ad.coeffs n| := by
+              simp [Finset.sum_range_succ, add_comm]
+
+  -- Finish using an `ε`-argument from `L¹` convergence.
+  refine le_of_forall_pos_le_add ?_
+  intro ε hε
+  have hε' : Set.Iio ε ∈ 𝓝 (0 : ℝ) := Iio_mem_nhds hε
+  have h_event : ∀ᶠ N in atTop, (∫ x, |ad.target x - S N x| ∂volume) < ε :=
+    hdiff_tendsto.eventually hε'
+  rcases h_event.exists with ⟨N, hN⟩
+  have hsum_le : (∑ n ∈ Finset.range N, |ad.coeffs n|) ≤ ad.h1Norm := by
+    -- nonnegative series: partial sums are bounded by the `tsum`
+    simpa [AtomicDecomposition.h1Norm] using
+      (Summable.sum_le_tsum (s := Finset.range N) (f := fun n => |ad.coeffs n|)
+        (fun n _hn => abs_nonneg (ad.coeffs n)) ad.summable_coeffs)
+  -- `‖target‖₁ ≤ ‖target - S N‖₁ + ‖S N‖₁`.
+  have htri :
+      (∫ x, |ad.target x| ∂volume) ≤
+        (∫ x, |ad.target x - S N x| ∂volume) + ∫ x, |S N x| ∂volume := by
+    -- pointwise triangle inequality and integral monotonicity
+    have hle :
+        (fun x => |ad.target x|) ≤ fun x => |ad.target x - S N x| + |S N x| := by
+      intro x
+      -- `target = (target - S N) + S N`
+      have hsum : ad.target x = (ad.target x - S N x) + S N x := by ring
+      -- rewrite the left-hand side using `hsum`, then apply the triangle inequality
+      -- `|a + b| ≤ |a| + |b|`
+      have : |ad.target x| ≤ |ad.target x - S N x| + |S N x| := by
+        -- rewriting under `abs` is safe with `rw`
+        -- (it turns the goal into `abs_add`)
+        rw [hsum]
+        simpa using (abs_add_le (ad.target x - S N x) (S N x))
+      exact this
+    have hleft_int : Integrable (fun x => |ad.target x|) volume := by
+      simpa [Real.norm_eq_abs] using htarget_int.norm
+    have h1 : Integrable (fun x => |ad.target x - S N x|) volume := by
+      simpa [Real.norm_eq_abs] using (hdiff_int N).norm
+    have h2 : Integrable (fun x => |S N x|) volume := by
+      simpa [Real.norm_eq_abs] using (hS_int N).norm
+    have hright_int : Integrable (fun x => |ad.target x - S N x| + |S N x|) volume :=
+      h1.add h2
+    have hmono := integral_mono hleft_int hright_int hle
+    -- rewrite the RHS integral of a sum as a sum of integrals
+    simpa [integral_add h1 h2] using hmono
+  calc
+    (∫ x, |ad.target x| ∂volume)
+        ≤ (∫ x, |ad.target x - S N x| ∂volume) + ∫ x, |S N x| ∂volume := htri
+    _ ≤ ad.h1Norm + ε := by
+          -- bound `‖S N‖₁` by `∑_{n<N} |coeffs n|`, then by `h1Norm`
+          have hSN : (∫ x, |S N x| ∂volume) ≤ ∑ n ∈ Finset.range N, |ad.coeffs n| :=
+            hS_bound N
+          have h1 : (∫ x, |ad.target x - S N x| ∂volume) ≤ ε := le_of_lt hN
+          have h2 : (∫ x, |S N x| ∂volume) ≤ ad.h1Norm := (hSN.trans hsum_le)
+          -- the estimate gives `≤ ε + ad.h1Norm`; swap the sum order
+          have : (∫ x, |ad.target x - S N x| ∂volume) + ∫ x, |S N x| ∂volume ≤ ε + ad.h1Norm :=
+            add_le_add h1 h2
+          simpa [add_comm, add_left_comm, add_assoc] using this
+
+end AtomicDecomposition
+
+/-- The atomic H¹ seminorm: infimum of the ℓ¹ norms of coefficients over all atomic decompositions. -/
+noncomputable def atomicH1Norm (f : ℝ → ℝ) : ℝ≥0∞ :=
+  ⨅ d : AtomicDecompositionOf f, ENNReal.ofReal d.1.h1Norm
+
+/-- Predicate: `f` has finite atomic H¹ seminorm. -/
+def MemAtomicH1 (f : ℝ → ℝ) : Prop := atomicH1Norm f < ⊤
+
+namespace MemAtomicH1
+
+variable {f : ℝ → ℝ}
+
+theorem nonempty (hf : MemAtomicH1 f) : Nonempty (AtomicDecompositionOf f) := by
+  classical
+  rcases isEmpty_or_nonempty (AtomicDecompositionOf f) with hempty | hne
+  · haveI : IsEmpty (AtomicDecompositionOf f) := hempty
+    -- then `atomicH1Norm f = ⊤`, contradiction
+    exfalso
+    simp [MemAtomicH1, atomicH1Norm] at hf
+  · exact hne
+
+theorem integrable (hf : MemAtomicH1 f) : Integrable f volume := by
+  classical
+  rcases (nonempty (f := f) hf) with ⟨d⟩
+  -- integrability comes from any atomic decomposition
+  have : Integrable d.1.target volume := d.1.target_integrable
+  simpa [d.2] using this
+
+end MemAtomicH1
+
+/-- The ambient L¹ seminorm is controlled by the atomic H¹ seminorm. -/
+theorem lintegral_abs_le_atomicH1Norm (f : ℝ → ℝ) :
+    (∫⁻ x, ENNReal.ofReal |f x| ∂volume) ≤ atomicH1Norm f := by
+  classical
+  rcases isEmpty_or_nonempty (AtomicDecompositionOf f) with hempty | hne
+  · haveI : IsEmpty (AtomicDecompositionOf f) := hempty
+    simp [atomicH1Norm]
+  · -- compare to each decomposition and take the infimum
+    refine le_iInf (fun d => ?_)
+    have hf_int : Integrable f volume := by
+      -- `f` is integrable, since it is the target of an atomic decomposition
+      have : Integrable d.1.target volume := d.1.target_integrable
+      simpa [d.2] using this
+    have habs_int : Integrable (fun x => |f x|) volume := by
+      simpa [Real.norm_eq_abs] using hf_int.norm
+    have h_ofReal :
+        ENNReal.ofReal (∫ x, |f x| ∂volume) =
+          ∫⁻ x, ENNReal.ofReal |f x| ∂volume := by
+      -- `|f|` is nonnegative, so the integral is the `toReal` of the `lintegral`
+      simpa using
+        (MeasureTheory.ofReal_integral_eq_lintegral_ofReal (μ := volume)
+          (f := fun x => |f x|) habs_int
+          (by
+            filter_upwards with x
+            exact abs_nonneg _))
+    have hreal : (∫ x, |f x| ∂volume) ≤ d.1.h1Norm := by
+      -- Use the L¹ estimate for this particular decomposition.
+      simpa [d.2] using d.1.integral_abs_target_le_h1Norm
+    have hENN : ENNReal.ofReal (∫ x, |f x| ∂volume) ≤ ENNReal.ofReal d.1.h1Norm :=
+      ENNReal.ofReal_le_ofReal hreal
+    -- rewrite the `lintegral` as an `ofReal` integral and conclude
+    simpa [atomicH1Norm, h_ofReal] using hENN
+
+/-- **(Tier A) Atomic decomposition theorem**: from a finite atomic H¹ seminorm, one can extract a
+decomposition with coefficient sum controlled by `2 * atomicH1Norm f`.
+
+This is the standard “near minimizer” statement coming from the definition of the infimum; it is
+not the analytic Coifman–Meyer–Stein theorem (which would derive atomic decompositions from a
+different, non-atomic definition of `H¹`). -/
+theorem coifman_meyer_stein (f : ℝ → ℝ) (hf : MemAtomicH1 f) :
+    ∃ d : AtomicDecompositionOf f, ENNReal.ofReal d.1.h1Norm ≤ 2 * atomicH1Norm f := by
+  classical
+  -- Choose a decomposition if the infimum is `0`, otherwise use the definition of `iInf`.
+  set r : ℝ≥0∞ := atomicH1Norm f
+  have hr_lt_top : r < ⊤ := hf
+  by_cases hr0 : r = 0
+  · -- If `atomicH1Norm f = 0`, then `∫ |f| = 0` in the `lintegral` sense, so the zero decomposition works.
+    rcases (MemAtomicH1.nonempty (f := f) hf) with ⟨d₀⟩
+    -- A fixed atom (the zero function is an atom).
+    let a0 : H1Atom :=
+      { f := 0
+        center := 0
+        radius := 1
+        radius_pos := by norm_num
+        support_subset := by
+          simp
+        size_bound := by
+          intro x; simp
+        integral_zero := by simp
+        measurable := by simpa using (MeasureTheory.aestronglyMeasurable_const : AEStronglyMeasurable (fun _ : ℝ => (0 : ℝ)) volume) }
+    have hL0 :
+        (∫⁻ x, ENNReal.ofReal |f x| ∂volume) = 0 := by
+      have hle : (∫⁻ x, ENNReal.ofReal |f x| ∂volume) ≤ r :=
+        (lintegral_abs_le_atomicH1Norm f)
+      have hle0 : (∫⁻ x, ENNReal.ofReal |f x| ∂volume) ≤ 0 := by simpa [r, hr0] using hle
+      exact le_antisymm hle0 (by simp)
+    -- The zero-coefficient decomposition.
+    refine ⟨⟨
+      { atoms := fun _ => a0
+        coeffs := fun _ => 0
+        summable_coeffs := by simpa using (summable_zero : Summable (fun _ : ℕ => (0 : ℝ)))
+        target := f
+        measurable_target := by simpa [d₀.2] using d₀.1.measurable_target
+        converges := by
+          -- The L¹ distance to the zero partial sums is constantly `0`.
+          have : (fun N =>
+              ∫⁻ x, ENNReal.ofReal
+                |f x - ∑ n ∈ Finset.range N, (0 : ℝ) • a0.f x| ∂volume)
+              = fun _ : ℕ => (∫⁻ x, ENNReal.ofReal |f x| ∂volume) := by
+                funext N
+                simp [a0]
+          -- rewrite to a constant sequence
+          simpa [this, hL0] using (tendsto_const_nhds : Tendsto (fun _ : ℕ => (0 : ℝ≥0∞)) atTop (𝓝 0)) } ,
+      rfl⟩, ?_⟩
+    -- Coefficient sum is `0`, and `r = 0`.
+    simpa [AtomicDecomposition.h1Norm, r, hr0]
+  · -- If `r ≠ 0`, we can use `r < 2r` and the defining property of `iInf`.
+    have hr_lt : r < 2 * r := by
+      -- For finite `r` with `r ≠ 0`, we have `r < r + r = 2 * r`.
+      have hr_ne_top : r ≠ (⊤ : ℝ≥0∞) := ne_of_lt hr_lt_top
+      have hlt : r < r + r := by
+        -- `lt_add_right` is available for `ℝ≥0∞` numbers away from `⊤`.
+        simpa using (ENNReal.lt_add_right hr_ne_top hr0)
+      simpa [two_mul] using hlt
+    -- There exists a decomposition with coefficient sum `< 2r`.
+    have hex : ∃ d : AtomicDecompositionOf f, ENNReal.ofReal d.1.h1Norm < 2 * r := by
+      by_contra h
+      have hall : ∀ d : AtomicDecompositionOf f, 2 * r ≤ ENNReal.ofReal d.1.h1Norm := by
+        intro d
+        have : ¬ ENNReal.ofReal d.1.h1Norm < 2 * r := by
+          intro hlt
+          exact h ⟨d, hlt⟩
+        exact le_of_not_gt this
+      have : 2 * r ≤ r := by
+        -- `2r` is a lower bound of the family, hence below the infimum.
+        have hle : 2 * r ≤ ⨅ d : AtomicDecompositionOf f, ENNReal.ofReal d.1.h1Norm := le_iInf hall
+        simpa [atomicH1Norm, r] using hle
+      exact (not_le_of_gt hr_lt) this
+    rcases hex with ⟨d, hdlt⟩
+    refine ⟨d, ?_⟩
+    -- weaken `<` to `≤` and rewrite `r`.
+    simpa [r] using le_of_lt hdlt
+
 /-! ### Connection to Carleson Measures -/
 
 /-- The tent over a Whitney interval. -/
