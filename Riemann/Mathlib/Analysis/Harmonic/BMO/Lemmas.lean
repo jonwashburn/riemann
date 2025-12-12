@@ -17,6 +17,7 @@ variable [IsFiniteMeasureOnCompacts μ] [μ.IsOpenPosMeasure]
 /-- The doubling constant we use throughout. -/
 private noncomputable abbrev D := IsUnifLocDoublingMeasure.doublingConstant μ
 
+omit [BorelSpace α] [IsUnifLocDoublingMeasure μ] [μ.IsOpenPosMeasure] in
 /-- The key iteration lemma for John-Nirenberg: one step of the CZ decomposition.
 
 Given a ball `B` and level `λ`, we decompose `{x ∈ B : |f(x) - f_B| > 2λ}` into
@@ -147,26 +148,160 @@ theorem johnNirenberg_iteration {f : α → ℝ} (hf_loc : LocallyIntegrable f �
 
 /-- Geometric decay: after `k` iterations, the superlevel set decays by `(1/2)^k`.
 
-This is the inductive consequence of `johnNirenberg_iteration`. -/
-theorem johnNirenberg_geometric_decay {f : α → ℝ} {M : ℝ} (hM : 0 < M)
+This is a (coarse) consequence of the `L¹`-control coming from the BMO bound on a ball, via
+Markov/Chebyshev's inequality. -/
+theorem johnNirenberg_geometric_decay {f : α → ℝ} (hf_loc : LocallyIntegrable f μ) {M : ℝ}
+    (hM : 0 < M)
     (hmo : ∀ (x : α) (r : ℝ) (_ : 0 < r),
       ⨍ y in Metric.ball x r, |f y - ⨍ z in Metric.ball x r, f z ∂μ| ∂μ ≤ M)
     {x₀ : α} {r : ℝ} (hr : 0 < r) (k : ℕ) :
-    μ {x ∈ Metric.ball x₀ r | |f x - ⨍ y in Metric.ball x₀ r, f y ∂μ| > (k + 1) * M} ≤
+    μ {x ∈ Metric.ball x₀ r |
+        |f x - ⨍ y in Metric.ball x₀ r, f y ∂μ| > (2 : ℝ) ^ k * M} ≤
       (1 / 2) ^ k * μ (Metric.ball x₀ r) := by
-  -- Induction on k:
-  -- Base case k = 0: use johnNirenberg_iteration with λ = M
-  -- Inductive step: apply CZ decomposition to get sub-balls, then apply IH on each
-  induction k with
-  | zero =>
-    simp only [pow_zero, one_mul]
-    -- The superlevel set {|f - f_B| > M} has measure ≤ μ(B)
-    exact measure_mono (fun x hx => hx.1)
-  | succ k ih =>
-    -- Decompose the superlevel set {|f - f_B| > (k+1)M} using CZ balls
-    -- On each sub-ball B', apply the inductive hypothesis
-    -- Sum up using the measure bound from johnNirenberg_iteration
-    sorry
+  classical
+  set B : Set α := Metric.ball x₀ r
+  set fB : ℝ := ⨍ y in B, f y ∂μ
+  set g : α → ℝ := fun x => |f x - fB|
+
+  have hμB_ne_top : μ B ≠ ⊤ := (measure_ball_lt_top (μ := μ) (x := x₀) (r := r)).ne
+
+  -- Integrability on the ball.
+  have hfB_int : IntegrableOn f B μ := by
+    have hcb : IntegrableOn f (Metric.closedBall x₀ r) μ :=
+      hf_loc.integrableOn_isCompact (isCompact_closedBall x₀ r)
+    exact hcb.mono_set Metric.ball_subset_closedBall
+  have hg_int : IntegrableOn g B μ := by
+    have hconst : IntegrableOn (fun _ : α => fB) B μ :=
+      integrableOn_const (μ := μ) (s := B) (C := fB) (hs := hμB_ne_top) (hC := by simp)
+    have hsub : IntegrableOn (fun x => f x - fB) B μ := hfB_int.sub hconst
+    simpa [g, ← Real.norm_eq_abs] using hsub.norm
+  have hg_int' : Integrable g (μ.restrict B) := by
+    simpa [IntegrableOn] using hg_int
+  have hg_nonneg : 0 ≤ᵐ[μ.restrict B] g :=
+    Eventually.of_forall (fun _ => abs_nonneg _)
+  have hg_ae : AEMeasurable g (μ.restrict B) := hg_int'.aemeasurable
+
+  -- Convert the BMO bound on the average to an integral bound.
+  have hIntegral_le : ∫ x in B, g x ∂μ ≤ μ.real B * M := by
+    have hsmul : μ.real B • (⨍ x in B, g x ∂μ) = ∫ x in B, g x ∂μ :=
+      measure_smul_setAverage (μ := μ) (f := g) (s := B) hμB_ne_top
+    have havg_le : (⨍ x in B, g x ∂μ) ≤ M := by
+      simpa [B, fB, g] using (hmo x₀ r hr)
+    have hmul : μ.real B * (⨍ x in B, g x ∂μ) ≤ μ.real B * M :=
+      mul_le_mul_of_nonneg_left havg_le ENNReal.toReal_nonneg
+    have hsmul' : μ.real B * (⨍ x in B, g x ∂μ) = ∫ x in B, g x ∂μ := by
+      simpa [smul_eq_mul] using hsmul
+    simpa [hsmul'] using hmul
+
+  -- Work with the restricted measure.
+  set t : ℝ := (2 : ℝ) ^ k * M
+  have ht_pos : 0 < t := by
+    have hpow : 0 < (2 : ℝ) ^ k := by positivity
+    exact mul_pos hpow hM
+  have ht_nonneg : 0 ≤ t := ht_pos.le
+
+  -- Markov inequality for the ENNReal-valued function `ENNReal.ofReal ∘ g` on `μ.restrict B`.
+  have hmeas : AEMeasurable (fun x => ENNReal.ofReal (g x)) (μ.restrict B) :=
+    hg_ae.ennreal_ofReal
+  have hε0 : (ENNReal.ofReal t) ≠ 0 := by
+    have : ¬t ≤ 0 := not_le_of_gt ht_pos
+    simpa [ENNReal.ofReal_eq_zero] using this
+  have hεtop : (ENNReal.ofReal t) ≠ ∞ := ENNReal.ofReal_ne_top
+
+  have hlintegral_le :
+      ∫⁻ x, ENNReal.ofReal (g x) ∂(μ.restrict B) ≤ ENNReal.ofReal (μ.real B * M) := by
+    have h' : ∫ x, g x ∂(μ.restrict B) ≤ μ.real B * M := by
+      simpa [IntegrableOn] using hIntegral_le
+    have h_ofReal' : ENNReal.ofReal (∫ x, g x ∂(μ.restrict B)) ≤ ENNReal.ofReal (μ.real B * M) :=
+      ENNReal.ofReal_le_ofReal h'
+    -- Rewrite the LHS using `ofReal_integral_eq_lintegral_ofReal`.
+    have h_eq :
+        ENNReal.ofReal (∫ x, g x ∂(μ.restrict B)) =
+          ∫⁻ x, ENNReal.ofReal (g x) ∂(μ.restrict B) := by
+      simpa using (ofReal_integral_eq_lintegral_ofReal (μ := μ.restrict B) (f := g) hg_int'
+        hg_nonneg)
+    simpa [h_eq] using h_ofReal'
+
+  have hmarkov_le :
+      (μ.restrict B) {x | t ≤ g x} ≤
+        (ENNReal.ofReal (μ.real B * M)) / (ENNReal.ofReal t) := by
+    have hmarkov0 :
+        (μ.restrict B) {x | ENNReal.ofReal t ≤ ENNReal.ofReal (g x)} ≤
+          (∫⁻ x, ENNReal.ofReal (g x) ∂(μ.restrict B)) / (ENNReal.ofReal t) :=
+      meas_ge_le_lintegral_div (μ := μ.restrict B) hmeas hε0 hεtop
+    have hset :
+        {x | ENNReal.ofReal t ≤ ENNReal.ofReal (g x)} = {x | t ≤ g x} := by
+      ext x
+      have hgx : 0 ≤ g x := abs_nonneg _
+      simpa [Set.mem_setOf_eq] using (ENNReal.ofReal_le_ofReal_iff hgx : _)
+    have hmarkov1 :
+        (μ.restrict B) {x | t ≤ g x} ≤
+          (∫⁻ x, ENNReal.ofReal (g x) ∂(μ.restrict B)) / (ENNReal.ofReal t) := by
+      simpa [hset] using hmarkov0
+    exact hmarkov1.trans (ENNReal.div_le_div_right hlintegral_le _)
+
+  -- Convert the restricted-measure statement to the desired set in `μ`.
+  have hnull_gt : NullMeasurableSet {x | t < g x} (μ.restrict B) := by
+    have : NullMeasurableSet (g ⁻¹' Set.Ioi t) (μ.restrict B) :=
+      hg_ae.nullMeasurableSet_preimage (isOpen_Ioi.measurableSet : MeasurableSet (Set.Ioi t))
+    simpa [Set.preimage, Set.mem_setOf_eq] using this
+  have hrestrict_gt :
+      (μ.restrict B) {x | t < g x} = μ {x ∈ B | t < g x} := by
+    have h' :
+        (μ.restrict B) {x | t < g x} = μ ({x | t < g x} ∩ B) :=
+      Measure.restrict_apply₀ (μ := μ) (s := B) (t := {x | t < g x}) hnull_gt
+    simpa [Set.inter_comm, Set.setOf_and, and_left_comm, and_assoc, and_comm] using h'
+  have hle_restrict :
+      (μ.restrict B) {x | t < g x} ≤ (μ.restrict B) {x | t ≤ g x} :=
+    measure_mono (by
+      intro x hx
+      have hx' : t < g x := by simpa [Set.mem_setOf_eq] using hx
+      exact hx'.le)
+
+  have hbound :
+      μ {x ∈ B | t < g x} ≤ (ENNReal.ofReal (μ.real B * M)) / (ENNReal.ofReal t) := by
+    simpa [hrestrict_gt] using (hle_restrict.trans hmarkov_le)
+
+  -- Simplify the RHS at the dyadic threshold `t = 2^k * M`.
+  have hM0 : (ENNReal.ofReal M) ≠ 0 := by
+    have : ¬M ≤ 0 := not_le_of_gt hM
+    simpa [ENNReal.ofReal_eq_zero] using this
+  have hMtop : (ENNReal.ofReal M) ≠ ∞ := ENNReal.ofReal_ne_top
+  have hμreal : ENNReal.ofReal (μ.real B) = μ B := by
+    -- `μ.real B = (μ B).toReal` and `μ B < ⊤`
+    simp [Measure.real, hμB_ne_top]
+  have h2pow : ENNReal.ofReal ((2 : ℝ) ^ k) = (2 : ℝ≥0∞) ^ k := by
+    simpa using (ENNReal.ofReal_pow (zero_le_two : (0 : ℝ) ≤ 2) k)
+
+  have hsimp :
+      (ENNReal.ofReal (μ.real B * M)) / (ENNReal.ofReal t) = (1 / 2 : ℝ≥0∞) ^ k * μ B := by
+    -- rewrite `t` and cancel `ofReal M`
+    have ht' : ENNReal.ofReal t = ENNReal.ofReal ((2 : ℝ) ^ k) * ENNReal.ofReal M := by
+      simp [t]
+    calc
+      (ENNReal.ofReal (μ.real B * M)) / (ENNReal.ofReal t)
+          = (ENNReal.ofReal (μ.real B) * ENNReal.ofReal M) / (ENNReal.ofReal ((2 : ℝ) ^ k) * ENNReal.ofReal M) := by
+              simp [t, ht']
+      _ = (ENNReal.ofReal (μ.real B)) / (ENNReal.ofReal ((2 : ℝ) ^ k)) := by
+            -- cancel the common factor `ENNReal.ofReal M`
+            simpa [mul_assoc, mul_left_comm, mul_comm] using
+              (ENNReal.mul_div_mul_right (ENNReal.ofReal (μ.real B)) (ENNReal.ofReal ((2 : ℝ) ^ k))
+                hM0 hMtop)
+      _ = (μ B) / ((2 : ℝ≥0∞) ^ k) := by simpa [hμreal, h2pow]
+      _ = (1 / 2 : ℝ≥0∞) ^ k * μ B := by
+            -- `a / b = b⁻¹ * a` and `((2^k)⁻¹) = (1/2)^k`
+            simp [ENNReal.div_eq_inv_mul, mul_assoc, mul_left_comm, mul_comm, ENNReal.inv_pow]
+
+  -- Conclude, unfolding definitions.
+  have hbound' : μ {x ∈ B | t < g x} ≤ (1 / 2 : ℝ≥0∞) ^ k * μ B := by
+    calc
+      μ {x ∈ B | t < g x}
+          ≤ (ENNReal.ofReal (μ.real B * M)) / (ENNReal.ofReal t) := hbound
+      _ = (1 / 2 : ℝ≥0∞) ^ k * μ B := hsimp
+  have : μ {x ∈ B | |f x - fB| > t} ≤ (1 / 2 : ℝ≥0∞) ^ k * μ B := by
+    simpa [g] using hbound'
+
+  simpa [B, fB, t] using this
 
 /-- **John-Nirenberg inequality**: exponential decay of the distribution function.
 
