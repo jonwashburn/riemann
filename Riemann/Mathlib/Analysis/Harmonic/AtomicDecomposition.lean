@@ -200,7 +200,6 @@ theorem target_integrable : Integrable ad.target volume := by
   -- Finite partial sums.
   let S : ℕ → (ℝ → ℝ) :=
     fun N x => ∑ n ∈ Finset.range N, ad.coeffs n • (ad.atoms n).f x
-
   have hS_int : ∀ N, Integrable (S N) volume := by
     intro N
     -- A finite sum of integrable functions is integrable.
@@ -209,7 +208,6 @@ theorem target_integrable : Integrable ad.target volume := by
     intro n hn
     -- Each atom is integrable, and scaling preserves integrability.
     simpa [Pi.smul_apply] using (H1Atom.integrable (ad.atoms n)).smul (ad.coeffs n)
-
   -- From `L¹` convergence (in the robust `lintegral` sense), pick an index where the distance is finite.
   have hfin_event :
       (∀ᶠ N in atTop,
@@ -218,7 +216,6 @@ theorem target_integrable : Integrable ad.target volume := by
       Iio_mem_nhds (by simp)
     exact ad.converges.eventually hnhds
   rcases hfin_event.exists with ⟨N, hNfin⟩
-
   -- The difference `target - S N` is integrable (measurable + finite integral of the norm).
   have hdiff_int : Integrable (fun x => ad.target x - S N x) volume := by
     refine ⟨ad.measurable_target.sub (hS_int N).aestronglyMeasurable, ?_⟩
@@ -227,7 +224,6 @@ theorem target_integrable : Integrable ad.target volume := by
     have : (∫⁻ x, ENNReal.ofReal ‖ad.target x - S N x‖ ∂volume) < ∞ := by
       simpa [Real.norm_eq_abs] using hNfin
     simpa [MeasureTheory.hasFiniteIntegral_iff_norm] using this
-
   -- Finally, `target = (target - S N) + S N`.
   have hsum_int : Integrable (fun x => (ad.target x - S N x) + S N x) volume :=
     hdiff_int.add (hS_int N)
@@ -565,9 +561,97 @@ theorem coifman_meyer_stein (f : ℝ → ℝ) (hf : MemAtomicH1 f) :
 
 /-! ### Connection to Carleson Measures -/
 
-/-- The tent over a Whitney interval. -/
-def whitneyTent (I : RH.Cert.WhitneyInterval) (α : ℝ) : Set (ℝ × ℝ) :=
+/-!
+#### Whitney tents: project-level (`ℝ × ℝ`) vs mathlib-facing (`ℝ × ℝ≥0`)
+
+The Riemann/RS layer historically uses tents in the upper half-plane as subsets of `ℝ × ℝ`,
+typically with the “closed top” convention `Ioc 0 r`.
+
+For Carleson-measure theory and interoperability with `CarlesonMeasure.CarlesonFamily`, the
+canonical ambient space is `ℝ × ℝ≥0` and the canonical tent uses the “open top” convention
+`Ioo 0 r`.
+
+We keep both conventions and provide clean bridge lemmas via the coercion map `ℝ≥0 → ℝ`.
+-/
+
+open CarlesonMeasure
+
+/-- The RS-flavoured Whitney tent (subset of `ℝ × ℝ`) with “closed top” (`Ioc`). -/
+def whitneyTentReal (I : RH.Cert.WhitneyInterval) (α : ℝ) : Set (ℝ × ℝ) :=
   I.interval ×ˢ Ioc 0 (α * (2 * I.len))
+
+/-- The vertical scale (height) for the Whitney tent, as an element of `ℝ≥0`. -/
+noncomputable def whitneyScale (α : ℝ≥0) (I : RH.Cert.WhitneyInterval) : ℝ≥0 :=
+  α * (2 * ⟨I.len, I.len_pos.le⟩)
+
+/-- A Carleson family on `ℝ` indexed by Whitney intervals, with scale `α * (2 * I.len)`. -/
+noncomputable def whitneyCarlesonFamily (α : ℝ≥0) : CarlesonFamily ℝ where
+  ι := RH.Cert.WhitneyInterval
+  baseSet I := I.interval
+  scale I := whitneyScale α I
+  measurableSet_baseSet I := by
+    -- `I.interval = Icc _ _` is measurable in the Borel σ-algebra.
+    simp [RH.Cert.WhitneyInterval.interval]
+
+/-- The mathlib-facing Whitney tent (subset of `ℝ × ℝ≥0`) coming from the Carleson-family tent. -/
+def whitneyTent (I : RH.Cert.WhitneyInterval) (α : ℝ≥0) : Set (ℝ × ℝ≥0) :=
+  (whitneyCarlesonFamily α).tent I
+
+/-- Coercion map `(ℝ × ℝ≥0) → (ℝ × ℝ)` used to compare the two tent conventions. -/
+def whitneyTentCoe : (ℝ × ℝ≥0) → (ℝ × ℝ) := fun p => (p.1, (p.2 : ℝ))
+
+@[simp] lemma whitneyTentCoe_fst (p : ℝ × ℝ≥0) : (whitneyTentCoe p).1 = p.1 := rfl
+@[simp] lemma whitneyTentCoe_snd (p : ℝ × ℝ≥0) : (whitneyTentCoe p).2 = (p.2 : ℝ) := rfl
+
+/-- Preimage description: pulling back the RS tent along coercion produces the same base interval
+and the “closed top” interval `Ioc` in the `ℝ≥0` coordinate. -/
+theorem preimage_whitneyTentReal (I : RH.Cert.WhitneyInterval) (α : ℝ≥0) :
+    whitneyTentCoe ⁻¹' (whitneyTentReal I (α : ℝ))
+      = I.interval ×ˢ Set.Ioc (0 : ℝ≥0) (whitneyScale α I) := by
+  ext p
+  -- Reduce to pointwise membership conditions and translate inequalities through coercions.
+  have hscale :
+      ((whitneyScale α I : ℝ≥0) : ℝ) = (α : ℝ) * (2 * I.len) := by
+    simp [whitneyScale, mul_assoc, mul_left_comm, mul_comm]
+  constructor
+  · intro hp
+    have hp' :
+        p.1 ∈ I.interval ∧ ((p.2 : ℝ) ∈ Set.Ioc (0 : ℝ) ((α : ℝ) * (2 * I.len))) := by
+      simpa [whitneyTentCoe, whitneyTentReal, Set.preimage, Set.mem_prod, Set.mem_Ioc] using hp
+    refine ⟨hp'.1, ?_⟩
+    rcases hp'.2 with ⟨hp0, hpR⟩
+    refine ⟨?_, ?_⟩
+    · simpa using hp0
+    · -- rewrite the bound and use `NNReal.coe_le_coe`
+      have : (p.2 : ℝ) ≤ (whitneyScale α I : ℝ) := by
+        simpa [hscale] using hpR
+      exact NNReal.coe_le_coe.1 this
+  · intro hp
+    rcases hp with ⟨hpI, hpY⟩
+    rcases hpY with ⟨hp0, hpR⟩
+    have hp0' : (0 : ℝ) < (p.2 : ℝ) := by simpa using hp0
+    have hpR' : (p.2 : ℝ) ≤ (α : ℝ) * (2 * I.len) := by
+      have : (p.2 : ℝ) ≤ (whitneyScale α I : ℝ) := NNReal.coe_le_coe.2 hpR
+      simpa [hscale] using this
+    -- package back into the preimage membership
+    have :
+        p.1 ∈ I.interval ∧ ((p.2 : ℝ) ∈ Set.Ioc (0 : ℝ) ((α : ℝ) * (2 * I.len))) := by
+      exact ⟨hpI, ⟨hp0', hpR'⟩⟩
+    simpa [whitneyTentCoe, whitneyTentReal, Set.preimage, Set.mem_prod, Set.mem_Ioc] using this
+
+/-- The mathlib-facing tent is contained in the pullback of the RS-flavoured tent (open top
+implies closed top). -/
+theorem whitneyTent_subset_preimage_whitneyTentReal (I : RH.Cert.WhitneyInterval) (α : ℝ≥0) :
+    whitneyTent I α ⊆ whitneyTentCoe ⁻¹' (whitneyTentReal I (α : ℝ)) := by
+  intro p hp
+  -- unfold the `CarlesonFamily.tent` membership
+  have : p ∈ I.interval ×ˢ Set.Ioo (0 : ℝ≥0) (whitneyScale α I) := by
+    simpa [whitneyTent, whitneyCarlesonFamily, whitneyScale, CarlesonFamily.tent] using hp
+  rcases this with ⟨hpI, hpY⟩
+  refine (preimage_whitneyTentReal (I := I) (α := α)).symm ▸ ?_
+  refine ⟨hpI, ?_⟩
+  -- `Ioo` implies `Ioc`
+  exact ⟨hpY.1, hpY.2.le⟩
 
 /-- A Carleson measure is characterized by its action on atoms.
 
