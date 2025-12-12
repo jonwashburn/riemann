@@ -1,7 +1,4 @@
-
-import Mathlib
-import Riemann.RS.WhitneyGeometryDefs
-import Riemann.Cert.KxiWhitney_RvM
+import Riemann.Cert.KxiPPlus
 import Riemann.Mathlib.MeasureTheory.Function.BoundedSupport
 import Riemann.Mathlib.MeasureTheory.Measure.Carleson.Defs
 
@@ -535,10 +532,10 @@ theorem coifman_meyer_stein (f : ℝ → ℝ) (hf : MemAtomicH1 f) :
                 funext N
                 simp [a0]
           -- rewrite to a constant sequence
-          simpa [this, hL0] using (tendsto_const_nhds : Tendsto (fun _ : ℕ => (0 : ℝ≥0∞)) atTop (𝓝 0)) } ,
+          simp [hL0] } ,
       rfl⟩, ?_⟩
     -- Coefficient sum is `0`, and `r = 0`.
-    simpa [AtomicDecomposition.h1Norm, r, hr0]
+    simp [AtomicDecomposition.h1Norm, r, hr0]
   · -- If `r ≠ 0`, we can use `r < 2r` and the defining property of `iInf`.
     have hr_lt : r < 2 * r := by
       -- For finite `r` with `r ≠ 0`, we have `r < r + r = 2 * r`.
