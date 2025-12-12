@@ -909,6 +909,165 @@ theorem bmo_telescoping {f : α → ℝ} (hf_int : LocallyIntegrable f μ) {M : 
     _ ≤ ((κ * δ : ℝ≥0) : ℝ) * M := by
           gcongr
 
+/-- A “one-ball” John–Nirenberg step: on a subball `ball x r ⊆ ball x₀ r₀`,
+large deviation from the *big* average forces a large deviation from the *small* average,
+up to the telescoping constant; hence a Chebyshev bound on the subball.
+
+This lemma is a reusable building block for John–Nirenberg / good-λ arguments. -/
+theorem measure_subball_abs_sub_setAverage_gt_add_le {f : α → ℝ} (hf_int : LocallyIntegrable f μ)
+    {M : ℝ} (hM : 0 < M)
+    (hbmo : ∀ (x : α) (r : ℝ) (_ : 0 < r),
+      ⨍ y in ball x r, |f y - ⨍ z in ball x r, f z ∂μ| ∂μ ≤ M)
+    {x₀ : α} {r₀ : ℝ} (hr₀ : 0 < r₀)
+    {x : α} {r : ℝ} (hr : 0 < r)
+    (h_contained : ball x r ⊆ ball x₀ r₀)
+    (hr_scale : r ≤ IsUnifLocDoublingMeasure.scalingScaleOf μ (2 * r₀ / r))
+    (hr_scale2 : r / 2 ≤ IsUnifLocDoublingMeasure.scalingScaleOf μ 2)
+    {t : ℝ} (ht : 0 < t) :
+    μ {y ∈ ball x r |
+        |f y - ⨍ z in ball x₀ r₀, f z ∂μ| >
+          t + ((IsUnifLocDoublingMeasure.scalingConstantOf μ (2 * r₀ / r) *
+            IsUnifLocDoublingMeasure.scalingConstantOf μ 2 : ℝ≥0) : ℝ) * M}
+      ≤ ENNReal.ofReal (M / t) * μ (ball x r) := by
+  classical
+  set B : Set α := ball x r
+  set B₀ : Set α := ball x₀ r₀
+  set fB : ℝ := ⨍ y in B, f y ∂μ
+  set fB₀ : ℝ := ⨍ y in B₀, f y ∂μ
+  set C : ℝ :=
+    ((IsUnifLocDoublingMeasure.scalingConstantOf μ (2 * r₀ / r) *
+        IsUnifLocDoublingMeasure.scalingConstantOf μ 2 : ℝ≥0) : ℝ)
+
+  have hμB_ne_top : μ B ≠ ⊤ := (measure_ball_lt_top (μ := μ) (x := x) (r := r)).ne
+  have hμB_ne_zero : μ B ≠ 0 := (measure_ball_pos (μ := μ) (x := x) (r := r) hr).ne'
+
+  -- Telescoping control of the difference of averages.
+  have htel :
+      |fB - fB₀| ≤ C * M := by
+    simpa [B, B₀, fB, fB₀, C] using
+      (bmo_telescoping (μ := μ) (f := f) hf_int hM hbmo hr₀ hr h_contained hr_scale hr_scale2)
+
+  -- If we are far above the big average, we are above the small average by at least `t`.
+  have hsubset :
+      {y ∈ B | |f y - fB₀| > t + C * M} ⊆ {y ∈ B | |f y - fB| > t} := by
+    intro y hy
+    refine ⟨hy.1, ?_⟩
+    have htri : |f y - fB₀| ≤ |f y - fB| + |fB - fB₀| := by
+      -- triangle inequality for subtraction
+      -- |(f y - fB) + (fB - fB₀)| ≤ |f y - fB| + |fB - fB₀|
+      simpa [sub_eq_add_neg, add_assoc, add_left_comm, add_comm] using
+        (abs_add_le (f y - fB) (fB - fB₀))
+    have hle : |f y - fB₀| ≤ |f y - fB| + C * M := by
+      exact htri.trans (add_le_add_left htel _)
+    have : t + C * M < |f y - fB| + C * M := lt_of_lt_of_le hy.2 hle
+    -- cancel `C*M`
+    have : t < |f y - fB| := by linarith
+    simpa [gt_iff_lt] using this
+
+  -- Chebyshev on the subball with respect to its own average.
+  have hcheb :
+      μ {y ∈ B | |f y - fB| > t} ≤ ENNReal.ofReal (M / t) * μ B := by
+    -- Convert the BMO bound on the average to an integral bound.
+    have hfB_int : IntegrableOn f B μ :=
+      hf_int.integrableOn_isCompact (isCompact_closedBall x r) |>.mono_set ball_subset_closedBall
+    have hconst : IntegrableOn (fun _ : α => fB) B μ :=
+      integrableOn_const (μ := μ) (s := B) (C := fB) (hs := hμB_ne_top) (hC := by simp)
+    have hsub : IntegrableOn (fun y => f y - fB) B μ := hfB_int.sub hconst
+    have habs : IntegrableOn (fun y => |f y - fB|) B μ := by
+      simpa [← Real.norm_eq_abs] using hsub.norm
+    have havg_le : (⨍ y in B, |f y - fB| ∂μ) ≤ M := by
+      simpa [B, fB] using hbmo x r hr
+    have hint_le : ∫ y in B, |f y - fB| ∂μ ≤ μ.real B * M := by
+      have hsmul :
+          μ.real B • (⨍ y in B, |f y - fB| ∂μ) = ∫ y in B, |f y - fB| ∂μ :=
+        measure_smul_setAverage (μ := μ) (f := fun y => |f y - fB|) (s := B) hμB_ne_top
+      have hmul : μ.real B * (⨍ y in B, |f y - fB| ∂μ) ≤ μ.real B * M :=
+        mul_le_mul_of_nonneg_left havg_le ENNReal.toReal_nonneg
+      have hsmul' : μ.real B * (⨍ y in B, |f y - fB| ∂μ) = ∫ y in B, |f y - fB| ∂μ := by
+        simpa [smul_eq_mul] using hsmul
+      simpa [hsmul'] using hmul
+
+    -- Markov inequality on `μ.restrict B`.
+    have habs' : Integrable (fun y => |f y - fB|) (μ.restrict B) := by
+      simpa [IntegrableOn] using habs
+    have hnonneg : 0 ≤ᵐ[μ.restrict B] fun y => |f y - fB| :=
+      Eventually.of_forall (fun _ => abs_nonneg _)
+    have hmarkov :
+        t * ((μ.restrict B) {y | t ≤ |f y - fB|}).toReal ≤ ∫ y, |f y - fB| ∂(μ.restrict B) :=
+      mul_meas_ge_le_integral_of_nonneg (μ := μ.restrict B) hnonneg habs' t
+    have hmarkov' :
+        t * (μ {y ∈ B | t ≤ |f y - fB|}).toReal ≤ ∫ y in B, |f y - fB| ∂μ := by
+      -- rewrite the set and integral from the restricted measure form
+      have hset :
+          (μ.restrict B) {y | t ≤ |f y - fB|} = μ {y ∈ B | t ≤ |f y - fB|} := by
+        have hnull : NullMeasurableSet {y | t ≤ |f y - fB|} (μ.restrict B) := by
+          have haemeas : AEMeasurable (fun y => |f y - fB|) (μ.restrict B) := habs'.aemeasurable
+          simpa [Set.preimage, Set.mem_setOf_eq] using
+            (haemeas.nullMeasurableSet_preimage
+              (isClosed_Ici.measurableSet : MeasurableSet (Set.Ici t)))
+        have hrestrict :
+            (μ.restrict B) {y | t ≤ |f y - fB|} = μ ({y | t ≤ |f y - fB|} ∩ B) :=
+          Measure.restrict_apply₀ (μ := μ) (s := B) (t := {y | t ≤ |f y - fB|}) hnull
+        simpa [Set.inter_comm, Set.setOf_and, and_left_comm, and_assoc, and_comm] using hrestrict
+      have hint :
+          (∫ y, |f y - fB| ∂(μ.restrict B)) = ∫ y in B, |f y - fB| ∂μ := by
+        simp
+      simpa [hset, hint] using hmarkov
+
+    have htoReal :
+        (μ {y ∈ B | t ≤ |f y - fB|}).toReal ≤ (μ.real B * M) / t := by
+      have ht' : 0 < t := ht
+      have : (μ {y ∈ B | t ≤ |f y - fB|}).toReal ≤ (∫ y in B, |f y - fB| ∂μ) / t := by
+        exact (le_div_iff₀ ht').2 (by simpa [mul_comm, mul_left_comm, mul_assoc] using hmarkov')
+      have : (μ {y ∈ B | t ≤ |f y - fB|}).toReal ≤ (μ.real B * M) / t := by
+        exact this.trans (div_le_div_of_nonneg_right hint_le (by linarith))
+      exact this
+
+    have hμS_ne_top : μ {y ∈ B | t ≤ |f y - fB|} ≠ ⊤ :=
+      measure_ne_top_of_subset (fun _ hy => hy.1) hμB_ne_top
+    have hμrhs_ne_top : ENNReal.ofReal ((μ.real B * M) / t) ≠ ⊤ := ENNReal.ofReal_ne_top
+    have hle :
+        μ {y ∈ B | t ≤ |f y - fB|} ≤ ENNReal.ofReal ((μ.real B * M) / t) :=
+      (ENNReal.toReal_le_toReal hμS_ne_top hμrhs_ne_top).1 (by
+        have hnonneg : 0 ≤ (μ.real B * M) / t := by
+          have : 0 ≤ μ.real B * M := mul_nonneg ENNReal.toReal_nonneg (le_of_lt hM)
+          exact div_nonneg this (le_of_lt ht)
+        simpa [ENNReal.toReal_ofReal, hnonneg] using htoReal)
+
+    have hμreal : ENNReal.ofReal (μ.real B) = μ B := by
+      simp [Measure.real, hμB_ne_top]
+    have hfac_nonneg : 0 ≤ M / t := by
+      exact div_nonneg (le_of_lt hM) (le_of_lt ht)
+    have hrhs :
+        ENNReal.ofReal ((μ.real B * M) / t) = ENNReal.ofReal (M / t) * μ B := by
+      have : (μ.real B * M) / t = μ.real B * (M / t) := by
+        simp [div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm]
+      -- move factors into ENNReal and use `μ.real` = `toReal`
+      calc
+        ENNReal.ofReal ((μ.real B * M) / t)
+            = ENNReal.ofReal (μ.real B * (M / t)) := by simp [this]
+        _ = ENNReal.ofReal (μ.real B) * ENNReal.ofReal (M / t) := by
+              have hμreal_nonneg : 0 ≤ μ.real B := ENNReal.toReal_nonneg
+              simpa [mul_comm, mul_left_comm, mul_assoc] using (ENNReal.ofReal_mul (p := μ.real B) (q := M / t) hμreal_nonneg)
+        _ = ENNReal.ofReal (M / t) * μ B := by
+              simp [mul_comm, hμreal]
+
+    -- Pass from `t ≤ ...` to `... > t`, and rewrite the RHS into the desired form.
+    have hmono : μ {y ∈ B | |f y - fB| > t} ≤ μ {y ∈ B | t ≤ |f y - fB|} := by
+      refine measure_mono (fun y hy => ?_)
+      exact ⟨hy.1, hy.2.le⟩
+    exact (hmono.trans (hle.trans_eq hrhs))
+
+  -- Put everything together.
+  have hset_eq :
+      {y ∈ B | |f y - fB₀| >
+          t + C * M} ⊆ {y ∈ B | |f y - fB| > t} :=
+    hsubset
+  -- Ensure we use the same shape as the statement (with `C*M`).
+  have : μ {y ∈ B | |f y - fB₀| > t + C * M} ≤ ENNReal.ofReal (M / t) * μ B :=
+    (measure_mono hset_eq) |>.trans hcheb
+  simpa [B, B₀, fB, fB₀, C, C, gt_iff_lt] using this
+
 end BMO
 
 section CarlesonCZ
