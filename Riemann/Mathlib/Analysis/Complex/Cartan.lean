@@ -1,14 +1,10 @@
-import VD.MathlibSubmitted.Nevanlinna_add_proximity
-import VD.MathlibSubmitted.Nevanlinna_add_proximity
-
+import Mathlib.Algebra.Lie.OfAssociative
+import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.Complex.ValueDistribution.FirstMainTheorem
--- Import needed for integrability of proximity function (log_plus_norm)
-import Mathlib.MeasureTheory.Integral.CircleAverage
-import Mathlib.Analysis.Meromorphic.Order
-import Mathlib.Analysis.Meromorphic.NormalForm
-import Mathlib
-import PrimeNumberTheoremAnd
-import StrongPNT
+import Mathlib.Data.Real.StarOrdered
+import Mathlib.Topology.EMetricSpace.Paracompact
+import Mathlib.Topology.Separation.CompletelyRegular
+import VD.MathlibSubmitted.Nevanlinna_add_proximity
 
 open Filter Function MeromorphicOn Metric Real Set Classical Topology ValueDistribution
 

@@ -612,7 +612,7 @@ theorem preimage_whitneyTentReal (I : RH.Cert.WhitneyInterval) (α : ℝ≥0) :
   -- Reduce to pointwise membership conditions and translate inequalities through coercions.
   have hscale :
       ((whitneyScale α I : ℝ≥0) : ℝ) = (α : ℝ) * (2 * I.len) := by
-    simp [whitneyScale, mul_assoc, mul_left_comm, mul_comm]
+    simp [whitneyScale, mul_left_comm, mul_comm]
   constructor
   · intro hp
     have hp' :
