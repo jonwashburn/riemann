@@ -91,6 +91,7 @@ open Metric
 variable {X : Type*} [PseudoMetricSpace X] [MeasurableSpace X] [BorelSpace X]
   {μ : Measure X} [IsUnifLocDoublingMeasure μ]
 
+omit [BorelSpace X] in
 /-- For concentric closed balls, the measure ratio is bounded by the scaling constant.
 This is the core bound from which other variants follow.
 
@@ -103,6 +104,7 @@ lemma measure_closedBall_le_scalingConstantOf_mul {x : X} {r K : ℝ}
   have hK_mem : K ∈ Set.Ioc 0 K := Set.mem_Ioc.mpr ⟨hK, le_refl K⟩
   exact @IsUnifLocDoublingMeasure.measure_mul_le_scalingConstantOf_mul X _ _ μ _ K x K r hK_mem hr_scale
 
+omit [BorelSpace X] in
 /-- For nested closed balls (with the same center), the measure ratio is controlled.
 This version works for small radii (r ≤ scalingScaleOf). -/
 lemma measure_closedBall_ratio_le_scalingConstantOf {x : X} {r r₀ : ℝ}
@@ -116,6 +118,7 @@ lemma measure_closedBall_ratio_le_scalingConstantOf {x : X} {r r₀ : ℝ}
   conv_lhs => rw [hr₀_eq]
   exact @IsUnifLocDoublingMeasure.measure_mul_le_scalingConstantOf_mul X _ _ μ _ (r₀/r) x (r₀/r) r hK_mem hr_scale
 
+omit [BorelSpace X] in
 /-- For nested balls B(x, r) ⊆ B(x₀, r₀), the larger ball's measure is bounded.
 
 **Geometric insight**: If ball x r ⊆ ball x₀ r₀, then x ∈ ball x₀ r₀, so dist(x, x₀) < r₀.

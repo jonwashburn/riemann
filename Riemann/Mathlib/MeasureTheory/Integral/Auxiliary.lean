@@ -1,5 +1,6 @@
-import Mathlib
-import Riemann.academic_framework.Compat
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
+import Mathlib.Data.Real.StarOrdered
+import Mathlib.MeasureTheory.Integral.IntegralEqImproper
 
 /-!
 # Measure Theory Integral Auxiliary Lemmas
