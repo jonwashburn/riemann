@@ -11,6 +11,10 @@ import Riemann.Mathlib.MeasureTheory.Function.MaximalFunction
 import Riemann.Mathlib.MeasureTheory.Integral.AverageAux
 import Riemann.Mathlib.Analysis.Harmonic.BMO.Defs
 
+set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
+
+
 /-!
 # Auxiliary lemmas for CZ/BMO on doubling metric measure spaces
 
@@ -539,12 +543,10 @@ lemma integrable_tsum_indicator_of_finite_measure' {ι : Type*} [Countable ι]
   -- Each indicator function is integrable
   have hind_int : ∀ i, Integrable ((s i).indicator (f i)) μ := fun i =>
     (hf i).integrable_indicator (hs i)
-
   -- By disjointness, at each point x, at most one indicator is nonzero
   have hdisjoint_support : ∀ x, ∀ i j, i ≠ j → x ∈ s i → x ∉ s j := by
     intro x i j hij hxi
     exact Set.disjoint_left.mp (hdisj hij) hxi
-
   -- Key property: at each point, at most one term is nonzero
   have htsum_single : ∀ x, (∃ i, x ∈ s i) →
       ∃ i₀, x ∈ s i₀ ∧ ∀ j ≠ i₀, (s j).indicator (f j) x = 0 := by
@@ -552,11 +554,9 @@ lemma integrable_tsum_indicator_of_finite_measure' {ι : Type*} [Countable ι]
     use i, hi
     intro j hj
     exact Set.indicator_of_notMem (hdisjoint_support x i j hj.symm hi) (f j)
-
   have htsum_zero : ∀ x, (∀ i, x ∉ s i) → ∑' i, (s i).indicator (f i) x = 0 := by
     intro x hx
     simp only [Set.indicator_of_notMem (hx _), tsum_zero]
-
   -- The sum of lintegral norms is finite
   have hsum' : ∑' i, ∫⁻ x, ↑‖(s i).indicator (f i) x‖₊ ∂μ < ⊤ := by
     have heq : ∀ i, ∫⁻ x, ↑‖(s i).indicator (f i) x‖₊ ∂μ = ∫⁻ x in s i, ↑‖f i x‖₊ ∂μ := by
@@ -570,7 +570,6 @@ lemma integrable_tsum_indicator_of_finite_measure' {ι : Type*} [Countable ι]
       · exact lintegral_indicator (hs i) (fun y => (‖f i y‖₊ : ℝ≥0∞))
     simp_rw [heq]
     exact hsum.lt_top
-
   -- Pointwise: ‖∑' i, indicator_i x‖ = ∑' i, ‖indicator_i x‖ (by disjointness, at most one nonzero)
   have hnorm_tsum : ∀ x, ‖∑' i, (s i).indicator (f i) x‖₊ = ∑' i, ‖(s i).indicator (f i) x‖₊ := by
     intro x
@@ -598,7 +597,6 @@ lemma integrable_tsum_indicator_of_finite_measure' {ι : Type*} [Countable ι]
         have hterm : ∀ j, ‖(s j).indicator (f j) x‖₊ = 0 := fun j => by simp [Set.indicator_of_notMem (hex j)]
         simp [hterm]
       simp [h1, h2]
-
   -- AEStronglyMeasurable via partial sum convergence
   have haesm : AEStronglyMeasurable (fun x => ∑' i, (s i).indicator (f i) x) μ := by
     classical
@@ -641,7 +639,7 @@ lemma integrable_tsum_indicator_of_finite_measure' {ι : Type*} [Countable ι]
                   intro h
                   exact hne (by simp [h] )
                 have : (s i).indicator (f i) x = 0 := hzero i hi
-                simpa [g, he, this]
+                simp [g, he, this]
               · have hn'' : ¬ ∃ i : ι, e i = n := hn'
                 simp [g, Function.extend_apply', hn'']
             exact (hn (by simpa [Function.support] using this)).elim
@@ -656,7 +654,7 @@ lemma integrable_tsum_indicator_of_finite_measure' {ι : Type*} [Countable ι]
             · rcases hn with ⟨i, rfl⟩
               have : (s i).indicator (f i) x = 0 :=
                 Set.indicator_of_notMem (hex i) (f i)
-              simpa [g, he, this]
+              simp [g, he, this]
             · have hn' : ¬ ∃ i : ι, e i = n := hn
               simp [g, Function.extend_apply', hn']
           have hsumm : Summable (fun n => g n x) := by
@@ -668,7 +666,6 @@ lemma integrable_tsum_indicator_of_finite_measure' {ι : Type*} [Countable ι]
       -- `g · x` is the extension of `i ↦ (s i).indicator (f i) x` along `e`.
       simpa [g] using (tsum_extend_zero he (fun i : ι => (s i).indicator (f i) x))
     simpa [htsum] using haesm_nat
-
   -- HasFiniteIntegral: ∫ ‖tsum‖ = ∫ tsum ‖·‖ = ∑' ∫ ‖indicator_i‖ < ∞
   have hfi : HasFiniteIntegral (fun x => ∑' i, (s i).indicator (f i) x) μ := by
     rw [hasFiniteIntegral_def]
@@ -711,7 +708,6 @@ lemma integrable_tsum_indicator_of_finite_measure' {ι : Type*} [Countable ι]
       _ = ∑' i, ∫⁻ x, ‖(s i).indicator (f i) x‖₊ ∂μ := by
           apply lintegral_tsum; intro i; exact (hind_int i).aestronglyMeasurable.enorm
       _ < ⊤ := hsum'
-
   exact ⟨haesm, hfi⟩
 
 end MissingAPI
@@ -820,7 +816,6 @@ The only nontrivial input is a measure-ratio bound, obtained from:
 - the monotonicity lemma `setAverage_subset_le_mul` (proved above)
 - Jensen’s inequality in the form `abs_setAverage_le_setAverage_abs` (proved above)
 -/
-
 section BMO
 
 variable {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α]
@@ -848,13 +843,11 @@ theorem bmo_telescoping {f : α → ℝ} (hf_int : LocallyIntegrable f μ) {M : 
   set f_B₀ := ⨍ y in B₀, f y ∂μ
   set κ := IsUnifLocDoublingMeasure.scalingConstantOf μ (2 * r₀ / r)
   set δ := IsUnifLocDoublingMeasure.scalingConstantOf μ 2
-
   have hB_pos : 0 < μ B := measure_ball_pos μ x hr
   have hB₀_pos : 0 < μ B₀ := measure_ball_pos μ x₀ hr₀
   have hB_ne_zero : μ B ≠ 0 := hB_pos.ne'
   have hB_ne_top : μ B ≠ ⊤ := measure_ball_lt_top.ne
   have hB₀_ne_top : μ B₀ ≠ ⊤ := measure_ball_lt_top.ne
-
   -- Step 1: Jensen on `B` relative to the constant `f_B₀`.
   have hJensen : |f_B - f_B₀| ≤ ⨍ y in B, |f y - f_B₀| ∂μ := by
     have hf_B : IntegrableOn f B μ :=
@@ -866,7 +859,6 @@ theorem bmo_telescoping {f : α → ℝ} (hf_int : LocallyIntegrable f μ) {M : 
         (hf_B.integrable.sub
           (integrableOn_const (μ := μ) (s := B) (C := f_B₀) (hs := hB_ne_top) (hC := by simp)).integrable)
     exact abs_setAverage_le_setAverage_abs μ measurableSet_ball hf_sub hB_ne_zero hB_ne_top
-
   -- Step 2: ratio bound `μ(B₀)/μ(B) ≤ κ * δ`.
   have hratio : (μ B₀).toReal / (μ B).toReal ≤ ((κ * δ : ℝ≥0) : ℝ) := by
     have hcb_ne_top : μ (closedBall x r) ≠ ⊤ := measure_closedBall_lt_top.ne
@@ -879,20 +871,18 @@ theorem bmo_telescoping {f : α → ℝ} (hf_int : LocallyIntegrable f μ) {M : 
     have hB_toReal_pos : 0 < (μ B).toReal := ENNReal.toReal_pos hB_ne_zero hB_ne_top
     have hcb_ball : (μ (closedBall x r)).toReal / (μ B).toReal ≤ (δ : ℝ≥0) := by
       simpa [B, δ] using (measure_closedBall_div_measure_ball_le (μ := μ) x hr hr_scale2)
-
     calc
       (μ B₀).toReal / (μ B).toReal
           ≤ (((κ : ℝ≥0∞) * μ (closedBall x r)).toReal) / (μ B).toReal := by
               exact div_le_div_of_nonneg_right henn_toReal hB_toReal_pos.le
       _ = (κ : ℝ) * ((μ (closedBall x r)).toReal / (μ B).toReal) := by
             rw [ENNReal.toReal_mul]
-            simp [mul_div_assoc, mul_assoc]
+            simp [mul_div_assoc]
       _ ≤ (κ : ℝ) * (δ : ℝ) := by
             have hκ_nonneg : 0 ≤ (κ : ℝ) := κ.coe_nonneg
             exact mul_le_mul_of_nonneg_left (by simpa using hcb_ball) hκ_nonneg
       _ = ((κ * δ : ℝ≥0) : ℝ) := by
             simp
-
   have hSubset :
       ⨍ y in B, |f y - f_B₀| ∂μ ≤ ((κ * δ : ℝ≥0) : ℝ) * ⨍ y in B₀, |f y - f_B₀| ∂μ := by
     -- Integrability of `y ↦ |f y - f_B₀|` on `B₀`.
@@ -909,10 +899,8 @@ theorem bmo_telescoping {f : α → ℝ} (hf_int : LocallyIntegrable f μ) {M : 
       (setAverage_subset_le_mul (μ := μ) (s := B) (t := B₀) (f := fun y => |f y - f_B₀|)
         h_contained measurableSet_ball measurableSet_ball hB_ne_zero hB_ne_top hB₀_ne_top
         (fun y => abs_nonneg _) hg_int (C := ((κ * δ : ℝ≥0) : ℝ)) hratio)
-
   -- Step 3: BMO on `B₀`.
   have hbmo_B₀ : ⨍ y in B₀, |f y - f_B₀| ∂μ ≤ M := hbmo x₀ r₀ hr₀
-
   -- Combine.
   calc
     |f_B - f_B₀|
