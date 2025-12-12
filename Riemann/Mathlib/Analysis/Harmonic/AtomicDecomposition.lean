@@ -171,9 +171,13 @@ structure AtomicDecomposition where
   summable_coeffs : Summable (fun n => |coeffs n|)
   /-- The target function -/
   target : ℝ → ℝ
-  /-- The decomposition converges to the target in L¹ -/
-  converges : Tendsto (fun N => ∫ x, |target x - ∑ n ∈ Finset.range N, coeffs n • (atoms n).f x|)
-    atTop (𝓝 0)
+  /-- Measurability of the target function (needed for `Integrable`). -/
+  measurable_target : AEStronglyMeasurable target volume
+  /-- The decomposition converges to the target in L¹ (robust formulation via `lintegral`). -/
+  converges :
+    Tendsto (fun N =>
+      ∫⁻ x, ENNReal.ofReal
+        |target x - ∑ n ∈ Finset.range N, coeffs n • (atoms n).f x|) atTop (𝓝 0)
 
 namespace AtomicDecomposition
 
@@ -195,13 +199,45 @@ Each atom `aₙ` is integrable with `‖aₙ‖₁ ≤ 1`, so `|λₙ| · ‖a�
 The partial sums `∑_{n<N} λₙ aₙ` converge in L¹ since `∑ |λₙ| < ∞`.
 The target equals the limit, hence is integrable. -/
 theorem target_integrable : Integrable ad.target volume := by
-  -- The proof uses:
-  -- 1. Each atom is integrable with ‖a‖₁ ≤ 1
-  -- 2. λₙ · aₙ has ‖λₙ aₙ‖₁ ≤ |λₙ|
-  -- 3. The partial sums form a Cauchy sequence in L¹
-  -- 4. L¹ is complete, so the sum converges
-  -- 5. The target equals this limit
-  sorry
+  classical
+  -- Finite partial sums.
+  let S : ℕ → (ℝ → ℝ) :=
+    fun N x => ∑ n ∈ Finset.range N, ad.coeffs n • (ad.atoms n).f x
+
+  have hS_int : ∀ N, Integrable (S N) volume := by
+    intro N
+    -- A finite sum of integrable functions is integrable.
+    refine integrable_finset_sum (μ := volume) (s := Finset.range N)
+      (f := fun n x => ad.coeffs n • (ad.atoms n).f x) ?_
+    intro n hn
+    -- Each atom is integrable, and scaling preserves integrability.
+    simpa [Pi.smul_apply] using (H1Atom.integrable (ad.atoms n)).smul (ad.coeffs n)
+
+  -- From `L¹` convergence (in the robust `lintegral` sense), pick an index where the distance is finite.
+  have hfin_event :
+      (∀ᶠ N in atTop,
+        (∫⁻ x, ENNReal.ofReal |ad.target x - S N x| ∂volume) < ∞) := by
+    have hnhds : Set.Iio (∞ : ℝ≥0∞) ∈ 𝓝 (0 : ℝ≥0∞) :=
+      Iio_mem_nhds (by simp)
+    exact ad.converges.eventually hnhds
+  rcases hfin_event.exists with ⟨N, hNfin⟩
+
+  -- The difference `target - S N` is integrable (measurable + finite integral of the norm).
+  have hdiff_int : Integrable (fun x => ad.target x - S N x) volume := by
+    refine ⟨ad.measurable_target.sub (hS_int N).aestronglyMeasurable, ?_⟩
+    -- `HasFiniteIntegral` is exactly finiteness of the `lintegral` of the norm.
+    -- Here `‖target - S N‖ = |target - S N|`.
+    have : (∫⁻ x, ENNReal.ofReal ‖ad.target x - S N x‖ ∂volume) < ∞ := by
+      simpa [Real.norm_eq_abs] using hNfin
+    simpa [MeasureTheory.hasFiniteIntegral_iff_norm] using this
+
+  -- Finally, `target = (target - S N) + S N`.
+  have hsum_int : Integrable (fun x => (ad.target x - S N x) + S N x) volume :=
+    hdiff_int.add (hS_int N)
+  have hsum_eq : (fun x => (ad.target x - S N x) + S N x) = ad.target := by
+    funext x
+    ring
+  simpa [hsum_eq] using hsum_int
 
 end AtomicDecomposition
 
@@ -229,9 +265,51 @@ theorem atom_carleson_bound (a : H1Atom) (μ : Measure (ℝ × ℝ≥0)) (K : �
     (_hμ : CarlesonMeasure.IsCarlesonMeasure μ volume (CarlesonMeasure.ballCarlesonFamily ℝ) K) :
     μ (Metric.closedBall a.center a.radius ×ˢ Ioo (0 : ℝ≥0) ⟨a.radius, a.radius_pos.le⟩) ≤
       K * volume (Metric.closedBall a.center a.radius) := by
-  -- The proof uses the Carleson tent bound:
-  -- μ(tent(x, r)) / vol(ball(x, r)) ≤ K
-  -- which gives μ(tent) ≤ K · vol(ball)
-  sorry
+  classical
+  -- Use the defining bound `μ(tent i) / volume(baseSet i) ≤ K` for the ball Carleson family.
+  let r : ℝ≥0 := ⟨a.radius, a.radius_pos.le⟩
+  let i : (CarlesonMeasure.ballCarlesonFamily ℝ).ι := (a.center, r)
+  have hdiv :
+      μ ((CarlesonMeasure.ballCarlesonFamily ℝ).tent i) /
+          volume ((CarlesonMeasure.ballCarlesonFamily ℝ).baseSet i) ≤ K :=
+    CarlesonMeasure.IsCarlesonMeasure.tent_measure_div_baseSet_le (μ := μ) (ν := volume)
+      (F := CarlesonMeasure.ballCarlesonFamily ℝ) (K := K) _hμ i
+  -- Identify tent and base set.
+  have ht :
+      (CarlesonMeasure.ballCarlesonFamily ℝ).tent i =
+        Metric.closedBall a.center a.radius ×ˢ Ioo (0 : ℝ≥0) r := by
+    simp [CarlesonMeasure.ballCarlesonFamily, CarlesonMeasure.CarlesonFamily.tent, i, r]
+  have hb :
+      (CarlesonMeasure.ballCarlesonFamily ℝ).baseSet i = Metric.closedBall a.center a.radius := by
+    simp [CarlesonMeasure.ballCarlesonFamily, i, r]
+  -- The base set has positive, finite volume.
+  have hvol_eq :
+      volume ((CarlesonMeasure.ballCarlesonFamily ℝ).baseSet i) = ENNReal.ofReal (2 * a.radius) := by
+    -- rewrite the base set as `closedBall` with real radius, then use the explicit formula in `ℝ`
+    rw [hb]
+    simpa using (Real.volume_closedBall a.center a.radius)
+  have hvol_ne_zero : volume ((CarlesonMeasure.ballCarlesonFamily ℝ).baseSet i) ≠ 0 := by
+    have h2r_pos : 0 < 2 * a.radius := by linarith [a.radius_pos]
+    have : ¬(2 * a.radius) ≤ 0 := not_le_of_gt h2r_pos
+    have : ENNReal.ofReal (2 * a.radius) ≠ 0 := by
+      simpa [ENNReal.ofReal_eq_zero] using this
+    -- avoid simp rewriting the goal further
+    rw [hvol_eq]
+    exact this
+  have hvol_ne_top : volume ((CarlesonMeasure.ballCarlesonFamily ℝ).baseSet i) ≠ ⊤ := by
+    rw [hvol_eq]
+    exact ENNReal.ofReal_ne_top
+  -- Rearrange the Carleson ratio bound.
+  have : μ ((CarlesonMeasure.ballCarlesonFamily ℝ).tent i) ≤
+        (K : ℝ≥0∞) * volume ((CarlesonMeasure.ballCarlesonFamily ℝ).baseSet i) := by
+    -- `x / y ≤ K`  iff  `x ≤ K * y` for `y ≠ 0, y ≠ ⊤`.
+    have := (ENNReal.div_le_iff hvol_ne_zero hvol_ne_top).1 hdiv
+    simpa [mul_comm, mul_left_comm, mul_assoc] using this
+  -- rewrite `tent` and `baseSet` without expanding `volume`
+  have h' := this
+  -- avoid `simp`-rewrites like `volume_closedBall`; just rewrite by definitional equalities
+  rw [ht] at h'
+  rw [hb] at h'
+  simpa [r] using h'
 
 end MeasureTheory
