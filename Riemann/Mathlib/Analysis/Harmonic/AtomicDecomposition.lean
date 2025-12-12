@@ -287,7 +287,7 @@ theorem atom_carleson_bound (a : H1Atom) (μ : Measure (ℝ × ℝ≥0)) (K : �
       volume ((CarlesonMeasure.ballCarlesonFamily ℝ).baseSet i) = ENNReal.ofReal (2 * a.radius) := by
     -- rewrite the base set as `closedBall` with real radius, then use the explicit formula in `ℝ`
     rw [hb]
-    simpa using (Real.volume_closedBall a.center a.radius)
+    simp
   have hvol_ne_zero : volume ((CarlesonMeasure.ballCarlesonFamily ℝ).baseSet i) ≠ 0 := by
     have h2r_pos : 0 < 2 * a.radius := by linarith [a.radius_pos]
     have : ¬(2 * a.radius) ≤ 0 := not_le_of_gt h2r_pos
