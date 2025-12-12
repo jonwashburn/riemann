@@ -1,5 +1,6 @@
 import Riemann.Mathlib.Analysis.Harmonic.BMO.Defs
 import Mathlib
+import Riemann.Mathlib.Analysis.Harmonic.AtomicDecomposition
 
 
 open MeasureTheory Measure Set Filter Real
@@ -146,6 +147,7 @@ theorem johnNirenberg_iteration {f : α → ℝ} (hf_loc : LocallyIntegrable f �
 
   simpa [B, g, fB] using hmain
 
+omit [BorelSpace α] [IsUnifLocDoublingMeasure μ] [μ.IsOpenPosMeasure] in
 /-- Geometric decay: after `k` iterations, the superlevel set decays by `(1/2)^k`.
 
 This is a (coarse) consequence of the `L¹`-control coming from the BMO bound on a ball, via
@@ -162,9 +164,7 @@ theorem johnNirenberg_geometric_decay {f : α → ℝ} (hf_loc : LocallyIntegrab
   set B : Set α := Metric.ball x₀ r
   set fB : ℝ := ⨍ y in B, f y ∂μ
   set g : α → ℝ := fun x => |f x - fB|
-
   have hμB_ne_top : μ B ≠ ⊤ := (measure_ball_lt_top (μ := μ) (x := x₀) (r := r)).ne
-
   -- Integrability on the ball.
   have hfB_int : IntegrableOn f B μ := by
     have hcb : IntegrableOn f (Metric.closedBall x₀ r) μ :=
@@ -180,7 +180,6 @@ theorem johnNirenberg_geometric_decay {f : α → ℝ} (hf_loc : LocallyIntegrab
   have hg_nonneg : 0 ≤ᵐ[μ.restrict B] g :=
     Eventually.of_forall (fun _ => abs_nonneg _)
   have hg_ae : AEMeasurable g (μ.restrict B) := hg_int'.aemeasurable
-
   -- Convert the BMO bound on the average to an integral bound.
   have hIntegral_le : ∫ x in B, g x ∂μ ≤ μ.real B * M := by
     have hsmul : μ.real B • (⨍ x in B, g x ∂μ) = ∫ x in B, g x ∂μ :=
@@ -192,14 +191,12 @@ theorem johnNirenberg_geometric_decay {f : α → ℝ} (hf_loc : LocallyIntegrab
     have hsmul' : μ.real B * (⨍ x in B, g x ∂μ) = ∫ x in B, g x ∂μ := by
       simpa [smul_eq_mul] using hsmul
     simpa [hsmul'] using hmul
-
   -- Work with the restricted measure.
   set t : ℝ := (2 : ℝ) ^ k * M
   have ht_pos : 0 < t := by
     have hpow : 0 < (2 : ℝ) ^ k := by positivity
     exact mul_pos hpow hM
   have ht_nonneg : 0 ≤ t := ht_pos.le
-
   -- Markov inequality for the ENNReal-valued function `ENNReal.ofReal ∘ g` on `μ.restrict B`.
   have hmeas : AEMeasurable (fun x => ENNReal.ofReal (g x)) (μ.restrict B) :=
     hg_ae.ennreal_ofReal
@@ -207,7 +204,6 @@ theorem johnNirenberg_geometric_decay {f : α → ℝ} (hf_loc : LocallyIntegrab
     have : ¬t ≤ 0 := not_le_of_gt ht_pos
     simpa [ENNReal.ofReal_eq_zero] using this
   have hεtop : (ENNReal.ofReal t) ≠ ∞ := ENNReal.ofReal_ne_top
-
   have hlintegral_le :
       ∫⁻ x, ENNReal.ofReal (g x) ∂(μ.restrict B) ≤ ENNReal.ofReal (μ.real B * M) := by
     have h' : ∫ x, g x ∂(μ.restrict B) ≤ μ.real B * M := by
@@ -221,7 +217,6 @@ theorem johnNirenberg_geometric_decay {f : α → ℝ} (hf_loc : LocallyIntegrab
       simpa using (ofReal_integral_eq_lintegral_ofReal (μ := μ.restrict B) (f := g) hg_int'
         hg_nonneg)
     simpa [h_eq] using h_ofReal'
-
   have hmarkov_le :
       (μ.restrict B) {x | t ≤ g x} ≤
         (ENNReal.ofReal (μ.real B * M)) / (ENNReal.ofReal t) := by
@@ -239,7 +234,6 @@ theorem johnNirenberg_geometric_decay {f : α → ℝ} (hf_loc : LocallyIntegrab
           (∫⁻ x, ENNReal.ofReal (g x) ∂(μ.restrict B)) / (ENNReal.ofReal t) := by
       simpa [hset] using hmarkov0
     exact hmarkov1.trans (ENNReal.div_le_div_right hlintegral_le _)
-
   -- Convert the restricted-measure statement to the desired set in `μ`.
   have hnull_gt : NullMeasurableSet {x | t < g x} (μ.restrict B) := by
     have : NullMeasurableSet (g ⁻¹' Set.Ioi t) (μ.restrict B) :=
@@ -257,11 +251,9 @@ theorem johnNirenberg_geometric_decay {f : α → ℝ} (hf_loc : LocallyIntegrab
       intro x hx
       have hx' : t < g x := by simpa [Set.mem_setOf_eq] using hx
       exact hx'.le)
-
   have hbound :
       μ {x ∈ B | t < g x} ≤ (ENNReal.ofReal (μ.real B * M)) / (ENNReal.ofReal t) := by
     simpa [hrestrict_gt] using (hle_restrict.trans hmarkov_le)
-
   -- Simplify the RHS at the dyadic threshold `t = 2^k * M`.
   have hM0 : (ENNReal.ofReal M) ≠ 0 := by
     have : ¬M ≤ 0 := not_le_of_gt hM
@@ -271,8 +263,7 @@ theorem johnNirenberg_geometric_decay {f : α → ℝ} (hf_loc : LocallyIntegrab
     -- `μ.real B = (μ B).toReal` and `μ B < ⊤`
     simp [Measure.real, hμB_ne_top]
   have h2pow : ENNReal.ofReal ((2 : ℝ) ^ k) = (2 : ℝ≥0∞) ^ k := by
-    simpa using (ENNReal.ofReal_pow (zero_le_two : (0 : ℝ) ≤ 2) k)
-
+    simp
   have hsimp :
       (ENNReal.ofReal (μ.real B * M)) / (ENNReal.ofReal t) = (1 / 2 : ℝ≥0∞) ^ k * μ B := by
     -- rewrite `t` and cancel `ofReal M`
@@ -287,11 +278,10 @@ theorem johnNirenberg_geometric_decay {f : α → ℝ} (hf_loc : LocallyIntegrab
             simpa [mul_assoc, mul_left_comm, mul_comm] using
               (ENNReal.mul_div_mul_right (ENNReal.ofReal (μ.real B)) (ENNReal.ofReal ((2 : ℝ) ^ k))
                 hM0 hMtop)
-      _ = (μ B) / ((2 : ℝ≥0∞) ^ k) := by simpa [hμreal, h2pow]
+      _ = (μ B) / ((2 : ℝ≥0∞) ^ k) := by simp [hμreal, h2pow]
       _ = (1 / 2 : ℝ≥0∞) ^ k * μ B := by
             -- `a / b = b⁻¹ * a` and `((2^k)⁻¹) = (1/2)^k`
-            simp [ENNReal.div_eq_inv_mul, mul_assoc, mul_left_comm, mul_comm, ENNReal.inv_pow]
-
+            simp [ENNReal.div_eq_inv_mul, ENNReal.inv_pow]
   -- Conclude, unfolding definitions.
   have hbound' : μ {x ∈ B | t < g x} ≤ (1 / 2 : ℝ≥0∞) ^ k * μ B := by
     calc
@@ -300,7 +290,6 @@ theorem johnNirenberg_geometric_decay {f : α → ℝ} (hf_loc : LocallyIntegrab
       _ = (1 / 2 : ℝ≥0∞) ^ k * μ B := hsimp
   have : μ {x ∈ B | |f x - fB| > t} ≤ (1 / 2 : ℝ≥0∞) ^ k * μ B := by
     simpa [g] using hbound'
-
   simpa [B, fB, t] using this
 
 /-- **John-Nirenberg inequality**: exponential decay of the distribution function.
