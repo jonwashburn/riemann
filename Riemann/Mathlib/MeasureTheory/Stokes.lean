@@ -86,7 +86,7 @@ theorem integral_divergence_eq_boxBoundaryIntegral_unitCube
     (f' : Fin (n + 1) → (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ) →L[ℝ] E)
     (s : Set (Fin (n + 1) → ℝ)) (hs : s.Countable)
     (Hc : ∀ i, ContinuousOn (f i) (Set.Icc (0 : Fin (n + 1) → ℝ) 1))
-    (Hd : ∀ x ∈ (Set.univ.pi fun _hμ : Fin (n + 1) => Set.Ioo (0 : ℝ) 1) \ s,
+    (Hd : ∀ x ∈ (Set.univ.pi fun i : Fin (n + 1) => Set.Ioo (0 : ℝ) 1) \ s,
         ∀ i, HasFDerivAt (f i) (f' i x) x)
     (Hi : IntegrableOn (fun x : (Fin (n + 1) → ℝ) =>
           ∑ i : Fin (n + 1), (f' i x) (Pi.single i 1))
@@ -102,6 +102,69 @@ theorem integral_divergence_eq_boxBoundaryIntegral_unitCube
     (integral_divergence_eq_boxBoundaryIntegral (E := E) (n := n)
       (a := (0 : Fin (n + 1) → ℝ)) (b := 1) (hle := hle)
       (f := f) (f' := f') (s := s) (hs := hs) (Hc := Hc) (Hd := Hd) (Hi := Hi))
+
+/-!
+## Convenience corollaries
+
+The core divergence theorem in mathlib is formulated with a countable exceptional set
+`s` where differentiability may fail. For many downstream use cases, one has
+differentiability everywhere on the open box, and it is more convenient to use
+the specialization to `s = ∅`.
+-/
+
+/-- `integral_divergence_eq_boxBoundaryIntegral` with `s = ∅`.
+
+This is purely a convenience lemma; the proof is `simpa` using the main wrapper.
+-/
+theorem integral_divergence_eq_boxBoundaryIntegral_of_hasFDerivAt
+    (a b : Fin (n + 1) → ℝ) (hle : a ≤ b)
+    (f : Fin (n + 1) → (Fin (n + 1) → ℝ) → E)
+    (f' : Fin (n + 1) → (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ) →L[ℝ] E)
+    (Hc : ∀ i, ContinuousOn (f i) (Set.Icc a b))
+    (Hd : ∀ x ∈ (Set.univ.pi fun i : Fin (n + 1) => Set.Ioo (a i) (b i)),
+        ∀ i, HasFDerivAt (f i) (f' i x) x)
+    (Hi : IntegrableOn (fun x : (Fin (n + 1) → ℝ) =>
+          ∑ i : Fin (n + 1), (f' i x) (Pi.single i 1)) (Set.Icc a b) volume) :
+    (∫ x in Set.Icc a b, ∑ i : Fin (n + 1), (f' i x) (Pi.single i 1))
+      = boxBoundaryIntegral (n := n) a b f := by
+  classical
+  simpa using
+    (integral_divergence_eq_boxBoundaryIntegral (E := E) (n := n)
+      (a := a) (b := b) (hle := hle) (f := f) (f' := f')
+      (s := (∅ : Set (Fin (n + 1) → ℝ))) (hs := Set.countable_empty)
+      (Hc := Hc)
+      (Hd := by
+        intro x hx
+        -- `hx : x ∈ interior \ ∅` simplifies to `hx : x ∈ interior`.
+        simpa using Hd x (by simpa using hx))
+      (Hi := Hi))
+
+/-- `integral_divergence_eq_boxBoundaryIntegral_unitCube` with `s = ∅`.
+
+This is purely a convenience lemma; the proof is `simpa` using the unit-cube wrapper.
+-/
+theorem integral_divergence_eq_boxBoundaryIntegral_unitCube_of_hasFDerivAt
+    (f : Fin (n + 1) → (Fin (n + 1) → ℝ) → E)
+    (f' : Fin (n + 1) → (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ) →L[ℝ] E)
+    (Hc : ∀ i, ContinuousOn (f i) (Set.Icc (0 : Fin (n + 1) → ℝ) 1))
+    (Hd : ∀ x ∈ (Set.univ.pi fun i : Fin (n + 1) => Set.Ioo (0 : ℝ) 1),
+        ∀ i, HasFDerivAt (f i) (f' i x) x)
+    (Hi : IntegrableOn (fun x : (Fin (n + 1) → ℝ) =>
+          ∑ i : Fin (n + 1), (f' i x) (Pi.single i 1))
+        (Set.Icc (0 : Fin (n + 1) → ℝ) 1) volume) :
+    (∫ x in Set.Icc (0 : Fin (n + 1) → ℝ) 1,
+        ∑ i : Fin (n + 1), (f' i x) (Pi.single i 1))
+      = boxBoundaryIntegral (n := n) (0 : Fin (n + 1) → ℝ) 1 f := by
+  classical
+  simpa using
+    (integral_divergence_eq_boxBoundaryIntegral_unitCube (E := E) (n := n)
+      (f := f) (f' := f')
+      (s := (∅ : Set (Fin (n + 1) → ℝ))) (hs := Set.countable_empty)
+      (Hc := Hc)
+      (Hd := by
+        intro x hx
+        simpa using Hd x (by simpa using hx))
+      (Hi := Hi))
 
 end Stokes
 end MeasureTheory
