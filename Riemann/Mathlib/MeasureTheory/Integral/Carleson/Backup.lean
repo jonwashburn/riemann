@@ -597,32 +597,32 @@ Provide aliases in the `Carleson` namespace used in the original file. -/
 
 namespace Carleson
 
-/-- Alias for `MeasureTheory.CarlesonMeasure.CarlesonFamily`. -/
-abbrev CarlesonFamily := MeasureTheory.CarlesonMeasure.CarlesonFamily
+/-- Alias for the legacy `CarlesonFamily` defined in this backup file. -/
+abbrev CarlesonFamily := MeasureTheory.IntegralCarlesonBackup.CarlesonMeasure.CarlesonFamily
 
 /-- Alias for the tent construction. -/
 abbrev CarlesonFamily.tent {γ : Type*} [MeasurableSpace γ] (F : CarlesonFamily γ) (i : F.ι) :
     Set (γ × ℝ≥0) :=
-  MeasureTheory.CarlesonMeasure.CarlesonFamily.tent F i
+  MeasureTheory.IntegralCarlesonBackup.CarlesonMeasure.CarlesonFamily.tent F i
 
 /-- Alias for the Carleson norm. -/
 noncomputable abbrev carlesonNorm {γ : Type*} [MeasurableSpace γ]
     (μ : Measure (γ × ℝ≥0)) (ν : Measure γ) (F : CarlesonFamily γ) : ℝ≥0∞ :=
-  MeasureTheory.CarlesonMeasure.carlesonNorm μ ν F
+  MeasureTheory.IntegralCarlesonBackup.CarlesonMeasure.carlesonNorm μ ν F
 
 /-- Alias for `IsCarlesonMeasure`. -/
 abbrev IsCarlesonMeasure {γ : Type*} [MeasurableSpace γ] [TopologicalSpace γ] [BorelSpace γ]
     (μ : Measure (γ × ℝ≥0)) (ν : Measure γ) (F : CarlesonFamily γ) : Prop :=
-  MeasureTheory.CarlesonMeasure.IsCarlesonMeasure μ ν F
+  MeasureTheory.IntegralCarlesonBackup.CarlesonMeasure.IsCarlesonMeasure μ ν F
 
 namespace Classical
 
-open MeasureTheory.CarlesonMeasure
+open MeasureTheory.IntegralCarlesonBackup.CarlesonMeasure
 
 /-- Alias for the ball family. -/
 abbrev ballFamily (E : Type*) [MetricSpace E] [MeasurableSpace E] [BorelSpace E] :
     CarlesonFamily E :=
-  MeasureTheory.CarlesonMeasure.ballFamily E
+  MeasureTheory.IntegralCarlesonBackup.CarlesonMeasure.ballFamily E
 
 /-- Alias for classical Carleson measures. -/
 abbrev IsClassicalCarleson (E : Type*) [MetricSpace E] [MeasurableSpace E] [BorelSpace E]
@@ -631,10 +631,11 @@ abbrev IsClassicalCarleson (E : Type*) [MetricSpace E] [MeasurableSpace E] [Bore
 
 namespace ProjectInterface
 
-open RH.Cert MeasureTheory.CarlesonMeasure
+open RH.Cert MeasureTheory.IntegralCarlesonBackup.CarlesonMeasure
 
 /-- Alias for the Whitney family. -/
-abbrev whitneyFamily : CarlesonFamily ℝ := MeasureTheory.CarlesonMeasure.whitneyFamily
+abbrev whitneyFamily : CarlesonFamily ℝ :=
+  MeasureTheory.IntegralCarlesonBackup.CarlesonMeasure.whitneyFamily
 
 /-- The RH Carleson class with explicit norm bound. -/
 class IsRHCarleson (μ : Measure (ℝ × ℝ≥0)) (Kξ : ℝ) : Prop where
@@ -665,7 +666,7 @@ project, allowing results to flow between the two frameworks. -/
 
 namespace Carleson.HuntConnection
 
-open MeasureTheory MeasureTheory.CarlesonMeasure
+open MeasureTheory MeasureTheory.IntegralCarlesonBackup.CarlesonMeasure
 
 /-- The Carleson family framework is compatible with the `GridStructure` from
 the Carleson-Hunt formalization.
