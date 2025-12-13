@@ -1,5 +1,6 @@
 import Riemann.Mathlib.Analysis.Harmonic.BMO.Defs
 import Riemann.Mathlib.MeasureTheory.Covering.CalderonZygmund
+import Riemann.Mathlib.MeasureTheory.Covering.JohnNirenberg
 import Riemann.Mathlib.Analysis.Harmonic.BMOAux
 
 open MeasureTheory Measure Set Filter Real
@@ -7,7 +8,7 @@ open scoped ENNReal NNReal Topology
 
 namespace MeasureTheory
 
-variable {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α] {μ : Measure α}
+ variable {α : Type*} [MeasurableSpace α] [MetricSpace α] [BorelSpace α] {μ : Measure α}
 
 /-!
 ### John–Nirenberg inequality
