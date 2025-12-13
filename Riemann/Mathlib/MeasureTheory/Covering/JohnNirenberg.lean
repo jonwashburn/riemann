@@ -1,4 +1,5 @@
 import Riemann.Mathlib.MeasureTheory.Covering.CalderonZygmund
+import Mathlib.Topology.Algebra.Module.Cardinality
 
 /-!
 # John–Nirenberg covering/iteration toolkit
@@ -330,6 +331,224 @@ theorem exists_disjoint_closedBall_covering_ae_of_isOpen
   · exact hx'.1.1
   · -- the `7`-dilation stays in `O`
     simpa [f] using hx'.1.2
+
+/-!
+#### Picking radii with null spheres
+
+To pass from closed balls to open balls in covering arguments, it is convenient to pick radii `r`
+such that the boundary sphere `sphere x r` has measure `0`. The set of exceptional radii is
+countable (as it sits inside the discontinuity set of the monotone function
+`r ↦ μ (closedBall x r)`), hence we can always pick such an `r` inside any nontrivial interval.
+-/
+
+omit [SecondCountableTopology α] [HasBesicovitchCovering α] in
+lemma countable_setOf_measure_sphere_ne_zero [SFinite μ] (x : α) :
+    Set.Countable {r : ℝ | μ (Metric.sphere x r) ≠ 0} := by
+  classical
+  -- In an s-finite space, only countably many level sets of a measurable function can have
+  -- positive measure. Apply this to `y ↦ dist y x`.
+  let g : α → ℝ := fun y => dist y x
+  have hg : Measurable g := (continuous_id.dist continuous_const).measurable
+  have hcount : Set.Countable {r : ℝ | 0 < μ {y : α | g y = r} } :=
+    Measure.countable_meas_level_set_pos (μ := μ) (g := g) hg
+  simpa [g, Metric.sphere, pos_iff_ne_zero] using hcount
+
+/-- A Whitney-style a.e. covering of an open set by disjoint **open** balls.
+
+This is a strengthening of `exists_disjoint_closedBall_covering_ae_of_isOpen` where the chosen radii
+have null spheres, hence we can replace closed balls by open balls without changing the covered set
+up to a null set. -/
+theorem exists_disjoint_ball_covering_ae_of_isOpen
+    [SFinite μ] {O : Set α} (hO : IsOpen O) :
+    ∃ (t : Set α) (r : α → ℝ),
+      t.Countable ∧ t ⊆ O ∧
+        (∀ x ∈ t, 0 < r x ∧ Metric.closedBall x (7 * r x) ⊆ O ∧ μ (Metric.sphere x (r x)) = 0) ∧
+        μ (O \ ⋃ x ∈ t, Metric.ball x (r x)) = 0 ∧
+        t.PairwiseDisjoint (fun x => Metric.ball x (r x)) := by
+  classical
+  -- Admissible radii at `x`: those whose `7`-closed-ball stays inside `O` and whose sphere is null.
+  let f : α → Set ℝ := fun x =>
+    {r | 0 < r ∧ Metric.closedBall x (7 * r) ⊆ O ∧ μ (Metric.sphere x r) = 0}
+  have hf : ∀ x ∈ O, ∀ δ > 0, (f x ∩ Ioo 0 δ).Nonempty := by
+    intro x hx δ hδ
+    rcases Metric.isOpen_iff.mp hO x hx with ⟨ε, hε, hεO⟩
+    -- first choose a small radius `r₀` so that `closedBall x (7*r₀) ⊆ O` and `r₀ < δ`
+    let r₀ : ℝ := min (ε / 8) (δ / 2)
+    have hr₀_pos : 0 < r₀ := by
+      have hε8 : 0 < ε / 8 := by positivity
+      have hδ2 : 0 < δ / 2 := by positivity
+      exact lt_min hε8 hδ2
+    have hr₀_lt_δ : r₀ < δ := by
+      have : δ / 2 < δ := by linarith
+      exact (min_le_right _ _).trans_lt this
+    have h7r₀_sub : Metric.closedBall x (7 * r₀) ⊆ O := by
+      -- `closedBall x (7*r₀) ⊆ ball x ε ⊆ O`
+      have h7r₀_lt : (7 : ℝ) * r₀ < ε := by
+        have hle : (7 : ℝ) * r₀ ≤ 7 * (ε / 8) := by gcongr; exact min_le_left _ _
+        have hlt : (7 : ℝ) * (ε / 8) < ε := by nlinarith
+        exact lt_of_le_of_lt hle hlt
+      intro y hy
+      have : dist y x < ε := by
+        have : dist y x ≤ 7 * r₀ := by simpa [Metric.mem_closedBall, dist_comm, mul_assoc] using hy
+        exact lt_of_le_of_lt this h7r₀_lt
+      exact hεO (by simpa [Metric.mem_ball, dist_comm] using this)
+    -- now pick `r ∈ (0, r₀)` outside the countable exceptional set `{r | μ (sphere x r) ≠ 0}`.
+    have hcount : Set.Countable {r : ℝ | μ (Metric.sphere x r) ≠ 0} :=
+      countable_setOf_measure_sphere_ne_zero (μ := μ) x
+    have hdense : Dense ({r : ℝ | μ (Metric.sphere x r) ≠ 0}ᶜ) :=
+      Set.Countable.dense_compl (𝕜 := ℝ) (E := ℝ) hcount
+    have hopen : IsOpen (Ioo (0 : ℝ) r₀) := isOpen_Ioo
+    have hne : (Ioo (0 : ℝ) r₀).Nonempty := by
+      refine ⟨r₀ / 2, ?_⟩
+      have hr2_pos : 0 < r₀ / 2 := by positivity
+      have hr2_lt : r₀ / 2 < r₀ := by linarith
+      exact ⟨hr2_pos, hr2_lt⟩
+    rcases hdense.exists_mem_open hopen hne with ⟨r, hr_mem, hrIoo⟩
+    have hr_sphere : μ (Metric.sphere x r) = 0 := by
+      have : ¬ μ (Metric.sphere x r) ≠ 0 := by
+        simpa [Set.mem_compl_iff, Set.mem_setOf_eq] using hr_mem
+      exact by simpa using this
+    -- conclude
+    refine ⟨r, ?_⟩
+    have hr_pos : 0 < r := hrIoo.1
+    have hr_lt_r₀ : r < r₀ := hrIoo.2
+    have hr_lt_δ : r < δ := by
+      have hr_lt_δ2 : r < δ / 2 := by
+        exact lt_of_lt_of_le hr_lt_r₀ (min_le_right _ _)
+      have hδ2_lt_δ : δ / 2 < δ := by linarith
+      exact hr_lt_δ2.trans hδ2_lt_δ
+    have h7r_sub : Metric.closedBall x (7 * r) ⊆ O := by
+      refine (Metric.closedBall_subset_closedBall ?_).trans h7r₀_sub
+      nlinarith [hr_lt_r₀.le]
+    refine ⟨?_, ?_⟩
+    · exact ⟨hr_pos, h7r_sub, hr_sphere⟩
+    · exact ⟨hr_pos, hr_lt_δ⟩
+  -- Apply Besicovitch covering theorem with any positive radius bound, say `R = 1`.
+  obtain ⟨t, r, ht_count, htO, hrt, hcover, hdisj⟩ :=
+    exists_disjoint_closedBall_covering_ae (μ := μ) f O hf (fun _ => (1 : ℝ)) (fun _ _ => one_pos)
+  -- Translate the conclusions from closed balls to open balls (the boundary has measure `0`).
+  refine ⟨t, r, ht_count, htO, ?_, ?_, ?_⟩
+  · intro x hx
+    have hx' := hrt x hx
+    refine ⟨hx'.1.1, hx'.1.2.1, hx'.1.2.2⟩
+  · -- `O` is covered a.e. by the open balls as well
+    have hsphere0 : ∀ x ∈ t, μ (Metric.sphere x (r x)) = 0 := by
+      intro x hx
+      exact (hrt x hx).1.2.2
+    have hnull_sphere :
+        μ (⋃ x ∈ t, Metric.sphere x (r x)) = 0 := by
+      simpa using (MeasureTheory.measure_biUnion_null_iff (μ := μ) ht_count (s := fun x => Metric.sphere x (r x))).2
+        hsphere0
+    have hsub :
+        O \ ⋃ x ∈ t, Metric.ball x (r x) ⊆
+          (O \ ⋃ x ∈ t, Metric.closedBall x (r x)) ∪ ⋃ x ∈ t, Metric.sphere x (r x) := by
+      intro y hy
+      by_cases hyc : y ∈ ⋃ x ∈ t, Metric.closedBall x (r x)
+      · -- then `y` lies on some sphere, since it is not in the corresponding open ball
+        right
+        rcases mem_iUnion₂.mp hyc with ⟨x, hx, hyx⟩
+        have hyb : y ∉ Metric.ball x (r x) := by
+          intro hyb
+          exact hy.2 (mem_iUnion₂.mpr ⟨x, hx, hyb⟩)
+        refine mem_iUnion₂.mpr ⟨x, hx, ?_⟩
+        -- `y ∈ closedBall` and `y ∉ ball` means `y ∈ sphere`
+        have hy_le : dist y x ≤ r x := by
+          simpa [Metric.mem_closedBall] using hyx
+        have hy_ge : r x ≤ dist y x := by
+          have : ¬ dist y x < r x := by
+            simpa [Metric.mem_ball] using hyb
+          exact not_lt.mp this
+        have hy_eq : dist y x = r x := le_antisymm hy_le hy_ge
+        simpa [Metric.mem_sphere] using hy_eq
+      · left
+        exact ⟨hy.1, hyc⟩
+    have : μ (O \ ⋃ x ∈ t, Metric.ball x (r x)) ≤
+        μ (O \ ⋃ x ∈ t, Metric.closedBall x (r x)) + μ (⋃ x ∈ t, Metric.sphere x (r x)) :=
+      (measure_mono hsub) |>.trans (measure_union_le _ _)
+    -- both terms are zero
+    have : μ (O \ ⋃ x ∈ t, Metric.ball x (r x)) = 0 := by
+      have h0 : μ (O \ ⋃ x ∈ t, Metric.closedBall x (r x)) = 0 := hcover
+      simpa [h0, hnull_sphere] using le_antisymm (this.trans (by simp [h0, hnull_sphere])) bot_le
+    exact this
+  · -- pairwise disjointness passes from closed balls to balls
+    exact hdisj.mono fun _ => Metric.ball_subset_closedBall
+
+/-- Ball-version of `measure_le_half_of_isOpen_of_forall_ball`.
+
+The proof uses `exists_disjoint_ball_covering_ae_of_isOpen` so that we can sum over disjoint open
+balls and apply local bounds stated on open balls. -/
+theorem measure_le_half_of_isOpen_of_forall_ball'
+    [SFinite μ] {O E : Set α} (hO : IsOpen O) (hE : E ⊆ O)
+    (hball : ∀ (x : α) (r : ℝ), Metric.closedBall x (7 * r) ⊆ O →
+      μ (E ∩ Metric.ball x r) ≤ (1 / 2 : ℝ≥0∞) * μ (Metric.ball x r)) :
+    μ E ≤ (1 / 2 : ℝ≥0∞) * μ O := by
+  classical
+  obtain ⟨t, r, ht_count, htO, hrt, hcover, hdisj⟩ :=
+    exists_disjoint_ball_covering_ae_of_isOpen (μ := μ) (O := O) hO
+  let U : Set α := ⋃ x ∈ t, Metric.ball x (r x)
+  have hU_sub : U ⊆ O := by
+    intro y hy
+    rcases mem_iUnion₂.mp hy with ⟨x, hx, hyx⟩
+    have hx7 : Metric.closedBall x (7 * r x) ⊆ O := (hrt x hx).2.1
+    have hsub : Metric.ball x (r x) ⊆ Metric.closedBall x (7 * r x) := by
+      refine Metric.ball_subset_closedBall.trans (Metric.closedBall_subset_closedBall ?_)
+      nlinarith [(hrt x hx).1.le]
+    exact hx7 (hsub hyx)
+  have hE_diff : μ (E \ U) = 0 := by
+    have hsub : E \ U ⊆ O \ U := by
+      intro y hy; exact ⟨hE hy.1, hy.2⟩
+    exact measure_mono_null hsub hcover
+  have hE_le : μ E ≤ μ (E ∩ U) := by
+    have hsplit : μ E ≤ μ (E ∩ U) + μ (E \ U) :=
+      MeasureTheory.measure_le_inter_add_diff (μ := μ) E U
+    simpa [hE_diff] using hsplit
+  have hEU_le :
+      μ (E ∩ U) ≤ ∑' p : t, μ (E ∩ Metric.ball (p : α) (r p)) := by
+    have hrewrite : E ∩ U = ⋃ x ∈ t, E ∩ Metric.ball x (r x) := by
+      ext y; constructor
+      · intro hy
+        rcases hy with ⟨hyE, hyU⟩
+        rcases mem_iUnion₂.mp hyU with ⟨x, hx, hyx⟩
+        exact mem_iUnion₂.mpr ⟨x, hx, ⟨hyE, hyx⟩⟩
+      · intro hy
+        rcases mem_iUnion₂.mp hy with ⟨x, hx, hyx⟩
+        exact ⟨hyx.1, mem_iUnion₂.mpr ⟨x, hx, hyx.2⟩⟩
+    simpa [hrewrite] using
+      (MeasureTheory.measure_biUnion_le (μ := μ) ht_count (fun x => E ∩ Metric.ball x (r x)))
+  have hsum_le :
+      (∑' p : t, μ (E ∩ Metric.ball (p : α) (r p)))
+        ≤ (1 / 2 : ℝ≥0∞) * (∑' p : t, μ (Metric.ball (p : α) (r p))) := by
+    have hterm : ∀ p : t,
+        μ (E ∩ Metric.ball (p : α) (r p))
+          ≤ (1 / 2 : ℝ≥0∞) * μ (Metric.ball (p : α) (r p)) := by
+      intro p
+      have hp7 : Metric.closedBall (p : α) (7 * r p) ⊆ O := (hrt (p : α) p.property).2.1
+      simpa using hball (p : α) (r p) hp7
+    have := ENNReal.tsum_le_tsum hterm
+    simpa [ENNReal.tsum_mul_left] using this
+  have hO_tsum : μ O = ∑' p : t, μ (Metric.ball (p : α) (r p)) := by
+    have hU_eq : μ U = μ O := by
+      have : μ O ≤ μ U := by
+        calc
+          μ O ≤ μ (U ∪ (O \ U)) := by
+                refine measure_mono ?_
+                intro y hy
+                by_cases hyU : y ∈ U <;> simp [hyU, hy]
+          _ ≤ μ U + μ (O \ U) := measure_union_le _ _
+          _ = μ U := by simp [U, hcover]
+      exact le_antisymm (measure_mono hU_sub) this
+    have hmeas : ∀ x ∈ t, MeasurableSet (Metric.ball x (r x)) := by
+      intro _ _; exact isOpen_ball.measurableSet
+    have hU_tsum : μ U = ∑' p : t, μ (Metric.ball (p : α) (r p)) := by
+      simpa [U] using (MeasureTheory.measure_biUnion (μ := μ) (s := t)
+        (f := fun x => Metric.ball x (r x)) ht_count (hdisj) hmeas)
+    simpa [hU_eq] using hU_tsum
+  -- Finish.
+  calc
+    μ E ≤ μ (E ∩ U) := hE_le
+    _ ≤ ∑' p : t, μ (E ∩ Metric.ball (p : α) (r p)) := hEU_le
+    _ ≤ (1 / 2 : ℝ≥0∞) * ∑' p : t, μ (Metric.ball (p : α) (r p)) := hsum_le
+    _ = (1 / 2 : ℝ≥0∞) * μ O := by simp [hO_tsum]
 
 /-- **Local-to-global half-measure** via a Whitney a.e. covering.
 
