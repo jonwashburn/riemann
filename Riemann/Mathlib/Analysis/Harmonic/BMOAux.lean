@@ -6,31 +6,6 @@ import Mathlib.MeasureTheory.Function.LpSpace.Basic
 import Mathlib.MeasureTheory.Measure.Doubling
 import Mathlib.Topology.MetricSpace.ProperSpace
 
-/-!
-# Auxiliary Lemmas for BMO Theory
-
-This file provides the foundational lemmas needed for the BMO theory, including
-the John-Nirenberg inequality on doubling metric measure spaces.
-
-## Main Results
-
-* `oscillation_triangle_helper` - Key estimate for mean oscillation triangle inequality
-* `johnNirenberg_exponential_decay` - Exponential decay for John-Nirenberg on doubling spaces
-* `johnNirenberg_iteration` - The iteration lemma underlying John-Nirenberg
-* `bmo_memLp_loc` - BMO functions are in L^p_loc
-
-## Implementation Notes
-
-The John-Nirenberg inequality requires the underlying measure to be doubling (or at least
-satisfy a weak geometric condition). We use `IsUnifLocDoublingMeasure` from Mathlib.
-The proof follows the classical approach via Calderón-Zygmund covering and iteration.
-
-## References
-
-* Stein, "Harmonic Analysis", Chapter IV
-* John-Nirenberg, "On functions of bounded mean oscillation", Comm. Pure Appl. Math. 1961
-* Grafakos, "Classical Fourier Analysis", Section 7.1
--/
 
 open MeasureTheory Measure Set Filter Real
 open scoped ENNReal NNReal Topology

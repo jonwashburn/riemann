@@ -1,16 +1,7 @@
-/-
-Copyright (c) 2024. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Maria Teresa Chiri, [Contributors]
--/
-import Mathlib.Analysis.Fourier.FourierTransformDeriv
-import Mathlib.Analysis.Fourier.PoissonSummation
-import Mathlib.MeasureTheory.Function.L2Space
-import Mathlib.MeasureTheory.Measure.Restrict
-import Mathlib.Analysis.InnerProductSpace.Calculus
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.Calculus.Deriv.Comp
-import Mathlib
+import Mathlib.Algebra.Lie.OfAssociative
+import Mathlib.Analysis.CStarAlgebra.Classes
+import Mathlib.Analysis.Calculus.Deriv.Basic
+import Mathlib.Analysis.Fourier.FourierTransform
 
 /-!
 # Sonin Spaces
