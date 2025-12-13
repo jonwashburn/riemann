@@ -1,5 +1,6 @@
 import Riemann.Mathlib.MeasureTheory.Covering.CalderonZygmund
 import Mathlib.Topology.Algebra.Module.Cardinality
+import Mathlib.Order.Zorn
 
 /-!
 # John–Nirenberg covering/iteration toolkit
@@ -331,6 +332,226 @@ theorem exists_disjoint_closedBall_covering_ae_of_isOpen
   · exact hx'.1.1
   · -- the `7`-dilation stays in `O`
     simpa [f] using hx'.1.2
+
+omit [MeasurableSpace α] [BorelSpace α] [HasBesicovitchCovering α] in
+/-!
+#### A purely topological Whitney ball covering (Zorn/depth argument)
+
+For some CZ/good-λ style arguments it is convenient to have a *geometric* ball covering of an open
+proper set `O` by disjoint balls whose fixed dilations cover `O` and touch the boundary.
+
+This lemma is independent of measures and Besicovitch/Vitali families; it is proved by a Zorn
+maximality argument using the "depth" function `x ↦ infDist x Oᶜ`.
+-/
+
+--omit μ [HasBesicovitchCovering α] [SFinite μ] in
+theorem exists_countable_disjoint_ball_covering_three_of_isOpen
+    [ProperSpace α] {O : Set α} (hO : IsOpen O) (hO' : O ≠ univ) :
+    ∃ (U : Set α) (r : α → ℝ),
+      U.Countable ∧ U ⊆ O ∧
+        U.PairwiseDisjoint (fun c => Metric.ball c (r c)) ∧
+        (∀ c ∈ U, 0 < r c) ∧
+        (⋃ c ∈ U, Metric.ball c (3 * r c)) = O ∧
+        (∀ c ∈ U, ¬Disjoint (Metric.ball c (7 * r c)) Oᶜ) := by
+  classical
+  -- Use the depth `d x = infDist x Oᶜ` and radii `r x = d x / 6`.
+  let d : α → ℝ := fun x => Metric.infDist x Oᶜ
+  let r : α → ℝ := fun x => d x / 6
+
+  -- The family of candidate centre sets: disjoint balls of radius `r`.
+  let W : Set (Set α) :=
+    {U | U ⊆ O ∧ U.PairwiseDisjoint (fun c => Metric.ball c (r c))}
+  obtain ⟨U, hUmax⟩ : ∃ U, Maximal (· ∈ W) U := by
+    refine zorn_subset _ ?_
+    intro C hCW hchain
+    refine ⟨⋃₀ C, ?_, ?_⟩
+    · -- `⋃₀ C` is still in `W`
+      constructor
+      · -- subset of `O`
+        intro x hx
+        rcases mem_sUnion.mp hx with ⟨s, hsC, hxs⟩
+        exact (hCW hsC).1 hxs
+      · -- pairwise disjointness of the balls
+        -- The chain condition gives directedness, so we can use `pairwiseDisjoint_sUnion`.
+        have hdir : DirectedOn (· ⊆ ·) C := hchain.directedOn
+        -- `pairwiseDisjoint_sUnion` expects pairwise disjointness on each set in the family.
+        -- We use the disjointness provided by membership in `W`.
+        have : (⋃₀ C).PairwiseDisjoint (fun c => Metric.ball c (r c)) := by
+          -- Convert from `PairwiseDisjoint` to `Pairwise` on `Disjoint` for `pairwiseDisjoint_sUnion`.
+          refine (pairwiseDisjoint_sUnion hdir).2 ?_
+          intro s hsC
+          exact (hCW hsC).2
+        simpa [W] using this
+    · -- each `s ∈ C` is a subset of `⋃₀ C`
+      intro s hsC
+      exact subset_sUnion_of_mem hsC
+
+  have hU : U ∈ W := hUmax.1
+  have hU_sub : U ⊆ O := hU.1
+  have hU_disj : U.PairwiseDisjoint (fun c => Metric.ball c (r c)) := hU.2
+
+  -- Positivity of radii on centres in `U`.
+  have hO_compl_ne : Oᶜ.Nonempty := by
+    rcases (ne_univ_iff_exists_notMem _).1 hO' with ⟨x, hx⟩
+    exact ⟨x, hx⟩
+  have hO_closed : IsClosed Oᶜ := isClosed_compl_iff.2 hO
+  have hr_pos : ∀ c ∈ U, 0 < r c := by
+    intro c hcU
+    have hcO : c ∈ O := hU_sub hcU
+    have hd_pos : 0 < d c := by
+      -- `d c > 0` since `c ∉ Oᶜ` and `Oᶜ` is closed nonempty
+      have : c ∉ Oᶜ := by simpa using hcO
+      have hiff := (hO_closed.notMem_iff_infDist_pos (x := c) hO_compl_ne)
+      exact (hiff.mp this)
+    have : 0 < d c / 6 := by nlinarith
+    simpa [r] using this
+
+  -- A key geometric estimate: if the radius-balls around `x` and `y` intersect, then
+  -- `x ∈ ball y (3 * r y)`.
+  have depth_bound_1 :
+      ∀ {x y : α},
+        ¬Disjoint (Metric.ball x (r x)) (Metric.ball y (r y)) →
+          x ∈ Metric.ball y (3 * r y) := by
+    intro x y hnd
+    rcases Set.not_disjoint_iff.mp hnd with ⟨z, hz₁, hz₂⟩
+    have hxz : dist z x < r x := by simpa [Metric.mem_ball] using hz₁
+    have hyz : dist z y < r y := by simpa [Metric.mem_ball] using hz₂
+    have hxy : dist x y < r x + r y := by
+      have : dist x y ≤ dist x z + dist z y := dist_triangle _ _ _
+      have hxz' : dist x z < r x := by simpa [dist_comm] using hxz
+      have hyz' : dist z y < r y := hyz
+      exact lt_of_le_of_lt this (by linarith)
+    -- Compare depths using `infDist`'s Lipschitz property.
+    have hd_le : d x ≤ d y + dist x y := Metric.infDist_le_infDist_add_dist (s := Oᶜ) (x := x) (y := y)
+    have hdx_lt : d x < (7 / 5) * d y := by
+      -- Use `dist x y < (d x + d y) / 6` to solve for `d x` in terms of `d y`.
+      have hdist_le : dist x y < (d x + d y) / 6 := by
+        -- rewrite `r x + r y`
+        have : r x + r y = (d x + d y) / 6 := by
+          simp [r, add_div]
+        simpa [this] using hxy
+      have : d x < d y + (d x + d y) / 6 := lt_of_le_of_lt hd_le (by linarith)
+      linarith
+    have hrx_le : r x < (7 / 5) * r y := by
+      -- divide by 6
+      simpa [r, div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm] using
+        (mul_lt_mul_of_pos_right hdx_lt (by positivity : (0 : ℝ) < (1 / 6 : ℝ)))
+    -- Now `dist x y < r x + r y < 3 * r y`
+    have : dist x y < 3 * r y := by
+      have hrx_le' : r x ≤ (7 / 5) * r y := le_of_lt hrx_le
+      have hxy2 : dist x y < (7 / 5) * r y + r y := by
+        refine lt_of_lt_of_le hxy ?_
+        exact add_le_add_right hrx_le' (r y)
+      have hry_nonneg : 0 ≤ r y := by
+        have hd : 0 ≤ d y := Metric.infDist_nonneg (x := y) (s := Oᶜ)
+        have : 0 ≤ d y / 6 := div_nonneg hd (by norm_num)
+        simpa [r] using this
+      have hle : (7 / 5) * r y + r y ≤ 3 * r y := by
+        calc
+          (7 / 5 : ℝ) * r y + r y = (12 / 5 : ℝ) * r y := by ring
+          _ ≤ (3 : ℝ) * r y := by
+              have hcoeff : (12 / 5 : ℝ) ≤ 3 := by norm_num
+              exact mul_le_mul_of_nonneg_right hcoeff hry_nonneg
+          _ = 3 * r y := by ring
+      exact lt_of_lt_of_le hxy2 hle
+    simpa [Metric.mem_ball] using this
+
+  -- Show the `3`-dilations cover all of `O`.
+  have hcover : (⋃ c ∈ U, Metric.ball c (3 * r c)) = O := by
+    refine subset_antisymm ?_ ?_
+    · -- LHS ⊆ O since each ball is centred in O and has radius < infDist to Oᶜ
+      refine iUnion₂_subset fun c hcU => ?_
+      have hcO : c ∈ O := hU_sub hcU
+      have hsub : Metric.ball c (3 * r c) ⊆ O := by
+        -- `3 * r c < d c`, hence `ball c (3*r c) ⊆ ball c (d c) ⊆ O`
+        have hlt : 3 * r c < d c := by
+          have hdpos : 0 < d c := by
+            have : c ∉ Oᶜ := by simpa using hcO
+            have hiff := (hO_closed.notMem_iff_infDist_pos (x := c) hO_compl_ne)
+            exact (hiff.mp this)
+          have hhalf : d c / 2 < d c := by nlinarith [hdpos]
+          have h3 : 3 * r c = d c / 2 := by
+            simp [r, div_eq_mul_inv]
+            ring
+          simpa [h3] using hhalf
+        have : Metric.ball c (3 * r c) ⊆ Metric.ball c (d c) :=
+          Metric.ball_subset_ball hlt.le
+        exact this.trans (by simpa [d] using (Metric.ball_infDist_subset_compl (s := Oᶜ) (x := c)))
+      exact hsub
+    · intro x hxO
+      -- If `x` is not covered, we can add it to `U`, contradicting maximality.
+      by_contra hx
+      have hx_not : ∀ c ∈ U, Disjoint (Metric.ball x (r x)) (Metric.ball c (r c)) := by
+        intro c hcU
+        by_contra hnd
+        have : x ∈ Metric.ball c (3 * r c) := depth_bound_1 hnd
+        exact hx (mem_iUnion₂.mpr ⟨c, hcU, this⟩)
+      -- `insert x U` is still in `W` and strictly larger.
+      have hW_insert : insert x U ∈ W := by
+        refine ⟨?_, ?_⟩
+        · intro y hy
+          rcases mem_insert_iff.mp hy with rfl | hyU
+          · exact hxO
+          · exact hU_sub hyU
+        · -- disjointness: old ones + new one
+          intro a ha b hb hab
+          rcases mem_insert_iff.mp ha with rfl | haU
+          · rcases mem_insert_iff.mp hb with rfl | hbU
+            · exact (hab rfl).elim
+            · exact hx_not b hbU
+          · rcases mem_insert_iff.mp hb with rfl | hbU
+            · exact (hx_not a haU).symm
+            · exact hU_disj haU hbU hab
+      have hxU_not : x ∉ U := by
+        intro hxU
+        -- if `x ∈ U` then `x` is covered by its own ball
+        exact hx (mem_iUnion₂.mpr ⟨x, hxU, mem_ball_self (by
+          have : 0 < r x := hr_pos x hxU
+          nlinarith [this])⟩)
+      have hss : U ⊂ insert x U := ssubset_insert hxU_not
+      have hins : insert x U ⊆ U := hUmax.2 hW_insert hss.le
+      have hxU : x ∈ U := hins (by simp)
+      exact hxU_not hxU
+
+  -- Boundary touching: each `7`-dilation meets `Oᶜ`.
+  have htouch : ∀ c ∈ U, ¬Disjoint (Metric.ball c (7 * r c)) Oᶜ := by
+    intro c hcU
+    have hcO : c ∈ O := hU_sub hcU
+    have hne : Oᶜ.Nonempty := hO_compl_ne
+    obtain ⟨y, hyO, hyd⟩ :=
+      (hO_closed.exists_infDist_eq_dist hne c)
+    -- `y ∈ Oᶜ` and `dist c y = d c < 7 * r c`
+    have hyball : y ∈ Metric.ball c (7 * r c) := by
+      have : dist y c < 7 * r c := by
+        -- `dist y c = d c` and `7 * (d c / 6) > d c`
+        have hdist : dist y c = d c := by simpa [d, dist_comm] using hyd.symm
+        have hdpos : 0 < d c := by
+          have : c ∉ Oᶜ := by simpa using hcO
+          have hiff := (hO_closed.notMem_iff_infDist_pos (x := c) hne)
+          exact (hiff.mp this)
+        have hcoeff : (1 : ℝ) < (7 / 6 : ℝ) := by norm_num
+        have hd_lt : d c < (7 / 6 : ℝ) * d c := by
+          simpa [one_mul, mul_assoc, mul_left_comm, mul_comm] using
+            (mul_lt_mul_of_pos_left hcoeff hdpos)
+        have : d c < 7 * (d c / 6) := by
+          simpa [div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm] using hd_lt
+        -- conclude
+        exact (hdist.symm ▸ this)
+      simpa [Metric.mem_ball] using this
+    exact Set.not_disjoint_iff.mpr ⟨y, hyball, hyO⟩
+
+  refine ⟨U, r, ?_, hU_sub, hU_disj, hr_pos, hcover, htouch⟩
+  -- Countability of `U` from disjointness of open balls.
+  have : U.Countable := by
+    -- `PairwiseDisjoint` + open + nonempty in a separable space
+    have hne_ball : ∀ c ∈ U, (Metric.ball c (r c)).Nonempty := by
+      intro c hcU
+      exact Metric.nonempty_ball.2 (hr_pos c hcU)
+    have hopen : ∀ c ∈ U, IsOpen (Metric.ball c (r c)) := by
+      intro c _; exact isOpen_ball
+    have hsep : TopologicalSpace.SeparableSpace α := by infer_instance
+    exact hU_disj.countable_of_isOpen hopen hne_ball
+  exact this
 
 /-!
 #### Picking radii with null spheres
