@@ -96,22 +96,17 @@ lemma pow_half_floor_le_two_mul_exp_neg_log_two_mul (x : ℝ) (hx : 0 ≤ x) :
     have : Real.exp (-(Real.log 2) * (n : ℝ)) ≤ Real.exp (-(Real.log 2) * (x - 1)) :=
       by
         exact Real.exp_le_exp.mpr (by
-          -- rewrite
           simpa [mul_assoc] using hmul)
     -- `exp(-(log2)*(x-1)) = exp(log2) * exp(-(log2)*x) = 2 * exp(-(log2)*x)`
     have hexp_shift : Real.exp (-(Real.log 2) * (x - 1)) = 2 * Real.exp (-(Real.log 2) * x) := by
-      -- expand `x-1` and use `exp_add`
       have : (-(Real.log 2) * (x - 1)) = (-(Real.log 2) * x) + Real.log 2 := by ring
-      -- then exp_add
       simp_rw [this, Real.exp_add]
-      -- now we need to show: exp(-(log 2) * x) * exp(log 2) = 2 * exp(-(log 2) * x)
       rw [Real.exp_log h2pos]
       ring
     calc
       Real.exp (-(Real.log 2) * (n : ℝ))
           ≤ Real.exp (-(Real.log 2) * (x - 1)) := this
       _ = 2 * Real.exp (-(Real.log 2) * x) := hexp_shift
-  -- finish
   calc
     (1 / 2 : ℝ) ^ n
         = Real.exp (-(Real.log 2) * (n : ℝ)) := hpow
@@ -180,6 +175,69 @@ lemma measure_exponential_decay_of_geometric {E : ℕ → Set α}
 end Iteration
 
 /-!
+### One-step estimates on a ball vs its 7×-dilation
+
+The abstract iteration in `section Iteration` needs a **one-step** estimate of the form
+`μ(E_{n+1}) ≤ (1/2) μ(E_n)`.  In practice this comes from a Chebyshev estimate on a ball `B`,
+after comparing the relevant averages on `B` and on a slightly larger ball.
+
+We isolate here the convenient specialization of
+`MeasureTheory.measure_subball_abs_sub_setAverage_gt_add_le` (from `Covering/CalderonZygmund.lean`)
+to the case where the “big ball” is the **7× dilation** of the small one (same center).
+This pins down the telescoping constant to a fixed local-doubling scale (`14` and `2`).
+-/
+section BMOStep
+
+variable [ProperSpace α] [IsUnifLocDoublingMeasure μ]
+variable [IsFiniteMeasureOnCompacts μ] [μ.IsOpenPosMeasure]
+
+/-- Special case of `measure_subball_abs_sub_setAverage_gt_add_le` where the big ball is `ball x (7*r)`.
+
+The telescoping constant becomes
+`scalingConstantOf μ 14 * scalingConstantOf μ 2` and the scaling assumptions reduce to
+`r ≤ scalingScaleOf μ 14` and `r/2 ≤ scalingScaleOf μ 2`. -/
+theorem measure_ball_abs_sub_setAverage_gt_add_le_seven_mul {f : α → ℝ}
+    (hf_int : LocallyIntegrable f μ) {M : ℝ} (hM : 0 < M)
+    (hbmo : ∀ (x : α) (r : ℝ) (_ : 0 < r),
+      ⨍ y in Metric.ball x r, |f y - ⨍ z in Metric.ball x r, f z ∂μ| ∂μ ≤ M)
+    {x : α} {r : ℝ} (hr : 0 < r)
+    (hr_scale : r ≤ IsUnifLocDoublingMeasure.scalingScaleOf μ 14)
+    (hr_scale2 : r / 2 ≤ IsUnifLocDoublingMeasure.scalingScaleOf μ 2)
+    {t : ℝ} (ht : 0 < t) :
+    μ {y ∈ Metric.ball x r |
+        |f y - ⨍ z in Metric.ball x (7 * r), f z ∂μ| >
+          t + ((IsUnifLocDoublingMeasure.scalingConstantOf μ 14 *
+              IsUnifLocDoublingMeasure.scalingConstantOf μ 2 : ℝ≥0) : ℝ) * M}
+      ≤ ENNReal.ofReal (M / t) * μ (Metric.ball x r) := by
+  have hr₀ : 0 < (7 * r) := by nlinarith
+  have h_contained : Metric.ball x r ⊆ Metric.ball x (7 * r) := by
+    -- `r ≤ 7*r` since `r > 0`
+    simpa [Metric.ball] using (Metric.ball_subset_ball (by nlinarith [hr.le] : r ≤ 7 * r))
+  -- Match the scale parameter `2 * r₀ / r` to `14`.
+  have h14 : (2 * (7 * r) / r) = (14 : ℝ) := by
+    have hr0 : (r : ℝ) ≠ 0 := hr.ne'
+    -- `2 * (7*r) / r = 14`
+    calc
+      2 * (7 * r) / r = (14 * r) / r := by ring
+      _ = (14 : ℝ) := by simp [hr0]
+  -- The same identity in the “normalized” form that `simp` tends to produce.
+  have h14' : (r * (2 * 7) / r) = (14 : ℝ) := by
+    have hr0 : (r : ℝ) ≠ 0 := hr.ne'
+    calc
+      r * (2 * 7) / r = (14 * r) / r := by ring
+      _ = (14 : ℝ) := by simp [hr0]
+  -- Apply the general subball lemma with `x₀ = x`, `r₀ = 7*r`.
+  -- `simp` needs the scale parameter in the exact form `2 * r₀ / r`.
+  have hr_scale' : r ≤ IsUnifLocDoublingMeasure.scalingScaleOf μ (2 * (7 * r) / r) := by
+    simpa [h14] using hr_scale
+  simpa [h14, h14', mul_assoc, mul_left_comm, mul_comm] using
+    (MeasureTheory.measure_subball_abs_sub_setAverage_gt_add_le (μ := μ) (f := f) hf_int hM hbmo
+      (x₀ := x) (r₀ := 7 * r) hr₀ (x := x) (r := r) hr h_contained
+      hr_scale' hr_scale2 ht)
+
+end BMOStep
+
+/-!
 ### Covering lemmas (Besicovitch/Vitali layer)
 
 At Stein-level generality, the John–Nirenberg iteration requires a stopping-time covering lemma.
@@ -209,6 +267,154 @@ theorem exists_disjoint_closedBall_covering_ae
         t.PairwiseDisjoint (fun x => Metric.closedBall x (r x)) := by
   simpa using
     (Besicovitch.exists_disjoint_closedBall_covering_ae (μ := μ) f s hf R hR)
+
+/-!
+#### A Whitney-style a.e. covering of an open set by disjoint balls
+
+This is the geometric input typically used to run stopping-time arguments (CZ / John–Nirenberg):
+we cover an open set `O` by a countable disjoint family of balls whose *fixed dilation* stays
+inside `O`.
+-/
+
+/-- In a space with the Besicovitch covering property, any open set `O` can be covered a.e. by a
+countable family of **disjoint** closed balls whose `7`-dilations stay inside `O`.
+
+This is a convenient “Whitney a.e. covering” lemma tailored to later CZ/JN arguments. -/
+theorem exists_disjoint_closedBall_covering_ae_of_isOpen
+    [SFinite μ] {O : Set α} (hO : IsOpen O) :
+    ∃ (t : Set α) (r : α → ℝ),
+      t.Countable ∧ t ⊆ O ∧
+        (∀ x ∈ t, 0 < r x ∧ Metric.closedBall x (7 * r x) ⊆ O) ∧
+        μ (O \ ⋃ x ∈ t, Metric.closedBall x (r x)) = 0 ∧
+        t.PairwiseDisjoint (fun x => Metric.closedBall x (r x)) := by
+  classical
+  -- Admissible radii at `x`: those whose `7`-closed-ball stays inside `O`.
+  let f : α → Set ℝ := fun x => {r | 0 < r ∧ Metric.closedBall x (7 * r) ⊆ O}
+  have hf : ∀ x ∈ O, ∀ δ > 0, (f x ∩ Ioo 0 δ).Nonempty := by
+    intro x hx δ hδ
+    -- choose a small neighborhood inside `O`
+    rcases Metric.isOpen_iff.mp hO x hx with ⟨ε, hε, hεO⟩
+    -- take `r = min (ε/8) (δ/2)` so that `7r < ε` and `r < δ`
+    refine ⟨min (ε / 8) (δ / 2), ?_⟩
+    have hr_pos : 0 < min (ε / 8) (δ / 2) := by
+      have hε8 : 0 < ε / 8 := by positivity
+      have hδ2 : 0 < δ / 2 := by positivity
+      exact lt_min hε8 hδ2
+    have hr_lt_δ : min (ε / 8) (δ / 2) < δ := by
+      have : δ / 2 < δ := by linarith
+      exact (min_le_right _ _).trans_lt this
+    refine ⟨?_, ?_⟩
+    · -- membership in `f x`
+      refine ⟨hr_pos, ?_⟩
+      -- show `closedBall x (7*r) ⊆ O` via containment in `ball x ε`
+      have h7r_lt : (7 : ℝ) * min (ε / 8) (δ / 2) < ε := by
+        have hle : (7 : ℝ) * min (ε / 8) (δ / 2) ≤ 7 * (ε / 8) := by gcongr; exact min_le_left _ _
+        have hlt : (7 : ℝ) * (ε / 8) < ε := by nlinarith
+        exact lt_of_le_of_lt hle hlt
+      intro y hy
+      have : dist y x < ε := by
+        -- `dist y x ≤ 7*r` and `7*r < ε`
+        have hy' : dist y x ≤ (7 : ℝ) * min (ε / 8) (δ / 2) := by
+          simpa [Metric.mem_closedBall, mul_assoc] using hy
+        exact lt_of_le_of_lt hy' h7r_lt
+      exact hεO (by simpa [Metric.mem_ball] using this)
+    · -- membership in `Ioo 0 δ`
+      exact ⟨hr_pos, hr_lt_δ⟩
+  -- Apply Besicovitch covering theorem with `R = 1` (any positive bound works).
+  obtain ⟨t, r, t_count, tO, hrt, hcover, hdisj⟩ :=
+    exists_disjoint_closedBall_covering_ae (μ := μ) f O hf (fun _ => (1 : ℝ)) (fun _ _ => one_pos)
+  refine ⟨t, r, t_count, tO, ?_, hcover, hdisj⟩
+  intro x hx
+  have hx' := hrt x hx
+  refine ⟨?_, ?_⟩
+  · exact hx'.1.1
+  · -- the `7`-dilation stays in `O`
+    simpa [f] using hx'.1.2
+
+/-- **Local-to-global half-measure** via a Whitney a.e. covering.
+
+If an open set `O` is covered a.e. by a countable disjoint family of (closed) balls `Bᵢ`,
+and on each `Bᵢ` a subset `E ⊆ O` has measure at most half the measure of `Bᵢ`,
+then `μ E ≤ (1/2) μ O`. -/
+theorem measure_le_half_of_isOpen_of_forall_ball
+    [SFinite μ] {O E : Set α} (hO : IsOpen O) (hE : E ⊆ O)
+    (hball : ∀ (x : α) (r : ℝ), Metric.closedBall x (7 * r) ⊆ O →
+      μ (E ∩ Metric.closedBall x r) ≤ (1 / 2 : ℝ≥0∞) * μ (Metric.closedBall x r)) :
+    μ E ≤ (1 / 2 : ℝ≥0∞) * μ O := by
+  classical
+  obtain ⟨t, r, ht_count, htO, _h7, hcover, hdisj⟩ :=
+    exists_disjoint_closedBall_covering_ae_of_isOpen (μ := μ) (O := O) hO
+  -- Let `U` be the union of the Whitney balls.
+  let U : Set α := ⋃ x ∈ t, Metric.closedBall x (r x)
+  have hE_diff : μ (E \ U) = 0 := by
+    have hsub : E \ U ⊆ O \ U := by
+      intro y hy; exact ⟨hE hy.1, hy.2⟩
+    exact measure_mono_null hsub hcover
+  -- Reduce to `E ∩ U`.
+  have hE_le : μ E ≤ μ (E ∩ U) := by
+    have hsplit : μ E ≤ μ (E ∩ U) + μ (E \ U) :=
+      MeasureTheory.measure_le_inter_add_diff (μ := μ) E U
+    simpa [hE_diff] using hsplit
+  -- Subadditivity on the (bi)union.
+  have hE_interU_le :
+      μ (E ∩ U) ≤ ∑' p : t, μ (E ∩ Metric.closedBall (p : α) (r p)) := by
+    have hrewrite : E ∩ U = ⋃ x ∈ t, E ∩ Metric.closedBall x (r x) := by
+      ext y; constructor
+      · intro hy
+        rcases hy with ⟨hyE, hyU⟩
+        rcases mem_iUnion₂.mp hyU with ⟨x, hx, hyx⟩
+        exact mem_iUnion₂.mpr ⟨x, hx, ⟨hyE, hyx⟩⟩
+      · intro hy
+        rcases mem_iUnion₂.mp hy with ⟨x, hx, hyx⟩
+        exact ⟨hyx.1, mem_iUnion₂.mpr ⟨x, hx, hyx.2⟩⟩
+    -- apply outer-measure subadditivity
+    simpa [hrewrite] using
+      (MeasureTheory.measure_biUnion_le (μ := μ) ht_count (fun x => E ∩ Metric.closedBall x (r x)))
+  -- Termwise half-measure bound.
+  have hsum_le :
+      (∑' p : t, μ (E ∩ Metric.closedBall (p : α) (r p)))
+        ≤ (1 / 2 : ℝ≥0∞) * (∑' p : t, μ (Metric.closedBall (p : α) (r p))) := by
+    have hterm : ∀ p : t,
+        μ (E ∩ Metric.closedBall (p : α) (r p))
+          ≤ (1 / 2 : ℝ≥0∞) * μ (Metric.closedBall (p : α) (r p)) := by
+      intro p
+      have hp7 : Metric.closedBall (p : α) (7 * r p) ⊆ O := (_h7 (p : α) p.property).2
+      simpa using hball (p : α) (r p) hp7
+    have := ENNReal.tsum_le_tsum hterm
+    simpa [ENNReal.tsum_mul_left] using this
+  -- Compute `μ O` via the disjoint cover.
+  have hU_eq : μ U = μ O := by
+    have hU_sub : U ⊆ O := by
+      intro y hy
+      rcases mem_iUnion₂.mp hy with ⟨x, hx, hyx⟩
+      have hx7 : 0 < r x ∧ Metric.closedBall x (7 * r x) ⊆ O := _h7 x hx
+      have hsub : Metric.closedBall x (r x) ⊆ Metric.closedBall x (7 * r x) := by
+        refine Metric.closedBall_subset_closedBall ?_
+        nlinarith [hx7.1.le]
+      exact hx7.2 (hsub hyx)
+    have : μ O ≤ μ U := by
+      calc
+        μ O ≤ μ (U ∪ (O \ U)) := by
+              refine measure_mono ?_
+              intro y hy
+              by_cases hyU : y ∈ U <;> simp [hyU, hy]
+        _ ≤ μ U + μ (O \ U) := measure_union_le _ _
+        _ = μ U := by simp [U, hcover]
+    exact le_antisymm (measure_mono hU_sub) this
+  have hO_tsum : μ O = ∑' p : t, μ (Metric.closedBall (p : α) (r p)) := by
+    have hmeas : ∀ x ∈ t, MeasurableSet (Metric.closedBall x (r x)) := by
+      intro _ _; exact measurableSet_closedBall
+    -- `μ U` as a tsum (countable + disjoint)
+    have : μ U = ∑' p : t, μ (Metric.closedBall (p : α) (r p)) := by
+      simpa [U] using (MeasureTheory.measure_biUnion (μ := μ) (s := t)
+        (f := fun x => Metric.closedBall x (r x)) ht_count hdisj hmeas)
+    simpa [hU_eq] using this
+  -- Finish.
+  calc
+    μ E ≤ μ (E ∩ U) := hE_le
+    _ ≤ ∑' p : t, μ (E ∩ Metric.closedBall (p : α) (r p)) := hE_interU_le
+    _ ≤ (1 / 2 : ℝ≥0∞) * ∑' p : t, μ (Metric.closedBall (p : α) (r p)) := hsum_le
+    _ = (1 / 2 : ℝ≥0∞) * μ O := by simp [hO_tsum]
 
 end Covering
 
