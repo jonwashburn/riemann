@@ -423,7 +423,7 @@ lemma sum_rpow_le_card_pow_sub_one_sum_rpow
         _ = ∑ i ∈ s, (c * c⁻¹) * z i := by
           refine Finset.sum_congr rfl (by intro i hi; simp [mul_assoc])
         _ = ∑ i ∈ s, z i := by
-          simp [inv_mul_cancel, ne_of_gt hc_pos, mul_comm, mul_left_comm, mul_assoc]
+          simp [ne_of_gt hc_pos, mul_comm]
     have hL :
         (c : ℝ) ^ p * (∑ i ∈ s, c⁻¹ * z i) ^ p = (∑ i ∈ s, z i) ^ p := by
       have : (c * (∑ i ∈ s, c⁻¹ * z i)) ^ p
@@ -443,7 +443,7 @@ lemma sum_rpow_le_card_pow_sub_one_sum_rpow
         _ = (c : ℝ) ^ (p - 1) * ((c : ℝ) ^ 1 * (c⁻¹ * ∑ i ∈ s, (z i) ^ p)) := by
               simp [mul_comm, mul_left_comm, mul_assoc]
         _ = (c : ℝ) ^ (p - 1) * (∑ i ∈ s, (z i) ^ p) := by
-          have : (c : ℝ) ^ 1 = c := by simp [Real.rpow_one]
+          have : (c : ℝ) ^ 1 = c := by simp
           simp [this, ne_of_gt hc_pos]
     simpa [hL, hpow_mul_right] using hmul
 
@@ -566,7 +566,7 @@ lemma norm_pow_nat_le_card_pow_pred_sum_abs_pow
           simpa [cR] using this
         have hw_nonneg : ∀ i ∈ s, 0 ≤ cR⁻¹ := fun _ _ => inv_nonneg.mpr (le_of_lt hc_pos)
         have hw_sum : ∑ i ∈ s, cR⁻¹ = 1 := by
-          simp [s, cR, Finset.sum_const, nsmul_eq_mul, inv_mul_cancel, ne_of_gt hc_pos]
+          simp [s, cR, Finset.sum_const, nsmul_eq_mul, ne_of_gt hc_pos]
         have hz_nonneg : ∀ i ∈ s, 0 ≤ |c i| := by
           intro i _; exact abs_nonneg _
         have hmean :=
@@ -800,7 +800,7 @@ lemma add_pow_le_two_pow_mul_add_pow {a b : ℝ} {n : ℕ}
           = (2 : ℝ) ^ n * (((1 / 2 : ℝ) * (a + b)) ^ n) := by
               simp [mul_comm]
               exact id (Eq.symm this)
-      _ = ((2 : ℝ) * (1 / 2 : ℝ)) ^ n * (a + b) ^ n := by simp [mul_pow, this]
+      _ = ((2 : ℝ) * (1 / 2 : ℝ)) ^ n * (a + b) ^ n := by simp [mul_pow]
       _ = (1 : ℝ) ^ n * (a + b) ^ n := by simp
       _ = (a + b) ^ n := by simp
   have hn_pos : 0 < n := Nat.succ_le.mp hn
@@ -815,11 +815,11 @@ lemma add_pow_le_two_pow_mul_add_pow {a b : ℝ} {n : ℕ}
       _ = ((2 : ℝ) ^ ((n - 1) + 1) * (1 / 2 : ℝ)) * (a ^ n + b ^ n) := by
             rw [hn_eq]; rw [Nat.add_succ_sub_one]
       _ = ((2 : ℝ) ^ (n - 1) * 2 * (1 / 2 : ℝ)) * (a ^ n + b ^ n) := by
-            simp [pow_succ, mul_comm, mul_left_comm, mul_assoc]
+            simp [pow_succ, mul_comm, mul_assoc]
       _ = ((2 : ℝ) ^ (n - 1) * 1) * (a ^ n + b ^ n) := by
             simp
       _ = (2 : ℝ) ^ (n - 1) * (a ^ n + b ^ n) := by
-            simp [mul_comm, mul_left_comm, mul_assoc]
+            simp [mul_comm]
   exact add_pow_le ha hb n
 
 end Real
@@ -1361,7 +1361,7 @@ lemma sum_split_along [DecidableEq ι] (i : ι) (a : ι → ℝ) :
     , invFun := fun j => ⟨j.1, (Finset.mem_erase.mp j.2).1⟩
     , left_inv := by
         intro j; cases j with
-        | mk x hx => simp [hx]
+        | mk x hx => simp
     , right_inv := by
         intro j; cases j with
         | mk x hx =>
@@ -1916,7 +1916,7 @@ lemma gaussian_IBP_along_line
     exact hF_diff.comp ((contDiff_const.add (contDiff_id.smul contDiff_const)) : ContDiff ℝ 1 (fun x : ℝ => z + x • w i))
   by_cases hv : vτ = 0
   · subst hv
-    simp [z, CoordLine.buildAlong, add_comm]
+    simp [CoordLine.buildAlong, add_comm]
   · have hIBP :=
       ProbabilityTheory.gaussianReal_integration_by_parts
         (v := vτ) (hv := hv)
@@ -2263,11 +2263,11 @@ lemma integrable_along_line_mul_gauss
     have hLnorm : ‖CoordLine.lineCLM (w := w) (i := i)‖ = ‖w i‖ := by
       simp [CoordLine.lineCLM]
     have hRew : 1 + ‖z‖ + ‖CoordLine.lineCLM (w := w) (i := i)‖
-              = 1 + ‖z‖ + ‖w i‖ := by simp [hLnorm]
+              = 1 + ‖z‖ + ‖w i‖ := by simp
     have hv' := hv.trans (by
       have hC : hF_growth.C * (1 + ‖z‖ + ‖CoordLine.lineCLM (w := w) (i := i)‖) ^ hF_growth.m
                 ≤ hF_growth.C * (1 + ‖z‖ + ‖w i‖) ^ hF_growth.m := by
-        simp [hRew]
+        simp
       have hx : 0 ≤ (1 + |x|) ^ hF_growth.m := by
         exact pow_nonneg (by linarith [abs_nonneg x]) _
       exact mul_le_mul_of_nonneg_right hC hx)
@@ -3076,7 +3076,7 @@ lemma stein_coord_with_param'
           PhysLean.Probability.GaussianIBP.CoordLine.buildAlong (w := hg.w) (i := i) p.1 t
             = (∑ j, (p.1 j) • hg.w j.1) + t • hg.w i := by
         intro t; simp [PhysLean.Probability.GaussianIBP.CoordLine.buildAlong,
-                       add_comm, add_left_comm, add_assoc]
+                       add_comm]
       simpa [this, PhysLean.Probability.GaussianIBP.CoordLine.line_def] using
         (PhysLean.Probability.GaussianIBP.CoordLine.deriv_F_along
           (w := hg.w) (i := i) (F := F)
@@ -3132,7 +3132,7 @@ lemma stein_coord_with_param'
         (fun ω => ψ (Y ω, X ω))
           = (fun ω => (fderiv ℝ F (g ω)) (hg.w i)) := by
       funext ω
-      simp [ψ, h_deriv_pointwise ω]
+      simp [ψ]
       exact h_deriv_pointwise ω
     simpa [h_eq_fun] using hInt_fderiv
   have hX_law : Measure.map X ℙ = ProbabilityTheory.gaussianReal 0 (hg.τ i) := hX_gauss
@@ -3312,7 +3312,7 @@ theorem gaussian_integration_by_parts_hilbert_cov
                 simp [step2 i]
       _ = ((hg.τ i : ℝ) * ⟪h, w i⟫_ℝ) * 𝔼[(fun ω =>
                 (fderiv ℝ F (g ω)) (w i))] := by
-                simp [mul_comm, mul_left_comm, mul_assoc]
+                simp [mul_left_comm, mul_assoc]
   have step4 :
       (∑ i : ι, ((hg.τ i : ℝ) * ⟪h, w i⟫_ℝ)
             * 𝔼[(fun ω => (fderiv ℝ F (g ω)) (w i))])
