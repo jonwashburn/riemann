@@ -400,7 +400,7 @@ lemma sum_rpow_le_card_pow_sub_one_sum_rpow
     have hc_nonneg : 0 ≤ c := le_of_lt hc_pos
     have hw_nonneg : ∀ i ∈ s, 0 ≤ c⁻¹ := fun _ _ => inv_nonneg.mpr hc_nonneg
     have hw_sum : ∑ i ∈ s, c⁻¹ = 1 := by
-      simp [Finset.sum_const, nsmul_eq_mul, c, mul_comm, inv_mul_cancel, ne_of_gt hc_pos]
+      simp [Finset.sum_const, nsmul_eq_mul, c, ne_of_gt hc_pos]
     have hmean :
         (∑ i ∈ s, c⁻¹ * z i) ^ p ≤ ∑ i ∈ s, c⁻¹ * (z i) ^ p :=
       Real.rpow_arith_mean_le_arith_mean_rpow
@@ -502,15 +502,7 @@ end ProbabilityTheory
 namespace Real
 
 lemma pow_le_pow_of_le_left {a b : ℝ} (ha : 0 ≤ a) (hab : a ≤ b) (n : ℕ) :
-    a ^ n ≤ b ^ n := by
-  induction' n with k hk
-  · simp
-  · have hb : 0 ≤ b := ha.trans hab
-    have h1 : a ^ k * a ≤ a ^ k * b :=
-      mul_le_mul_of_nonneg_left hab (pow_nonneg ha k)
-    have h2 : a ^ k * b ≤ b ^ k * b :=
-      mul_le_mul_of_nonneg_right hk hb
-    simpa [pow_succ] using h1.trans h2
+    a ^ n ≤ b ^ n := by exact ProbabilityTheory.Real.pow_le_pow_of_le_left ha hab
 
 end Real
 
