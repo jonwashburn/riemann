@@ -312,7 +312,7 @@ lemma integrable_norm_of_gaussian (hg : IsGaussianHilbert g) :
     have h_to_coord :
         ∑ i, |hg.c i ω| = ∑ i, |coord hg.w g i ω| := by
       refine Finset.sum_congr rfl (by
-        intro i _; simp only; rw [← hcoord]; rfl )
+        intro i _; simp only [coord]; rw [← hcoord]; rfl )
     exact h_step.trans (by simp [h_to_abs, h_to_coord])
   have h_sum_int := integrable_sum_abs_coords (hg := hg)
   refine h_sum_int.mono' (hg.repr_measurable.norm.aestronglyMeasurable) ?_
@@ -351,7 +351,7 @@ lemma rpow_le_one_add_pow_nat_of_le (p : ℝ) (m : ℕ)
     have h1le : (1 : ℝ) ≤ (1 + x) ^ m := by
       have h01x : 1 ≤ 1 + x := by linarith
       have h0 : 0 ≤ 1 + x := by linarith
-      simp only
+      simp only [ge_iff_le]
       exact one_le_pow₀ h01x
     exact (by
       have : x ^ p ≤ (1 : ℝ) := by simpa [hone] using hxp_le_one
