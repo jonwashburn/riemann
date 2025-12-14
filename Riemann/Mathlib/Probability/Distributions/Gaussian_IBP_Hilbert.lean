@@ -4,10 +4,10 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Matteo Cipollina
 -/
 
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.InnerProductSpace.Adjoint
+import Mathlib.Data.Real.CompleteField
 import Riemann.Mathlib.Probability.Distributions.GaussianIntegrationByParts
-import Mathlib
-import Mathlib.Analysis.MeanInequalitiesPow
-
 
 /-!
 # Gaussian Integration by Parts on a real Hilbert space (finite-dimensional, covariant form)
