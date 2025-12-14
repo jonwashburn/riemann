@@ -240,6 +240,107 @@ theorem measure_ball_abs_sub_setAverage_gt_add_le_seven_mul {f : α → ℝ}
 end BMOStep
 
 /-!
+### Global-doubling specializations
+
+When the measure is globally doubling (`MeasureTheory.Measure.IsDoubling`), the “one-ball” estimate
+from `Covering/CalderonZygmund.lean` does not require any scale side conditions.
+
+We record the convenient specialization where the big ball is the `7×` dilation of the small one,
+since this is the uniform constant needed in the CZ/John–Nirenberg stopping-time argument.
+-/
+section BMOStepIsDoubling
+
+variable [ProperSpace α] [IsFiniteMeasureOnCompacts μ]
+variable {A : ℝ≥0} [μ.IsDoubling A] [NeZero μ]
+
+-- The open positive measure instance follows from doubling.
+local instance : μ.IsOpenPosMeasure := MeasureTheory.isOpenPosMeasure_of_isDoubling (μ := μ)
+
+/-- Global-doubling variant of `measure_ball_abs_sub_setAverage_gt_add_le_seven_mul`:
+no scale assumptions, and the telescoping constant is `As A 14`. -/
+theorem measure_ball_abs_sub_setAverage_gt_add_le_seven_mul_isDoubling {f : α → ℝ}
+    (hf_int : LocallyIntegrable f μ) {M : ℝ} (hM : 0 < M)
+    (hbmo : ∀ (x : α) (r : ℝ) (_ : 0 < r),
+      ⨍ y in Metric.ball x r, |f y - ⨍ z in Metric.ball x r, f z ∂μ| ∂μ ≤ M)
+    {x : α} {r : ℝ} (hr : 0 < r)
+    {t : ℝ} (ht : 0 < t) :
+    μ {y ∈ Metric.ball x r |
+        |f y - ⨍ z in Metric.ball x (7 * r), f z ∂μ| >
+          t + ((As A 14 : ℝ≥0) : ℝ) * M}
+      ≤ ENNReal.ofReal (M / t) * μ (Metric.ball x r) := by
+  -- Specialize `measure_subball_abs_sub_setAverage_gt_add_le_isDoubling` with `x₀ = x`, `r₀ = 7*r`.
+  have hr₀ : 0 < (7 * r) := by nlinarith
+  have h_contained : Metric.ball x r ⊆ Metric.ball x (7 * r) := by
+    -- `r ≤ 7*r` since `r > 0`
+    simpa using Metric.ball_subset_ball (by nlinarith [hr.le] : r ≤ 7 * r)
+  -- The scale factor is exactly `14`.
+  have h14 : (2 * (7 * r) / r) = (14 : ℝ) := by
+    have hr0 : (r : ℝ) ≠ 0 := hr.ne'
+    calc
+      2 * (7 * r) / r = (14 * r) / r := by ring
+      _ = (14 : ℝ) := by simp [hr0]
+  -- The same identity in the normalized form that `simp` produces.
+  have h14' : (r * (2 * 7) / r) = (14 : ℝ) := by
+    have hr0 : (r : ℝ) ≠ 0 := hr.ne'
+    calc
+      r * (2 * 7) / r = (14 * r) / r := by ring
+      _ = (14 : ℝ) := by simp [hr0]
+  simpa [h14, h14', mul_assoc, mul_left_comm, mul_comm] using
+    (MeasureTheory.measure_subball_abs_sub_setAverage_gt_add_le_isDoubling (μ := μ) (A := A)
+      (f := f) hf_int hM hbmo (x₀ := x) (r₀ := 7 * r) hr₀ (x := x) (r := r) hr h_contained ht)
+
+end BMOStepIsDoubling
+
+/-!
+### Carleson Whitney cover for globally doubling measures
+
+The Carleson development provides a Whitney-type ball decomposition of any open proper set in a
+doubling metric measure space, with a uniform overlap bound.  We record a wrapper that re-exposes
+this result for a general measure `μ` by locally turning `μ` into `volume`.
+-/
+section CarlesonBallCovering
+
+variable [ProperSpace α]
+
+/-- Whitney-type decomposition of an open proper set, with bounded overlap,
+specialized to a general measure `μ` that is doubling with constant `defaultA a = 2^a`. -/
+theorem carleson_ball_covering (μ : Measure α) [IsFiniteMeasureOnCompacts μ]
+    {a : ℕ} [μ.IsDoubling (defaultA a)] [NeZero μ]
+    {O : Set α} (hO : IsOpen O) (hO' : O ≠ univ) :
+    ∃ (c : ℕ → α) (r : ℕ → ℝ),
+      (univ.PairwiseDisjoint fun i ↦ Metric.ball (c i) (r i)) ∧
+      (⋃ i, Metric.ball (c i) (3 * r i)) = O ∧
+      (∀ i, 0 < r i → ¬Disjoint (Metric.ball (c i) (7 * r i)) Oᶜ) ∧
+      ∀ x ∈ O, {i | x ∈ Metric.ball (c i) (3 * r i)}.encard ≤ (2 ^ (6 * a) : ℕ) := by
+  classical
+  -- The open positive measure instance follows from doubling (needed for the Carleson machinery).
+  haveI : μ.IsOpenPosMeasure := MeasureTheory.isOpenPosMeasure_of_isDoubling (μ := μ)
+  -- Turn `μ` into the ambient `volume` measure.
+  letI : MeasureSpace α := ⟨μ⟩
+  -- Build the `DoublingMeasure` structure with `volume = μ`.
+  haveI : MeasureTheory.DoublingMeasure α (defaultA a) := by
+    classical
+    refine
+      { toCompleteSpace := by infer_instance
+        toLocallyCompactSpace := by infer_instance
+        toMeasureSpace := by infer_instance
+        toBorelSpace := by infer_instance
+        toIsLocallyFiniteMeasure := by
+          -- `IsFiniteMeasureOnCompacts` gives local finiteness in a locally compact space.
+          -- (After `letI : MeasureSpace α := ⟨μ⟩`, `volume = μ` definitionally.)
+          infer_instance
+        toIsDoubling := by
+          -- `volume = μ` is doubling by assumption.
+          infer_instance
+        toNeZero := by
+          -- `volume = μ` is nonzero by assumption.
+          infer_instance }
+  -- Now apply Carleson's `ball_covering`.
+  simpa using (ball_covering (X := α) (a := a) (O := O) ⟨hO, hO'⟩)
+
+end CarlesonBallCovering
+
+/-!
 ### Covering lemmas (Besicovitch/Vitali layer)
 
 At Stein-level generality, the John–Nirenberg iteration requires a stopping-time covering lemma.
@@ -345,6 +446,7 @@ maximality argument using the "depth" function `x ↦ infDist x Oᶜ`.
 -/
 
 --omit μ [HasBesicovitchCovering α] [SFinite μ] in
+omit [MeasurableSpace α] [BorelSpace α] [HasBesicovitchCovering α] in
 theorem exists_countable_disjoint_ball_covering_three_of_isOpen
     [ProperSpace α] {O : Set α} (hO : IsOpen O) (hO' : O ≠ univ) :
     ∃ (U : Set α) (r : α → ℝ),
@@ -357,7 +459,6 @@ theorem exists_countable_disjoint_ball_covering_three_of_isOpen
   -- Use the depth `d x = infDist x Oᶜ` and radii `r x = d x / 6`.
   let d : α → ℝ := fun x => Metric.infDist x Oᶜ
   let r : α → ℝ := fun x => d x / 6
-
   -- The family of candidate centre sets: disjoint balls of radius `r`.
   let W : Set (Set α) :=
     {U | U ⊆ O ∧ U.PairwiseDisjoint (fun c => Metric.ball c (r c))}
@@ -385,11 +486,9 @@ theorem exists_countable_disjoint_ball_covering_three_of_isOpen
     · -- each `s ∈ C` is a subset of `⋃₀ C`
       intro s hsC
       exact subset_sUnion_of_mem hsC
-
   have hU : U ∈ W := hUmax.1
   have hU_sub : U ⊆ O := hU.1
   have hU_disj : U.PairwiseDisjoint (fun c => Metric.ball c (r c)) := hU.2
-
   -- Positivity of radii on centres in `U`.
   have hO_compl_ne : Oᶜ.Nonempty := by
     rcases (ne_univ_iff_exists_notMem _).1 hO' with ⟨x, hx⟩
@@ -405,7 +504,6 @@ theorem exists_countable_disjoint_ball_covering_three_of_isOpen
       exact (hiff.mp this)
     have : 0 < d c / 6 := by nlinarith
     simpa [r] using this
-
   -- A key geometric estimate: if the radius-balls around `x` and `y` intersect, then
   -- `x ∈ ball y (3 * r y)`.
   have depth_bound_1 :
@@ -455,7 +553,6 @@ theorem exists_countable_disjoint_ball_covering_three_of_isOpen
           _ = 3 * r y := by ring
       exact lt_of_lt_of_le hxy2 hle
     simpa [Metric.mem_ball] using this
-
   -- Show the `3`-dilations cover all of `O`.
   have hcover : (⋃ c ∈ U, Metric.ball c (3 * r c)) = O := by
     refine subset_antisymm ?_ ?_
@@ -512,7 +609,6 @@ theorem exists_countable_disjoint_ball_covering_three_of_isOpen
       have hins : insert x U ⊆ U := hUmax.2 hW_insert hss.le
       have hxU : x ∈ U := hins (by simp)
       exact hxU_not hxU
-
   -- Boundary touching: each `7`-dilation meets `Oᶜ`.
   have htouch : ∀ c ∈ U, ¬Disjoint (Metric.ball c (7 * r c)) Oᶜ := by
     intro c hcU
@@ -539,7 +635,6 @@ theorem exists_countable_disjoint_ball_covering_three_of_isOpen
         exact (hdist.symm ▸ this)
       simpa [Metric.mem_ball] using this
     exact Set.not_disjoint_iff.mpr ⟨y, hyball, hyO⟩
-
   refine ⟨U, r, ?_, hU_sub, hU_disj, hr_pos, hcover, htouch⟩
   -- Countability of `U` from disjointness of open balls.
   have : U.Countable := by
