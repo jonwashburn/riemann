@@ -1129,7 +1129,7 @@ theorem measure_subball_abs_sub_setAverage_gt_add_le_isDoubling
       -- `2*r₀ ≤ (2*r₀/r) * r`
       have : (2 * r₀ : ℝ) ≤ (2 * r₀ / r) * r := by
         have : (2 * r₀ / r) * r = 2 * r₀ := by field_simp [hr.ne']
-        simpa [this]
+        simp [this]
       -- `measure_ball_le_same` expects `r' ≤ s*r`
       simpa [B] using (MeasureTheory.measure_ball_le_same (μ := μ) (A := A) (x := x) (r := r)
         (r' := 2 * r₀) hs this)
