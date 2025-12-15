@@ -1,4 +1,4 @@
-import Riemann.PhysLean.SpinGlasses.Defs
+import Riemann.PhysLean.SpinGlass.Defs
 import Mathlib.Analysis.Calculus.ContDiff.Operations
 
 open MeasureTheory ProbabilityTheory Real BigOperators Filter Topology
@@ -426,7 +426,7 @@ noncomputable def hasModerateGrowth_free_energy_density :
 lemma integrable_free_energy_density_of_gaussian
     {Ω : Type*} [MeasureSpace Ω] [IsProbabilityMeasure (ℙ : Measure Ω)]
     {g : Ω → EnergySpace N} (hg : IsGaussianHilbert (Ω := Ω) (H := EnergySpace N) g) :
-    Integrable (fun ω => free_energy_density (N := N) (g ω)) := by
+    Integrable (fun x => free_energy_density (N := N) (g x)) := by
   have hdiff : ContDiff ℝ 1 (fun H : EnergySpace N => free_energy_density (N := N) H) :=
     (contDiff_free_energy_density (N := N)).of_le (by simp)
   exact

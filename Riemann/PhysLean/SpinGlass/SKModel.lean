@@ -1,4 +1,4 @@
-import Riemann.PhysLean.SpinGlasses.Defs
+import Riemann.PhysLean.SpinGlass.Defs
 import Riemann.Mathlib.Probability.Distributions.Gaussian_IBP_Hilbert
 
 open MeasureTheory ProbabilityTheory Real BigOperators Filter Topology
@@ -72,6 +72,6 @@ structure SimpleDisorder (β q : ℝ) where
   cov_eq :
       ∀ σ τ,
         inner ℝ ((covOp (g := V) hV) (std_basis N σ)) (std_basis N τ) =
-          simple_cov_kernel N β q σ τ
+          simple_cov_kernel N β (fun x => q * x) σ τ
 
 end SpinGlass
