@@ -31,9 +31,8 @@ variable (N : ℕ)
 /-- Partition function \(Z_N(H)\). -/
 noncomputable def partition_function (H : EnergySpace N) : ℝ := Z N H
 
-/-- Free energy density \(p_N(H) = \frac1N \log Z_N(H)\). -/
-noncomputable def free_energy_density (H : EnergySpace N) : ℝ :=
-  (1 / N) * Real.log (partition_function (N := N) H)
+-- NOTE: the free energy density is defined in `SpinGlasses/Defs.lean` as
+-- `SpinGlass.free_energy_density`.
 
 /-- Gibbs average \(\langle f \rangle_H\) under the Gibbs weights `gibbs_pmf`. -/
 noncomputable def gibbs_average (H : EnergySpace N) (f : Config N → ℝ) : ℝ :=
