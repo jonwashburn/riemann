@@ -53,7 +53,12 @@ def gibbs_pmf (H : EnergySpace N) (σ : Config N) : ℝ :=
 
 /-! ### Free energy density and its abstract (Fréchet) Hessian -/
 
-/-- Free energy density \(F_N(H) := \frac1N \log Z_N(H)\). -/
+/--
+Free energy density \(F_N(H) := \frac1N \log Z_N(H)\).
+
+Reference: Talagrand, *Mean Field Models for Spin Glasses*, Vol. I, Ch. 1, §1.3
+(definition and basic properties of the finite-volume free energy).
+-/
 noncomputable def free_energy_density (H : EnergySpace N) : ℝ :=
   (1 / (N : ℝ)) * Real.log (Z N H)
 
@@ -62,6 +67,9 @@ The Hessian of the free energy density, defined abstractly as the second Fréche
 `fderiv ℝ (fun H' => fderiv ℝ (free_energy_density N) H') H`.
 
 This is the object that interfaces directly with Gaussian IBP statements.
+
+Reference: Talagrand, Vol. I, Ch. 1, §1.3 (identification of the second derivative of \(\log Z\)
+with a Gibbs covariance; this is the abstract Fréchet form needed for Gaussian IBP).
 -/
 noncomputable def hessian_free_energy_fderiv (H : EnergySpace N) :
     EnergySpace N →L[ℝ] EnergySpace N →L[ℝ] ℝ :=
@@ -493,14 +501,39 @@ lemma hessian_free_energy_fderiv_eq_hessian_free_energy
                       (∑ τ : Config N, g τ * h τ) * (∑ σ : Config N, g σ * k σ)) := h2
     _ = hessian_free_energy N H h k := by
           -- Match the explicit definition.
-          simp [hessian_free_energy, g, mul_assoc, mul_left_comm, mul_comm, sub_eq_add_neg, add_assoc,
+          simp [hessian_free_energy, g, mul_left_comm, mul_comm, sub_eq_add_neg,
             add_left_comm, add_comm]
+
+/-! ### Compatibility aliases (for Gaussian IBP / calculus API) -/
+
+/-- An alias for the abstract Fréchet Hessian of the free energy density. -/
+noncomputable abbrev hessian_logZ (H : EnergySpace N) :
+    EnergySpace N →L[ℝ] EnergySpace N →L[ℝ] ℝ :=
+  hessian_free_energy_fderiv (N := N) H
+
+/-- An alias for the explicit Gibbs covariance bilinear form. -/
+def gibbs_covariance (H : EnergySpace N) (h k : EnergySpace N) : ℝ :=
+  hessian_free_energy N H h k
+
+/--
+The abstract (Fréchet) Hessian agrees with the explicit Gibbs covariance formula.
+
+Reference: Talagrand, Vol. I, Ch. 1, §1.3 (second derivative of \(\log Z\) as a Gibbs covariance),
+formalized here as an equality between an `fderiv`-based Hessian and a finite-sum covariance.
+-/
+lemma hessian_eq_covariance (H h k : EnergySpace N) :
+    (hessian_logZ (N := N) H) h k = gibbs_covariance (N := N) H h k := by
+  simpa [hessian_logZ, gibbs_covariance] using
+    (hessian_free_energy_fderiv_eq_hessian_free_energy (N := N) (H := H) (h := h) (k := k))
 
 /-! ### Trace Formulae and Proofs -/
 
 /--
 The trace of the product of a covariance operator `Cov` and the Hessian of the free energy.
 Algebraically reduces to variance-like terms of the Gibbs measure.
+
+Reference: Talagrand, Vol. I, Ch. 1, §1.3 (trace/Hessian rewriting used in the Guerra
+interpolation after applying Gaussian integration by parts).
 -/
 theorem trace_formula (H : EnergySpace N) (Cov : Config N → Config N → ℝ) :
     (∑ σ, ∑ τ, Cov σ τ * hessian_free_energy N H (std_basis N σ) (std_basis N τ)) =
@@ -600,6 +633,9 @@ theorem overlap_self (hN : 0 < N) (σ : Config N) : overlap N σ σ = 1 := by
 /--
 Trace calculation for the SK model covariance.
 Result: (β²/2) * (1 - ⟨R₁₂²⟩ - 1/N + 1/N) = (β²/2) * (1 - ⟨R₁₂²⟩)
+
+Reference: Talagrand, Vol. I, Ch. 1, §1.3 (the SK trace term in the derivative formula
+leading to Eq. (1.65)).
 -/
 theorem trace_sk (hN : 0 < N) (H : EnergySpace N) :
     (∑ σ, ∑ τ, sk_cov_kernel N β σ τ * hessian_free_energy N H (std_basis N σ) (std_basis N τ)) =
@@ -656,6 +692,9 @@ theorem trace_sk (hN : 0 < N) (H : EnergySpace N) :
 /--
 Trace calculation for Simple Model.
 Result: β² q (1 - ⟨R₁₂⟩)
+
+Reference: Talagrand, Vol. I, Ch. 1, §1.3 (the “simple” model trace term in the derivative
+formula leading to Eq. (1.65)).
 -/
 theorem trace_simple (hN : 0 < N) (H : EnergySpace N) :
     (∑ σ, ∑ τ, simple_cov_kernel N β q σ τ * hessian_free_energy N H (std_basis N σ) (std_basis N τ)) =
@@ -708,6 +747,8 @@ theorem trace_simple (hN : 0 < N) (H : EnergySpace N) :
 
 Combinations of the trace formulas imply:
 φ'(t) = (β²/4) * (1 - 2q + q² - ⟨(R-q)²⟩) ≤ (β²/4) * (1-q)²
+
+Reference: Talagrand, Vol. I, Ch. 1, §1.3, Eq. (1.65) (algebraic completion of squares).
 -/
 theorem guerra_derivative_bound_algebra
     (hN : 0 < N) (H : EnergySpace N) :
