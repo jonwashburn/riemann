@@ -10,7 +10,7 @@ open MeasureTheory ProbabilityTheory Real BigOperators Filter Topology
 
 namespace SpinGlass
 
-variable (N : ℕ) (β h q : ℝ)
+variable (N : ℕ) (β : ℝ)
 
 /-! ### Basic Definitions -/
 
@@ -41,8 +41,8 @@ def overlap (σ τ : Config N) : ℝ :=
 def sk_cov_kernel (σ τ : Config N) : ℝ :=
   (N * β^2 / 2) * (overlap N σ τ)^2
 
-def simple_cov_kernel (σ τ : Config N) : ℝ :=
-  N * β^2 * q * (overlap N σ τ)
+def simple_cov_kernel (xi : ℝ → ℝ) (σ τ : Config N) : ℝ :=
+  N * β^2 * xi (overlap N σ τ)
 
 /-! ### Thermodynamic Quantities -/
 
@@ -287,7 +287,7 @@ lemma fderiv_gibbs_pmf_apply (H h : EnergySpace N) (σ : Config N) :
             simp [mul_assoc, mul_left_comm, mul_comm, Finset.mul_sum]
           -- Reduce to a commutative ring identity.
           simp [div_eq_mul_inv, hsum, hexp_sum, hsum', this, hZ, pow_two, hpull, mul_assoc,
-            mul_left_comm, mul_comm, sub_eq_add_neg, add_assoc, add_left_comm, add_comm]
+            mul_comm, sub_eq_add_neg, add_comm]
           ring
     _ = (gibbs_pmf N H σ) * ((∑ τ : Config N, (gibbs_pmf N H τ) * h τ) - h σ) := by
           simp [gibbs_pmf]
@@ -501,8 +501,7 @@ lemma hessian_free_energy_fderiv_eq_hessian_free_energy
                       (∑ τ : Config N, g τ * h τ) * (∑ σ : Config N, g σ * k σ)) := h2
     _ = hessian_free_energy N H h k := by
           -- Match the explicit definition.
-          simp [hessian_free_energy, g, mul_left_comm, mul_comm, sub_eq_add_neg,
-            add_left_comm, add_comm]
+          simp [hessian_free_energy, g, mul_left_comm, mul_comm, sub_eq_add_neg, add_comm]
 
 /-! ### Compatibility aliases (for Gaussian IBP / calculus API) -/
 
@@ -693,178 +692,135 @@ theorem trace_sk (hN : 0 < N) (H : EnergySpace N) :
 Trace calculation for Simple Model.
 Result: β² q (1 - ⟨R₁₂⟩)
 
-Reference: Talagrand, Vol. I, Ch. 1, §1.3 (the “simple” model trace term in the derivative
-formula leading to Eq. (1.65)).
+Reference: Talagrand, Vol. I, Ch. 1, §1.3 (generalized for RSB).
 -/
-theorem trace_simple (hN : 0 < N) (H : EnergySpace N) :
-    (∑ σ, ∑ τ, simple_cov_kernel N β q σ τ * hessian_free_energy N H (std_basis N σ) (std_basis N τ)) =
-    (β^2 * q) * (1 - ∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * overlap N σ τ) := by
+theorem trace_simple (hN : 0 < N) (H : EnergySpace N) (xi : ℝ → ℝ) :
+    (∑ σ, ∑ τ, simple_cov_kernel N β xi σ τ * hessian_free_energy N H (std_basis N σ) (std_basis N τ)) =
+    (β^2) * (xi 1 - ∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * xi (overlap N σ τ)) := by
   classical
-  let E_R : ℝ :=
-    ∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * overlap N σ τ
+  let E_xi : ℝ :=
+    ∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * xi (overlap N σ τ)
   have hs1 : (∑ σ, gibbs_pmf N H σ) = 1 := sum_gibbs_pmf (N := N) (H := H)
   have hN0 : (N : ℝ) ≠ 0 := by exact_mod_cast hN.ne'
   -- Apply the general trace formula.
-  rw [trace_formula (N := N) (H := H) (Cov := simple_cov_kernel N β q)]
+  rw [trace_formula (N := N) (H := H) (Cov := simple_cov_kernel N β xi)]
   have hdiag :
-      (∑ σ, gibbs_pmf N H σ * simple_cov_kernel N β q σ σ) = N * β^2 * q := by
-    have hover : ∀ σ : Config N, overlap N σ σ = (1 : ℝ) := by
+      (∑ σ, gibbs_pmf N H σ * simple_cov_kernel N β xi σ σ) = N * β^2 * xi 1 := by
+    have hover : ∀ σ : Config N, overlap N σ σ = 1 := by
       intro σ
       simpa using overlap_self (N := N) (hN := hN) σ
     -- simplify the diagonal kernel and use `∑ gibbs_pmf = 1`
     calc
-      (∑ σ, gibbs_pmf N H σ * simple_cov_kernel N β q σ σ)
-          = ∑ σ, gibbs_pmf N H σ * (N * β^2 * q) := by
+      (∑ σ, gibbs_pmf N H σ * simple_cov_kernel N β xi σ σ)
+          = ∑ σ, gibbs_pmf N H σ * (N * β^2 * xi 1) := by
               simp [simple_cov_kernel, hover, mul_assoc, mul_comm]
-      _ = (∑ σ, gibbs_pmf N H σ) * (N * β^2 * q) := by
+      _ = (∑ σ, gibbs_pmf N H σ) * (N * β^2 * xi 1) := by
               simpa using
                 (Finset.sum_mul (s := (Finset.univ : Finset (Config N)))
-                  (f := fun σ => gibbs_pmf N H σ) (a := (N * β^2 * q))).symm
-      _ = N * β^2 * q := by simp [hs1]
+                  (f := fun σ => gibbs_pmf N H σ) (a := (N * β^2 * xi 1))).symm
+      _ = N * β^2 * xi 1 := by simp [hs1]
   have hoff :
-      (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * simple_cov_kernel N β q σ τ)
-        = (N * β^2 * q) * E_R := by
+      (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * simple_cov_kernel N β xi σ τ)
+        = (N * β^2) * E_xi := by
     -- just factor out the constant and use the definition of `E_R`
-    simp [simple_cov_kernel, E_R, Finset.mul_sum, mul_assoc, mul_left_comm, mul_comm]
-  have hcancel : (1 / (N : ℝ)) * (N * β^2 * q) = (β^2 * q) := by
+    simp [simple_cov_kernel, E_xi, Finset.mul_sum, mul_assoc, mul_left_comm, mul_comm]
+  have hcancel : (1 / (N : ℝ)) * (N * β^2) = (β^2) := by
     field_simp [hN0]
   calc
     (1 / (N : ℝ)) *
-        ((∑ σ, gibbs_pmf N H σ * simple_cov_kernel N β q σ σ) -
-          (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * simple_cov_kernel N β q σ τ))
-        = (1 / (N : ℝ)) * ((N * β^2 * q) - ((N * β^2 * q) * E_R)) := by
+        ((∑ σ, gibbs_pmf N H σ * simple_cov_kernel N β xi σ σ) -
+          (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * simple_cov_kernel N β xi σ τ))
+        = (1 / (N : ℝ)) * ((N * β^2 * xi 1) - ((N * β^2) * E_xi)) := by
             simp [hdiag, hoff]
-    _ = (1 / (N : ℝ)) * ((N * β^2 * q) * (1 - E_R)) := by ring
-    _ = ((1 / (N : ℝ)) * (N * β^2 * q)) * (1 - E_R) := by
+    _ = (1 / (N : ℝ)) * ((N * β^2) * (xi 1 - E_xi)) := by ring
+    _ = ((1 / (N : ℝ)) * (N * β^2)) * (xi 1 - E_xi) := by
             simp [mul_assoc]
-    _ = (β^2 * q) * (1 - E_R) := by
-            simpa [mul_assoc] using congrArg (fun z => z * (1 - E_R)) hcancel
-    _ = (β^2 * q) * (1 - ∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * overlap N σ τ) := by
-            simp [E_R]
+    _ = (β^2) * (xi 1 - E_xi) := by
+            simpa [mul_assoc] using congrArg (fun z => z * (xi 1 - E_xi)) hcancel
+    _ = (β^2) * (xi 1 - ∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * xi (overlap N σ τ)) := by
+            simp [E_xi]
 
 /--
 **Proof of Guerra's Derivative Bound**
 
 Combinations of the trace formulas imply:
-φ'(t) = (β²/4) * (1 - 2q + q² - ⟨(R-q)²⟩) ≤ (β²/4) * (1-q)²
+φ'(t) = (β²/2) * ( (1/2 - ξ(1)) - ⟨R²/2 - ξ(R)⟩ )
 
-Reference: Talagrand, Vol. I, Ch. 1, §1.3, Eq. (1.65) (algebraic completion of squares).
+Reference: Talagrand, Vol. I, Ch. 1, §1.3, Eq. (1.65) (generalized).
 -/
 theorem guerra_derivative_bound_algebra
-    (hN : 0 < N) (H : EnergySpace N) :
+    (hN : 0 < N) (H : EnergySpace N) (xi : ℝ → ℝ) :
     let term_sk := (∑ σ, ∑ τ, sk_cov_kernel N β σ τ * hessian_free_energy N H (std_basis N σ) (std_basis N τ))
-    let term_simple := (∑ σ, ∑ τ, simple_cov_kernel N β q σ τ * hessian_free_energy N H (std_basis N σ) (std_basis N τ))
-    (1 / 2) * (term_sk - term_simple) ≤ (β^2 / 4) * (1 - q)^2 := by
+    let term_simple := (∑ σ, ∑ τ, simple_cov_kernel N β xi σ τ * hessian_free_energy N H (std_basis N σ) (std_basis N τ))
+    (1 / 2) * (term_sk - term_simple) = (β^2 / 2) * ((1/2 - xi 1) - ∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * ((overlap N σ τ)^2 / 2 - xi (overlap N σ τ))) := by
   dsimp
   rw [trace_sk (N := N) (β := β) (hN := hN) (H := H),
-      trace_simple (N := N) (β := β) (q := q) (hN := hN) (H := H)]
+      trace_simple (N := N) (β := β) (xi := xi) (hN := hN) (H := H)]
   -- Define Expectation notation for readability
-  let E_R := ∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * overlap N σ τ
+  let E_xi := ∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * xi (overlap N σ τ)
   let E_R2 := ∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * (overlap N σ τ)^2
-  -- Target inequality:
-  -- (1/2) * [ (β²/2)(1 - E_R2) - (β² q)(1 - E_R) ] ≤ (β²/4)(1-q)²
-  -- Multiply by 4/β² to simplify:
-  -- [ (1 - E_R2) - 2q(1 - E_R) ] ≤ (1-q)²
-  -- 1 - E_R2 - 2q + 2q E_R ≤ 1 - 2q + q²
-  -- - E_R2 + 2q E_R ≤ q²
-  -- 0 ≤ E_R2 - 2q E_R + q²
-  -- 0 ≤ E [ (R - q)² ]
-  have h_main : (1 / 2) * ((β^2 / 2) * (1 - E_R2) - (β^2 * q) * (1 - E_R)) =
-                (β^2 / 4) * ((1 - q)^2 - (E_R2 - 2 * q * E_R + q^2)) := by
+
+  -- (1/2) * [ (β^2/2)(1 - E_R2) - (β^2)(xi 1 - E_xi) ]
+  -- = (β^2/4)(1 - E_R2) - (β^2/2)(xi 1 - E_xi)
+  -- = (β^2/2) [ 1/2 - 1/2 E_R2 - xi 1 + E_xi ]
+  -- = (β^2/2) [ (1/2 - xi 1) - (1/2 E_R2 - E_xi) ]
+
+  have h_main : (1 / 2) * ((β^2 / 2) * (1 - E_R2) - (β^2) * (xi 1 - E_xi)) =
+                (β^2 / 2) * ((1/2 - xi 1) - (1/2 * E_R2 - E_xi)) := by
     ring
   rw [h_main]
-  -- Now we just need to show E_R2 - 2q E_R + q² ≥ 0
-  -- This expression is exactly ∑ G(σ)G(τ) (R(σ,τ) - q)²
-  have h_pos : (E_R2 - 2 * q * E_R + q^2) =
-               ∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * (overlap N σ τ - q)^2 := by
+  congr 1
+  -- cancel the common `(1/2 - xi 1) - ·` part
+  congr 1
+  classical
+  simp [E_R2, E_xi]
+  -- distribute the factor `1/2` into the double sum defining `E_R2`
+  have hhalf :
+      (2⁻¹ : ℝ) *
+          (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * (overlap N σ τ) ^ 2)
+        =
+          ∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * ((overlap N σ τ) ^ 2 / 2) := by
     classical
-    have hs1 : (∑ x : Config N, gibbs_pmf N H x) = 1 := sum_gibbs_pmf (N := N) (H := H)
-    have hs2 : (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ) = 1 := by
-      have h :=
-        (Fintype.sum_mul_sum (f := fun σ : Config N => gibbs_pmf N H σ)
-          (g := fun τ : Config N => gibbs_pmf N H τ))
-      calc
-        (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ)
-            = (∑ σ, gibbs_pmf N H σ) * (∑ τ, gibbs_pmf N H τ) := by
-                simpa using h.symm
-        _ = 1 := by simp [hs1]
-    -- Expand the square pointwise and sum.
-    have h_expand :
-        (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * (overlap N σ τ - q)^2)
+    simp [div_eq_mul_inv]
+    calc
+      (2⁻¹ : ℝ) *
+          (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * (overlap N σ τ) ^ 2)
           =
-        E_R2 - 2 * q * E_R + q^2 := by
-      -- `Finset`-sum of the pointwise identity `(a-q)^2 = a^2 - 2aq + q^2`
-      calc
-        (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * (overlap N σ τ - q)^2)
-            =
-            (∑ σ, ∑ τ,
-              gibbs_pmf N H σ * gibbs_pmf N H τ *
-                ((overlap N σ τ)^2 - 2 * (overlap N σ τ) * q + q^2)) := by
-              refine Finset.sum_congr rfl ?_
-              intro σ _hσ
-              refine Finset.sum_congr rfl ?_
-              intro τ _hτ
-              simp [sub_sq, mul_assoc, mul_comm]
-        _ =
-            (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * (overlap N σ τ)^2)
-              - (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * (2 * (overlap N σ τ) * q))
-              + (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * q^2) := by
-              -- distribute the outer multiplication over `a^2 - 2aq + q^2`
-              simp [mul_add, sub_eq_add_neg, add_comm,
-                Finset.sum_add_distrib, mul_assoc, mul_left_comm, mul_comm]
-        _ =
-            E_R2 - 2 * q * E_R + q^2 := by
-              -- identify the three sums with `E_R2`, `E_R`, and `hs2`
-              have hQ :
-                  (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * (2 * (overlap N σ τ) * q))
-                    =
-                  (2 * q) * E_R := by
-                -- pull out `q` and `2` from the double sum
-                -- first rewrite the integrand
-                have :
-                    (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * (2 * (overlap N σ τ) * q))
-                      =
-                    ∑ σ, ∑ τ, (2 * q) * (gibbs_pmf N H σ * gibbs_pmf N H τ * overlap N σ τ) := by
-                  refine Finset.sum_congr rfl ?_
-                  intro σ _hσ
-                  refine Finset.sum_congr rfl ?_
-                  intro τ _hτ
-                  ring_nf
-                -- now factor `(2*q)` out of the double sum
-                calc
-                  (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * (2 * (overlap N σ τ) * q))
-                      = ∑ σ, ∑ τ, (2 * q) * (gibbs_pmf N H σ * gibbs_pmf N H τ * overlap N σ τ) := this
-                  _ = (2 * q) * (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * overlap N σ τ) := by
-                        simp [Finset.mul_sum, mul_assoc]
-                  _ = (2 * q) * E_R := by simp [E_R]
-              have hQ2 :
-                  (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * q^2) = q^2 := by
-                -- the weights sum to 1 on the product space
-                calc
-                  (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * q^2)
-                      = (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ) * q^2 := by
-                          simp [Finset.sum_mul, mul_assoc]
-                  _ = q^2 := by simp [hs2]
-              simp [E_R, E_R2, hQ, hQ2]
-    simp [h_expand]
-  rw [h_pos]
-  -- The term subtracted is non-negative
-  have h_nonneg : 0 ≤ ∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * (overlap N σ τ - q)^2 := by
-    apply Finset.sum_nonneg; intro σ _; apply Finset.sum_nonneg; intro τ _
-    apply mul_nonneg
-    · apply mul_nonneg
-      · exact le_of_lt (div_pos (Real.exp_pos _) (Z_pos N H))
-      · exact le_of_lt (div_pos (Real.exp_pos _) (Z_pos N H))
-    · apply sq_nonneg
-  -- X - Y ≤ X if Y ≥ 0
-  -- Use monotonicity of subtraction: `a - b ≤ a` for `0 ≤ b`,
-  -- then scale by the nonnegative factor `(β^2 / 4)`.
-  have hβ : 0 ≤ (β^2 / 4 : ℝ) := by nlinarith
-  have hsub : (1 - q)^2 - (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * (overlap N σ τ - q)^2)
-      ≤ (1 - q)^2 := sub_le_self _ h_nonneg
-  have := mul_le_mul_of_nonneg_left hsub hβ
-  simpa [mul_assoc, mul_left_comm, mul_comm, sub_eq_add_neg, add_assoc, add_left_comm, add_comm]
-    using this
+          ∑ σ, (2⁻¹ : ℝ) *
+            (∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * (overlap N σ τ) ^ 2) := by
+            simpa using
+              (Finset.mul_sum (s := (Finset.univ : Finset (Config N)))
+                (f := fun σ =>
+                  ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * (overlap N σ τ) ^ 2)
+                (a := (2⁻¹ : ℝ)))
+      _ =
+          ∑ σ, ∑ τ, (2⁻¹ : ℝ) *
+            (gibbs_pmf N H σ * gibbs_pmf N H τ * (overlap N σ τ) ^ 2) := by
+            refine Finset.sum_congr rfl ?_
+            intro σ _hσ
+            simpa using
+              (Finset.mul_sum (s := (Finset.univ : Finset (Config N)))
+                (f := fun τ =>
+                  gibbs_pmf N H σ * gibbs_pmf N H τ * (overlap N σ τ) ^ 2)
+                (a := (2⁻¹ : ℝ)))
+      _ =
+          ∑ σ, ∑ τ,
+            gibbs_pmf N H σ * gibbs_pmf N H τ * ((overlap N σ τ) ^ 2 * (2⁻¹ : ℝ)) := by
+            refine Finset.sum_congr rfl ?_
+            intro σ _hσ
+            refine Finset.sum_congr rfl ?_
+            intro τ _hτ
+            ring
+  -- rewrite `((1/2) * E_R2)` into the corresponding sum with `/ 2`
+  rw [hhalf]
+  -- move the subtraction inside the two nested sums
+  rw [← Finset.sum_sub_distrib]
+  apply Finset.sum_congr rfl
+  intro σ _
+  rw [← Finset.sum_sub_distrib]
+  apply Finset.sum_congr rfl
+  intro τ _
+  ring
 
 end
 end SpinGlass
