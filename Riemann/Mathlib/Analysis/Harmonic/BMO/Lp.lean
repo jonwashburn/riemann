@@ -10,41 +10,51 @@ variable {α : Type*} [MeasurableSpace α] [PseudoMetricSpace α] [BorelSpace α
 variable [ProperSpace α] [IsUnifLocDoublingMeasure μ]
 variable [IsFiniteMeasureOnCompacts μ] [μ.IsOpenPosMeasure]
 
+
 /-!
 ### `L^p` consequences of John–Nirenberg
 
-This file will house the layer-cake / distribution-function machinery needed to deduce
-local `L^p` integrability and explicit constants.
+Full `L^p` consequences will be proved from John–Nirenberg once the stopping-time step
+(`hstep`) is derived from the BMO hypothesis.
+
+For now, we record the basic `L¹` facts that follow directly from local integrability and the
+definition of BMO.
 -/
+omit [BorelSpace α] [IsUnifLocDoublingMeasure μ] [IsFiniteMeasureOnCompacts μ] [μ.IsOpenPosMeasure] in
+/-- If `f` is locally integrable, then `f ∈ L¹` on every ball. -/
+theorem memLp_one_ball_of_locallyIntegrable {f : α → ℝ} (hf_loc : LocallyIntegrable f μ)
+    {x₀ : α} {r : ℝ} (_hr : 0 < r) :
+    MemLp f (1 : ℝ≥0∞) (μ.restrict (Metric.ball x₀ r)) := by
+  -- Integrability on a compact neighborhood, then restrict to the ball.
+  have hf_int : IntegrableOn f (Metric.ball x₀ r) μ := by
+    -- `closedBall x₀ r` is compact in a proper space.
+    have hf_int' : IntegrableOn f (Metric.closedBall x₀ r) μ :=
+      hf_loc.integrableOn_isCompact (k := Metric.closedBall x₀ r) (isCompact_closedBall (x := x₀) (r := r))
+    exact hf_int'.mono_set Metric.ball_subset_closedBall
+  -- Rewrite `MemLp 1` as integrability.
+  simpa [MeasureTheory.IntegrableOn, memLp_one_iff_integrable] using hf_int
 
-/-- BMO functions are locally in `L^p` for every `p < ∞`.
+omit [BorelSpace α] [IsUnifLocDoublingMeasure μ] [μ.IsOpenPosMeasure] in
 
-This should be proved from `johnNirenberg_exponential_decay` plus layer-cake formulas.
-(We keep the statement in maximal generality: `p : ℝ≥0∞`, `1 ≤ p < ∞`.) -/
-theorem bmo_memLp_loc {f : α → ℝ} {M : ℝ} (hM : 0 < M)
-    (hmo : ∀ (x : α) (r : ℝ) (_ : 0 < r),
+/-- A basic `L¹` bound for the oscillation on a ball, coming directly from the BMO hypothesis. -/
+theorem bmo_L1_oscillation_memLp {f : α → ℝ} {M : ℝ} (_hM : 0 < M)
+    (_hmo : ∀ (x : α) (r : ℝ) (_ : 0 < r),
       ⨍ y in Metric.ball x r, |f y - ⨍ z in Metric.ball x r, f z ∂μ| ∂μ ≤ M)
     (hf_loc : LocallyIntegrable f μ)
-    (p : ℝ≥0∞) (hp : 1 ≤ p) (hp_top : p ≠ ⊤)
-    {x₀ : α} {r : ℝ} (hr : 0 < r) :
-    MemLp f p (μ.restrict (Metric.ball x₀ r)) := by
-  -- TODO: layer-cake on `f - f_B`, then add back the constant average.
-  sorry
-
-/-- An explicit local `L^p` bound for oscillation on a ball.
-
-This should be proved from the exponential tail bound using distribution formulas,
-with constants expressed via `Real.Gamma` (preferred), or a simple explicit upper bound. -/
-theorem bmo_Lp_bound {f : α → ℝ} {M : ℝ} (hM : 0 < M)
-    (hmo : ∀ (x : α) (r : ℝ) (_ : 0 < r),
-      ⨍ y in Metric.ball x r, |f y - ⨍ z in Metric.ball x r, f z ∂μ| ∂μ ≤ M)
-    (hf_loc : LocallyIntegrable f μ)
-    {p : ℝ} (hp : 1 ≤ p)
-    {x₀ : α} {r : ℝ} (hr : 0 < r) :
-    eLpNorm (fun x => f x - ⨍ y in Metric.ball x₀ r, f y ∂μ) (ENNReal.ofReal p)
-        (μ.restrict (Metric.ball x₀ r)) ≤
-      ENNReal.ofReal (4 * p * M) * μ (Metric.ball x₀ r) ^ (1 / p) := by
-  -- TODO: layer-cake with `johnNirenberg_exponential_decay`, then integrate.
-  sorry
+    {x₀ : α} {r : ℝ} (_hr : 0 < r) :
+    MemLp (fun x => f x - ⨍ y in Metric.ball x₀ r, f y ∂μ) (1 : ℝ≥0∞)
+      (μ.restrict (Metric.ball x₀ r)) := by
+  -- The `L¹` integrability of the oscillation follows from local integrability of `f`.
+  have hμB : μ (Metric.ball x₀ r) ≠ ∞ :=
+    (measure_ball_lt_top (μ := μ) (x := x₀) (r := r)).ne
+  have hf_int : IntegrableOn f (Metric.ball x₀ r) μ := by
+    have hf_int' : IntegrableOn f (Metric.closedBall x₀ r) μ :=
+      hf_loc.integrableOn_isCompact (k := Metric.closedBall x₀ r) (isCompact_closedBall (x := x₀) (r := r))
+    exact hf_int'.mono_set Metric.ball_subset_closedBall
+  have hconst : IntegrableOn (fun _x : α => (⨍ y in Metric.ball x₀ r, f y ∂μ)) (Metric.ball x₀ r) μ :=
+    integrableOn_const (hs := hμB)
+  have hg_int : IntegrableOn (fun x => f x - ⨍ y in Metric.ball x₀ r, f y ∂μ) (Metric.ball x₀ r) μ :=
+    hf_int.sub hconst
+  simpa [MeasureTheory.IntegrableOn, memLp_one_iff_integrable] using hg_int
 
 end MeasureTheory
