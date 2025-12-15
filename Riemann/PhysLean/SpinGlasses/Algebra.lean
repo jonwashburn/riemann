@@ -18,7 +18,7 @@ This file packages the *purely algebraic* steps used in Guerra's interpolation:
   algebraic manipulation leading to Eq. (1.65).
 -/
 
-variable {N : ℕ} {β q : ℝ}
+variable {N : ℕ} {β : ℝ}
 
 /--
 Re-export: trace identity for the SK covariance kernel.
@@ -34,13 +34,13 @@ lemma trace_sk (hN : 0 < N) (H : EnergySpace N) :
 /--
 Re-export: trace identity for the simple covariance kernel.
 
-Reference: Talagrand, Vol. I, Ch. 1, §1.3 (trace computation entering Eq. (1.65)).
+Reference: Talagrand, Vol. I, Ch. 1, §1.3 (generalized for RSB).
 -/
-lemma trace_simple (hN : 0 < N) (H : EnergySpace N) :
-    (∑ σ, ∑ τ, simple_cov_kernel N β q σ τ * hessian_free_energy N H (std_basis N σ) (std_basis N τ)) =
-      (β^2 * q) * (1 - ∑ σ, ∑ τ,
-        gibbs_pmf N H σ * gibbs_pmf N H τ * overlap N σ τ) :=
-  SpinGlass.trace_simple (N := N) (β := β) (q := q) (hN := hN) (H := H)
+lemma trace_simple (hN : 0 < N) (H : EnergySpace N) (xi : ℝ → ℝ) :
+    (∑ σ, ∑ τ, simple_cov_kernel N β xi σ τ * hessian_free_energy N H (std_basis N σ) (std_basis N τ)) =
+      (β^2) * (xi 1 - ∑ σ, ∑ τ,
+        gibbs_pmf N H σ * gibbs_pmf N H τ * xi (overlap N σ τ)) :=
+  SpinGlass.trace_simple (N := N) (β := β) (xi := xi) (hN := hN) (H := H)
 
 /--
 **Square completion (Talagrand, Eq. (1.65), algebraic step).**
