@@ -1,203 +1,158 @@
-# Lean 4 Project Template
+# Riemann Hypothesis Formalization in Lean 4
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-lightblue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Zulip : Topic](https://img.shields.io/badge/Zulip-Topic-%237E57C2.svg?logo=zulip&logoColor=white)](https://leanprover.zulipchat.com/#narrow/channel/113488-general/topic/Tutorial.3A.20Getting.20Started.20with.20Blueprint-Driven.20Projects)
-[![YouTube : Tutorial](https://img.shields.io/badge/YouTube-Tutorial-%23FF0000.svg?logo=youtube&logoColor=white)](https://youtu.be/KyuyTsLgkMY)
+A comprehensive formal verification project working toward a proof of the Riemann Hypothesis using the Lean 4 theorem prover.  This repository contains a substantial body of formalized mathematics spanning complex analysis, measure theory, harmonic analysis, and number theory.
 
-This repository contains a template for blueprint-driven formalization projects in Lean 4.
+## Project Overview
 
-## Install Lean 4
+This project aims to formalize a proof of the Riemann Hypothesis through modern analytical techniques, building on work in de Branges theory, Nevanlinna theory, and harmonic analysis.
 
-Ensure that you have a functioning Lean 4 installation. If you do not, please follow
-the [Lean installation guide](https://leanprover-community.github.io/get_started.html).
+## Repository Structure
 
-## Use this Template
+### Core Riemann Folder
 
-To create a new repository using this template, ensure you are on the correct repository page
-([LeanProject](https://github.com/pitmonticone/LeanProject)) and then follow these steps:
+The `Riemann/` directory contains the main formalization work organized into several major components:
 
-1. Click the **Use this template** button located at the top right of the repository page.
-2. Click the **Create a new repository** button.
-3. Select the account or organization where you want to create it, choose a name for the new
-repository, and click the **Create repository** button.
+#### Academic Framework (`Riemann/academic_framework/`)
+The theoretical foundation including:
+- **Euler Product Theory**: Prime series analysis and K0 bounds
+- **Diagonal Fredholm Theory**: Determinant calculations and Weierstrass products
+- **Zeta Function Theory**: Functional equations, completed zeta and xi functions
+- **Special Functions**: Gamma function bounds, theta functions, disk Hardy spaces
+- **Symmetry Properties**: CompletedXiSymmetry and domain theory
+- **Compatibility Layers**: Compat module for integration with Mathlib
 
-## Clone this Repository
+#### Certification (`Riemann/Cert/`)
+Computational certificates and witness data:
+- `KxiWhitney_RvM.lean`: Whitney decomposition certificates for the xi kernel
+- `K0PPlus.lean`: Certification for K0 positive parts
+- `KxiPPlus.lean`: Certification for Kxi positive parts
+- `FactorsWitness.lean`: Witness data for factorization theorems
 
-To clone this repository to your local machine, please refer to the relevant section of the
-GitHub documentation [here](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository).
+#### RS Module (`Riemann/RS/`)
+Advanced analytic infrastructure for the Riemann-Siegel approach:
 
-## Customize this Template
+**Core Analysis**:
+- `Cayley.lean`: Cayley transforms and conformal mappings
+- `SchurGlobalization.lean`: Schur's lemma globalizations
+- `Det2Outer.lean`: Determinant bounds and outer estimates
+- `HalfPlaneOuterV2.lean`: Half-plane analysis (version 2)
 
-To tailor this template to your specific project, follow these steps:
+**Poisson Kernel Theory**:
+- `PoissonKernelAnalysis.lean`: Analytical properties of Poisson kernels
+- `PoissonKernelDyadic.lean`: Dyadic decomposition techniques
+- `PoissonPlateau.lean`: Plateau construction for Poisson kernels
 
-1. If you don't have a Python environment, you can install one by following the instructions in the
-[Python installation guide](https://www.python.org/downloads/).
-1. Verify your Python installation by running:
-    ```bash
-    python3 --version
-    ```
-1. Verify your Pip installation by running:
-    ```bash
-    pip3 --version
-    ```
-1. Ensure your terminal is in the project directory by running the following command:
-    ```bash
-    cd path/to/your/project
-    ```
-1.	Execute the customization script by running:
-    ```bash
-    scripts/customize_template.py NewProject
-    ```
-    where `NewProject` must be replaced by the name of your project.
+**Whitney Decomposition**:
+- `WhitneyGeometryDefs. lean`: Geometric definitions for Whitney decompositions
+- `WhitneyAeCore.lean`: Core almost-everywhere properties
+- `CRGreenWhitneyB.lean`: Cauchy-Riemann and Green function Whitney bounds
 
-The script [`customize_template.py`](scripts/customize_template.py) will automatically rename the
-project folder and update the necessary files and configurations to match the new project name.
+**Geometric Analysis**:
+- `GField.lean`: Geometric field theory
+- `WedgeBasics.lean`: Wedge domain fundamentals
+- `PaperWindow.lean`: Window function constructions
+- `AdmissibleWindows.lean`: Admissibility criteria for windows
+- `BoundaryAi.lean`: Boundary analysis and AI techniques
 
-## Configure GitHub Pages
+**Bridge Theory**:
+- `OffZerosBridge.lean`: Connection between zero-free regions
+- `CRGreenOuter.lean`: Cauchy-Riemann Green outer bounds
 
-To set up GitHub Pages for your repository, follow these steps:
+##### BWP Submodule (`Riemann/RS/BWP/`)
+Boundary value problem infrastructure:
+- `Constants.lean`: Physical and mathematical constants
+- `Definitions.lean`: Core BVP definitions
+- `Laplacian.lean`: Laplacian operators and properties
+- `CRCalculus.lean`: Cauchy-Riemann calculus
+- `DiagonalBounds.lean`: Diagonal estimate bounds (commented)
 
-1. Go to the **Settings** tab of your repository.
-2. In the left sidebar, click on the **Pages** section.
-3. In the **Source** dropdown, select `GitHub Actions`.
+#### Extended Mathlib (`Riemann/Mathlib/`)
+Extensions and additions to Lean's mathematical library:
 
-## Repository Layout
+**Complex Analysis**:
+- De Branges theory:
+  - `DeBranges/Basic.lean`: Foundational definitions
+  - `DeBranges/Space.lean`: De Branges spaces
+  - `DeBranges/Zeros.lean`: Zero distribution theory
+  - `DeBranges/Measure.lean`: Measure-theoretic aspects
+  - `DeBranges/ReproducingKernel/Defs.lean`: Reproducing kernel definitions
 
-The template repository is organized as follows (listing the main folders and files):
+**Nevanlinna Theory** :
+- `DeBranges/Nevanlinna. lean`: Core Nevanlinna theory
+- `DeBranges/NevanlinnaClosure.lean`: Closure properties
+- `Nevanlinna/FilterLemmas.lean`: Filter-theoretic lemmas
+- `Nevanlinna/MeasurabilityLemmas.lean`: Measurability results
+- `Nevanlinna/PosLogLemmas.lean`: Positive logarithm properties
+- `Nevanlinna/HarmonicBounds.lean`: Harmonic function bounds
+- `Nevanlinna/CircleAverageLemmas.lean`: Circle averaging techniques
+- `Nevanlinna/MinimumModulus.lean`: Minimum modulus theorems
 
-- [`.github`](.github) contains GitHub-specific configuration files and workflows.
-    - [`workflows`](.github/workflows) contains GitHub Actions workflow files.
-        - [`build-project.yml`](.github/workflows/build-project.yml) defines the workflow for building
-        the Lean project on pushes, pull requests, and manual triggers. This is a minimalistic build
-        workflow which is not necessary if you decide to generate a blueprint (see instructions below)
-        and can be manually disabled by clicking on the **Actions** tab, selecting **Build Project**
-        in the left sidebar, then clicking the horizontal triple dots (⋯) on the right,
-        and choosing **Disable workflow**.
-        - [`create-release.yml`](.github/workflows/create-release.yml): defines the workflow for creating a new Git tag and GitHub release when the `lean-toolchain` file is updated in the `main` branch. Ensure the following settings are configured under **Settings > Actions > General > Workflow permissions**: "Read and write permissions" and "Allow GitHub Actions to create and approve pull requests".
-        - [`update.yml`](.github/workflows/update.yml) is the dependency
-        update workflow to be triggered manually by default. [It's not documented yet, but it will be soon.]
-    - [`dependabot.yml`](.github/dependabot.yml) is the configuration file to automate CI dependency updates.
-- [`.vscode`](.vscode) contains Visual Studio Code configuration files
-    - [`extensions.json`](.vscode/extensions.json) recommends VS Code extensions for the project.
-    - [`settings.json`](.vscode/settings.json) defines the project-specific settings for VS Code.
-- [`Project`](Project) should contain the Lean code files.
-    - [`Mathlib`](Project/Mathlib) should contain `.lean` files with declarations missing from the
-    current version of Mathlib.
-    - [`Example.lean`](Project/Example.lean) is a sample Lean file.
-- [`scripts`](scripts) contains scripts to update Mathlib ensuring that the latest version is
-fetched and integrated into the development environment.
-- [`.gitignore`](.gitignore) specifies files and folders to be ignored by Git.
-and environment.
-- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) should contain the code of conduct for the project.
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) should provide the guidelines for contributing to the
-project.
-- [`lakefile.toml`](lakefile.toml) is the configuration file for the Lake build system used in
-Lean projects.
-- [`lean-toolchain`](lean-toolchain) specifies the Lean version and toolchain used for the project.
+**Harmonic Analysis**:
+- `Analysis/Harmonic/AtomicDecomposition.lean`: Atomic decomposition theory
+- `Analysis/Harmonic/BMO/Defs.lean`: BMO space definitions
+- `Analysis/Complex/Cartan.lean`: Cartan theory
 
-## Blueprint
+**Measure Theory**:
+- `MeasureTheory/Covering/CalderonZygmund.lean`: Calderón-Zygmund covering lemmas
+- `MeasureTheory/Function/BoundedSupport.lean`: Functions with bounded support
+- `MeasureTheory/Function/LpMono.lean`: Lp space monotonicity
+- `MeasureTheory/Function/MaximalFunction.lean`: Hardy-Littlewood maximal functions
 
-### 0. Selected Collaborative Projects
+**Special Functions & Calculus**:
+- `Analysis/Calculus/TaylorIntegral.lean`: Taylor series with integral remainder
+- `Analysis/SpecialFunctions/Gaussian/GaussianIntegral.lean`: Gaussian integration
+- `ArctanTwoGtOnePointOne.lean`: Specific bounds for arctangent
+- `Analysis/Complex/ConjugateReflection.lean`: Complex conjugation properties
 
-- [Fermat's Last Theorem for Exponent 3](https://pitmonticone.github.io/FLT3/) by Riccardo Brasca et al.
-- [Polynomial Freiman-Ruzsa Conjecture](https://github.com/teorth/pfr) by Terence Tao et al.
-- [Fermat's Last Theorem](https://imperialcollegelondon.github.io/FLT/) by Kevin Buzzard et al.
-- [Carleson Operators on Doubling Metric Measure Spaces](http://florisvandoorn.com/carleson/) by Floris van Doorn et al.
-- [Bonn Collaborative Formalization Seminar Series in Analysis](https://github.com/fpvandoorn/BonnAnalysis) by Floris van Doorn et al.
-- [Prime Number Theorem and More](https://github.com/AlexKontorovich/PrimeNumberTheoremAnd) by Alex Kontorovich et al.
-- [Infinity Cosmos](https://github.com/emilyriehl/infinity-cosmos) by Emily Riehl et al.
-- [Analytic Number Theory Exponent Database](https://github.com/teorth/expdb) by Terence Tao et al.
-- [Groupoid Model of Homotopy Type Theory](https://github.com/sinhp/GroupoidModelofHoTTinLean4) by Sina Hazratpour et al.
-- [Equational Theories](https://github.com/teorth/equational_theories) by Terence Tao et al.
-- [Sphere Packing in 8 Dimensions](https://github.com/thefundamentaltheor3m/Sphere-Packing-Lean) by Maryna Viazovska et al.
+#### Auxiliary (`Riemann/Aux. lean`)
 
-For more examples of completed and ongoing Lean projects and libraries, please
-see the [Lean Reservoir](https://reservoir.lean-lang.org).
+#### Other Subdirectories
+- `Riemann/Riemann/`: Nested Riemann-specific modules
+- `Riemann/Weil/`: Weil explicit formula infrastructure
+- `Riemann/PhysLean/`: Physics-inspired formalization techniques
+- `Riemann/MeasureTheory/`: Additional measure theory
+- `Riemann/Cert/`: Certification and verification data
 
-### 1. Install Dependencies
+### Supporting Projects
 
-To install the necessary dependencies, follow the instructions in the
-[PyGraphViz installation guide](https://pygraphviz.github.io/documentation/stable/install.html).
+The repository also includes related external formalizations:
+- **PrimeNumberTheoremAnd**: Prime Number Theorem and variations
+- **StrongPNT**: Strong Prime Number Theorem
+- **VD**: Voronoi diagrams or related structures
+- **Carleson**:  Carleson's theorem on Fourier series
+- **DeRhamCohomology**: De Rham cohomology theory
+- **PhysLean**: Physics-based mathematical structures
 
-### 2. Install LeanBlueprint Package
+## Build Configuration
 
-Assuming you have a properly configured Python environment, install LeanBlueprint by running:
+- **Lean Version**:  Specified in `lean-toolchain`
+- **Build System**: Lake (Lean's package manager)
+- **Configuration**: `lakefile.toml`
+- **Dependencies**: `lake-manifest.json`
 
-```bash
-pip install leanblueprint
-```
+## Contributing
 
-If you have an existing installation of LeanBlueprint, you can upgrade to the latest version by
-running:
+See `CONTRIBUTING.md` for contribution guidelines and `CODE_OF_CONDUCT.md` for community standards.
 
-```bash
-pip install -U leanblueprint
-```
+## Technical Infrastructure
 
-### 3. Configure Blueprint
+- `.github/`: GitHub Actions and workflows
+- `scripts/`: Build and utility scripts
+- `customize_template.py`: Template customization
+- `update. sh`: Update automation
 
-To set up the blueprint for your project, run:
+## License
 
-```bash
-leanblueprint new
-```
+See `LICENSE` file for licensing information.
 
-Then, follow the prompts and answer the questions as you like, except for a few specific
-questions which should be answered as indicated below to ensure compatibility with this template.
+## Current Status
 
-Respond affirmatively with `y` to the following prompt:
+This is an active research project.  The formalization represents a substantial effort in formalizing advanced complex analysis, harmonic analysis, and number theory. Many components are complete, while some sections remain under development (tracked in the various progress documentation files).
 
-```console
-Proceed with blueprint creation? [y/n]
-```
 
-Respond affirmatively with `y` to the following prompt:
+## Getting Started
 
-```console
-Modify lakefile and lake-manifest to allow checking declarations exist? [y/n] (y)
-```
-
-Respond affirmatively with `y` to the following prompt:
-
-```console
-Modify lakefile and lake-manifest to allow building the documentation? [y/n] (y):
-```
-
-If you want to generate a Jekyll-based home page for the project, respond
-affirmatively with `y` to the following prompt:
-
-```console
-Do you want to create a home page for the project, with links to the blueprint, the API documentation and the repository? [y/n]:
-```
-
-Respond affirmatively with `y` to the following prompt:
-
-```console
-Configure continuous integration to compile blueprint? [y/n] (y):
-```
-
-For more details about the LeanBlueprint package and its commands, please refer to its
-[documentation](https://github.com/PatrickMassot/leanblueprint/tree/master#starting-a-blueprint).
-
-After configuring the blueprint, please wait for the GitHub Action workflow to finish.
-You can keep track of the progress in the **Actions** tab of your repository.
-
-## Selected Projects Using this Template
-
-If you have used this template to create your own Lean project and would like to share it with the community, please consider opening a [PR](https://github.com/pitmonticone/LeanProject/pulls) to add your project to this list:
-
-- [Infinity Cosmos](https://github.com/emilyriehl/infinity-cosmos) by Emily Riehl et al.
-- [Analytic Number Theory Exponent Database](https://github.com/teorth/expdb) by Terence Tao et al.
-- [Equational Theories](https://github.com/teorth/equational_theories) by Terence Tao et al.
-- [Groupoid Model of Homotopy Type Theory](https://github.com/sinhp/GroupoidModelofHoTTinLean4) by Sina Hazratpour et al.
-- [Soundness of FRI](https://github.com/BoltonBailey/FRISoundness) by Bolton Bailey et al.
-- [Weil's Converse Theorem](https://github.com/CBirkbeck/WeilConverse) by Chris Birkbeck et al.
-- [Proofs from THE BOOK](https://github.com/mo271/FormalBook) by Moritz Firsching et al.
-- [Automata Theory](https://github.com/shetzl/autth) by Stefan Hetzl et al.
-- [Dirichlet Nonvanishing](https://github.com/CBirkbeck/DirichletNonvanishing) by Chris Birkbeck et al.
-- [Seymour's Decomposition Theorem](https://github.com/Ivan-Sergeyev/seymour) by Ivan Sergeyev et al.
-- [Spectral Theorem](https://github.com/oliver-butterley/SpectralThm) by Oliver Butterley and Yoh Tanimoto.
-- [NeuralNetworks](https://github.com/or4nge19/NeuralNetworks) by Matteo Cipollina.
-- [ABC Exceptions](https://github.com/b-mehta/ABC-Exceptions) by Bhavik Mehta et al.
-- [Sphere Packing in 8 Dimensions](https://github.com/thefundamentaltheor3m/Sphere-Packing-Lean) by Maryna Viazovska et al.
-- [LeanBridge](https://github.com/CBirkbeck/LeanBridge) by Chris Birkbeck et al. 
+1. Install Lean 4 (version specified in `lean-toolchain`)
+2. Clone this repository
+3. Run `lake build` to compile the project
+4. Explore the `Riemann/` directory for the main formalization
