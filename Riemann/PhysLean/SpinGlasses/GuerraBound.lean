@@ -14,6 +14,10 @@ algebraic* inequality that is the key ingredient once the derivative identity is
 See `SpinGlasses/Defs.lean` for the underlying trace computations and for the proof that the
 relevant combination is bounded by \((β^2/4)(1-q)^2\) via nonnegativity of a Gibbs average of a
 square.
+
+## References
+- M. Talagrand, *Mean Field Models for Spin Glasses*, Vol. I, Ch. 1, §1.3, Eq. (1.65)
+  (algebraic rewriting of the interpolation derivative as a difference of squares).
 -/
 
 variable {N : ℕ} {β q : ℝ}
@@ -24,6 +28,8 @@ variable {N : ℕ} {β q : ℝ}
 This is the inequality corresponding to Talagrand's Eq. (1.65) *after* Gaussian IBP has reduced
 the derivative of the interpolated expected free energy to a trace of the covariance kernels
 against the Hessian.
+
+Reference: Talagrand, Vol. I, Ch. 1, §1.3, Eq. (1.65).
 -/
 theorem guerra_derivative_bound_algebra_core (hN : 0 < N) (H : EnergySpace N) :
     let term_sk := (∑ σ, ∑ τ, sk_cov_kernel N β σ τ * hessian_free_energy N H (std_basis N σ) (std_basis N τ))
