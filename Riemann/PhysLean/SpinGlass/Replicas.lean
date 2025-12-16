@@ -1,6 +1,8 @@
 import Riemann.PhysLean.SpinGlass.SKModel
 import Riemann.PhysLean.SpinGlass.GuerraBound
+import Riemann.PhysLean.SpinGlass.Calculus
 import Mathlib.Analysis.SpecialFunctions.Sqrt
+import Mathlib.Analysis.Calculus.FDeriv.Mul
 import Mathlib.Data.Fintype.Pi
 import Mathlib.MeasureTheory.Integral.IntegrableOn
 
@@ -63,10 +65,13 @@ noncomputable def H_t (t : ℝ) : Ω → EnergySpace N :=
 **Equation (1.17)**: The Gibbs average of a function of `n` replicas.
 ⟨f⟩ = (1/Z^n) ∑_{σ^1...σ^n} f(σ) exp(-∑ H(σ^l))
 -/
+noncomputable def gibbs_average_n_det (H : EnergySpace N) (f : ReplicaFun N n) : ℝ :=
+  ∑ σs : ReplicaSpace N n, f σs * ∏ l, gibbs_pmf N H (σs l)
+
 noncomputable def gibbs_average_n (t : ℝ) (f : ReplicaFun N n) : Ω → ℝ :=
   fun w =>
     let H := H_t (N := N) (β := β) (h := h) (q := q) (sk := sk) (sim := sim) t w
-    ∑ σs : ReplicaSpace N n, f σs * ∏ l, gibbs_pmf N H (σs l)
+    gibbs_average_n_det (N := N) (n := n) H f
 
 /-- Expected Gibbs average: ν_t(f) = E[ ⟨f⟩_t ]. -/
 noncomputable def nu (t : ℝ) (f : ReplicaFun N n) : ℝ :=
@@ -257,7 +262,6 @@ lemma integrable_gibbs_average_n (t : ℝ) (f : ReplicaFun N n) :
     simpa [Real.norm_eq_abs] using
       (abs_gibbs_average_n_le (N := N) (β := β) (h := h) (q := q)
         (sk := sk) (sim := sim) (n := n) (t := t) (f := f) w)
-
   -- Measurability of the Gibbs average is by finite sums/products of measurable functions.
   have hU_meas : Measurable (sk.U) := sk.hU.repr_measurable
   have hV_meas : Measurable (sim.V) := sim.hV.repr_measurable
@@ -270,7 +274,6 @@ lemma integrable_gibbs_average_n (t : ℝ) (f : ReplicaFun N n) :
     -- Keep the addition parenthesization aligned with the definition of `H_t`:
     -- `H_t = (√t • U + √(1-t) • V) + H_field`.
     simpa [H_t, H_gauss] using ((h1.add h2).add h3)
-
   have h_gibbs_pmf_meas :
       ∀ (σ : Config N),
         Measurable fun w =>
@@ -307,7 +310,6 @@ lemma integrable_gibbs_average_n (t : ℝ) (f : ReplicaFun N n) :
           (hf := by intro τ _hτ; simpa using hterm τ))
     -- division is measurable
     simpa [SpinGlass.gibbs_pmf] using hNum.div hZ
-
   have hMeas :
       Measurable (fun w =>
         gibbs_average_n (N := N) (β := β) (h := h) (q := q) (sk := sk) (sim := sim) n t f w) := by
@@ -346,13 +348,11 @@ lemma integrable_gibbs_average_n (t : ℝ) (f : ReplicaFun N n) :
             gibbs_pmf N
               (H_t (N := N) (β := β) (h := h) (q := q) (sk := sk) (sim := sim) t w) (σs l))
         (hf := by intro σs _hσs; simpa using hterm σs))
-
   have hAESM :
       AEStronglyMeasurable
         (fun w =>
           gibbs_average_n (N := N) (β := β) (h := h) (q := q) (sk := sk) (sim := sim) n t f w) ℙ :=
     hMeas.aestronglyMeasurable
-
   -- Finish by boundedness on a finite measure space.
   have hBoundAE :
       ∀ᵐ w ∂ℙ, ‖gibbs_average_n (N := N) (β := β) (h := h) (q := q) (sk := sk) (sim := sim) n t f w‖
@@ -375,6 +375,216 @@ noncomputable def U_kernel_SK : InteractionKernel (N := N) :=
 
 noncomputable def U_interaction_SK (l l' : Fin n) (σs : ReplicaSpace N n) : ℝ :=
   U_interaction (N := N) (n := n) (U := U_kernel_SK (N := N) (β := β) (q := q)) l l' σs
+
+/-!
+### The Derivative of the Gibbs Average with respect to the Hamiltonian
+
+This is an essential building block for deriving the replica‑derivative formula (Talagrand Lemma
+1.4.2). Given a function `f : ReplicaFun N n` and a test direction `v : EnergySpace N`, the
+directional derivative of the Gibbs average with respect to the Hamiltonian `H` in direction `v` is:
+
+  `∑_{σs} f(σs) * ∑_l p_l * (⟨v⟩ - v(σ^l))`
+
+where `p_l` is the product Gibbs weight over replicas **except** replica `l`.
+-/
+
+/--
+The derivative of the Gibbs weight `∏ l, gibbs_pmf N H (σs l)` with respect to `H` in direction `v`.
+Mathematically:
+\[
+  \frac{d}{dε}\bigg|_{ε=0} ∏_l p_{H + ε v}(σ^l)
+    = ∏_l p_H(σ^l) \cdot \sum_l \bigl(\langle v \rangle_H - v(σ^l)\bigr),
+\]
+where \(\langle v \rangle_H = \sum_\sigma p_H(\sigma) v(\sigma)\).
+-/
+lemma fderiv_prod_gibbs_pmf_apply (H v : EnergySpace N) (σs : ReplicaSpace N n) :
+    fderiv ℝ (fun H' => ∏ l : Fin n, gibbs_pmf N H' (σs l)) H v =
+      (∏ l : Fin n, gibbs_pmf N H (σs l)) *
+        ∑ l : Fin n, ((∑ τ : Config N, gibbs_pmf N H τ * v τ) - v (σs l)) := by
+  classical
+  -- `gibbs_pmf N (·) σ` is smooth in `H` and its derivative was computed in `fderiv_gibbs_pmf_apply`.
+  -- We differentiate the product using `fderiv_finset_prod`.
+  have hdiff : ∀ l : Fin n,
+      DifferentiableAt ℝ (fun H' => gibbs_pmf N H' (σs l)) H := by
+    intro l
+    exact SpinGlass.differentiableAt_gibbs_pmf (N := N) (H := H) (σ := σs l)
+  have h_fderiv_prod :=
+    fderiv_finset_prod
+      (𝕜 := ℝ) (E := EnergySpace N) (𝔸' := ℝ) (u := (Finset.univ : Finset (Fin n)))
+      (g := fun l H' => gibbs_pmf N H' (σs l))
+      (fun l _hl => hdiff l)
+  rw [h_fderiv_prod]
+  simp only [ContinuousLinearMap.sum_apply, ContinuousLinearMap.smul_apply]
+  -- Substitute the explicit derivative `fderiv_gibbs_pmf_apply` for each term.
+  have hterm : ∀ l : Fin n,
+      (∏ j ∈ (Finset.univ : Finset (Fin n)).erase l, gibbs_pmf N H (σs j)) *
+        fderiv ℝ (fun H' => gibbs_pmf N H' (σs l)) H v
+      = (∏ j ∈ (Finset.univ : Finset (Fin n)).erase l, gibbs_pmf N H (σs j)) *
+          (gibbs_pmf N H (σs l) *
+            ((∑ τ : Config N, gibbs_pmf N H τ * v τ) - v (σs l))) := by
+    intro l
+    simp [SpinGlass.fderiv_gibbs_pmf_apply]
+  -- Simplify the sum over `l`.
+  calc
+    ∑ l ∈ (Finset.univ : Finset (Fin n)),
+        (∏ j ∈ (Finset.univ : Finset (Fin n)).erase l, gibbs_pmf N H (σs j)) *
+          fderiv ℝ (fun H' => gibbs_pmf N H' (σs l)) H v
+      = ∑ l ∈ (Finset.univ : Finset (Fin n)),
+          (∏ j ∈ (Finset.univ : Finset (Fin n)).erase l, gibbs_pmf N H (σs j)) *
+            (gibbs_pmf N H (σs l) *
+              ((∑ τ : Config N, gibbs_pmf N H τ * v τ) - v (σs l))) := by
+          refine Finset.sum_congr rfl (fun l _hl => ?_)
+          simpa using hterm l
+    _ = ∑ l ∈ (Finset.univ : Finset (Fin n)),
+          (∏ j ∈ (Finset.univ : Finset (Fin n)).erase l, gibbs_pmf N H (σs j)) *
+            (gibbs_pmf N H (σs l) *
+              ((∑ τ : Config N, gibbs_pmf N H τ * v τ) - v (σs l))) := by
+          rfl
+    _ = ∑ l ∈ (Finset.univ : Finset (Fin n)),
+          (∏ j : Fin n, gibbs_pmf N H (σs j)) *
+            ((∑ τ : Config N, gibbs_pmf N H τ * v τ) - v (σs l)) := by
+            refine Finset.sum_congr rfl (fun l _hl => ?_)
+            -- `(∏_{j ≠ l} p_j) * p_l = ∏_j p_j`
+            have herase : (∏ j ∈ (Finset.univ : Finset (Fin n)).erase l, gibbs_pmf N H (σs j)) *
+                gibbs_pmf N H (σs l)
+                = ∏ j : Fin n, gibbs_pmf N H (σs j) := by
+              classical
+              simpa using
+                (Finset.prod_erase_mul
+                  (s := (Finset.univ : Finset (Fin n)))
+                  (f := fun j => gibbs_pmf N H (σs j))
+                  (a := l) (Finset.mem_univ l))
+            -- pull `((∑ τ, ...) - v (σs l))` out to the far right, then rewrite the left factor via `herase`
+            have := congrArg (fun a => a * (((∑ τ : Config N, gibbs_pmf N H τ * v τ) - v (σs l)))) herase
+            -- the remaining goal is purely associativity/commutativity
+            -- (we keep it explicit to avoid fragile `simp` behaviour)
+            simpa [mul_assoc, mul_left_comm, mul_comm] using this
+    _ = (∏ j : Fin n, gibbs_pmf N H (σs j)) *
+          ∑ l : Fin n, ((∑ τ : Config N, gibbs_pmf N H τ * v τ) - v (σs l)) := by
+            -- factor the constant `∏_j p_j` out of the sum
+            -- (`∑ l : Fin n, …` is definitional equal to `∑ l ∈ Finset.univ, …`.)
+            simpa using
+              (Finset.mul_sum (s := (Finset.univ : Finset (Fin n)))
+                (f := fun l => (∑ τ : Config N, gibbs_pmf N H τ * v τ) - v (σs l))
+                (a := (∏ j : Fin n, gibbs_pmf N H (σs j)))).symm
+
+/-- Differentiability of the product Gibbs weight as a function of the Hamiltonian. -/
+lemma differentiableAt_prod_gibbs_pmf (H : EnergySpace N) (σs : ReplicaSpace N n) :
+    DifferentiableAt ℝ (fun H' => ∏ l : Fin n, gibbs_pmf N H' (σs l)) H := by
+  classical
+  -- Use `HasFDerivAt.finset_prod` and the differentiability of `gibbs_pmf`.
+  have hg :
+      ∀ l ∈ (Finset.univ : Finset (Fin n)),
+        HasFDerivAt (fun H' => gibbs_pmf N H' (σs l))
+          (fderiv ℝ (fun H' => gibbs_pmf N H' (σs l)) H) H := by
+    intro l _hl
+    exact (SpinGlass.differentiableAt_gibbs_pmf (N := N) (H := H) (σ := σs l)).hasFDerivAt
+  have hHas :=
+    (HasFDerivAt.finset_prod (u := (Finset.univ : Finset (Fin n)))
+      (g := fun l H' => gibbs_pmf N H' (σs l))
+      (g' := fun l => fderiv ℝ (fun H' => gibbs_pmf N H' (σs l)) H)
+      (x := H) hg).differentiableAt
+  -- The `Fintype` product is definitional equal to the `Finset.univ` product.
+  simpa using hHas
+
+/-- Directional derivative of `gibbs_average_n_det` with respect to the Hamiltonian. -/
+lemma fderiv_gibbs_average_n_det_apply (H v : EnergySpace N) (f : ReplicaFun N n) :
+    fderiv ℝ (fun H' => gibbs_average_n_det (N := N) (n := n) H' f) H v =
+      ∑ σs : ReplicaSpace N n,
+        f σs * (∏ l : Fin n, gibbs_pmf N H (σs l)) *
+          ∑ l : Fin n, ((∑ τ : Config N, gibbs_pmf N H τ * v τ) - v (σs l)) := by
+  classical
+  let u : Finset (ReplicaSpace N n) := Finset.univ
+  let A : ReplicaSpace N n → EnergySpace N → ℝ :=
+    fun σs H' => f σs * ∏ l : Fin n, gibbs_pmf N H' (σs l)
+
+  have hA_diff : ∀ σs ∈ u, DifferentiableAt ℝ (A σs) H := by
+    intro σs _hσs
+    have hprod :
+        DifferentiableAt ℝ (fun H' => ∏ l : Fin n, gibbs_pmf N H' (σs l)) H :=
+      differentiableAt_prod_gibbs_pmf (N := N) (n := n) (H := H) σs
+    simpa [A] using (DifferentiableAt.const_mul hprod (f σs))
+
+  have hfderiv_sum :
+      fderiv ℝ (fun H' : EnergySpace N => ∑ σs ∈ u, A σs H') H
+        = ∑ σs ∈ u, fderiv ℝ (A σs) H := by
+    simpa [u] using (fderiv_fun_sum (u := u) (A := A) (x := H) hA_diff)
+
+  -- Rewrite `gibbs_average_n_det` in terms of the finset sum `∑ σs ∈ u, A σs`.
+  -- (This is definitional because `u = Finset.univ`.)
+  have hrewrite :
+      (fun H' : EnergySpace N => gibbs_average_n_det (N := N) (n := n) H' f)
+        = fun H' : EnergySpace N => ∑ σs ∈ u, A σs H' := by
+    funext H'
+    simp [gibbs_average_n_det, u, A]
+
+  -- Apply the `fderiv_fun_sum` formula and compute termwise using `fderiv_const_mul`
+  -- and `fderiv_prod_gibbs_pmf_apply`.
+  -- We keep the algebra explicit to avoid `simp` producing the alternative form
+  -- `n * E[v] - ∑ v(σ^l)`.
+  rw [hrewrite]
+  -- replace the `Fintype` sum with the `Finset.univ` sum
+  have : fderiv ℝ (fun H' : EnergySpace N => ∑ σs ∈ u, A σs H') H v =
+      (∑ σs ∈ u, fderiv ℝ (A σs) H) v := by
+    -- rewrite via `hfderiv_sum`
+    simp [hfderiv_sum]
+  -- now expand the RHS at direction `v`
+  -- and simplify each term
+  simp [this, u, A, fderiv_const_mul, differentiableAt_prod_gibbs_pmf,
+    fderiv_prod_gibbs_pmf_apply, mul_assoc, mul_left_comm, mul_comm, mul_add, sub_eq_add_neg,
+    Finset.mul_sum]
+
+omit [IsProbabilityMeasure (ℙ : Measure Ω)] in
+/--
+Differentiability of the `gibbs_average_n` in the Hamiltonian `H`.
+-/
+lemma differentiableAt_gibbs_average_n (t : ℝ) (f : ReplicaFun N n) (w : Ω) :
+    DifferentiableAt ℝ
+      (fun H' => ∑ σs : ReplicaSpace N n, f σs * ∏ l, gibbs_pmf N H' (σs l))
+      (H_t (N := N) (β := β) (h := h) (q := q) (sk := sk) (sim := sim) t w) := by
+  classical
+  let H := H_t (N := N) (β := β) (h := h) (q := q) (sk := sk) (sim := sim) t w
+  -- Each term in the finite sum is differentiable (product of differentiable factors).
+  have hterm : ∀ σs : ReplicaSpace N n,
+      DifferentiableAt ℝ (fun H' => f σs * ∏ l, gibbs_pmf N H' (σs l)) H := by
+    intro σs
+    -- First, differentiate the product Gibbs weight in `H'`.
+    have hprod :
+        DifferentiableAt ℝ (fun H' => ∏ l : Fin n, gibbs_pmf N H' (σs l)) H := by
+      -- Prove `HasFDerivAt` for the finset product and take `differentiableAt`.
+      have hg :
+          ∀ l ∈ (Finset.univ : Finset (Fin n)),
+            HasFDerivAt (fun H' => gibbs_pmf N H' (σs l))
+              (fderiv ℝ (fun H' => gibbs_pmf N H' (σs l)) H) H := by
+        intro l _hl
+        exact
+          (SpinGlass.differentiableAt_gibbs_pmf (N := N) (H := H) (σ := σs l)).hasFDerivAt
+      have hHas :=
+        (HasFDerivAt.finset_prod (u := (Finset.univ : Finset (Fin n)))
+          (g := fun l H' => gibbs_pmf N H' (σs l))
+          (g' := fun l => fderiv ℝ (fun H' => gibbs_pmf N H' (σs l)) H)
+          (x := H) hg).differentiableAt
+      -- The `Fintype` product is definitional equal to the `Finset.univ` product.
+      simpa using hHas
+    -- Multiply by the constant factor `f σs`.
+    exact DifferentiableAt.const_mul hprod (f σs)
+
+  -- Now differentiate the finite sum over replica configurations.
+  -- The `Fintype` sum is definitional equal to the `Finset.univ` sum.
+  have hsum :
+      DifferentiableAt ℝ
+        (fun H' => ∑ σs ∈ (Finset.univ : Finset (ReplicaSpace N n)),
+          f σs * ∏ l, gibbs_pmf N H' (σs l)) H := by
+    refine
+      (DifferentiableAt.fun_sum (𝕜 := ℝ) (E := EnergySpace N) (F := ℝ)
+        (u := (Finset.univ : Finset (ReplicaSpace N n)))
+        (A := fun σs : ReplicaSpace N n => fun H' : EnergySpace N =>
+          f σs * ∏ l, gibbs_pmf N H' (σs l))
+        (x := H) ?_)
+    intro σs _hσs
+    simpa using hterm σs
+
+  simpa using hsum
 
 end ReplicaCalculus
 
