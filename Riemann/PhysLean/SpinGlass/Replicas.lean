@@ -2,8 +2,10 @@ import Riemann.PhysLean.SpinGlass.SKModel
 import Riemann.PhysLean.SpinGlass.GuerraBound
 import Riemann.PhysLean.SpinGlass.Calculus
 import Mathlib.Analysis.SpecialFunctions.Sqrt
+import Mathlib.Analysis.InnerProductSpace.ProdL2
 import Mathlib.Analysis.Calculus.FDeriv.Mul
 import Mathlib.Data.Fintype.Pi
+import Mathlib.Probability.Independence.InfinitePi
 import Mathlib.MeasureTheory.Integral.IntegrableOn
 
 open MeasureTheory ProbabilityTheory Real BigOperators SpinGlass SpinGlass.Algebra
@@ -61,6 +63,299 @@ noncomputable def H_t (t : ℝ) : Ω → EnergySpace N :=
     H_gauss (N := N) (β := β) (h := h) (q := q) (sk := sk) (sim := sim) t w
       + H_field (N := N) (h := h)
 
+/-!
+### Joint Gaussian packaging for `(U,V)`
+
+To apply Hilbert-space Gaussian IBP to functions depending on **both** processes `U` and `V`,
+we package the pair `(sk.U, sim.V)` as a single `IsGaussianHilbert` random variable valued in
+the `L²`-product space `WithLp 2 (EnergySpace N × EnergySpace N)`.
+
+This construction uses the independence assumption `sk.U ⟂ᵢ sim.V` and the existing coordinate
+models `sk.hU` and `sim.hV`.
+-/
+
+/-- The joint Gaussian vector `(U,V)` in the `L²`-product space. -/
+noncomputable def UV : Ω → WithLp 2 (EnergySpace N × EnergySpace N) :=
+  fun ω => WithLp.toLp 2 (sk.U ω, sim.V ω)
+
+/-- `UV` is a centered Gaussian Hilbert random variable when `U` and `V` are independent. -/
+noncomputable def isGaussianHilbert_UV
+    (hIndep : ProbabilityTheory.IndepFun sk.U sim.V (ℙ : Measure Ω)) :
+    IsGaussianHilbert (UV (N := N) (β := β) (h := h) (q := q) (sk := sk) (sim := sim)) := by
+  classical
+  -- abbreviate the two coordinate models
+  let hU := sk.hU
+  let hV := sim.hV
+  -- Build the combined coordinate family on a sigma index (Bool chooses which process).
+  let κ : Bool → Type* := fun
+    | true => hU.ι
+    | false => hV.ι
+  let X : (b : Bool) → (j : κ b) → Ω → ℝ :=
+    fun b =>
+      match b with
+      | true => fun j => hU.c j
+      | false => fun j => hV.c j
+  have mX : ∀ b j, Measurable (X b j) := by
+    intro b j
+    cases b <;> simpa [X] using (by
+      first | exact hV.c_meas j | exact hU.c_meas j)
+  have h2 : ∀ b, ProbabilityTheory.iIndepFun (X b) (ℙ : Measure Ω) := by
+    intro b
+    cases b <;> simpa [X] using (by
+      first | exact hV.c_indep | exact hU.c_indep)
+  -- Independence across `b : Bool` of the *tuples* `(X b ·)`.
+  have h1 : ProbabilityTheory.iIndepFun (fun b ω => (X b · ω)) (ℙ : Measure Ω) := by
+    -- For `Bool`, mutual independence reduces to the 2-variable case.
+    -- We derive independence of the coordinate-tuples from independence of `(U,V)` by composition.
+    have hφ : Measurable (fun u : EnergySpace N => fun i : hU.ι => inner ℝ u (hU.w i)) := by
+      refine measurable_pi_lambda _ ?_
+      intro i
+      -- `u ↦ ⟪u, w i⟫` is continuous, hence measurable.
+      have hcont : Continuous (fun u : EnergySpace N => inner ℝ u (hU.w i)) := by
+        have hpair : Continuous (fun u : EnergySpace N => (u, hU.w i)) :=
+          (continuous_id.prodMk continuous_const)
+        simpa using (continuous_inner.comp hpair)
+      exact hcont.measurable
+    have hψ : Measurable (fun v : EnergySpace N => fun j : hV.ι => inner ℝ v (hV.w j)) := by
+      refine measurable_pi_lambda _ ?_
+      intro j
+      have hcont : Continuous (fun v : EnergySpace N => inner ℝ v (hV.w j)) := by
+        have hpair : Continuous (fun v : EnergySpace N => (v, hV.w j)) :=
+          (continuous_id.prodMk continuous_const)
+        simpa using (continuous_inner.comp hpair)
+      exact hcont.measurable
+    have hInd_tuples :
+        ProbabilityTheory.IndepFun
+          (fun ω : Ω => fun i : hU.ι => hU.c i ω)
+          (fun ω : Ω => fun j : hV.ι => hV.c j ω)
+          (ℙ : Measure Ω) := by
+      -- Start from `IndepFun (φ ∘ U) (ψ ∘ V)` and rewrite with `coord_eq_c`.
+      have hcomp :
+          ProbabilityTheory.IndepFun (fun ω => (fun u => fun i : hU.ι => inner ℝ u (hU.w i)) (sk.U ω))
+            (fun ω => (fun v => fun j : hV.ι => inner ℝ v (hV.w j)) (sim.V ω))
+            (ℙ : Measure Ω) :=
+        (ProbabilityTheory.IndepFun.comp hIndep hφ hψ)
+      -- Replace the composed maps by the coordinate-tuples `hU.c` and `hV.c`.
+      refine ProbabilityTheory.IndepFun.congr hcomp ?_ ?_
+      · -- left tuple
+        refine Filter.Eventually.of_forall (fun ω => ?_)
+        funext i
+        have hcoord : PhysLean.Probability.GaussianIBP.coord hU.w sk.U i = hU.c i := by
+          funext ω'
+          simpa using
+            congrArg (fun f => f i ω')
+              (PhysLean.Probability.GaussianIBP.coord_eq_c (g := sk.U) hU)
+        -- evaluate at `ω`
+        simpa [PhysLean.Probability.GaussianIBP.coord] using congrArg (fun f => f ω) hcoord
+      · -- right tuple
+        refine Filter.Eventually.of_forall (fun ω => ?_)
+        funext j
+        have hcoord : PhysLean.Probability.GaussianIBP.coord hV.w sim.V j = hV.c j := by
+          funext ω'
+          simpa using
+            congrArg (fun f => f j ω')
+              (PhysLean.Probability.GaussianIBP.coord_eq_c (g := sim.V) hV)
+        simpa [PhysLean.Probability.GaussianIBP.coord] using congrArg (fun f => f ω) hcoord
+    -- Now prove `iIndepFun` on `Bool` by cases on the finset.
+    refine
+      (ProbabilityTheory.iIndepFun_iff (m := fun b => inferInstance)
+        (f := fun b ω => (X b · ω)) (μ := (ℙ : Measure Ω))).2 ?_
+    intro s f' hs
+    classical
+    -- `Bool` finsets are: `∅`, `{false}`, `{true}`, `{false,true}`.
+    by_cases hfalse : false ∈ s
+    · by_cases htrue : true ∈ s
+      · -- both are present
+        have hs' :
+            (ℙ : Measure Ω) (f' false ∩ f' true) =
+              (ℙ : Measure Ω) (f' false) * (ℙ : Measure Ω) (f' true) := by
+          -- Use independence of the two tuples.
+          have hInd_bool :
+              ProbabilityTheory.IndepFun (fun ω => (X false · ω)) (fun ω => (X true · ω))
+                (ℙ : Measure Ω) := by
+            simpa [X] using hInd_tuples.symm
+          -- Convert to independence of the corresponding measurable sets.
+          have hInd_ms :
+              ProbabilityTheory.Indep
+                (MeasurableSpace.comap (fun ω => (X false · ω)) (inferInstance))
+                (MeasurableSpace.comap (fun ω => (X true · ω)) (inferInstance))
+                (ℙ : Measure Ω) := by
+            simpa [ProbabilityTheory.IndepFun] using
+              (ProbabilityTheory.IndepFun_iff_Indep (f := fun ω => (X false · ω))
+                (g := fun ω => (X true · ω)) (μ := (ℙ : Measure Ω))).1 hInd_bool
+          have hA :
+              MeasurableSet[
+                MeasurableSpace.comap (fun ω => (X false · ω)) (inferInstance)] (f' false) := by
+            simpa using hs false hfalse
+          have hB :
+              MeasurableSet[
+                MeasurableSpace.comap (fun ω => (X true · ω)) (inferInstance)] (f' true) := by
+            simpa using hs true htrue
+          have hIndSet :
+              ProbabilityTheory.IndepSet (f' false) (f' true) (ℙ : Measure Ω) :=
+            hInd_ms.indepSet_of_measurableSet hA hB
+          simpa [Set.inter_comm] using hIndSet.measure_inter_eq_mul
+        -- reduce the general `Finset` intersection/product to the `{false,true}` case
+        have hs_eq : s = ({false, true} : Finset Bool) := by
+          ext b
+          cases b <;> simp [hfalse, htrue]
+        subst hs_eq
+        -- Rewrite `⋂ i, f' i` as `f' false ∩ f' true` and use `hs'`.
+        have hInter : (⋂ i : Bool, f' i) = f' false ∩ f' true := by
+          ext ω; simp
+        simpa [hInter] using hs'
+      · -- only `false` present
+        have hs_eq : s = ({false} : Finset Bool) := by
+          ext b
+          cases b <;> simp [hfalse, htrue]
+        subst hs_eq
+        simp
+    · -- `false` not in `s`
+      by_cases htrue : true ∈ s
+      · have hs_eq : s = ({true} : Finset Bool) := by
+          ext b
+          cases b <;> simp [hfalse, htrue]
+        subst hs_eq
+        simp
+      · -- neither present
+        have hs_eq : s = (∅ : Finset Bool) := by
+          ext b
+          cases b <;> simp [hfalse, htrue]
+        subst hs_eq
+        simp
+  -- Combine the families using `iIndepFun_uncurry` and transport to a sum-indexed family.
+  have h_uncurry :
+      ProbabilityTheory.iIndepFun (fun (p : (b : Bool) × κ b) ω => X p.1 p.2 ω) (ℙ : Measure Ω) :=
+    ProbabilityTheory.iIndepFun_uncurry (P := (ℙ : Measure Ω)) (X := X) mX h1 h2
+  -- Surjective map from the sigma index `(b, j)` to the sum index.
+  let g : (b : Bool) × κ b → hU.ι ⊕ hV.ι :=
+    fun
+      | ⟨true, i⟩ => Sum.inl i
+      | ⟨false, j⟩ => Sum.inr j
+  have hg : Function.Surjective g := by
+    intro s
+    cases s with
+    | inl i => exact ⟨⟨true, i⟩, rfl⟩
+    | inr j => exact ⟨⟨false, j⟩, rfl⟩
+  have h_sum :
+      ProbabilityTheory.iIndepFun (fun i ω => (Sum.elim hU.c hV.c i) ω) (ℙ : Measure Ω) := by
+    -- `h_uncurry` is an independence statement on a surjective precomposition of the sum-family.
+    have hpre :
+        ProbabilityTheory.iIndepFun (fun p ω => (Sum.elim hU.c hV.c (g p)) ω) (ℙ : Measure Ω) := by
+      -- `h_uncurry` is expressed using `X`; transport it to the `Sum.elim` presentation.
+      refine
+        (ProbabilityTheory.iIndepFun.congr (μ := (ℙ : Measure Ω))
+            (f := fun p ω => X p.1 p.2 ω)
+            (g := fun p ω => (Sum.elim hU.c hV.c (g p)) ω) ?_) h_uncurry
+      intro p
+      refine Filter.Eventually.of_forall (fun ω => ?_)
+      cases p with
+      | mk b j =>
+        cases b <;> rfl
+    refine ProbabilityTheory.iIndepFun.of_precomp (μ := (ℙ : Measure Ω)) (g := g) hg ?_
+    exact hpre
+  -- Assemble the `IsGaussianHilbert` structure.
+  refine
+    { ι := hU.ι ⊕ hV.ι
+      fintype_ι := inferInstance
+      w := hU.w.prod hV.w
+      τ := Sum.elim hU.τ hV.τ
+      c := Sum.elim hU.c hV.c
+      c_meas := by
+        intro i
+        cases i <;> simpa using (by
+          first | exact hU.c_meas _ | exact hV.c_meas _)
+      c_gauss := by
+        intro i
+        cases i <;> simpa using (by
+          first | exact hU.c_gauss _ | exact hV.c_gauss _)
+      c_indep := by
+        simpa using h_sum
+      repr := by
+        -- The ONB sum splits into the two component ONB sums.
+        funext ω
+        apply (WithLp.ofLp_injective (p := (2 : ENNReal)))
+        simp [UV, hU.repr, hV.repr, OrthonormalBasis.prod_apply, WithLp.ofLp]
+        -- Reduce to an equality in the underlying product `EnergySpace × EnergySpace`.
+        ext i
+        · -- fst component
+          -- push `Prod.fst` through both sums and simplify the zero-component
+          have hfstU :
+              (∑ x : hU.ι, hU.c x ω • (hU.w x, (0 : EnergySpace N))).1
+                = ∑ x : hU.ι, hU.c x ω • hU.w x := by
+            -- push `fst` through the sum; each term projects to `c • w`
+            simpa using
+              (Prod.fst_sum (s := (Finset.univ : Finset hU.ι))
+                (f := fun x : hU.ι => hU.c x ω • (hU.w x, (0 : EnergySpace N))))
+          have hfstV :
+              (∑ x : hV.ι, hV.c x ω • ((0 : EnergySpace N), hV.w x)).1 = 0 := by
+            -- push `Prod.fst` through the sum; each term is `0`
+            calc
+              (∑ x : hV.ι, hV.c x ω • ((0 : EnergySpace N), hV.w x)).1
+                  = ∑ x : hV.ι, (hV.c x ω • ((0 : EnergySpace N), hV.w x)).1 := by
+                      simpa using
+                        (Prod.fst_sum (s := (Finset.univ : Finset hV.ι))
+                          (f := fun x : hV.ι => hV.c x ω • ((0 : EnergySpace N), hV.w x)))
+              _ = ∑ x : hV.ι, (0 : EnergySpace N) := by simp
+              _ = 0 := by simp
+          -- evaluate at configuration `i`
+          have hfstU' :
+              (∑ i' : hU.ι, hU.c i' ω • hU.w i') i
+                = (∑ x : hU.ι, hU.c x ω • (hU.w x, (0 : EnergySpace N))).1 i := by
+            simpa using (congrArg (fun H : EnergySpace N => H i) hfstU.symm)
+          -- reduce the RHS to the `U`-term using `hfstV`
+          have hfstV' : ((∑ x : hV.ι, hV.c x ω • ((0 : EnergySpace N), hV.w x)).1) i = 0 := by
+            -- evaluate `hfstV` at the configuration `i`
+            simpa using congrArg (fun H : EnergySpace N => H i) hfstV
+          -- close the goal by rewriting the `U`-part via `hfstU'`
+          -- and killing the `V`-part via `hfstV'`
+          calc
+            (WithLp.toLp 2
+                (∑ j : hU.ι, hU.c j ω • hU.w j, ∑ j : hV.ι, hV.c j ω • hV.w j)).1 i
+                = (∑ x : hU.ι, hU.c x ω • (hU.w x, (0 : EnergySpace N))).1 i := by
+                    simpa [WithLp.toLp] using hfstU'
+            _ =
+                (∑ x : hU.ι, hU.c x ω • (hU.w x, (0 : EnergySpace N))
+                  + ∑ x : hV.ι, hV.c x ω • ((0 : EnergySpace N), hV.w x)).1 i := by
+                    aesop
+        · -- snd component
+          have hsndU :
+              (∑ x : hU.ι, hU.c x ω • (hU.w x, (0 : EnergySpace N))).2 = 0 := by
+            calc
+              (∑ x : hU.ι, hU.c x ω • (hU.w x, (0 : EnergySpace N))).2
+                  = ∑ x : hU.ι, (hU.c x ω • (hU.w x, (0 : EnergySpace N))).2 := by
+                      simpa using
+                        (Prod.snd_sum (s := (Finset.univ : Finset hU.ι))
+                          (f := fun x : hU.ι => hU.c x ω • (hU.w x, (0 : EnergySpace N))))
+              _ = ∑ x : hU.ι, (0 : EnergySpace N) := by simp
+              _ = 0 := by simp
+          have hsndV :
+              (∑ x : hV.ι, hV.c x ω • ((0 : EnergySpace N), hV.w x)).2
+                = ∑ x : hV.ι, hV.c x ω • hV.w x := by
+            simpa using
+              (Prod.snd_sum (s := (Finset.univ : Finset hV.ι))
+                (f := fun x : hV.ι => hV.c x ω • ((0 : EnergySpace N), hV.w x)))
+          have hsndV' :
+              (∑ i' : hV.ι, hV.c i' ω • hV.w i') i
+                = (∑ x : hV.ι, hV.c x ω • ((0 : EnergySpace N), hV.w x)).2 i := by
+            exact congrArg (fun H : EnergySpace N => H i) hsndV.symm
+          have hsndU' : ((∑ x : hU.ι, hU.c x ω • (hU.w x, (0 : EnergySpace N))).2) i = 0 := by
+            simpa using congrArg (fun H : EnergySpace N => H i) hsndU
+          -- close the goal by rewriting the `V`-part via `hsndV'`
+          -- and killing the `U`-part via `hsndU'`
+          calc
+            (WithLp.toLp 2
+                (∑ j : hU.ι, hU.c j ω • hU.w j, ∑ j : hV.ι, hV.c j ω • hV.w j)).2 i
+                = (∑ j : hV.ι, hV.c j ω • hV.w j) i := by
+                    simp [WithLp.toLp]
+            _ = (∑ x : hV.ι, hV.c x ω • ((0 : EnergySpace N), hV.w x)).2 i := by
+                  exact hsndV'
+            _ =
+                (∑ x : hU.ι, hU.c x ω • (hU.w x, (0 : EnergySpace N))
+                  + ∑ x : hV.ι, hV.c x ω • ((0 : EnergySpace N), hV.w x)).2 i := by
+                    aesop
+    }
+
 /--
 **Equation (1.17)**: The Gibbs average of a function of `n` replicas.
 ⟨f⟩ = (1/Z^n) ∑_{σ^1...σ^n} f(σ) exp(-∑ H(σ^l))
@@ -72,6 +367,71 @@ noncomputable def gibbs_average_n (t : ℝ) (f : ReplicaFun N n) : Ω → ℝ :=
   fun w =>
     let H := H_t (N := N) (β := β) (h := h) (q := q) (sk := sk) (sim := sim) t w
     gibbs_average_n_det (N := N) (n := n) H f
+
+/-!
+### Basic bounds for `gibbs_average_n_det`
+
+These are used both for integrability and for “moderate growth” hypotheses in Gaussian IBP.
+-/
+
+lemma abs_gibbs_average_n_det_le (H : EnergySpace N) (f : ReplicaFun N n) :
+    |gibbs_average_n_det (N := N) (n := n) H f| ≤ ∑ σs : ReplicaSpace N n, |f σs| := by
+  classical
+  -- Triangle inequality, using `0 ≤ gibbs_pmf ≤ 1`.
+  have hnonneg :
+      ∀ σs : ReplicaSpace N n, 0 ≤ ∏ l, gibbs_pmf N H (σs l) :=
+    fun σs => by
+      classical
+      refine Finset.prod_nonneg ?_
+      intro l _hl
+      exact SpinGlass.gibbs_pmf_nonneg (N := N) (H := H) (σ := σs l)
+  have hprod_le_one :
+      ∀ σs : ReplicaSpace N n, (∏ l, gibbs_pmf N H (σs l)) ≤ (1 : ℝ) :=
+    fun σs => by
+      classical
+      -- `∏ l, p_l ≤ 1` since each `0 ≤ p_l ≤ 1`.
+      have hfac : ∀ l : Fin n, gibbs_pmf N H (σs l) ≤ 1 := by
+        intro l
+        have hZpos : 0 < Z N H := SpinGlass.Z_pos (N := N) (H := H)
+        have hterm_le : Real.exp (-H (σs l)) ≤ Z N H := by
+          -- a single term is bounded by the sum `Z`
+          have :=
+            Finset.single_le_sum
+              (s := (Finset.univ : Finset (Config N)))
+              (f := fun τ => Real.exp (-H τ))
+              (hf := fun τ _hτ => (Real.exp_pos _).le)
+              (a := σs l) (h := Finset.mem_univ (σs l))
+          simpa [Z] using this
+        have := (div_le_one hZpos).2 hterm_le
+        simpa [SpinGlass.gibbs_pmf] using this
+      simpa using
+        (Finset.prod_le_one (s := (Finset.univ : Finset (Fin n)))
+          (f := fun l => gibbs_pmf N H (σs l))
+          (fun l _hl => SpinGlass.gibbs_pmf_nonneg (N := N) (H := H) (σ := σs l))
+          (fun l _hl => hfac l))
+  calc
+    |gibbs_average_n_det (N := N) (n := n) H f|
+        = |∑ σs : ReplicaSpace N n, f σs * ∏ l, gibbs_pmf N H (σs l)| := by
+            rfl
+    _ ≤ ∑ σs : ReplicaSpace N n, |f σs * ∏ l, gibbs_pmf N H (σs l)| := by
+          -- finset triangle inequality
+          simpa using
+            (Finset.abs_sum_le_sum_abs
+              (f := fun σs : ReplicaSpace N n => f σs * ∏ l, gibbs_pmf N H (σs l))
+              (s := (Finset.univ : Finset (ReplicaSpace N n))))
+    _ = ∑ σs : ReplicaSpace N n, (|f σs| * |∏ l, gibbs_pmf N H (σs l)|) := by
+          refine Finset.sum_congr rfl (fun σs _hσs => ?_)
+          simp [abs_mul]
+    _ ≤ ∑ σs : ReplicaSpace N n, |f σs| := by
+          refine Finset.sum_le_sum ?_
+          intro σs _hσs
+          have habs :
+              |∏ l, gibbs_pmf N H (σs l)| = ∏ l, gibbs_pmf N H (σs l) := by
+            have h0 : 0 ≤ ∏ l, gibbs_pmf N H (σs l) := hnonneg σs
+            simp [abs_of_nonneg h0]
+          have hle1 : |∏ l, gibbs_pmf N H (σs l)| ≤ 1 := by
+            simpa [habs] using hprod_le_one σs
+          simpa using (mul_le_mul_of_nonneg_left hle1 (abs_nonneg (f σs)))
 
 /-- Expected Gibbs average: ν_t(f) = E[ ⟨f⟩_t ]. -/
 noncomputable def nu (t : ℝ) (f : ReplicaFun N n) : ℝ :=
