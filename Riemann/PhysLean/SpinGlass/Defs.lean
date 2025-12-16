@@ -46,6 +46,12 @@ noncomputable instance : FiniteDimensional ℝ (EnergySpace N) := by
 def std_basis (σ : Config N) : EnergySpace N :=
   WithLp.toLp 2 (fun τ => if σ = τ then 1 else 0)
 
+lemma inner_std_basis_apply (σ : Config N) (H : EnergySpace N) :
+    inner ℝ (std_basis N σ) H = H σ := by
+  classical
+  -- Expand the `PiLp 2` inner product and use the `if`-Kronecker delta.
+  simp [std_basis, PiLp.inner_apply]
+
 noncomputable section
 
 def overlap (σ τ : Config N) : ℝ :=
@@ -107,6 +113,20 @@ lemma gibbs_pmf_pos (H : EnergySpace N) (σ : Config N) : 0 < gibbs_pmf N H σ :
 
 lemma gibbs_pmf_nonneg (H : EnergySpace N) (σ : Config N) : 0 ≤ gibbs_pmf N H σ :=
   le_of_lt (gibbs_pmf_pos (N := N) (H := H) σ)
+
+lemma gibbs_pmf_le_one (H : EnergySpace N) (σ : Config N) : gibbs_pmf N H σ ≤ 1 := by
+  classical
+  have hZpos : 0 < Z N H := Z_pos (N := N) (H := H)
+  have hterm_le :
+      Real.exp (-H σ) ≤ Z N H := by
+    -- A single term is bounded by the full sum `Z`.
+    simpa [Z] using
+      (Finset.single_le_sum (s := (Finset.univ : Finset (Config N)))
+        (f := fun τ => Real.exp (-H τ))
+        (hf := fun τ _hτ => (Real.exp_pos _).le)
+        (a := σ) (h := Finset.mem_univ σ))
+  have := (div_le_one hZpos).2 hterm_le
+  simpa [gibbs_pmf] using this
 
 lemma sum_gibbs_pmf (H : EnergySpace N) : (∑ σ, gibbs_pmf N H σ) = 1 := by
   classical
