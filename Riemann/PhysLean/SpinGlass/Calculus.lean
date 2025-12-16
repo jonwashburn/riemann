@@ -57,6 +57,21 @@ lemma contDiff_Z (N : ℕ) : ContDiff ℝ (∞) (fun H : EnergySpace N => Z N H)
       (fun σ hσ => hterm σ))
 
 /--
+`gibbs_pmf` is smooth (`C^∞`) as a quotient of smooth functions, since `Z(H) ≠ 0`.
+-/
+lemma contDiff_gibbs_pmf (N : ℕ) (σ : Config N) :
+    ContDiff ℝ (∞) (fun H : EnergySpace N => gibbs_pmf N H σ) := by
+  classical
+  have hnum :
+      ContDiff ℝ (∞) (fun H : EnergySpace N => Real.exp (-H σ)) := by
+    -- `H ↦ exp(-H σ)` is smooth as in `contDiff_Z`.
+    simpa using (contDiff_exp.comp (contDiff_neg.comp (evalCLM (N := N) σ).contDiff))
+  have hZ : ContDiff ℝ (∞) (fun H : EnergySpace N => Z N H) := contDiff_Z (N := N)
+  have hZne : ∀ H : EnergySpace N, Z N H ≠ 0 := fun H =>
+    (Z_pos (N := N) (H := H)).ne'
+  simpa [gibbs_pmf] using hnum.div hZ hZne
+
+/--
 `Z(H) > 0` for every Hamiltonian `H`.
 
 This is the positivity condition needed to differentiate `log (Z H)` (as in Talagrand, Vol. I,
