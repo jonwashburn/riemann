@@ -215,6 +215,15 @@ lemma hasFDerivAt_gibbs_pmf (H : EnergySpace N) (σ : Config N) :
   -- Reorder the sum to match the statement, and rewrite back to `/`.
   simpa [gibbs_pmf, div_eq_mul_inv, add_comm, add_left_comm, add_assoc] using hmul
 
+lemma differentiableAt_gibbs_pmf (H : EnergySpace N) (σ : Config N) :
+    DifferentiableAt ℝ (fun H' => gibbs_pmf N H' σ) H :=
+  (hasFDerivAt_gibbs_pmf (N := N) (H := H) σ).differentiableAt
+
+lemma differentiable_gibbs_pmf (σ : Config N) :
+    Differentiable ℝ (fun H' => gibbs_pmf N H' σ) := by
+  intro H
+  exact differentiableAt_gibbs_pmf (N := N) (H := H) σ
+
 lemma fderiv_gibbs_pmf_apply (H h : EnergySpace N) (σ : Config N) :
     fderiv ℝ (fun H : EnergySpace N => gibbs_pmf N H σ) H h =
       (gibbs_pmf N H σ) *
