@@ -118,8 +118,8 @@ Extensions and additions to Lean's mathematical library:
 The repository also includes related external formalizations:
 - **PrimeNumberTheoremAnd**: Prime Number Theorem and variations
 - **StrongPNT**: Strong Prime Number Theorem
-- **VD**: Voronoi diagrams or related structures
-- **Carleson**:  Carleson's theorem on Fourier series
+- **VD**: Value Distribution
+- **Carleson**:  Carleson's theorem
 - **DeRhamCohomology**: De Rham cohomology theory
 - **PhysLean**: Physics-based mathematical structures
 
