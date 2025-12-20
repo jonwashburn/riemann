@@ -1,4 +1,4 @@
-import Riemann.PhysLean.SpinGlasses.Defs
+import Riemann.PhysLean.SpinGlass.Defs
 
 open MeasureTheory ProbabilityTheory Real BigOperators
 

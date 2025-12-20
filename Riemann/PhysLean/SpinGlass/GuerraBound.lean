@@ -1,4 +1,4 @@
-import Riemann.PhysLean.SpinGlasses.Algebra
+import Riemann.PhysLean.SpinGlass.Algebra
 
 open MeasureTheory ProbabilityTheory Real BigOperators
 
@@ -11,7 +11,7 @@ The analytic part of Guerra's interpolation (differentiation under the disorder 
 Gaussian IBP, and endpoint evaluation) is substantial.  This file isolates the *finite‑`N`
 algebraic* inequality that is the key ingredient once the derivative identity is established.
 
-See `SpinGlasses/Defs.lean` for the underlying trace computations and for the proof that the
+See `SpinGlass/Defs.lean` for the underlying trace computations and for the proof that the
 relevant combination is bounded by \((β^2/4)(1-q)^2\) via nonnegativity of a Gibbs average of a
 square.
 
