@@ -83,6 +83,7 @@ This passes **Proof Survival** because it carries the independence proofs needed
 -/
 structure RandomPhases (Ω : Type*) [MeasureSpace Ω] where
   theta : ℕ → Ω → ℝ
+  measurable : ∀ p, Measurable (theta p)
   indep : iIndepFun (β := fun _ : ℕ => ℝ) theta ℙ
   dist : ∀ p,
     Measure.map (theta p) ℙ =
