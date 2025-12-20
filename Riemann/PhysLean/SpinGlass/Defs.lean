@@ -20,6 +20,21 @@ def spin (σ : Config N) (i : Fin N) : ℝ := if σ i then 1 else -1
 
 abbrev EnergySpace := PiLp 2 (fun _ : Config N => ℝ)
 
+/-- Magnetization of a configuration: \( \sum_{i=1}^N \sigma_i \) (with `σ_i ∈ {±1}`). -/
+def magnetization (σ : Config N) : ℝ :=
+  ∑ i : Fin N, spin N σ i
+
+/--
+External field energy term:
+\[
+H_{\text{field}}(\sigma) = h \sum_{i=1}^N \sigma_i.
+\]
+
+This is the physically correct “magnetic field” contribution (it depends on `σ`).
+-/
+def magnetic_field_vector (h : ℝ) : EnergySpace N :=
+  WithLp.toLp 2 (fun σ : Config N => h * magnetization N σ)
+
 noncomputable instance : InnerProductSpace ℝ (EnergySpace N) :=
   PiLp.innerProductSpace (𝕜 := ℝ) (fun _ : Config N => ℝ)
 
@@ -30,6 +45,12 @@ noncomputable instance : FiniteDimensional ℝ (EnergySpace N) := by
 
 def std_basis (σ : Config N) : EnergySpace N :=
   WithLp.toLp 2 (fun τ => if σ = τ then 1 else 0)
+
+lemma inner_std_basis_apply (σ : Config N) (H : EnergySpace N) :
+    inner ℝ (std_basis N σ) H = H σ := by
+  classical
+  -- Expand the `PiLp 2` inner product and use the `if`-Kronecker delta.
+  simp [std_basis, PiLp.inner_apply]
 
 noncomputable section
 
@@ -92,6 +113,20 @@ lemma gibbs_pmf_pos (H : EnergySpace N) (σ : Config N) : 0 < gibbs_pmf N H σ :
 
 lemma gibbs_pmf_nonneg (H : EnergySpace N) (σ : Config N) : 0 ≤ gibbs_pmf N H σ :=
   le_of_lt (gibbs_pmf_pos (N := N) (H := H) σ)
+
+lemma gibbs_pmf_le_one (H : EnergySpace N) (σ : Config N) : gibbs_pmf N H σ ≤ 1 := by
+  classical
+  have hZpos : 0 < Z N H := Z_pos (N := N) (H := H)
+  have hterm_le :
+      Real.exp (-H σ) ≤ Z N H := by
+    -- A single term is bounded by the full sum `Z`.
+    simpa [Z] using
+      (Finset.single_le_sum (s := (Finset.univ : Finset (Config N)))
+        (f := fun τ => Real.exp (-H τ))
+        (hf := fun τ _hτ => (Real.exp_pos _).le)
+        (a := σ) (h := Finset.mem_univ σ))
+  have := (div_le_one hZpos).2 hterm_le
+  simpa [gibbs_pmf] using this
 
 lemma sum_gibbs_pmf (H : EnergySpace N) : (∑ σ, gibbs_pmf N H σ) = 1 := by
   classical
@@ -200,6 +235,15 @@ lemma hasFDerivAt_gibbs_pmf (H : EnergySpace N) (σ : Config N) :
   -- Reorder the sum to match the statement, and rewrite back to `/`.
   simpa [gibbs_pmf, div_eq_mul_inv, add_comm, add_left_comm, add_assoc] using hmul
 
+lemma differentiableAt_gibbs_pmf (H : EnergySpace N) (σ : Config N) :
+    DifferentiableAt ℝ (fun H' => gibbs_pmf N H' σ) H :=
+  (hasFDerivAt_gibbs_pmf (N := N) (H := H) σ).differentiableAt
+
+lemma differentiable_gibbs_pmf (σ : Config N) :
+    Differentiable ℝ (fun H' => gibbs_pmf N H' σ) := by
+  intro H
+  exact differentiableAt_gibbs_pmf (N := N) (H := H) σ
+
 lemma fderiv_gibbs_pmf_apply (H h : EnergySpace N) (σ : Config N) :
     fderiv ℝ (fun H : EnergySpace N => gibbs_pmf N H σ) H h =
       (gibbs_pmf N H σ) *
@@ -263,13 +307,13 @@ lemma fderiv_gibbs_pmf_apply (H h : EnergySpace N) (σ : Config N) :
           have hsum' :
               (∑ τ : Config N, (-(Real.exp (-H τ))) * h τ) =
                 -∑ τ : Config N, (Real.exp (-H τ) * h τ) := by
-            simp [Finset.sum_neg_distrib, mul_assoc]
+            simp [Finset.sum_neg_distrib]
           -- Convert the inner expectation to `(Z H)⁻¹ * ∑ exp(-Hτ) * h τ`.
           have hexp_sum :
               (∑ τ : Config N, (Real.exp (-H τ) / Z N H) * h τ) =
                 (Z N H)⁻¹ * ∑ τ : Config N, (Real.exp (-H τ) * h τ) := by
             -- pull the constant `(Z H)⁻¹` out of the finite sum
-            simp [div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm, Finset.mul_sum]
+            simp [div_eq_mul_inv, mul_assoc, mul_comm, Finset.mul_sum]
           -- Now finish by straightforward simplification.
           -- After rewriting, all denominators are powers of `Z`; cancel using `hZ`.
           -- We avoid `field_simp` and do the cancellations explicitly.
@@ -284,9 +328,9 @@ lemma fderiv_gibbs_pmf_apply (H h : EnergySpace N) (σ : Config N) :
           have hpull :
               (∑ x : Config N, h x * (Real.exp (-H x) * (Z N H)⁻¹)) =
                 (Z N H)⁻¹ * ∑ x : Config N, h x * Real.exp (-H x) := by
-            simp [mul_assoc, mul_left_comm, mul_comm, Finset.mul_sum]
+            simp [mul_assoc, mul_comm, Finset.mul_sum]
           -- Reduce to a commutative ring identity.
-          simp [div_eq_mul_inv, hsum, hexp_sum, hsum', this, hZ, pow_two, hpull, mul_assoc,
+          simp [div_eq_mul_inv, pow_two, hpull, mul_assoc,
             mul_comm, sub_eq_add_neg, add_comm]
           ring
     _ = (gibbs_pmf N H σ) * ((∑ τ : Config N, (gibbs_pmf N H τ) * h τ) - h σ) := by
@@ -432,7 +476,7 @@ lemma hessian_free_energy_fderiv_eq_hessian_free_energy
                     (fderiv ℝ (fun H : EnergySpace N => gibbs_pmf N H σ) H h) * k σ := by
             -- Expand `hfderiv_grad`, then evaluate `smulRight` and `evalCLM`.
             simp [hfderiv_grad, evalCLM, ContinuousLinearMap.sum_apply, ContinuousLinearMap.smul_apply,
-              ContinuousLinearMap.neg_apply, smul_eq_mul, mul_assoc, mul_left_comm, mul_comm]
+              ContinuousLinearMap.neg_apply, smul_eq_mul, mul_comm]
 
           -- Now substitute `fderiv_gibbs_pmf_apply` and rearrange the finite sum.
           have h2 :
@@ -456,7 +500,7 @@ lemma hessian_free_energy_fderiv_eq_hessian_free_energy
                 intro σ
                 -- `fderiv (gibbs_pmf · σ) h = gσ * (E[h] - hσ)`.
                 -- Multiply by `kσ` and rearrange.
-                simp [fderiv_gibbs_pmf_apply, g, Eh, mul_assoc, mul_left_comm, mul_comm, mul_sub]
+                simp [fderiv_gibbs_pmf_apply, g, mul_assoc, mul_left_comm, mul_comm, mul_sub]
               calc
                 ∑ σ : Config N,
                     (fderiv ℝ (fun H : EnergySpace N => gibbs_pmf N H σ) H h) * k σ
@@ -723,7 +767,7 @@ theorem trace_simple (hN : 0 < N) (H : EnergySpace N) (xi : ℝ → ℝ) :
       (∑ σ, ∑ τ, gibbs_pmf N H σ * gibbs_pmf N H τ * simple_cov_kernel N β xi σ τ)
         = (N * β^2) * E_xi := by
     -- just factor out the constant and use the definition of `E_R`
-    simp [simple_cov_kernel, E_xi, Finset.mul_sum, mul_assoc, mul_left_comm, mul_comm]
+    simp [simple_cov_kernel, E_xi, Finset.mul_sum, mul_assoc, mul_left_comm]
   have hcancel : (1 / (N : ℝ)) * (N * β^2) = (β^2) := by
     field_simp [hN0]
   calc

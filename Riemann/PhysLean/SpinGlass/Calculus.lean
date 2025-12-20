@@ -1,7 +1,8 @@
-import Riemann.PhysLean.SpinGlasses.Defs
+import Riemann.PhysLean.SpinGlass.Defs
 import Mathlib.Analysis.Calculus.ContDiff.Operations
 
 open MeasureTheory ProbabilityTheory Real BigOperators Filter Topology
+open PhysLean.Probability.GaussianIBP
 
 open scoped ContDiff
 
@@ -54,6 +55,21 @@ lemma contDiff_Z (N : ℕ) : ContDiff ℝ (∞) (fun H : EnergySpace N => Z N H)
       (s := (Finset.univ : Finset (Config N)))
       (f := fun σ : Config N => fun H : EnergySpace N => Real.exp (-H σ))
       (fun σ hσ => hterm σ))
+
+/--
+`gibbs_pmf` is smooth (`C^∞`) as a quotient of smooth functions, since `Z(H) ≠ 0`.
+-/
+lemma contDiff_gibbs_pmf (N : ℕ) (σ : Config N) :
+    ContDiff ℝ (∞) (fun H : EnergySpace N => gibbs_pmf N H σ) := by
+  classical
+  have hnum :
+      ContDiff ℝ (∞) (fun H : EnergySpace N => Real.exp (-H σ)) := by
+    -- `H ↦ exp(-H σ)` is smooth as in `contDiff_Z`.
+    simpa using (contDiff_exp.comp (contDiff_neg.comp (evalCLM (N := N) σ).contDiff))
+  have hZ : ContDiff ℝ (∞) (fun H : EnergySpace N => Z N H) := contDiff_Z (N := N)
+  have hZne : ∀ H : EnergySpace N, Z N H ≠ 0 := fun H =>
+    (Z_pos (N := N) (H := H)).ne'
+  simpa [gibbs_pmf] using hnum.div hZ hZne
 
 /--
 `Z(H) > 0` for every Hamiltonian `H`.
@@ -185,9 +201,12 @@ lemma Z_ge_exp_neg_norm (H : EnergySpace N) :
   have hterm_le_Z : Real.exp (-H σ₀) ≤ Z N H := by
     -- `f σ₀ ≤ ∑σ f σ` for nonnegative terms.
     have hnonneg : ∀ σ : Config N, 0 ≤ Real.exp (-H σ) := fun σ => (Real.exp_pos _).le
-    -- Use the finset version explicitly.
-    simpa [Z] using
-      (Finset.single_le_sum hnonneg (by simp [σ₀]))
+    -- Use the finset version explicitly, then simplify back to the `Fintype` sum defining `Z`.
+    have :
+        Real.exp (-H σ₀) ≤
+          ∑ σ ∈ (Finset.univ : Finset (Config N)), Real.exp (-H σ) := by
+      exact Finset.single_le_sum (fun σ _hσ => hnonneg σ) (Finset.mem_univ σ₀)
+    simpa [Z] using this
   exact le_trans hexp hterm_le_Z
 
 /-- `free_energy_density` has moderate growth (polynomial of degree 1) in the IBP sense. -/
@@ -238,7 +257,8 @@ noncomputable def hasModerateGrowth_free_energy_density :
                   simpa using (Real.log_mul hcard_ne hexp_ne)
           _ = Real.log (Fintype.card (Config N) : ℝ) + ‖H‖ := by
                   rw [Real.log_exp]
-      simpa [this] using hlog_le
+      rw [this] at hlog_le
+      exact hlog_le
     have hlog_lower : -(Real.log (Fintype.card (Config N) : ℝ) + ‖H‖) ≤ Real.log (Z N H) := by
       -- `log Z ≥ log(exp(-‖H‖)) = -‖H‖ ≥ -(log(card)+‖H‖)`.
       have h1 : -‖H‖ ≤ Real.log (Z N H) := by
@@ -268,7 +288,7 @@ noncomputable def hasModerateGrowth_free_energy_density :
         |free_energy_density (N := N) H|
             = |(1 / (N : ℝ)) * Real.log (Z N H)| := this
         _ = |(1 / (N : ℝ))| * |Real.log (Z N H)| := by simp [abs_mul]
-        _ = (1 / (N : ℝ)) * |Real.log (Z N H)| := by simp [abs_of_nonneg hN]
+        _ = (1 / (N : ℝ)) * |Real.log (Z N H)| := by simp
         _ ≤ (1 / (N : ℝ)) * (Real.log (Fintype.card (Config N) : ℝ) + ‖H‖) := by
               exact mul_le_mul_of_nonneg_left habs_log (by linarith)
     -- Bound `(1/N) * (...) ≤ C * (1 + ‖H‖)`.
@@ -337,7 +357,7 @@ noncomputable def hasModerateGrowth_free_energy_density :
           refine Finset.sum_congr rfl ?_
           intro σ _hσ
           have hg : 0 ≤ gibbs_pmf N H σ := gibbs_pmf_nonneg (N := N) (H := H) σ
-          simp [abs_mul, abs_of_nonneg hg, mul_comm, mul_left_comm, mul_assoc]
+          simp [abs_mul, abs_of_nonneg hg, mul_comm]
         have hsum_le :
             (∑ σ : Config N, (gibbs_pmf N H σ) * |h σ|)
               ≤ (∑ σ : Config N, gibbs_pmf N H σ) * ‖h‖ := by
@@ -376,8 +396,7 @@ noncomputable def hasModerateGrowth_free_energy_density :
             ‖(fderiv ℝ (fun H : EnergySpace N => free_energy_density (N := N) H) H) h‖
               = (1 / (N : ℝ)) * |∑ σ : Config N, gibbs_pmf N H σ * h σ| := by
           -- codomain is `ℝ`, so `‖x‖ = |x|`.
-          simp [h_eval, Real.norm_eq_abs, abs_mul, abs_of_nonneg hN, mul_assoc, mul_left_comm,
-            mul_comm]
+          simp [h_eval, Real.norm_eq_abs]
         -- apply the Gibbs-sum bound.
         calc
           ‖(fderiv ℝ (fun H : EnergySpace N => free_energy_density (N := N) H) H) h‖
@@ -410,7 +429,8 @@ noncomputable def hasModerateGrowth_free_energy_density :
         | succ n =>
             have hpos : (0 : ℝ) < (Nat.succ n : ℝ) := by exact_mod_cast (Nat.succ_pos n)
             -- `1/(n+1) ≤ 1` is a one-line inequality for positive denominators
-            nlinarith
+            rw [div_le_one hpos]
+            exact_mod_cast Nat.one_le_iff_ne_zero.mpr (Nat.succ_ne_zero n)
       exact le_trans h_div_le_one h_one_le_mul
     -- final shape
     have : ‖fderiv ℝ (fun H : EnergySpace N => free_energy_density (N := N) H) H‖
@@ -421,9 +441,9 @@ noncomputable def hasModerateGrowth_free_energy_density :
 lemma integrable_free_energy_density_of_gaussian
     {Ω : Type*} [MeasureSpace Ω] [IsProbabilityMeasure (ℙ : Measure Ω)]
     {g : Ω → EnergySpace N} (hg : IsGaussianHilbert (Ω := Ω) (H := EnergySpace N) g) :
-    Integrable (fun ω => free_energy_density (N := N) (g ω)) := by
+    Integrable (fun x => free_energy_density (N := N) (g x)) := by
   have hdiff : ContDiff ℝ 1 (fun H : EnergySpace N => free_energy_density (N := N) H) :=
-    (contDiff_free_energy_density (N := N)).of_le le_top
+    (contDiff_free_energy_density (N := N)).of_le (by simp)
   exact
     PhysLean.Probability.GaussianIBP.integrable_F_of_growth
       (g := g) (hg := hg) (hF_diff := hdiff)
