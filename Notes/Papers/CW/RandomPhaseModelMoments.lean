@@ -964,6 +964,112 @@ lemma integral_Y_rand_k_mul (k : ℕ) (h₁ h₂ : ℝ) :
   simpa [X₁, X₂, add_assoc, add_left_comm, add_comm, mul_assoc, mul_left_comm, mul_comm]
     using (integral_block_term_random_phase_mul (params := params) (rnd := rnd) (p := p) hp0 h₁ h₂)
 
+/-!
+### Covariance matrices for the random prime-phase blocks
+
+`Sigma_k` in `ZetaSpinGlassDefs` records the *leading* covariance kernel (the `p⁻¹` term).  The
+random model `Y_rand_k` also contains a smaller `p⁻²` contribution coming from the `z^2` term in
+`block_term`.  We package this as a correction matrix `Sigma2_k`, so that the covariance matrix is
+exactly `Sigma_k + Sigma2_k`.
+-/
+
+variable {m : ℕ} (pts : ConfigPoints m)
+
+/-- The `p⁻²` correction to the covariance kernel coming from the quadratic term in `block_term`. -/
+noncomputable def Sigma2_k (k : ℕ) : Matrix (Fin (m + 1)) (Fin (m + 1)) ℝ :=
+  fun i j =>
+    let h_i := pts.val i
+    let h_j := pts.val j
+    ∑ p ∈ P_k params k,
+      (1 / 8 : ℝ) * ((p : ℝ)⁻¹) ^ 2 * Real.cos (2 * ((h_i - h_j) * Real.log p))
+
+lemma covarianceMatrix_Y_rand_k_eq (k : ℕ) :
+    ProbabilityTheory.covarianceMatrix
+        (X := fun ω : Ω => fun i : Fin (m + 1) => Y_rand_k (params := params) rnd k (pts.val i) ω)
+        (ℙ : Measure Ω)
+      =
+      Sigma_k params pts k + Sigma2_k (params := params) pts k := by
+  classical
+  ext i j
+  -- mean-zero simplifies the covariance matrix to an expectation of products
+  have hmean :
+      ∀ i : Fin (m + 1),
+        (∫ ω, Y_rand_k (params := params) rnd k (pts.val i) ω ∂ (ℙ : Measure Ω)) = 0 := by
+    intro i
+    simpa [ZetaSpinGlass.mean] using (mean_Y_rand_k (params := params) (rnd := rnd) (k := k) (h := pts.val i))
+  -- unfold covariance and rewrite with `integral_Y_rand_k_mul`
+  simp [ProbabilityTheory.covarianceMatrix, hmean, Matrix.add_apply, Sigma_k, Sigma2_k,
+    integral_Y_rand_k_mul (params := params) (rnd := rnd) (k := k) (h₁ := pts.val i) (h₂ := pts.val j),
+    Finset.sum_add_distrib, mul_assoc, mul_comm]
+
+lemma abs_Sigma2_k_le (k : ℕ) (i j : Fin (m + 1)) :
+    |Sigma2_k (params := params) pts k i j|
+      ≤ ∑ p ∈ P_k params k, (1 / 8 : ℝ) * ((p : ℝ)⁻¹) ^ 2 := by
+  classical
+  -- expand and use `|cos| ≤ 1`
+  dsimp [Sigma2_k]
+  -- apply `abs_sum_le_sum_abs`, then bound each summand by dropping the cosine
+  refine (Finset.abs_sum_le_sum_abs _ _).trans ?_
+  refine Finset.sum_le_sum (fun p hp => ?_)
+  set c : ℝ := (1 / 8 : ℝ) * ((p : ℝ)⁻¹) ^ 2
+  have hc : 0 ≤ c := by
+    dsimp [c]
+    positivity
+  have hcos : |Real.cos (2 * ((pts.val i - pts.val j) * Real.log p))| ≤ (1 : ℝ) := by
+    simpa using Real.abs_cos_le_one (2 * ((pts.val i - pts.val j) * Real.log p))
+  calc
+    |(1 / 8 : ℝ) * ((p : ℝ)⁻¹) ^ 2 * Real.cos (2 * ((pts.val i - pts.val j) * Real.log p))|
+        = |c * Real.cos (2 * ((pts.val i - pts.val j) * Real.log p))| := by
+            simp [c, mul_assoc]
+    _ = |c| * |Real.cos (2 * ((pts.val i - pts.val j) * Real.log p))| := by
+          simp [abs_mul]
+    _ = c * |Real.cos (2 * ((pts.val i - pts.val j) * Real.log p))| := by
+          simp [abs_of_nonneg hc]
+    _ ≤ c * (1 : ℝ) := by
+          gcongr
+    _ = c := by ring
+    _ = (1 / 8 : ℝ) * ((p : ℝ)⁻¹) ^ 2 := by
+          simp [c]
+
+/-!
+#### A more general “index family” covariance statement
+
+For many downstream uses (blockwise Lindeberg, Guerra interpolation, etc.) it is convenient to
+package the covariance computation for an arbitrary finite index type `ι` and a label function
+`h : ι → ℝ`.  The `ConfigPoints` version above is the specialization `ι = Fin (m+1)` and
+`h = pts.val`.
+-/
+
+section GeneralIndex
+
+variable {ι : Type*} [Fintype ι] (h : ι → ℝ)
+
+noncomputable def SigmaLead_k (k : ℕ) : Matrix ι ι ℝ :=
+  fun i j =>
+    ∑ p ∈ P_k params k, (1 / 2 : ℝ) * ((p : ℝ)⁻¹) * Real.cos ((h i - h j) * Real.log p)
+
+noncomputable def Sigma2_k_fun (k : ℕ) : Matrix ι ι ℝ :=
+  fun i j =>
+    ∑ p ∈ P_k params k, (1 / 8 : ℝ) * ((p : ℝ)⁻¹) ^ 2 * Real.cos (2 * ((h i - h j) * Real.log p))
+
+lemma covarianceMatrix_Y_rand_k_fun_eq (k : ℕ) :
+    ProbabilityTheory.covarianceMatrix
+        (X := fun ω : Ω => fun i : ι => Y_rand_k (params := params) rnd k (h i) ω)
+        (ℙ : Measure Ω)
+      =
+      SigmaLead_k (params := params) (h := h) k + Sigma2_k_fun (params := params) (h := h) k := by
+  classical
+  ext i j
+  have hmean :
+      ∀ i : ι, (∫ ω, Y_rand_k (params := params) rnd k (h i) ω ∂ (ℙ : Measure Ω)) = 0 := by
+    intro i
+    simpa [ZetaSpinGlass.mean] using (mean_Y_rand_k (params := params) (rnd := rnd) (k := k) (h := h i))
+  simp [ProbabilityTheory.covarianceMatrix, hmean, Matrix.add_apply, SigmaLead_k, Sigma2_k_fun,
+    integral_Y_rand_k_mul (params := params) (rnd := rnd) (k := k) (h₁ := h i) (h₂ := h j),
+    Finset.sum_add_distrib, mul_assoc, mul_left_comm, mul_comm]
+
+end GeneralIndex
+
 end
 
 end ZetaSpinGlass
