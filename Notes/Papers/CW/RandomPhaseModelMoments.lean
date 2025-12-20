@@ -881,7 +881,8 @@ lemma integral_Y_rand_k_mul (k : ℕ) (h₁ h₂ : ℝ) :
         =
         fun ω : Ω => ∑ p ∈ P_k params k, ∑ q ∈ P_k params k, (X₁ p ω) * (X₂ q ω) := by
     funext ω
-    simp [Finset.sum_mul_sum]
+    simpa using
+      (Finset.sum_mul_sum (P_k params k) (P_k params k) (fun p : ℕ => X₁ p ω) (fun q : ℕ => X₂ q ω))
   rw [MeasureTheory.integral_congr_ae (ae_of_all _ (fun ω => by
     simpa using congrArg (fun f => f ω) hmul))]
   -- integrability of each summand (bounded product of block terms)
@@ -942,16 +943,23 @@ lemma integral_Y_rand_k_mul (k : ℕ) (h₁ h₂ : ℝ) :
     have : (∫ ω : Ω, X₁ p ω * X₂ q ω ∂ (ℙ : Measure Ω)) = 0 := by
       simpa [X₁, X₂] using
         (integral_block_term_random_phase_mul_of_ne (params := params) (rnd := rnd) (p := p) (q := q)
-          (hpq := hqp) (h₁ := h₁) (h₂ := h₂))
-    simpa [this]
+          (hpq := hqp.symm) (h₁ := h₁) (h₂ := h₂))
+    simp [this]
 
   -- apply `hdiag` to collapse the double sum
-  simp_rw [hdiag]
+  have hdiag' :
+      (∑ p ∈ P_k params k,
+          ∑ q ∈ P_k params k, ∫ ω : Ω, X₁ p ω * X₂ q ω ∂ (ℙ : Measure Ω))
+        =
+        ∑ p ∈ P_k params k, ∫ ω : Ω, X₁ p ω * X₂ p ω ∂ (ℙ : Measure Ω) := by
+    refine Finset.sum_congr rfl (fun p hp => ?_)
+    simpa using hdiag p hp
+  rw [hdiag']
 
   -- finally insert the diagonal covariance formula
   refine Finset.sum_congr rfl (fun p hp => ?_)
   -- `p` is prime hence nonzero
-  have hp0 : p ≠ 0 := (Finset.mem_filter.1 hp).1.1.ne_zero
+  have hp0 : p ≠ 0 := ((Finset.mem_filter.1 hp).2).1.ne_zero
   -- unfold `X₁`, `X₂` and use the same-prime lemma
   simpa [X₁, X₂, add_assoc, add_left_comm, add_comm, mul_assoc, mul_left_comm, mul_comm]
     using (integral_block_term_random_phase_mul (params := params) (rnd := rnd) (p := p) hp0 h₁ h₂)
