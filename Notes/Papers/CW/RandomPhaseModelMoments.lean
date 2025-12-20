@@ -1031,6 +1031,36 @@ lemma abs_Sigma2_k_le (k : ℕ) (i j : Fin (m + 1)) :
     _ = (1 / 8 : ℝ) * ((p : ℝ)⁻¹) ^ 2 := by
           simp [c]
 
+lemma abs_covarianceMatrix_Y_rand_k_sub_Sigma_k_le (k : ℕ) (i j : Fin (m + 1)) :
+    |ProbabilityTheory.covarianceMatrix
+          (X := fun ω : Ω => fun r : Fin (m + 1) => Y_rand_k (params := params) rnd k (pts.val r) ω)
+          (ℙ : Measure Ω) i j
+        - Sigma_k params pts k i j|
+      ≤ ∑ p ∈ P_k params k, (1 / 8 : ℝ) * ((p : ℝ)⁻¹) ^ 2 := by
+  classical
+  have hentry :
+      ProbabilityTheory.covarianceMatrix
+          (X := fun ω : Ω => fun r : Fin (m + 1) => Y_rand_k (params := params) rnd k (pts.val r) ω)
+          (ℙ : Measure Ω) i j
+        =
+        Sigma_k params pts k i j + Sigma2_k (params := params) pts k i j := by
+    simpa [Matrix.add_apply] using
+      congrArg (fun M => M i j)
+        (covarianceMatrix_Y_rand_k_eq (params := params) (rnd := rnd) (pts := pts) (k := k))
+  have hdiff :
+      ProbabilityTheory.covarianceMatrix
+          (X := fun ω : Ω => fun r : Fin (m + 1) => Y_rand_k (params := params) rnd k (pts.val r) ω)
+          (ℙ : Measure Ω) i j
+        - Sigma_k params pts k i j
+        =
+        Sigma2_k (params := params) pts k i j := by
+    -- subtract `Sigma_k` from the identity `cov = Sigma_k + Sigma2_k`
+    -- and reassociate
+    rw [hentry]
+    ring
+  -- apply the Sigma2 bound
+  simpa [hdiff] using (abs_Sigma2_k_le (params := params) (pts := pts) (k := k) (i := i) (j := j))
+
 /-!
 #### A more general “index family” covariance statement
 
@@ -1066,7 +1096,7 @@ lemma covarianceMatrix_Y_rand_k_fun_eq (k : ℕ) :
     simpa [ZetaSpinGlass.mean] using (mean_Y_rand_k (params := params) (rnd := rnd) (k := k) (h := h i))
   simp [ProbabilityTheory.covarianceMatrix, hmean, Matrix.add_apply, SigmaLead_k, Sigma2_k_fun,
     integral_Y_rand_k_mul (params := params) (rnd := rnd) (k := k) (h₁ := h i) (h₂ := h j),
-    Finset.sum_add_distrib, mul_assoc, mul_left_comm, mul_comm]
+    Finset.sum_add_distrib, mul_assoc, mul_comm]
 
 end GeneralIndex
 
