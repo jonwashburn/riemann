@@ -765,7 +765,7 @@ lemma add_pow_le_two_pow_mul_add_pow {a b : ℝ} {n : ℕ}
       intro _ _; norm_num
     have hw_sum : ∑ i ∈ s, (1 / 2 : ℝ) = 1 := by
       simpa using by
-        simp [s, Fin.sum_univ_succ, one_div, two_mul, add_comm, add_left_comm, add_assoc]
+        simp [s]
     have hz_nonneg : ∀ i ∈ s, 0 ≤ (if (i = 0) then a else b) := by
       intro i _; fin_cases i <;> simp [ha, hb]
     have h :=
@@ -2848,7 +2848,7 @@ lemma stein_coord_with_param_of_indep
       have : ∀ t : ℝ,
           CoordLine.buildAlong (w := w) (i := i) p.1 t
             = (∑ j, (p.1 j) • w j.1) + t • w i := by
-        intro t; simp [CoordLine.buildAlong, add_comm, add_left_comm, add_assoc]
+        intro t; simp [CoordLine.buildAlong, add_comm]
       simpa [this, CoordLine.line_def] using
         (CoordLine.deriv_F_along (w := w) (i := i) (F := F)
           (hF := hF_diff) (z := ∑ j, (p.1 j) • w j.1) (x := p.2))
@@ -2968,7 +2968,7 @@ lemma stein_coord_with_param'
     have hY' : (fun j : PhysLean.Probability.GaussianIBP.CoordLine.Comp hg.ι i => Y ω j)
                 = (fun j => hg.c j.1 ω) := by
       funext j
-      simp [Y, hcoord_eq_c]; rw [← hcoord_eq_c]; aesop
+      simp [Y]; rw [← hcoord_eq_c]; aesop
     have hX' : X ω = hg.c i ω := by
       simp [X, hcoord_eq_c]
     calc
@@ -2981,7 +2981,7 @@ lemma stein_coord_with_param'
       _ = PhysLean.Probability.GaussianIBP.CoordLine.buildAlong
               (w := hg.w) (i := i) (Y ω) (X ω) := by
             simp [PhysLean.Probability.GaussianIBP.CoordLine.buildAlong,
-                  add_comm, add_left_comm, add_assoc]
+                  add_comm]
   set P := (PhysLean.Probability.GaussianIBP.CoordLine.Comp hg.ι i → ℝ) × ℝ
   set φ : P → ℝ :=
     fun p => p.2 * F (PhysLean.Probability.GaussianIBP.CoordLine.buildAlong
@@ -3244,7 +3244,7 @@ theorem gaussian_integration_by_parts_hilbert_cov
       = (fun ω =>
           ∑ i : ι, (⟪h, w i⟫_ℝ) * ((⟪g ω, w i⟫_ℝ) * F (g ω))) := by
       funext ω
-      simp [Finset.sum_mul, mul_comm, mul_left_comm, mul_assoc]
+      simp [mul_comm, mul_left_comm]
       exact Finset.mul_sum Finset.univ (fun i => ⟪h, w i⟫_ℝ * ⟪g ω, w i⟫_ℝ) (F (g ω))
     calc
       𝔼[(fun ω => ⟪g ω, h⟫_ℝ * F (g ω))]
