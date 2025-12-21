@@ -54,8 +54,8 @@ instance : NeZero μ01 := by
     -- `μ01 univ = volume (Icc 0 1) = 1`
     simp [μ01, I01, Measure.restrict_apply, MeasurableSet.univ, Set.univ_inter, Real.volume_Icc]
   have hmass0 : μ01 Set.univ = 0 := by
-    simpa [h0] using (show (0 : Measure ℝ) Set.univ = 0 by simp)
-  simpa [hmass] using hmass0
+    simp [h0]
+  simp [hmass] at hmass0
 
 /-! ## The coefficient `ω_p(h)` -/
 
@@ -156,11 +156,11 @@ lemma integrable_arguinTaiWeight_of_bounded
           |2 * β * (omega_p p h * z).re|
             = 2 * |β| * |(omega_p p h * z).re| := by
         -- pull absolute values through scalar products
-        simp [abs_mul, abs_of_nonneg (by positivity : (0 : ℝ) ≤ (2 : ℝ)), mul_assoc, mul_left_comm, mul_comm]
+        simp [abs_mul, mul_assoc, mul_comm]
       have h3 : |(omega_p p h * z).re| ≤ ‖omega_p p h‖ * ‖z‖ := by
         calc
           |(omega_p p h * z).re| ≤ ‖omega_p p h * z‖ := Complex.abs_re_le_norm _
-          _ = ‖omega_p p h‖ * ‖z‖ := by simp [Complex.norm_mul]
+          _ = ‖omega_p p h‖ * ‖z‖ := by simp
       have h4 :
           2 * |β| * |(omega_p p h * z).re| ≤ 2 * |β| * (‖omega_p p h‖ * ‖z‖) := by
         gcongr
