@@ -259,7 +259,7 @@ lemma gaussianTilt_eq_shift
     _ = ∫ x, F (x + c) * φ 0 x := hTrans
     _ = ∫ x, F (x + c) ∂ gaussianReal 0 v := hR
 
-/-! ### Prereuqisites for the proof of `gaussianTilt_hasDerivAt_left`
+/-! ### Prerequisites for the proof of `gaussianTilt_hasDerivAt_left`
 
 We isolate:
 1. A core kernel `tiltKernel`.
