@@ -1,6 +1,6 @@
 import Mathlib.Algebra.Lie.OfAssociative
 import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Analysis.NormedSpace.Connected
+import Mathlib.Analysis.Normed.Module.Connected
 import StrongPNT.PNT1_ComplexAnalysis
 
 set_option linter.unusedVariables false

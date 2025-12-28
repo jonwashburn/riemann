@@ -1,8 +1,4 @@
-/-
-Copyright (c) 2024. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: [Your Name]
--/
+
 import Mathlib
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetKernel
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetFormula
@@ -118,7 +114,7 @@ theorem log_Gamma_eq_stirlingMain_plus_J {z : ℂ} (hz : 0 < z.re) :
     Complex.log (Complex.Gamma z) = stirlingMain z + J z := by
   have h := stirlingCorrection_eq_J hz
   unfold stirlingCorrection at h
-  linarith only []  -- placeholder
+  --linarith only []  -- placeholder
   sorry
 
 /-! ## Section 5: Consequences -/

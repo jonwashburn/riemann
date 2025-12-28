@@ -1,0 +1,32 @@
+# Lake build artifacts
+.lake/
+lake-packages/
+build/
+
+# Lean cache
+.cache/
+*.olean
+*.ilean
+*.trace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
+*~
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.pdf
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.bbl
+*.blg
+

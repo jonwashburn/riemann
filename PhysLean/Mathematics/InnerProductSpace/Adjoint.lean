@@ -22,6 +22,7 @@ variable {𝕜 : Type*} {E F G : Type*} [RCLike 𝕜]
   [NormedAddCommGroup G] [NormedSpace 𝕜 G] [InnerProductSpace' 𝕜 G]
 
 local notation "⟪" x ", " y "⟫" => inner 𝕜 x y
+set_option autoImplicit true
 
 variable (𝕜) in
 /-- Adjoint of a linear map `f` such that `∀ x y, ⟪adjoint 𝕜 f y, x⟫ = ⟪y, f x⟫`.

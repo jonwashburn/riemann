@@ -1,6 +1,6 @@
 import Notes.Papers.CW.Lindenberg
 import Notes.Papers.CW.LindebergStep
-import Mathlib.Probability.Independence.Kernel
+import Mathlib.Probability.Independence.Kernel.IndepFun
 
 open MeasureTheory ProbabilityTheory Real BigOperators Filter Topology
 open scoped BigOperators
@@ -449,7 +449,7 @@ namespace Probability.Lindeberg
 /-!
 ## Blockwise Lindeberg replacement (scalar) with moment-mismatch terms
 
-The CW/Arguin method is often used in a regime where the blocks do **not** match second moments
+The CW/Arguin method is normally used in a regime where the blocks do **not** match second moments
 exactly (e.g. when dropping lower-order terms in the covariance).  The one-step estimate
 `lindeberg_step_scalar_bound` already supports this; this theorem lifts it to the full blockwise
 telescoping bound.

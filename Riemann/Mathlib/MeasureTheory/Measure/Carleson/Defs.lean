@@ -6,7 +6,6 @@ import Mathlib.Order.CompletePartialOrder
 # Carleson Measures: Core Definitions
 
 This file provides the core definitions for Carleson measure theory.
-It is designed to be imported by other files without creating circular dependencies.
 
 ## Main Definitions
 

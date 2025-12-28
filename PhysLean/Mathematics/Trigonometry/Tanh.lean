@@ -3,9 +3,9 @@ Copyright (c) 2025 Afiq Hatta. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Afiq Hatta
 -/
-import Mathlib.Analysis.Calculus.Deriv.Polynomial
 import Mathlib.Analysis.Distribution.SchwartzSpace
 import Mathlib.Topology.Algebra.Polynomial
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 /-!
 # Properties of Tanh
 We want to prove that the reflectionless potential is a Schwartz map.
@@ -176,7 +176,7 @@ lemma iteratedDeriv_tanh_differentiable (n : ℕ) : Differentiable ℝ (iterated
   norm_cast
 
 /-- Norm of Iterated derivative for scaled tanh is equal to the norm of its Fderiv -/
-lemma tanh_const_mul_iteratedDeriv_norm_eq_iteratedFDeriv_norm (κ : ℝ) (n : ℕ) (x : ℝ) :
+lemma tanh_const_mul_iteratedDeriv_norm_eq_iteratedFDeriv_norm (n : ℕ) (x : ℝ) :
     ‖iteratedFDeriv ℝ n (fun x => tanh (κ * x)) x‖
     = |iteratedDeriv n (fun x => tanh (κ * x)) x| := by
   rw [← iteratedFDerivWithin_univ, ← iteratedDerivWithin_univ, ← norm_eq_abs,

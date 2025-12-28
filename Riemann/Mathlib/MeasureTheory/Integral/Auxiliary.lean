@@ -30,9 +30,9 @@ lemma pow_le_pow_of_le_left {α : Type*} [Semiring α] [LinearOrder α] [IsStric
   {a b : α} (h₁ : a ≤ b) (h₂ : 0 ≤ a) :
   ∀ n : ℕ, a ^ n ≤ b ^ n := by
   intro n
-  induction' n with n ih
-  · simp
-  ·
+  induction n with
+  | zero => simp
+  | succ n ih =>
     have hb : 0 ≤ b := le_trans h₂ h₁
     have hbn : 0 ≤ b ^ n := pow_nonneg hb _
     have : a ^ n * a ≤ b ^ n * b := mul_le_mul ih h₁ h₂ hbn

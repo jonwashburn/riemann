@@ -9,6 +9,8 @@ import Mathlib.Analysis.InnerProductSpace.Adjoint
 
 # Generalization of calculus results to `InnerProductSpace'`
 -/
+set_option autoImplicit true
+
 variable {𝕜 : Type*} {E F G : Type*} [RCLike 𝕜]
   [NormedAddCommGroup E] [NormedSpace ℝ E]
   [NormedAddCommGroup F] [NormedSpace ℝ F] [InnerProductSpace' ℝ F]

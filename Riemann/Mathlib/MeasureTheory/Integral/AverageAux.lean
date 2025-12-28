@@ -1,6 +1,6 @@
 import Mathlib.MeasureTheory.Integral.Average
 import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Mathlib.Topology.Semicontinuous
+import Mathlib
 import Mathlib.MeasureTheory.Measure.Doubling
 import Mathlib.Topology.MetricSpace.Basic
 

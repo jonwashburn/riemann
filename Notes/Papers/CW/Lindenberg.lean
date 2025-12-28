@@ -88,7 +88,7 @@ lemma dist_z0_zn_le_sum_range (z : ℕ → ℝ) (n : ℕ) :
         dist (z 0) (z (n + 1))
             ≤ dist (z 0) (z n) + dist (z n) (z (n + 1)) := htri
         _ ≤ (∑ i ∈ Finset.range n, dist (z i) (z (i + 1))) + dist (z n) (z (n + 1)) := by
-              exact add_le_add_right ih _
+              exact (add_le_add_iff_right (dist (z n) (z (n + 1)))).mpr ih
         _ = ∑ i ∈ Finset.range (n + 1), dist (z i) (z (i + 1)) := by
               simp [Finset.sum_range_succ, add_comm]
 

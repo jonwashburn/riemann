@@ -596,7 +596,7 @@ lemma norm_pow_nat_le_card_pow_pred_sum_abs_pow
           simp_all only [le_add_iff_nonneg_left, zero_le, norm_nonneg, Nat.succ_eq_add_one,
             Nat.cast_pos, Finset.mem_univ, inv_nonneg, Nat.cast_nonneg, imp_self, implies_true,
             sum_const, card_univ, nsmul_eq_mul, ne_eq, Nat.cast_eq_zero, not_false_eq_true,
-            mul_inv_cancel₀, abs_nonneg, pow_pos, Nat.add_eq_zero,
+            mul_inv_cancel₀, abs_nonneg, pow_pos, Nat.add_eq_zero_iff,
             one_ne_zero, and_false, pow_eq_zero_iff, mul_inv_cancel_left₀, cR, s, n]
         have hRcancel :
             cR ^ n * (cR⁻¹ * ∑ i, |c i| ^ n) = cR ^ k * ∑ i, |c i| ^ n := by
@@ -795,7 +795,7 @@ lemma add_pow_le_two_pow_mul_add_pow {a b : ℝ} {n : ℕ}
       _ = ((2 : ℝ) * (1 / 2 : ℝ)) ^ n * (a + b) ^ n := by simp [mul_pow]
       _ = (1 : ℝ) ^ n * (a + b) ^ n := by simp
       _ = (a + b) ^ n := by simp
-  have hn_pos : 0 < n := Nat.succ_le.mp hn
+  have hn_pos : 0 < n := Nat.succ_le_iff.mp hn
   have hR :
       (2 : ℝ) ^ n * ((1 / 2 : ℝ) * a ^ n + (1 / 2 : ℝ) * b ^ n)
         = (2 : ℝ) ^ (n - 1) * (a ^ n + b ^ n) := by
@@ -1046,7 +1046,7 @@ lemma integrable_fderiv_apply
     h_int_poly.const_mul (hF_growth.C * ‖h‖)
   have hg_meas : Measurable g := hg.repr_measurable
   have hF_deriv_cont : Continuous (fderiv ℝ F) :=
-    hF_diff.continuous_fderiv (le_rfl : (1 : WithTop ℕ∞) ≤ 1)
+    hF_diff.continuous_fderiv (Ne.symm (zero_ne_one' (WithTop ℕ∞)))
   have h_comp_meas : Measurable (fun ω => fderiv ℝ F (g ω)) :=
     hF_deriv_cont.measurable.comp hg_meas
   have h_apply_meas : Measurable (fun ω => (fderiv ℝ F (g ω)) h) :=
@@ -1644,7 +1644,7 @@ lemma deriv_F_along (F : H → ℝ) (hF : ContDiff ℝ 1 F) (z : H) :
     (lineCLM (w := w) (i := i)).hasFDerivAt.const_add z
   have hF' : HasFDerivAt F (fderiv ℝ F (line (w := w) (i := i) z x))
       (line (w := w) (i := i) z x) :=
-    (hF.differentiable le_rfl _).hasFDerivAt
+    (hF.differentiable one_ne_zero _).hasFDerivAt
   have hcomp := hF'.comp x hline
   have hderiv :
       HasDerivAt (fun t => F (line (w := w) (i := i) z t))
@@ -1674,7 +1674,7 @@ lemma one_add_norm_comp_affine_le
   have hx : ‖x‖ = |x| := by simp [Real.norm_eq_abs]
   have h1 : 1 + ‖z + L x‖ ≤ 1 + ‖z‖ + ‖L‖ * |x| := by
     calc
-      1 + ‖z + L x‖ ≤ 1 + (‖z‖ + ‖L x‖) := by simpa only [add_assoc] using add_le_add_left h_tri 1
+      1 + ‖z + L x‖ ≤ 1 + (‖z‖ + ‖L x‖) := by simpa only [add_assoc] using ((add_le_add_iff_left 1).mpr h_tri)
       _ = 1 + ‖z‖ + ‖L x‖ := by simp [add_assoc]
       _ ≤ 1 + ‖z‖ + ‖L‖ * |x| := by simpa [hx] using add_le_add_left h_op (1 + ‖z‖)
   have h_nonneg_z : 0 ≤ 1 + ‖z‖ := by nlinarith [norm_nonneg z]
@@ -1705,7 +1705,7 @@ lemma deriv_comp_affine
   deriv (fun t => F (z + L t)) x = (fderiv ℝ F (z + L x)) (L 1) := by
   have hline : HasFDerivAt (fun t : ℝ => z + L t) L x := L.hasFDerivAt.const_add z
   have hF' : HasFDerivAt F (fderiv ℝ F (z + L x)) (z + L x) :=
-    (hF.differentiable le_rfl _).hasFDerivAt
+    (hF.differentiable one_ne_zero _).hasFDerivAt
   have hcomp := hF'.comp x hline
   have : HasDerivAt (fun t => F (z + L t))
           (((fderiv ℝ F (z + L x)).comp L) 1) x := hcomp.hasDerivAt
@@ -1731,7 +1731,7 @@ lemma one_add_norm_comp_affine_le'
   have h_op : ‖L x‖ ≤ ‖L‖ * ‖x‖ := L.le_opNorm x
   have h1 : 1 + ‖z + L x‖ ≤ 1 + ‖z‖ + ‖L‖ * ‖x‖ := by
     calc
-      1 + ‖z + L x‖ ≤ 1 + (‖z‖ + ‖L x‖) := by simpa [add_assoc] using add_le_add_left h_tri 1
+      1 + ‖z + L x‖ ≤ 1 + (‖z‖ + ‖L x‖) := by simpa [add_assoc] using (norm_add_le z (L x))
       _ = 1 + ‖z‖ + ‖L x‖ := by simp [add_assoc]
       _ ≤ 1 + ‖z‖ + ‖L‖ * ‖x‖ := by simpa using add_le_add_left h_op (1 + ‖z‖)
   have hx : ‖x‖ ≤ 1 + ‖x‖ := by nlinarith [norm_nonneg (x : E')]
@@ -2831,7 +2831,7 @@ lemma stein_coord_with_param_of_indep
     have hFderiv_meas :
         Measurable (fun p : P =>
           fderiv ℝ F (CoordLine.buildAlong (w := w) (i := i) p.1 p.2)) :=
-      (hF_diff.continuous_fderiv le_rfl).measurable.comp h_build_meas
+      (hF_diff.continuous_fderiv (Ne.symm (zero_ne_one' (WithTop ℕ∞)))).measurable.comp h_build_meas
     have hEval : Measurable (fun L : H →L[ℝ] ℝ => L (w i)) :=
       ContinuousLinearMap.measurable_apply (w i)
     have h_rhs :
@@ -3046,7 +3046,7 @@ lemma stein_coord_with_param'
         Measurable (fun p : P =>
           fderiv ℝ F (PhysLean.Probability.GaussianIBP.CoordLine.buildAlong
                         (w := hg.w) (i := i) p.1 p.2)) :=
-      (hF_diff.continuous_fderiv le_rfl).measurable.comp h_build_meas
+      (hF_diff.continuous_fderiv (Ne.symm (zero_ne_one' (WithTop ℕ∞)))).measurable.comp h_build_meas
     have hEval : Measurable (fun L : H →L[ℝ] ℝ => L (hg.w i)) :=
       ContinuousLinearMap.measurable_apply (hg.w i)
     have h_rhs :

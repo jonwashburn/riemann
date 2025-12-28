@@ -1,4 +1,5 @@
-import Mathlib
+import Mathlib.Analysis.SpecialFunctions.JapaneseBracket
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
 import Riemann.Mathlib.MeasureTheory.Integral.Auxiliary
 
 /-!
