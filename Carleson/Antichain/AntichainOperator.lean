@@ -248,7 +248,7 @@ lemma le_C6_1_4 (a4 : 4 ≤ a) :
   simp_rw [Tile.C6_1_5, Antichain.C6_1_6, C6_1_4, ← pow_add, ← pow_mul]
   gcongr
   · exact one_le_two
-  · have : 𝕔 / 4 ≤ 2 * (𝕔 / 8) + 1 := by cutsat
+  · have : 𝕔 / 4 ≤ 2 * (𝕔 / 8) + 1 := by lia
     have : (𝕔 / 4) * a ^ 3 ≤ 2 * (𝕔 / 8) * a ^ 3 + a ^ 3 :=
       (mul_le_mul_of_nonneg_right this (Nat.zero_le _)).trans_eq (by ring)
     ring_nf
@@ -264,7 +264,7 @@ lemma dens1_antichain_sq (h𝔄 : IsAntichain (· ≤ ·) 𝔄)
     _ ≤ Tile.C6_1_5 a * 2 ^ (6 * a + 1) * ∑ p with p ∈ 𝔄,
         ∫⁻ y in E p, C6_1_6 a * dens₁ 𝔄 ^ (p₆ a)⁻¹ * M14 𝔄 (q₆ a) g y * ‖g y‖ₑ := by
       gcongr with p mp; rw [← lintegral_const_mul _ hg.enorm]
-      refine setLIntegral_mono' measurableSet_E fun x mx ↦ mul_le_mul_right' ?_ _
+      refine setLIntegral_mono' measurableSet_E fun x mx ↦ mul_le_mul_left ?_ _
       rw [Finset.mem_filter_univ] at mp
       refine dach_bound h𝔄 mp hg hgG <|
         ((E_subset_𝓘.trans Grid_subset_ball).trans (ball_subset_ball ?_)) mx

@@ -55,7 +55,7 @@ lemma realD_nonneg : 0 ≤ (defaultD a : ℝ) := le_of_lt (realD_pos a)
 
 lemma one_le_realD : 1 ≤ (defaultD a : ℝ) := by
   rw [defaultD, Nat.cast_pow, Nat.cast_ofNat, ← pow_zero 2]
-  exact pow_le_pow_right₀ (one_le_two) (by cutsat)
+  exact pow_le_pow_right₀ (one_le_two) (by lia)
 
 lemma defaultD_pow_pos (z : ℤ) : 0 < (defaultD a : ℝ) ^ z := by
   positivity [realD_pos a]
@@ -199,7 +199,6 @@ end FunctionDistances
 notation3 "nndist_{" x ", " r "}" => @nndist (WithFunctionDistance x r) _
 /-- The ball with center `x` and radius `r` in `WithFunctionDistance x r`. -/
 notation3 "ball_{" x ", " r "}" => @ball (WithFunctionDistance x r) _ in
-
 instance nonempty_Space [CompatibleFunctions 𝕜 X A] : Nonempty X := by
   obtain ⟨x,_⟩ := ‹CompatibleFunctions 𝕜 X A›.eq_zero
   use x
@@ -461,7 +460,7 @@ lemma integrableOn_K_mul [IsOpenPosMeasure (volume : Measure X)]
     _ = ∫⁻ y in s, ‖K x y‖ₑ * ‖f y‖ₑ := by simp
     _ ≤ ∫⁻ y in s, C_K a / volume (ball x r) * ‖f y‖ₑ := by
       exact setLIntegral_mono_ae (hf.aemeasurable.enorm.const_mul _) <| Filter.Eventually.of_forall
-        fun y hy ↦ mul_le_mul_right' (enorm_K_le_ball_complement (hs hy)) _
+        fun y hy ↦ mul_le_mul_left (enorm_K_le_ball_complement (hs hy)) _
     _ = _ * ∫⁻ y in s, ‖f y‖ₑ := by exact lintegral_const_mul'' _ hf.aemeasurable.enorm
     _ < ∞ := ENNReal.mul_lt_top (ENNReal.div_lt_top coe_ne_top (measure_ball_pos _ x hr).ne') hf.2
 

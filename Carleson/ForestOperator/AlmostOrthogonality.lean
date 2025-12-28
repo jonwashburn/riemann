@@ -85,7 +85,7 @@ lemma enorm_adjointCarleson_le {x : X} :
       rw [← lintegral_const_mul' _ _ (by simp)]
       refine lintegral_mono fun y ↦ ?_
       rw [← mul_assoc, mul_comm _ _⁻¹, ← ENNReal.div_eq_inv_mul]
-      exact mul_le_mul_right' enorm_Ks_le _
+      exact mul_le_mul_left enorm_Ks_le _
     _ ≤ _ := by
       rw [mul_assoc _ (_ ^ _), mul_comm (_ ^ _), ← ENNReal.div_eq_inv_mul,
         ← ENNReal.inv_div (.inl (by simp)) (.inl (by simp)), mul_assoc, ← lintegral_const_mul' _⁻¹]
@@ -93,8 +93,8 @@ lemma enorm_adjointCarleson_le {x : X} :
       · simp_rw [ne_eq, ENNReal.inv_eq_top, ENNReal.div_eq_zero_iff, ENNReal.pow_eq_top_iff,
           ENNReal.ofNat_ne_top, false_and, or_false]
         exact (measure_ball_pos _ _ (by unfold defaultD; positivity)).ne'
-      refine mul_le_mul_left' (setLIntegral_mono' measurableSet_E fun y my ↦ ?_) _
-      exact mul_le_mul_right' (ENNReal.inv_le_inv' (volume_xDsp_bound_4 (E_subset_𝓘 my))) _
+      refine mul_le_mul_right (setLIntegral_mono' measurableSet_E fun y my ↦ ?_) _
+      exact mul_le_mul_left (ENNReal.inv_le_inv' (volume_xDsp_bound_4 (E_subset_𝓘 my))) _
 
 lemma enorm_adjointCarleson_le_mul_indicator {x : X} :
     ‖adjointCarleson p f x‖ₑ ≤
@@ -113,7 +113,6 @@ lemma enorm_adjointCarleson_le_mul_indicator {x : X} :
       refine setLIntegral_congr_fun measurableSet_E fun y my ↦ ?_
       rw [indicator_of_mem (E_subset_𝓘 my)]
     _ ≤ _ := by
-      gcongr; refine indicator_le_indicator_apply_of_subset (ball_subset_ball ?_) (zero_le _)
       gcongr; norm_num
 
 lemma adjoint_density_tree_bound1 (hf : BoundedCompactSupport f)
@@ -130,7 +129,7 @@ lemma adjoint_tree_estimate
   by_cases h : eLpNorm (adjointCarlesonSum (t u) g) 2 = 0
   · rw [h]; exact zero_le _
   have bcs : BoundedCompactSupport (adjointCarlesonSum (t u) g) := hg.adjointCarlesonSum
-  rw [← ENNReal.mul_le_mul_right h (bcs.memLp 2).eLpNorm_ne_top, ← sq,
+  rw [← ENNReal.mul_le_mul_iff_left h (bcs.memLp 2).eLpNorm_ne_top, ← sq,
     eLpNorm_two_eq_enorm_integral_mul_conj (bcs.memLp 2), mul_assoc _ (eLpNorm g 2 volume),
     mul_comm (eLpNorm g 2 volume), ← mul_assoc]
   conv_lhs => enter [1, 2, x]; rw [mul_comm]
@@ -153,7 +152,7 @@ lemma indicator_adjoint_tree_estimate
   · rw [h]; exact zero_le _
   have bcs : BoundedCompactSupport (F.indicator (adjointCarlesonSum (t u) g)) :=
     hg.adjointCarlesonSum.indicator measurableSet_F
-  rw [← ENNReal.mul_le_mul_right h (bcs.memLp 2).eLpNorm_ne_top, ← sq,
+  rw [← ENNReal.mul_le_mul_iff_left h (bcs.memLp 2).eLpNorm_ne_top, ← sq,
     eLpNorm_two_eq_enorm_integral_mul_conj (bcs.memLp 2), mul_assoc _ (eLpNorm g 2 volume),
     mul_comm (eLpNorm g 2 volume), ← mul_assoc]
   calc
@@ -188,9 +187,9 @@ lemma le_C7_4_3 (ha : 4 ≤ a) : C7_3_1_1 a + CMB (defaultA a) 2 + 1 ≤ C7_4_3 
             gcongr
             · norm_cast
               have := seven_le_c
-              cutsat
-            · norm_cast; cutsat
-            · norm_cast; cutsat
+              lia
+            · norm_cast; lia
+            · norm_cast; lia
           _ = _ := by ring
     _ ≤ 2 ^ ((𝕔 + 6 + 𝕔 / 2 + 𝕔 / 4 : ℕ) * (a : ℝ) ^ 3 + 1) := by
       rw [← NNReal.rpow_natCast]
@@ -245,15 +244,15 @@ lemma overlap_implies_distance (hu₁ : u₁ ∈ t) (hu₂ : u₂ ∈ t) (hu : u
     specialize this (mem_union_left _ mp') (not_disjoint_iff.mpr ⟨c, mc, p'lu₁.1 mc⟩) p'lu₁
     exact this.trans (Grid.dist_mono (p'lu₁.trans u₁lp))
   have four_Z := four_le_Z (X := X)
-  have four_le_Zn : 4 ≤ Z * (n + 1) := by rw [← mul_one 4]; exact mul_le_mul' four_Z (by cutsat)
+  have four_le_Zn : 4 ≤ Z * (n + 1) := by rw [← mul_one 4]; exact mul_le_mul' four_Z (by lia)
   have four_le_two_pow_Zn : 4 ≤ 2 ^ (Z * (n + 1) - 1) := by
-    change 2 ^ 2 ≤ _; exact Nat.pow_le_pow_right zero_lt_two (by cutsat)
+    change 2 ^ 2 ≤ _; exact Nat.pow_le_pow_right zero_lt_two (by lia)
   have ha : (2 : ℝ) ^ (Z * (n + 1)) - 4 ≥ 2 ^ (Z * n / 2 : ℝ) :=
     calc
       _ ≥ (2 : ℝ) ^ (Z * (n + 1)) - 2 ^ (Z * (n + 1) - 1) := by gcongr; norm_cast
       _ = 2 ^ (Z * (n + 1) - 1) := by
-        rw [sub_eq_iff_eq_add, ← two_mul, ← pow_succ', Nat.sub_add_cancel (by cutsat)]
-      _ ≥ 2 ^ (Z * n) := by apply pow_le_pow_right₀ one_le_two; rw [mul_add_one]; cutsat
+        rw [sub_eq_iff_eq_add, ← two_mul, ← pow_succ', Nat.sub_add_cancel (by lia)]
+      _ ≥ 2 ^ (Z * n) := by apply pow_le_pow_right₀ one_le_two; rw [mul_add_one]; lia
       _ ≥ _ := by
         rw [← Real.rpow_natCast]
         apply Real.rpow_le_rpow_of_exponent_le one_le_two; rw [Nat.cast_mul]
