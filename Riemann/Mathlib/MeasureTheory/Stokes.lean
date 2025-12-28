@@ -147,7 +147,7 @@ theorem integral_divergence_eq_boxBoundaryIntegral_unitCube_of_hasFDerivAt
     (f : Fin (n + 1) → (Fin (n + 1) → ℝ) → E)
     (f' : Fin (n + 1) → (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ) →L[ℝ] E)
     (Hc : ∀ i, ContinuousOn (f i) (Set.Icc (0 : Fin (n + 1) → ℝ) 1))
-    (Hd : ∀ x ∈ (Set.univ.pi fun i : Fin (n + 1) => Set.Ioo (0 : ℝ) 1),
+    (Hd : ∀ x ∈ (Set.univ.pi fun _ : Fin (n + 1) => Set.Ioo (0 : ℝ) 1),
         ∀ i, HasFDerivAt (f i) (f' i x) x)
     (Hi : IntegrableOn (fun x : (Fin (n + 1) → ℝ) =>
           ∑ i : Fin (n + 1), (f' i x) (Pi.single i 1))

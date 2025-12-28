@@ -105,8 +105,8 @@ lemma volume_xDsp_bound {x : X} (hx : x ∈ 𝓘 p) :
         gcongr; exact (mem_ball.mp (Grid_subset_ball hx)).le
       _ = _ := by rw [← add_mul]; norm_num
   convert measure_ball_le_of_dist_le' (μ := volume) (by norm_num) h
-  unfold As defaultA; norm_cast; rw [← pow_mul']; congr 2
-  rw [show (8 : ℕ) = 2 ^ 3 by norm_num, Nat.clog_pow]; norm_num
+  unfold As defaultA; norm_cast
+  rw [← pow_mul', show (8 : ℕ) = 2 ^ 3 by norm_num, Nat.clog_pow]; norm_num
 
 /-- A bound used in Lemma 7.6.2. -/
 lemma volume_xDsp_bound_4 {x : X} (hx : x ∈ 𝓘 p) :
@@ -118,8 +118,8 @@ lemma volume_xDsp_bound_4 {x : X} (hx : x ∈ 𝓘 p) :
         gcongr; exact (mem_ball.mp (Grid_subset_ball hx)).le
       _ ≤ _ := by rw [← add_mul]; gcongr; norm_num
   convert measure_ball_le_of_dist_le' (μ := volume) (by norm_num) h
-  unfold As defaultA; norm_cast; rw [← pow_mul']; congr 2
-  rw [show (16 : ℕ) = 2 ^ 4 by norm_num, Nat.clog_pow]; norm_num
+  unfold As defaultA; norm_cast
+  rw [← pow_mul', show (16 : ℕ) = 2 ^ 4 by norm_num, Nat.clog_pow]; norm_num
 
 /-- The set `E` defined in Proposition 2.0.2. -/
 def E (p : 𝔓 X) : Set X :=
@@ -244,7 +244,7 @@ lemma dist_LTSeries {n : ℕ} {u : Set (𝔓 X)} {s : LTSeries u} (hs : s.length
     let s' : LTSeries u := s.eraseLast
     specialize ih (show s'.length = n by simp [s', hs])
     have link : dist_(s'.last.1) f g ≤ C2_1_2 a * dist_(s.last.1) f g :=
-      Grid.dist_strictMono <| 𝓘_strictMono <| s.eraseLast_last_rel_last (by cutsat)
+      Grid.dist_strictMono <| 𝓘_strictMono <| s.eraseLast_last_rel_last (by lia)
     apply ih.trans; rw [pow_succ, mul_assoc]; gcongr; unfold C2_1_2; positivity
 
 end
@@ -538,7 +538,7 @@ lemma pairwiseDisjoint_iteratedMaximalSubfamily (A : Set (𝔓 X)) :
     univ.PairwiseDisjoint (iteratedMaximalSubfamily A) := by
   intro m hm n hn hmn
   wlog h'mn : m < n generalizing m n with H
-  · exact (H (mem_univ n) (mem_univ m) hmn.symm (by cutsat)).symm
+  · exact (H (mem_univ n) (mem_univ m) hmn.symm (by lia)).symm
   have : iteratedMaximalSubfamily A n
       ⊆ A \ ⋃ (i : {i | i < n}), iteratedMaximalSubfamily A i := by
     conv_lhs => rw [iteratedMaximalSubfamily]
@@ -609,4 +609,4 @@ lemma eq_biUnion_iteratedMaximalSubfamily (A : Set (𝔓 X)) {N : ℕ} (hN : ∀
     simp only [Finset.coe_Iio, mem_Iio] at ha hb
     have := pairwiseDisjoint_iteratedMaximalSubfamily A (mem_univ a) (mem_univ b) hab
     exact disjoint_iff_forall_ne.1 this (hu a ha) (hu b hb)
-  cutsat
+  lia

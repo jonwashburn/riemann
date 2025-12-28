@@ -3,7 +3,7 @@ defaultTargets = ["Riemann"]
 
 [leanOptions]
 pp.unicode.fun = true
-autoImplicit = false
+autoImplicit = true
 relaxedAutoImplicit = false
 
 [[require]]
@@ -30,3 +30,15 @@ name = "Carleson"
 
 [[lean_lib]]
 name = "DeRhamCohomology"
+
+[[lean_lib]]
+name = "CReals"
+
+[[lean_lib]]
+name = "Notes"
+
+[[lean_lib]]
+name = "GibbsMeasure"
+
+[[lean_lib]]
+name = "RiemannRecognitionGeometry"

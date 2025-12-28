@@ -64,7 +64,7 @@ theorem ResidueOfTendsTo {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
     calc ‖(s - p) * f s‖ = ‖((s - p) * f s - A) + A‖ := by
           ring_nf
         _ ≤ ‖(s - p) * f s - A‖ + ‖A‖ := norm_add_le ((s - p) * f s - A) A
-        _ ≤ 1 + ‖A‖ := add_le_add_right (le_of_lt (hV₀_mem s hV₀ hsne)) ‖A‖
+        _ ≤ 1 + ‖A‖ := add_le_add_left (le_of_lt (hV₀_mem s hV₀ hsne)) ‖A‖
         _ = ‖A‖ + 1 := add_comm 1 ‖A‖
   have h_bdd :
       BddAbove (norm ∘ (fun s ↦ (s - p) * f s) '' (V₀ \ {p})) := by
@@ -124,7 +124,7 @@ theorem ResidueOfTendsTo {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
     calc ‖q z‖ = ‖(q z - deriv g p) + (deriv g p)‖ := by
           ring_nf
         _ ≤ ‖q z - deriv g p‖ + ‖deriv g p‖ := norm_add_le (q z - deriv g p) (deriv g p)
-        _ ≤ 1 + ‖deriv g p‖  := add_le_add_right (le_of_lt (hV₁_mem z hV₁ hz_ne)) ‖deriv g p‖
+        _ ≤ 1 + ‖deriv g p‖  := add_le_add_left (le_of_lt (hV₁_mem z hV₁ hz_ne)) ‖deriv g p‖
         _ = ‖deriv g p‖ + 1 := add_comm 1 ‖deriv g p‖
   -- Step 4.  Relate `f` to `q` and pass the bound.
   have h_eq_diff :
@@ -1103,11 +1103,18 @@ lemma ZetaSum_aux3 {N : ℕ} {s : ℂ} (s_re_gt : 1 < s.re) :
 lemma integrableOn_of_Zeta0_fun {N : ℕ} (N_pos : 0 < N) {s : ℂ} (s_re_gt : 0 < s.re) :
     MeasureTheory.IntegrableOn (fun (x : ℝ) ↦ (⌊x⌋ + 1 / 2 - x) * (x : ℂ) ^ (-(s + 1))) (Ioi N)
     MeasureTheory.volume := by
-  apply MeasureTheory.Integrable.bdd_mul ?_ ?_
-  · convert ZetaSum_aux2a; simp only [← Complex.norm_real]; simp
-  · apply integrableOn_Ioi_cpow_iff (by positivity) |>.mpr (by simp [s_re_gt])
-  · refine Measurable.add ?_ measurable_const |>.sub (by fun_prop) |>.aestronglyMeasurable
-    exact Measurable.comp (by exact fun _ _ ↦ trivial) Int.measurable_floor
+  apply MeasureTheory.Integrable.bdd_mul ?_ ?_ ?_
+  · exact integrableOn_Ioi_cpow_of_lt (by simp; linarith) (by positivity)
+  · refine Measurable.aestronglyMeasurable ?_
+    refine Measurable.sub ?_ ?_
+    · refine Measurable.add ?_ measurable_const
+      exact Measurable.comp (fun _ _ ↦ trivial) Int.measurable_floor
+    · simpa using (RCLike.measurable_ofReal (𝕜 := ℂ))
+  · rcases ZetaSum_aux2a with ⟨C, hC⟩
+    exact Filter.Eventually.of_forall (fun x => hC x)
+  · rcases ZetaSum_aux2a with ⟨C, hC⟩
+    refine Filter.Eventually.of_forall (fun x => ?_)
+    simpa [Real.norm_eq_abs, Complex.norm_real] using hC x
 
 /-%%
 \begin{lemma}[ZetaSum_aux2]\label{ZetaSum_aux2}\lean{ZetaSum_aux2}\leanok

@@ -7,13 +7,6 @@ variable
   {E : Type*} [NormedAddCommGroup E] [NormedSpace 𝕜 E]
   {U : Set 𝕜} {f g : 𝕜 → E} {a : WithTop E} {a₀ : E}
 
-/-- Sums of circle integrable functions are circle integrable. -/
-theorem CircleIntegrable.fun_sum {c : ℂ} {R : ℝ} {ι : Type*} (s : Finset ι) {f : ι → ℂ → E}
-    (h : ∀ i ∈ s, CircleIntegrable (f i) c R) :
-    CircleIntegrable (fun z ↦ ∑ i ∈ s, f i z) c R := by
-  convert CircleIntegrable.sum s h
-  simp
-
 /-- Circle averages commute with addition. -/
 theorem circleAverage_add_fun {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {c : ℂ} {R : ℝ} {f₁ f₂ : ℂ → E} (hf₁ : CircleIntegrable f₁ c R)

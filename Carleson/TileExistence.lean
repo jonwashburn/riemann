@@ -58,7 +58,8 @@ lemma counting_balls {k : ℤ} (hk_lower : -S ≤ k) {Y : Set X}
       apply measure_ball_pos volume o
       simp only [defaultD, Nat.ofNat_pos, mul_pos_iff_of_pos_left]
       positivity
-    rw [← ENNReal.mul_le_mul_left volume_pos.ne.symm (by finiteness), mul_comm,mul_comm (volume _)]
+    rw [← ENNReal.mul_le_mul_iff_right volume_pos.ne.symm (by finiteness), mul_comm,
+      mul_comm (volume _)]
     exact this
   have val_ne_zero : (As (2 ^ a) (2 ^ J' X) : ℝ≥0∞) ≠ 0 := by
     exact_mod_cast (As_pos' (volume : Measure X) (2 ^ J' X)).ne.symm
@@ -715,7 +716,6 @@ lemma dyadic_property {l : ℤ} (hl : -S ≤ l) {k : ℤ} (hl_k : l ≤ k) :
       rw [not_disjoint_iff]
       use x
     apply this.trans
-
     if hx_mem_Xk : x ∈ Xk hk then
       have hx_i1: x ∈ I1 hk y := by
         rw [I3] at hxk
@@ -761,7 +761,6 @@ lemma dyadic_property {l : ℤ} (hl : -S ≤ l) {k : ℤ} (hl_k : l ≤ k) :
         intro h
         obtain ⟨v, hv, hv'⟩ := hx_notMem_i3_u h
         exact hx_mem_i2_and.right v (hv.trans hu) hv'
-
       rw [I2, dif_neg hk_not_neg_s] at hx_mem_i2
       simp only [mem_preimage, mem_iUnion, exists_prop] at hx_mem_i2
       obtain ⟨u, hu, hxu⟩ := hx_mem_i2
@@ -977,7 +976,7 @@ lemma small_boundary' (k : ℤ) (hk : -S ≤ k) (hk_mK : -S ≤ k - K') (y : Yk 
       ENNReal.mul_le_iff_le_inv (by norm_num) (by norm_num), ← mul_assoc,mul_comm 2⁻¹ _,
       mul_assoc] at this
     simp only [Nat.cast_pow, Nat.cast_ofNat, ENNReal.coe_pow, ENNReal.coe_ofNat] at this
-    rw [← ENNReal.mul_le_mul_left]
+    rw [← ENNReal.mul_le_mul_iff_right]
     · exact this
     · exact (NeZero.ne (2 ^ (4 * a)))
     · finiteness
@@ -1473,7 +1472,7 @@ lemma boundary_measure {k : ℤ} (hk : -S ≤ k) (y : Yk X k) {t : ℝ≥0} (ht 
           finiteness
         _ ≤ 6 * ↑D ^ (k - const_n a ht * ↑const_K) := by
           nth_rw 1 [← one_mul (D ^ (k - const_n a ht * K') : ℝ≥0∞), ← right_distrib]
-          rw [ENNReal.mul_le_mul_right]
+          rw [ENNReal.mul_le_mul_iff_left]
           · norm_num
           · apply LT.lt.ne'
             rw [← ENNReal.rpow_intCast]
@@ -1803,7 +1802,7 @@ lemma ball_subset_Ω₁ (p : 𝔓 X) : ball_(p) (𝒬 p) C𝓩 ⊆ Ω₁ p := by
   · rw [disjoint_iUnion₂_right]; intro i hi; rw [mem_diff_singleton] at hi
     exact 𝓩_pairwiseDisjoint z.coe_prop hi.1 hi.2.symm
   · rw [disjoint_iUnion₂_right]; intro i hi
-    let z' := (Finite.equivFin ↑(𝓩 p.1)).symm ⟨i, by cutsat⟩
+    let z' := (Finite.equivFin ↑(𝓩 p.1)).symm ⟨i, by lia⟩
     have zn : z ≠ z' := by simp only [ne_eq, Equiv.eq_symm_apply, z']; exact Fin.ne_of_gt hi
     simpa [z'] using disjoint_ball_Ω₁_aux p.1 z'.2 z.2 (Subtype.coe_ne_coe.mpr zn.symm)
 
@@ -1992,7 +1991,7 @@ lemma Ω_RFD {p q : 𝔓 X} (h𝓘 : 𝓘 p ≤ 𝓘 q) : Disjoint (Ω p) (Ω q)
     replace k : (⟨I, y⟩ : 𝔓 X) = ⟨J, z⟩ := by tauto
     rw [k]
   · obtain ⟨J, sJ, lbJ, ubJ⟩ :=
-      Grid.exists_sandwiched h𝓘 (𝔰 q - 1) (by change 𝔰 p ≤ _ ∧ _ ≤ 𝔰 q; cutsat)
+      Grid.exists_sandwiched h𝓘 (𝔰 q - 1) (by change 𝔰 p ≤ _ ∧ _ ≤ 𝔰 q; lia)
     have : q.2.1 ∈ ⋃ z ∈ 𝓩 J, ball_{J} z C4_2_1 :=
       ((Finset.coe_subset.mpr 𝓩_subset).trans frequency_ball_cover) q.2.2
     rw [mem_iUnion₂] at this; obtain ⟨z', mz', dz⟩ := this
@@ -2006,8 +2005,8 @@ lemma Ω_RFD {p q : 𝔓 X} (h𝓘 : 𝓘 p ≤ 𝓘 q) : Disjoint (Ω p) (Ω q)
       by_contra maxJ; rw [Grid.isMax_iff] at maxJ
       rw [maxJ, show s topCube = S from s_topCube (X := X)] at sJ
       have : 𝔰 q ≤ S := scale_mem_Icc.2
-      cutsat
-    have succJ : J.succ = q.1 := (Grid.succ_def nmaxJ).mpr ⟨ubJ, by change 𝔰 q = _; cutsat⟩
+      lia
+    have succJ : J.succ = q.1 := (Grid.succ_def nmaxJ).mpr ⟨ubJ, by change 𝔰 q = _; lia⟩
     have key : Ω q ⊆ Ω ⟨J, a⟩ := by
       nth_rw 2 [Ω]; simp only [nmaxJ, dite_false]; intro ϑ mϑ; right; rw [mem_iUnion₂]
       refine ⟨q.2, ?_, ?_⟩
@@ -2022,7 +2021,7 @@ termination_by (𝔰 q - 𝔰 p).toNat
 decreasing_by
   rw [Int.lt_toNat]
   change (s J - 𝔰 p).toNat < 𝔰 q - 𝔰 p
-  rw [sJ, Int.toNat_of_nonneg (by cutsat), sub_right_comm]
+  rw [sJ, Int.toNat_of_nonneg (by lia), sub_right_comm]
   exact sub_one_lt _
 
 end Construction

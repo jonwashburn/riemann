@@ -5,6 +5,7 @@ Authors: Joseph Tooby-Smith
 -/
 import Mathlib.Analysis.InnerProductSpace.Adjoint
 import Mathlib.Analysis.Normed.Algebra.Exponential
+import PhysLean.Meta.TODO.Basic
 import PhysLean.QuantumMechanics.PlanckConstant
 /-!
 
@@ -58,7 +59,7 @@ noncomputable def timeEvolutionMatrixStandard (t : ℝ) :
     let b : Basis (Fin n) ℂ H := Module.finBasisOfFinrankEq ℂ H A.hdim
     (timeEvolutionMatrix A t b)
 
---TODO "6VZGG" "Define a smooth structure on `FiniteTarget`."
+TODO "6VZGG" "Define a smooth structure on `FiniteTarget`."
 
 end FiniteTarget
 

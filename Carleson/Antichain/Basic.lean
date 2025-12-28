@@ -131,7 +131,7 @@ lemma norm_Ks_le' {x y : X} {𝔄 : Set (𝔓 X)} (p : 𝔄) (hxE : x ∈ E ↑p
   apply h.trans
   rw [zpow_sub₀ (by simp), zpow_one, div_div]
   apply (ineq_6_1_7 x p).trans
-  have ha : 6 * a + (𝕔 + 1) * a ^ 3 = (5 * a + (𝕔 + 1) * a ^ 3) + a := by cutsat
+  have ha : 6 * a + (𝕔 + 1) * a ^ 3 = (5 * a + (𝕔 + 1) * a ^ 3) + a := by lia
   simp only [div_eq_mul_inv, ge_iff_le]
   rw [ha, pow_add _ (5 * a + (𝕔 + 1) * a ^ 3) a, mul_assoc]
   apply mul_le_mul_of_nonneg_left _ (zero_le _)
@@ -212,12 +212,12 @@ lemma maximal_bound_antichain {𝔄 : Set (𝔓 X)} (h𝔄 : IsAntichain (· ≤
         rw [C6_1_2, add_comm (5 * a), add_assoc]; norm_cast
         apply pow_le_pow_right₀ one_le_two
         ring_nf
-        suffices 6 * a ≤ a ^ 3 by cutsat
+        suffices 6 * a ≤ a ^ 3 by lia
         linarith [sixteen_times_le_cube (four_le_a X)]
       · exact lt_of_le_of_lt hdist_cp
           (mul_lt_mul_of_nonneg_of_pos (by linarith) (le_refl _) (by linarith) hDpow_pos)
     _ ≤ C6_1_2 a * MB volume 𝔄 𝔠 (8 * D ^ 𝔰 ·) f x := by
-      rw [mul_le_mul_left (C6_1_2_ne_zero a) coe_ne_top, MB, maximalFunction,
+      rw [ENNReal.mul_le_mul_iff_right (C6_1_2_ne_zero a) coe_ne_top, MB, maximalFunction,
         inv_one, ENNReal.rpow_one, le_iSup_iff]
       simp only [iSup_le_iff, ENNReal.rpow_one]
       exact (fun _ hc ↦ hc p.1 p.2)

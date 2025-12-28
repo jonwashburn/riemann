@@ -6,107 +6,6 @@ namespace Function.locallyFinsuppWithin
 
 variable {E : Type*} [NormedAddCommGroup E] [ProperSpace E]
 
-/--
-Monotonicity of the logarithmic counting function in the divisor argument:
-if `D₁ ≤ D₂` pointwise and `1 ≤ r`, then `logCounting D₁ r ≤ logCounting D₂ r`.
--/
-lemma logCounting_le
-    {D₁ D₂ : locallyFinsuppWithin (Set.univ : Set E) ℤ}
-    (hD : D₁ ≤ D₂) {r : ℝ} (hr : 1 ≤ r) :
-    logCounting D₁ r ≤ logCounting D₂ r := by
-  classical
-  have hr_nonneg : 0 ≤ r := le_trans (by norm_num) hr
-  -- Expand the definition of `logCounting` at radius `r`.
-  change
-    (∑ᶠ z, D₁.toClosedBall r z * log (r * ‖z‖⁻¹) + (D₁ 0) * log r)
-      ≤
-    (∑ᶠ z, D₂.toClosedBall r z * log (r * ‖z‖⁻¹) + (D₂ 0) * log r)
-  -- It suffices to bound the finsum part and the `D 0 * log r` term separately.
-  refine add_le_add ?h_sum ?h_zero
-  · -- Finsum part: use a common finite support and compare termwise.
-    have h₁s :
-        ((D₁.toClosedBall r).support ∪ (D₂.toClosedBall r).support).Finite := by
-      apply Set.finite_union.2
-      constructor
-      · exact Function.locallyFinsuppWithin.finiteSupport _ (isCompact_closedBall (0 : E) |r|)
-      · exact Function.locallyFinsuppWithin.finiteSupport _ (isCompact_closedBall (0 : E) |r|)
-    -- Rewrite both finsums as sums over this common finite support.
-    have h₁ :
-        ∑ᶠ z, D₁.toClosedBall r z * log (r * ‖z‖⁻¹) =
-          ∑ z ∈ h₁s.toFinset,
-            D₁.toClosedBall r z * log (r * ‖z‖⁻¹) := by
-      refine
-        finsum_eq_finset_sum_of_support_subset
-          (fun i ↦ (D₁.toClosedBall r i : ℝ) * log (r * ‖i‖⁻¹)) ?_
-      intro z hz
-      aesop
-    have h₂ :
-        ∑ᶠ z, D₂.toClosedBall r z * log (r * ‖z‖⁻¹) =
-          ∑ z ∈ h₁s.toFinset,
-            D₂.toClosedBall r z * log (r * ‖z‖⁻¹) := by
-      refine
-        finsum_eq_finset_sum_of_support_subset
-          (fun i ↦ (D₂.toClosedBall r i : ℝ) * log (r * ‖i‖⁻¹)) ?_
-      intro z hz
-      aesop
-    -- Reduce finsum inequality to a finite sum inequality.
-    simp [h₁, h₂]
-    -- Show each summand is monotone in `D` because the logarithmic weight is ≥ 0 for `r ≥ 1`.
-    refine Finset.sum_le_sum ?_
-    intro z hz
-    -- From `hz : z ∈ h₁s.toFinset` we get that `z` lies in the closed ball.
-    have hz' :
-        z ∈ (D₁.toClosedBall r).support ∪ (D₂.toClosedBall r).support :=
-      (Set.Finite.mem_toFinset h₁s).1 hz
-    have hz_mem : z ∈ closedBall (0 : E) |r| := by
-      rcases hz' with hz₁ | hz₂
-      · exact (D₁.toClosedBall r).supportWithinDomain hz₁
-      · exact (D₂.toClosedBall r).supportWithinDomain hz₂
-    have hz_norm_le_abs : ‖z‖ ≤ |r| := by
-      -- membership in `closedBall 0 |r|` is equivalent to `‖z‖ ≤ |r|`
-      simpa [Metric.closedBall, dist_eq_norm] using hz_mem
-    have hz_norm_le : ‖z‖ ≤ r := by
-      simpa [abs_of_nonneg hr_nonneg] using hz_norm_le_abs
-    -- Nonnegativity of the logarithmic weight.
-    have hlog_nonneg :
-        0 ≤ log (r * ‖z‖⁻¹) := by
-      by_cases hz0 : z = 0
-      · subst hz0
-        simp
-      · have hz_pos : 0 < ‖z‖ := by
-          simp [hz0]
-        have hz_nonneg : 0 ≤ ‖z‖ := le_of_lt hz_pos
-        -- Divide `‖z‖ ≤ r` by `‖z‖ > 0` to get `1 ≤ r / ‖z‖`.
-        have hdiv :
-            1 ≤ r / ‖z‖ := by
-          have h := div_le_div_of_nonneg_right hz_norm_le hz_nonneg
-          have hz_ne : ‖z‖ ≠ 0 := ne_of_gt hz_pos
-          simpa [div_self hz_ne] using h
-        have hge1 : 1 ≤ r * ‖z‖⁻¹ := by
-          simpa [div_eq_mul_inv] using hdiv
-        exact Real.log_nonneg hge1
-    -- Monotonicity in the coefficient: restrict the pointwise inequality `hD`.
-    have hcoeff :
-        (D₁.toClosedBall r z : ℤ) ≤ D₂.toClosedBall r z := by
-      -- On the closed ball, `toClosedBall` just evaluates the original functions.
-      have h₁' :
-          (D₁.toClosedBall r z : ℤ) = D₁ z := by
-        simp [toClosedBall, restrictMonoidHom, restrict_apply, hz_mem]
-      have h₂' :
-          (D₂.toClosedBall r z : ℤ) = D₂ z := by
-        simp [toClosedBall, restrictMonoidHom, restrict_apply, hz_mem]
-      have hDz : D₁ z ≤ D₂ z := hD z
-      simpa [h₁', h₂'] using hDz
-    have hcoeff_real :
-        (D₁.toClosedBall r z : ℝ) ≤ D₂.toClosedBall r z := Int.cast_le.mpr hcoeff
-    have := mul_le_mul_of_nonneg_right hcoeff_real hlog_nonneg
-    simpa using this
-  · -- The `D 0 * log r` term: again monotone because `log r ≥ 0` when `1 ≤ r`.
-    have hlogr_nonneg : 0 ≤ log r := Real.log_nonneg hr
-    have hcoeff0 : (D₁ 0 : ℤ) ≤ D₂ 0 := hD 0
-    have hcoeff0_real : (D₁ 0 : ℝ) ≤ D₂ 0 := Int.cast_le.mpr hcoeff0
-    have := mul_le_mul_of_nonneg_right hcoeff0_real hlogr_nonneg
-    simpa using this
 
 end Function.locallyFinsuppWithin
 
@@ -129,20 +28,6 @@ theorem meromorphicOrderAt_add_top
 
 namespace ValueDistribution
 
-/--
-The counting function of a constant function is zero.
--/
-@[simp] theorem logCounting_const
-    {𝕜 : Type*} [NontriviallyNormedField 𝕜] [ProperSpace 𝕜]
-    {E : Type*} [NormedAddCommGroup E] [NormedSpace 𝕜 E] {c : E} {e : WithTop E} :
-    logCounting (fun _ ↦ c : 𝕜 → E) e = 0 := by
-  simp [logCounting]
-
-/--
-The counting function of the constant function zero is zero.
--/
-@[simp] theorem logCounting_const_zero [ProperSpace 𝕜] {e : WithTop E} :
-    logCounting (0 : 𝕜 → E) e = 0 := logCounting_const
 
 /--
 The divisor of `f₁ + f₂` is larger than or equal to the minimum of the divisors

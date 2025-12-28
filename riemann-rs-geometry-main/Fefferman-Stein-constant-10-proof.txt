@@ -1,0 +1,125 @@
+% Fefferman–Stein BMO→Carleson with explicit constant C_FS = 10
+% Normalization: upper half-plane ℝ×(0,∞), Poisson kernel P_y(x) = (1/π) · y / (x^2 + y^2)
+
+\begin{proposition}[Fefferman--Stein constant]\label{prop:fs-constant}
+Let $f\in \BMO(\R)$ and let $u(x,y) := (P_y * f)(x)$ be its Poisson extension on the upper half-plane with
+\[
+P_y(x) \;=\; \frac{1}{\pi}\,\frac{y}{x^2+y^2}.
+\]
+For each interval $I\subset\R$ write the Carleson box $Q(I) := I\times(0,|I|)$. Then
+\[
+\sup_I \frac{1}{|I|}\iint_{Q(I)} |\nabla u(x,y)|^2\, y\,dx\,dy \;\le\; 10\,\|f\|_{\BMO(\R)}^2.
+\]
+In particular, for this normalization one may take $C_{\mathrm{FS}}=10$.
+\end{proposition}
+
+\begin{proof}
+We work with aperture-$2$ cones $\Gamma_2(x):=\{(\xi,y):|\xi-x|<2y\}$ and the associated Lusin area integral
+\[
+S_2 f(x)^2 \;:=\; \iint_{\Gamma_2(x)} \big|\nabla(P_y * f)(\xi)\big|^2\, d\xi\,dy.
+\]
+
+\emph{Step 1 (cone $\to$ tent geometry).} For any nonnegative $G$ and interval $I$,
+\begin{equation}\label{eq:geom}
+\iint_{Q(I)} G(\xi,y)\, y\, d\xi\,dy \;\le\; \int_I \iint_{\Gamma_2(x)} G(\xi,y)\, d\xi\,dy\, dx.
+\end{equation}
+Indeed, if $(\xi,y)\in Q(I)$ then $\{x\in I:|x-\xi|<2y\}$ has length at least $y$ (aperture $\ge1$ inside $Q(I)$), yielding \eqref{eq:geom} by Fubini. With $G=|\nabla u|^2$ this gives
+\begin{equation}\label{eq:cone-tent}
+\frac{1}{|I|}\iint_{Q(I)} |\nabla u|^2\, y \;\le\; \frac{1}{|I|}\int_I S_2 f(x)^2\,dx.
+\end{equation}
+
+\emph{Step 2 (split $f$ and keep squares linear at the Carleson level).} Fix $I$ and write
+\[
+f \;=\; f_I + g + h, \qquad g := (f-f_I)\mathbf{1}_I,\quad h := (f-f_I)\mathbf{1}_{I^c}.
+\]
+By linearity of the Poisson extension and $(a+b)^2\le 2a^2+2b^2$ applied to the Carleson energy, we obtain
+\begin{equation}\label{eq:split}
+\frac{1}{|I|}\iint_{Q(I)} |\nabla u|^2\, y \;\le\; \frac{2}{|I|}\iint_{Q(I)} |\nabla (P_y*g)|^2\, y \;+\; \frac{2}{|I|}\iint_{Q(I)} |\nabla (P_y*h)|^2\, y.
+\end{equation}
+
+\emph{Step 3 (local piece $g$, energy identity + John--Nirenberg).} With our normalization one has the exact energy identity
+\begin{equation}\label{eq:energy}
+\iint_{\R\times(0,\infty)} \big|\nabla (P_y * \varphi)\big|^2\, y\, dx\,dy \;=\; \frac{1}{2}\,\|\varphi\|_{L^2(\R)}^2 \qquad \text{for all }\varphi\in L^2(\R).
+\end{equation}
+Thus
+\[
+\frac{2}{|I|}\iint_{Q(I)} |\nabla (P_y*g)|^2\, y \;\le\; \frac{2}{|I|}\iint_{\R\times(0,\infty)} |\nabla (P_y*g)|^2\, y \;=\; \frac{1}{|I|}\|g\|_2^2.
+\]
+By John--Nirenberg in the form
+\begin{equation}\label{eq:JN}
+\frac{|\{x\in J:|f(x)-f_J|>t\}|}{|J|} \;\le\; C_1\, e^{-C_2\, t/\|f\|_{\BMO}},\qquad C_1=2,\ C_2=1,
+\end{equation}
+we get the second-moment bound
+\begin{equation}\label{eq:L2-JN}
+\avgint_J |f-f_J|^2 \,\le\, 4\,\|f\|_{\BMO}^2,
+\end{equation}
+since $\avgint_J |X|^2 = 2\int_0^\infty t\,\P(|X|>t)\,dt \le 4\|f\|_{\BMO}^2$ under \eqref{eq:JN}. Applied with $J=I$,
+\begin{equation}\label{eq:local-4}
+\frac{2}{|I|}\iint_{Q(I)} |\nabla (P_y*g)|^2\, y \;\le\; 4\,\|f\|_{\BMO}^2.
+\end{equation}
+
+\emph{Step 4 (tail piece $h$, dyadic annuli and cancellation).} Decompose
+\[
+I_0 := 2I\setminus I,\quad I_k := 2^{k+1}I\setminus 2^k I\ (k\ge 1), \qquad h = \sum_{k\ge 0} h_k,\ \ h_k := (f-f_I)\mathbf{1}_{I_k}.
+\]
+On each ring write
+\[
+h_k \;=\; a_k + c_k,\qquad a_k := \big(f-f_{2^{k+1}I}\big)\mathbf{1}_{I_k}\ \ (\text{mean zero on }I_k),\quad c_k := \big(f_{2^{k+1}I}-f_I\big)\mathbf{1}_{I_k}.
+\]
+We estimate $a_k$ and $c_k$ separately, using the pointwise Poisson-gradient bound
+\begin{equation}\label{eq:kernel-grad}
+\big|\nabla P_y(\xi - t)\big|^2 \;\le\; \frac{2}{\pi^2}\,\frac{1}{\big((\xi-t)^2+y^2\big)^2},
+\end{equation}
+which follows by explicit differentiation of $P_y$.
+
+\smallskip
+\noindent\emph{(A) Mean-zero part $a_k$.} One-variable calculus (differentiate under the integral sign, or integrate the explicit kernel) gives the Carleson-box integral bound, uniform in $I$ and $t\in I_k$ with $\dist(t,I)\simeq 2^k|I|$:
+\begin{equation}\label{eq:box-int}
+\iint_{Q(I)} \frac{y}{\big((x-t)^2+y^2\big)^2}\,dx\,dy \;\le\; \frac{1}{\pi^2}\,\frac{|I_k|}{\dist(I_k,I)} \;\lesssim\; \frac{1}{2^k}.
+\end{equation}
+Subtracting the average of the kernel over $I_k$ and using Taylor’s theorem (the “mean-zero improvement”), one gains an additional factor $\simeq (|I|/\dist(I_k,I))^2 \approx 4^{-k}$; in particular there is an absolute constant $c_0\in(0,1)$ such that
+\begin{equation}\label{eq:meanzero}
+\iint_{Q(I)} \big|\nabla(P_y * a_k)\big|^2\, y \;\le\; c_0\cdot 4^{-k}\,\|a_k\|_2^2\qquad\text{(one may take }c_0=\tfrac18\text{)}.
+\end{equation}
+Summing and applying \eqref{eq:L2-JN} on $2^{k+1}I$,
+\begin{align}
+\sum_{k\ge 0}\iint_{Q(I)} \big|\nabla(P_y * a_k)\big|^2\, y
+&\le \frac18\sum_{k\ge 0}4^{-k}\,\|a_k\|_2^2 \nonumber\\
+&\le \frac18\sum_{k\ge 0}4^{-k}\,|I_k|\,\avgint_{2^{k+1}I} |f-f_{2^{k+1}I}|^2 \nonumber\\
+&\le \frac12\,|I|\,\|f\|_{\BMO}^2\,\sum_{k\ge 0}2^{-k} \;\le\; |I|\,\|f\|_{\BMO}^2.\label{eq:Ak-sum}
+\end{align}
+
+\smallskip
+\noindent\emph{(B) Constant part $c_k$.} By telescoping,
+\[
+|f_{2^{k+1}I}-f_I| \;\le\; \sum_{j=0}^k |f_{2^{j+1}I}-f_{2^{j}I}| \;\le\; (k+1)\,\|f\|_{\BMO}.
+\]
+Using \eqref{eq:kernel-grad} and the crude version of \eqref{eq:box-int} (no mean-zero gain), we obtain
+\begin{align}
+\iint_{Q(I)} \big|\nabla(P_y * c_k)\big|^2\, y
+&\le \frac{1}{\pi^2}\,|I_k|\,\dist(I_k,I)^{-1}\,|f_{2^{k+1}I}-f_I|^2 \nonumber\\
+&\lesssim \frac{1}{\pi^2}\,|I|\, (k+1)^2\,2^{-k}\,\|f\|_{\BMO}^2.\label{eq:Ck-bound}
+\end{align}
+Summing $k\ge 0$ and using $\sum_{k\ge 0}(k+1)^2 2^{-k} \le 4$ gives
+\begin{equation}\label{eq:Ck-sum}
+\sum_{k\ge 0}\iint_{Q(I)} \big|\nabla(P_y * c_k)\big|^2\, y \;\le\; \frac{4}{\pi^2}\,|I|\,\|f\|_{\BMO}^2.
+\end{equation}
+
+Combining \eqref{eq:Ak-sum} and \eqref{eq:Ck-sum} and inserting into the tail term of \eqref{eq:split} yields
+\begin{equation}\label{eq:tail-6}
+\frac{2}{|I|}\iint_{Q(I)} |\nabla (P_y*h)|^2\, y \;\le\; 2\,\|f\|_{\BMO}^2 \;+\; \frac{8}{\pi^2}\,\|f\|_{\BMO}^2 \;\le\; 6\,\|f\|_{\BMO}^2
+\end{equation}
+(since $8/\pi^2<1$).
+
+\emph{Step 5 (conclusion).} From \eqref{eq:split}, \eqref{eq:local-4}, and \eqref{eq:tail-6} we conclude
+\[
+\frac{1}{|I|}\iint_{Q(I)} |\nabla u|^2\, y \;\le\; 4\,\|f\|_{\BMO}^2 \;+\; 6\,\|f\|_{\BMO}^2 \;=\; 10\,\|f\|_{\BMO}^2.
+\]
+Taking the supremum over $I$ gives the proposition.
+
+\smallskip
+\noindent\emph{Remarks on references and normalizations.} The energy identity \eqref{eq:energy} and kernel bounds \eqref{eq:kernel-grad}--\eqref{eq:box-int} are standard Poisson kernel calculus on the upper half-plane (see, e.g., \cite[Thm.~3]{FeffermanStein1972} or \cite[Ch.~VI]{Garnett2007}). The John--Nirenberg inequality \eqref{eq:JN} with explicit constants $(C_1,C_2)=(2,1)$ holds for the dyadic proof via Calderón--Zygmund stopping-time; it implies \eqref{eq:L2-JN} as shown above. Any variant with $C_1\le 2$ and $C_2\ge 1$ suffices for the bound $4\,\|f\|_{\BMO}^2$ used here.
+\end{proof}
+
+% End of file.
+

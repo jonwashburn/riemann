@@ -5,6 +5,7 @@ Authors: Joseph Tooby-Smith
 -/
 import PhysLean.QuantumMechanics.OneDimension.HilbertSpace.Basic
 import Mathlib.Analysis.Distribution.FourierSchwartz
+import PhysLean.Meta.TODO.Basic
 /-!
 
 # Schwartz submodule of the Hilbert space

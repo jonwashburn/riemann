@@ -5,6 +5,7 @@ Authors: Joseph Tooby-Smith
 -/
 import Mathlib.MeasureTheory.Function.L2Space
 import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+import PhysLean.Meta.Linters.Sorry
 import Mathlib.Analysis.InnerProductSpace.Dual
 /-!
 

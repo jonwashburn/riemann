@@ -81,16 +81,21 @@ lemma MeromorphicOn.measurable_of_univ {f : ℂ → ℂ} (hf : MeromorphicOn f �
   have h_poles_countable : Set.Countable {x | ¬AnalyticAt ℂ f x} := by
     -- The set of analytic points is codiscrete within ⊤ (the whole space)
     have h_codiscrete := hf.analyticAt_mem_codiscreteWithin
-    -- The complement of a codiscrete set has discrete topology as a subtype
-    have h_discrete : DiscreteTopology ({x | AnalyticAt ℂ f x}ᶜ ∩ (⊤ : Set ℂ) : Set ℂ) :=
-      discreteTopology_of_codiscreteWithin h_codiscrete
+    -- The complement of a codiscrete set is discrete
+    -- Note: h_codiscrete says {x | AnalyticAt ℂ f x} ∈ codiscreteWithin ⊤
+    -- We need to show {x | AnalyticAt ℂ f x}ᶜ is discrete
+    have h_codiscrete' : {x | AnalyticAt ℂ f x}ᶜᶜ ∈ codiscreteWithin (⊤ : Set ℂ) := by
+      simp only [compl_compl]
+      exact h_codiscrete
+    have h_discrete : IsDiscrete ({x | AnalyticAt ℂ f x}ᶜ ∩ (⊤ : Set ℂ)) :=
+      isDiscrete_of_codiscreteWithin h_codiscrete'
     -- Simplify: {x | AnalyticAt ℂ f x}ᶜ ∩ ⊤ = {x | ¬AnalyticAt ℂ f x}
     have h_set_eq : ({x | AnalyticAt ℂ f x}ᶜ ∩ (⊤ : Set ℂ) : Set ℂ) = {x | ¬AnalyticAt ℂ f x} := by
       ext x
       simp only [Set.top_eq_univ, Set.inter_univ, Set.mem_compl_iff, Set.mem_setOf_eq]
     -- Transfer discrete topology to the simplified set
     haveI h_discrete' : DiscreteTopology ({x | ¬AnalyticAt ℂ f x} : Set ℂ) := by
-      rw [← h_set_eq]; exact h_discrete
+      rw [← h_set_eq]; exact isDiscrete_iff_discreteTopology.mp h_discrete
     -- ℂ is second-countable, so any subtype is second-countable
     haveI : SecondCountableTopology ({x | ¬AnalyticAt ℂ f x} : Set ℂ) :=
       TopologicalSpace.Subtype.secondCountableTopology _
@@ -486,7 +491,7 @@ Jensen-type identity relating zeros and poles: for a meromorphic `f` on the plan
 the difference of counting functions at `0` and at `⊤` equals a circle average
 minus the trailing coefficient term.
 -/
-lemma logCounting_zero_sub_logCounting_top_eq_circleAverage_sub_const
+lemma logCounting_zero_sub_logCounting_top_eq_circleAverage_sub_const'
     {f : ℂ → ℂ} (hf : MeromorphicOn f ⊤) {R : ℝ} (hR : R ≠ 0) :
     logCounting f 0 R - logCounting f ⊤ R
       = circleAverage (fun z ↦ Real.log ‖f z‖) 0 R
@@ -546,7 +551,7 @@ lemma cartan_f1 {f : ℂ → ℂ} (h : MeromorphicOn f ⊤) {R : ℝ} (hR : R �
       logCounting (fun z ↦ f z - a) 0 R - logCounting (fun z ↦ f z - a) ⊤ R
         = circleAverage (fun z ↦ Real.log ‖f z - a‖) 0 R
             - Real.log ‖meromorphicTrailingCoeffAt (fun z ↦ f z - a) 0‖ :=
-    logCounting_zero_sub_logCounting_top_eq_circleAverage_sub_const (f := fun z ↦ f z - a)
+    logCounting_zero_sub_logCounting_top_eq_circleAverage_sub_const' (f := fun z ↦ f z - a)
       (hf := hg) (R := R) hR
   -- Rewrite `logCounting (f - a) 0` and `logCounting (f - a) ⊤` via the API.
   have h_zero :

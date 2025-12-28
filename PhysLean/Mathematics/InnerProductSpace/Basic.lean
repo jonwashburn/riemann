@@ -10,6 +10,7 @@ import Mathlib.Data.Real.CompleteField
 import Mathlib.Data.Real.StarOrdered
 /-!
 
+
 # Inner product space
 
 In this module we define the type class `InnerProductSpace' 𝕜 E` which is a
@@ -27,7 +28,7 @@ We define the following maps:
   defined on `WithLp 2 E` is L₂ norm.
 
 -/
-
+set_option autoImplicit true
 /-- L₂ norm on `E`.
 
 In particular, on product types `X×Y` and pi types `ι → X` this class provides L₂ norm unlike `‖·‖`.
@@ -94,12 +95,7 @@ instance {𝕜 : Type*} {E : Type*} [RCLike 𝕜] [NormedAddCommGroup E] [inst :
   norm₂_sq_eq_re_inner := norm_sq_eq_re_inner
   inner_top_equiv_norm := by
     use 1; use 1
-    refine ⟨by norm_num, ?_⟩
-    refine ⟨by norm_num, ?_⟩
-    intro x
-    have : re (inner 𝕜 x x) = ‖x‖ ^ 2 := by
-      simpa using (by exact inner_self_eq_norm_sq x)
-    simp [this]
+    simp
 
 end BasicInstances
 
@@ -216,7 +212,9 @@ def fromL2 : WithLp 2 E →L[𝕜] E where
         have h := Real.sqrt_le_sqrt (h ((WithLp.equiv 2 E) x)).1
         simp [smul_eq_mul] at h
         apply (le_inv_mul_iff₀' hc).2
-        exact h
+        convert h using 1
+        simp only [WithLp.equiv_apply]
+        ring
 
 lemma fromL2_inner_left (x : WithLp 2 E) (y : E) : ⟪fromL2 𝕜 x, y⟫ = ⟪x, toL2 𝕜 y⟫ := rfl
 
@@ -314,6 +312,7 @@ lemma inner_neg_right' (x y : E) : ⟪x, -y⟫ = -⟪x, y⟫ :=
 @[simp]
 lemma inner_self_eq_zero' {x : E} : ⟪x, x⟫ = 0 ↔ x = 0 := by
   erw [inner_self_eq_zero (E:=WithLp 2 E)]
+  simp
 
 @[simp]
 lemma inner_sum'{ι : Type*} [Fintype ι] (x : E) (g : ι → E) :
@@ -321,7 +320,11 @@ lemma inner_sum'{ι : Type*} [Fintype ι] (x : E) (g : ι → E) :
   have h1 := inner_sum (𝕜 := 𝕜) (E:=WithLp 2 E) (x := WithLp.toLp 2 x)
     (f := fun i => WithLp.toLp 2 (g i))
   convert h1 (Finset.univ)
-
+  rw [← ofLp_inner_left]
+  simp only
+  congr
+  change _ = (WithLp.linearEquiv 2 𝕜 E) _
+  simp
 
 @[fun_prop]
 lemma Continuous.inner' {α} [TopologicalSpace α] (f g : α → E)
@@ -345,7 +348,7 @@ lemma real_inner_comm' (x y : F) : ⟪y, x⟫ = ⟪x, y⟫ :=
   real_inner_comm (F:=WithLp 2 F) _ _
 
 @[fun_prop]
-lemma ContDiffAt.inner' {n : WithTop ℕ∞} {f g : E → F} {x : E}
+lemma ContDiffAt.inner' {f g : E → F} {x : E}
     (hf : ContDiffAt ℝ n f x) (hg : ContDiffAt ℝ n g x) :
     ContDiffAt ℝ n (fun x => ⟪f x, g x⟫) x :=
   have hf : ContDiffAt ℝ n (fun x => toL2 ℝ (f x)) x := by fun_prop
@@ -353,7 +356,7 @@ lemma ContDiffAt.inner' {n : WithTop ℕ∞} {f g : E → F} {x : E}
   hf.inner ℝ hg
 
 @[fun_prop]
-lemma ContDiff.inner' {n : WithTop ℕ∞} {f g : E → F}
+lemma ContDiff.inner' {f g : E → F}
     (hf : ContDiff ℝ n f) (hg : ContDiff ℝ n g) :
     ContDiff ℝ n (fun x => ⟪f x, g x⟫) :=
   have hf : ContDiff ℝ n (fun x => toL2 ℝ (f x)) := by fun_prop
@@ -494,24 +497,7 @@ instance {ι : Type*} [Fintype ι] : InnerProductSpace' 𝕜 (ι → E) where
       exact sq_nonneg √(re ⟪ (x i),(x i)⟫)
     simp only [isUnit_iff_ne_zero, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true,
       IsUnit.inv_mul_cancel, Real.rpow_one]
-    refine Finset.sum_congr rfl ?_
-    intro i hi
-    -- RHS: unfold the inner product on WithLp 2 E
-    have h₁ :
-        re ⟪WithLp.toLp 2 (x i), WithLp.toLp 2 (x i)⟫
-          = re ⟪x i, x i⟫ := by
-      -- inner on WithLp 2 E is defined via WithLp.equiv 2 E
-      -- and WithLp.equiv 2 E (WithLp.toLp 2 (x i)) = x i
-      simp [InnerProductSpace'.toInnerWithL2, WithLp.equiv_apply]
-
-    -- LHS: (sqrt a)^2 = a, using nonnegativity of re ⟪x i, x i⟫
-    have hnonneg : 0 ≤ re ⟪x i, x i⟫ := InnerProductSpace.Core.inner_self_nonneg
-    have h₂ :
-        √(re ⟪x i, x i⟫) ^ 2 = re ⟪x i, x i⟫ := by
-      simpa [pow_two] using (Real.sq_sqrt hnonneg)
-
-  -- Put the two parts together
-    simp [h₁, h₂]
+    rfl
 
   inner_top_equiv_norm := by
     rename_i i1 i2 i3 i4 i5 i6 i7 i8
@@ -544,22 +530,30 @@ instance {ι : Type*} [Fintype ι] : InnerProductSpace' 𝕜 (ι → E) where
             exact InnerProductSpace.Core.inner_self_nonneg)
 
         apply le_trans _ (le_trans h1 _)
-        · simp only
+        · simp [norm]
           apply le_of_eq
           symm
-          aesop
+          refine Real.sq_sqrt ?_
+          exact InnerProductSpace.Core.inner_self_nonneg
         · apply le_of_eq
-          simp only
-          classical
-          -- directly unfold inner on the RHS
-          simp [InnerProductSpace.toInner, PiLp.innerProductSpace]
+          simp only [norm, OfNat.ofNat_ne_zero, ↓reduceIte, ENNReal.ofNat_ne_top,
+            WithLp.equiv_apply, ENNReal.toReal_ofNat, Real.rpow_ofNat, one_div]
+          rw [← Real.rpow_ofNat, ← Real.rpow_mul]
+          simp
+          rfl
+          · positivity
       · have h2 := (h (x i)).2
         trans ∑ j, re ⟪x j, x j⟫
         · apply le_of_eq
-          -- unfold the `WithLp`/`PiLp` inner product and compute it as a sum
-          -- this is analogous to what you did in `norm₂_sq_eq_re_inner` above
-          simp [InnerProductSpace.toInner, PiLp.innerProductSpace]
+          simp only [norm, OfNat.ofNat_ne_zero, ↓reduceIte, ENNReal.ofNat_ne_top,
+            WithLp.equiv_apply, ENNReal.toReal_ofNat, Real.rpow_ofNat, one_div]
+          rw [← Real.rpow_ofNat, ← Real.rpow_mul]
+          simp only [ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, inv_mul_cancel₀, Real.rpow_one]
           congr
+          funext j
+          refine Real.sq_sqrt ?_
+          · exact InnerProductSpace.Core.inner_self_nonneg
+          · positivity
         trans ∑ j, d * ‖x j‖ ^ 2
         · refine Finset.sum_le_sum ?_
           intro j _
@@ -575,27 +569,18 @@ instance {ι : Type*} [Fintype ι] : InnerProductSpace' 𝕜 (ι → E) where
         · exact norm_nonneg (x j)
         · exact norm_nonneg (x i)
     · simp at hnEmpty
-      letI := PiLp.normedAddCommGroup 2 (fun _ : ι => WithLp 2 E)
       use 1, 1
       simp only [zero_lt_one, smul_eq_mul, one_mul, true_and]
       intro x
-      -- Equip the `PiLp` space with its standard inner product structure and core,
-      -- so that we can use core lemmas like `inner_self_nonneg` and `inner_re_symm`.
-      letI : InnerProductSpace 𝕜 (PiLp 2 fun _ : ι => WithLp 2 E) :=
-        PiLp.innerProductSpace (𝕜 := 𝕜) (fun _ : ι => WithLp 2 E)
-      letI : InnerProductSpace.Core 𝕜 (PiLp 2 fun _ : ι => WithLp 2 E) :=
-        InnerProductSpace.toCore (𝕜 := 𝕜)
-      constructor
-      · -- Here the inequality reduces to `0 ≤ re ⟪x, x⟫`, which follows from positivity
-        -- of the inner product.
-        simp [norm]
-        exact inner_self_nonneg
-      · -- Symmetry of the real part of the inner product turns the second inequality
-        -- into the same one as above.
-        simp [norm]
-        refine funext ?_
-        intro i
-        exact False.elim (hnEmpty.elim i)
+      refine le_antisymm_iff.mp ?_
+      have h1 : x = fun _ => 0 := by
+        funext i
+        have hn : ¬ IsEmpty ι := by
+          simp only [not_isEmpty_iff]
+          use i
+        exact False.elim (hn hnEmpty)
+      subst h1
+      simp [norm]
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [hE : InnerProductSpace' ℝ E]
 local notation "⟪" x ", " y "⟫" => inner ℝ x y
