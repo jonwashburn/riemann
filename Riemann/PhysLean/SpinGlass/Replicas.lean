@@ -275,7 +275,7 @@ noncomputable def isGaussianHilbert_UV
         -- The ONB sum splits into the two component ONB sums.
         funext ω
         apply (WithLp.ofLp_injective (p := (2 : ENNReal)))
-        simp [UV, hU.repr, hV.repr, OrthonormalBasis.prod_apply, WithLp.ofLp]
+        simp [UV, hU.repr, hV.repr, OrthonormalBasis.prod_apply]
         -- Reduce to an equality in the underlying product `EnergySpace × EnergySpace`.
         ext i
         · -- fst component
@@ -311,13 +311,16 @@ noncomputable def isGaussianHilbert_UV
           -- and killing the `V`-part via `hfstV'`
           calc
             (WithLp.toLp 2
-                (∑ j : hU.ι, hU.c j ω • hU.w j, ∑ j : hV.ι, hV.c j ω • hV.w j)).1 i
-                = (∑ x : hU.ι, hU.c x ω • (hU.w x, (0 : EnergySpace N))).1 i := by
-                    simpa [WithLp.toLp] using hfstU'
+                (∑ j : hU.ι, hU.c j ω • hU.w j, ∑ j : hV.ι, hV.c j ω • hV.w j)).fst i
+                = (∑ j : hU.ι, hU.c j ω • hU.w j) i := by
+                    simp
+            _ = (∑ x : hU.ι, hU.c x ω • (hU.w x, (0 : EnergySpace N))).1 i := by
+                    exact hfstU'
             _ =
                 (∑ x : hU.ι, hU.c x ω • (hU.w x, (0 : EnergySpace N))
                   + ∑ x : hV.ι, hV.c x ω • ((0 : EnergySpace N), hV.w x)).1 i := by
-                    aesop
+                    simp only [Prod.fst_add, hfstV, add_zero]
+          aesop
         · -- snd component
           have hsndU :
               (∑ x : hU.ι, hU.c x ω • (hU.w x, (0 : EnergySpace N))).2 = 0 := by
@@ -345,15 +348,18 @@ noncomputable def isGaussianHilbert_UV
           -- and killing the `U`-part via `hsndU'`
           calc
             (WithLp.toLp 2
-                (∑ j : hU.ι, hU.c j ω • hU.w j, ∑ j : hV.ι, hV.c j ω • hV.w j)).2 i
+                (∑ j : hU.ι, hU.c j ω • hU.w j, ∑ j : hV.ι, hV.c j ω • hV.w j)).snd i
                 = (∑ j : hV.ι, hV.c j ω • hV.w j) i := by
-                    simp [WithLp.toLp]
+                    simp
             _ = (∑ x : hV.ι, hV.c x ω • ((0 : EnergySpace N), hV.w x)).2 i := by
                   exact hsndV'
             _ =
                 (∑ x : hU.ι, hU.c x ω • (hU.w x, (0 : EnergySpace N))
                   + ∑ x : hV.ι, hV.c x ω • ((0 : EnergySpace N), hV.w x)).2 i := by
-                    aesop
+                    simp only [Prod.snd_add, hsndU, zero_add]
+          classical
+          simp only [Prod.smul_mk]
+          aesop
     }
 
 /--

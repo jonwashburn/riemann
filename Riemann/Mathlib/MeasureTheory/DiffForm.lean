@@ -50,11 +50,11 @@ namespace DiffForm
 
 /-- The standard basis vector `e_i` in `EuclideanSpace ℝ (Fin n)` (a.k.a. `Fin n → ℝ`). -/
 def stdBasisVec (n : ℕ) (i : Fin n) : EuclideanSpace ℝ (Fin n) :=
-  Pi.single i 1
+  EuclideanSpace.single i 1
 
 @[simp] theorem stdBasisVec_apply {n : ℕ} (i j : Fin n) :
     stdBasisVec n i j = (if j = i then (1 : ℝ) else 0) := by
-  by_cases h : j = i <;> simp [stdBasisVec, Pi.single_apply, h]
+  simp [stdBasisVec, EuclideanSpace.single_apply, eq_comm]
 
 /-- The standard basis `(e_0, …, e_{n-1})` as a map `Fin n → EuclideanSpace ℝ (Fin n)`. -/
 def stdBasis (n : ℕ) : Fin n → EuclideanSpace ℝ (Fin n) :=

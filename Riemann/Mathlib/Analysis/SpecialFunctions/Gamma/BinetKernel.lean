@@ -627,7 +627,13 @@ theorem integrable_Ktilde_exp {x : ℝ} (hx : 0 < x) :
   have h_meas : AEStronglyMeasurable Ktilde
       (MeasureTheory.Measure.restrict MeasureTheory.volume (Set.Ioi 0)) :=
     continuous_Ktilde.aestronglyMeasurable.restrict
-  exact h_exp_int'.integrable.bdd_mul h_meas h_bdd
+  -- Convert h_bdd to the ae form needed by bdd_mul
+  obtain ⟨C, hC⟩ := h_bdd
+  have h_bdd_ae : ∀ᵐ t ∂(MeasureTheory.Measure.restrict MeasureTheory.volume (Set.Ioi 0)),
+      ‖Ktilde t‖ ≤ C := by
+    filter_upwards with t
+    exact hC t
+  exact h_exp_int'.integrable.bdd_mul h_meas h_bdd_ae
 
 /-- The Binet integral ∫₀^∞ K̃(t) e^{-tz} dt converges for Re(z) > 0. -/
 theorem integrable_Ktilde_exp_complex {z : ℂ} (hz : 0 < z.re) :
@@ -661,6 +667,12 @@ theorem integrable_Ktilde_exp_complex {z : ℂ} (hz : 0 < z.re) :
       (MeasureTheory.Measure.restrict MeasureTheory.volume (Set.Ioi 0)) :=
     Complex.continuous_ofReal.comp_aestronglyMeasurable
       continuous_Ktilde.aestronglyMeasurable.restrict
-  exact h_exp_int'.integrable.bdd_mul h_meas h_bdd
+  -- Convert h_bdd to the ae form needed by bdd_mul
+  obtain ⟨C, hC⟩ := h_bdd
+  have h_bdd_ae : ∀ᵐ t ∂(MeasureTheory.Measure.restrict MeasureTheory.volume (Set.Ioi 0)),
+      ‖(Ktilde t : ℂ)‖ ≤ C := by
+    filter_upwards with t
+    exact hC t
+  exact h_exp_int'.integrable.bdd_mul h_meas h_bdd_ae
 
 end BinetKernel

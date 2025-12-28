@@ -279,8 +279,8 @@ lemma fderiv_gibbs_pmf_apply (H h : EnergySpace N) (σ : Config N) :
         _ = (Z N H ^ 2)⁻¹ * ∑ x : Config N, h x * Real.exp (-H x) := by
               simp [mul_comm]
     -- Now unfold the CLM expression and use `hsum_const` to normalize.
-    simp [h', evalCLM, ContinuousLinearMap.smul_apply, smul_eq_mul,
-      mul_assoc, mul_comm, hsum_const]
+    simp [h', evalCLM, ContinuousLinearMap.smul_apply, smul_eq_mul, mul_comm]
+    exact Eq.symm (Finset.mul_sum Finset.univ (fun i ↦ rexp (-H.ofLp i) * h.ofLp i) (Z N H ^ 2)⁻¹)
   -- Now rewrite the RHS into the standard Gibbs-weight form.
   -- Substitute `exp(-H τ) / Z` for `gibbs_pmf` and simplify.
   -- Use `Z ≠ 0` to cancel powers of `Z`.
@@ -291,7 +291,8 @@ lemma fderiv_gibbs_pmf_apply (H h : EnergySpace N) (σ : Config N) :
         -(Z N H) * (∑ τ : Config N, (gibbs_pmf N H τ) * h τ) := by
     -- Pull out `-(Z H)` using `gibbs_pmf = exp(-Hτ)/Z`.
     -- `-(exp)/1` is handled by `simp` after rewriting.
-    simp [gibbs_pmf, div_eq_mul_inv, mul_left_comm, mul_comm, Finset.mul_sum, hZ]
+    simp [gibbs_pmf, div_eq_mul_inv, mul_comm, Finset.mul_sum]
+    field_simp
   -- Finish by substituting `hsum` into `h_eval` and simplifying.
   -- This is a scalar algebra calculation.
   -- We reduce to rewriting everything in terms of `gibbs_pmf` and canceling `Z`.
@@ -330,9 +331,20 @@ lemma fderiv_gibbs_pmf_apply (H h : EnergySpace N) (σ : Config N) :
                 (Z N H)⁻¹ * ∑ x : Config N, h x * Real.exp (-H x) := by
             simp [mul_assoc, mul_comm, Finset.mul_sum]
           -- Reduce to a commutative ring identity.
-          simp [div_eq_mul_inv, pow_two, hpull, mul_assoc,
-            mul_comm, sub_eq_add_neg, add_comm]
-          ring
+          simp only [div_eq_mul_inv, pow_two, hsum']
+          ring_nf
+          -- `ring_nf` can't turn a constant-inside-sum into a constant-outside-sum;
+          -- do that rewrite explicitly and finish by normalization.
+          have hsum_pullZ :
+              (∑ x : Config N, (Z N H)⁻¹ * rexp (-H.ofLp x) * h.ofLp x) =
+                (Z N H)⁻¹ * ∑ x : Config N, rexp (-H.ofLp x) * h.ofLp x := by
+            -- `Finset.mul_sum` is `a * (∑ f) = ∑ (a * f)`; we use it backwards.
+            simpa [mul_assoc] using
+              (Eq.symm
+                (Finset.mul_sum (Finset.univ : Finset (Config N))
+                  (fun x : Config N => rexp (-H.ofLp x) * h.ofLp x) (Z N H)⁻¹))
+          rw [hsum_pullZ]
+          ring_nf
     _ = (gibbs_pmf N H σ) * ((∑ τ : Config N, (gibbs_pmf N H τ) * h τ) - h σ) := by
           simp [gibbs_pmf]
 
@@ -406,8 +418,7 @@ lemma fderiv_free_energy_density_apply (H h : EnergySpace N) :
         (1 / (N : ℝ)) * ((Z N H)⁻¹ * (-∑ σ : Config N, Real.exp (-H σ) * h σ)) := by
     -- Evaluate the derivative coming from `hF'`.
     -- The only content here is unfolding the `Finset`-sum of CLMs and `evalCLM`.
-    simp [hF', evalCLM, ContinuousLinearMap.sum_apply, ContinuousLinearMap.smul_apply, smul_eq_mul,
-      mul_comm]
+    simp [hF', evalCLM, ContinuousLinearMap.sum_apply, ContinuousLinearMap.smul_apply, smul_eq_mul]
   -- Substitute the explicit formula for `fderiv Z` and rewrite into Gibbs form.
   -- `fderiv Z` already gave us the sum `-∑ exp(-Hσ) * hσ`.
   -- Finally, move the scalar `(Z N H)⁻¹` inside the sum and recognize `gibbs_pmf`.
@@ -417,7 +428,7 @@ lemma fderiv_free_energy_density_apply (H h : EnergySpace N) :
     _ = -(1 / (N : ℝ)) * ∑ σ : Config N, (Real.exp (-H σ) / Z N H) * h σ := by
           -- push constants inside and rewrite `/` as `* (·)⁻¹`
           -- note: `a / b = a * b⁻¹` and `-(c) * s = c * (-s)`.
-          simp [div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm,
+          simp [div_eq_mul_inv, mul_assoc, mul_comm,
             Finset.mul_sum, Finset.sum_neg_distrib]
     _ = -(1 / (N : ℝ)) * ∑ σ : Config N, (gibbs_pmf N H σ) * h σ := by
           simp [gibbs_pmf]
@@ -429,7 +440,7 @@ lemma fderiv_free_energy_density_eq (H : EnergySpace N) :
   ext h
   -- Compare both sides on an arbitrary direction `h`.
   simp [grad_free_energy_density, fderiv_free_energy_density_apply, ContinuousLinearMap.sum_apply,
-    ContinuousLinearMap.smul_apply, smul_eq_mul, mul_comm]
+    ContinuousLinearMap.smul_apply, smul_eq_mul]
 
 def hessian_free_energy (H : EnergySpace N) (h k : EnergySpace N) : ℝ :=
   (1 / (N : ℝ)) * (
@@ -545,7 +556,7 @@ lemma hessian_free_energy_fderiv_eq_hessian_free_energy
                       (∑ τ : Config N, g τ * h τ) * (∑ σ : Config N, g σ * k σ)) := h2
     _ = hessian_free_energy N H h k := by
           -- Match the explicit definition.
-          simp [hessian_free_energy, g, mul_left_comm, mul_comm, sub_eq_add_neg, add_comm]
+          simp [hessian_free_energy, g, sub_eq_add_neg, add_comm]
 
 /-! ### Compatibility aliases (for Gaussian IBP / calculus API) -/
 

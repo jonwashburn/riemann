@@ -3069,7 +3069,7 @@ lemma norm_re_add_I_mul_le_norm (a : ℂ) {τ : ℝ} (hτ : |τ| ≤ |a.im|) :
     simpa using (sq_le_sq.mpr hτ)
   -- compare squares
   have hsq_le : ‖z1‖ ^ 2 ≤ ‖a‖ ^ 2 := by
-    have : a.re ^ 2 + τ ^ 2 ≤ a.re ^ 2 + a.im ^ 2 := add_le_add_left hτ_sq _
+    have : a.re ^ 2 + τ ^ 2 ≤ a.re ^ 2 + a.im ^ 2 := (add_le_add_iff_left (a.re ^ 2)).mpr hτ_sq
     simpa [hsq_z1, hz1_re, hz1_im, hsq_a] using this
   -- deduce inequality of norms
   have hnonneg : 0 ≤ ‖a‖ := norm_nonneg _
@@ -3607,7 +3607,7 @@ lemma cauchy_for_rectangles
     have hpR : p ∈ Metric.closedBall (0 : ℂ) R := hS_subset_R hp
     exact (hf p hpR).differentiableAt.differentiableWithinAt
   -- 5) Apply Cauchy–Goursat theorem and normalize scalars
-  simpa [Algebra.id.smul_eq_mul, smul_eq_mul, mul_comm] using
+  simpa [smul_eq_mul, smul_eq_mul, mul_comm] using
     Complex.integral_boundary_rect_eq_zero_of_differentiableOn f z w Hdiff
 
 /-- Horizontal-strip Cauchy identity specialized to `w := (z+h).re + i z.im`. -/
@@ -4636,7 +4636,7 @@ lemma limit_of_S_is_zero
             have vertical_bound : ‖(h.re : ℝ) + Complex.I * (τ - z.im)‖ ≤ |h.re| + |τ - z.im| :=
               abs_vertical_core z h τ
             have sum_bound : |h.re| + |τ - z.im| ≤ |h.re| + |h.im| := by
-              exact add_le_add_left τ_bound _
+              exact (add_le_add_iff_left |h.re|).mpr τ_bound
             have norm_bound := sum_abs_le_two_mul (Complex.abs_re_le_norm h) (Complex.abs_im_le_norm h)
             have h_bound : ‖h‖ < δ₁ / 2 := hh_norm
             have final_bound := two_norm_lt_of_norm_lt_half hδ₁_pos h_bound
@@ -4668,7 +4668,7 @@ lemma eventually_corner_and_sum_in_closedBall {z : ℂ} {R' : ℝ}
     simpa [Metric.mem_ball, Complex.dist_eq, sub_zero] using hhball
   -- First membership: z + h ∈ closedBall 0 R'
   have hsum_lt : ‖z‖ + ‖h‖ < R' := by
-    have htemp : ‖z‖ + ‖h‖ < ‖z‖ + (R' - ‖z‖) := add_lt_add_left hnorm_lt _
+    have htemp : ‖z‖ + ‖h‖ < ‖z‖ + (R' - ‖z‖) := add_lt_add_right hnorm_lt ‖z‖
     simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using htemp
   have hzph_le : ‖z + h‖ ≤ R' :=
     le_of_lt (lt_of_le_of_lt (norm_add_le _ _) hsum_lt)
@@ -4693,7 +4693,7 @@ lemma eventually_corner_and_sum_in_closedBall {z : ℂ} {R' : ℝ}
   have hwz_le : ‖w - z‖ ≤ ‖h‖ := by
     simpa [hwz_abs2] using (Complex.abs_re_le_norm h)
   have hw_le'' : ‖w‖ ≤ ‖h‖ + ‖z‖ := by
-    exact le_trans tri (add_le_add_right hwz_le _)
+    exact le_trans tri (add_le_add_left hwz_le ‖z‖)
   have hw_lt : ‖w‖ < R' := by
     have : ‖h‖ + ‖z‖ < R' := by simpa [add_comm] using hsum_lt
     exact lt_of_le_of_lt hw_le'' this
@@ -4736,7 +4736,7 @@ lemma limit_of_Err_ratio_is_zero
   have hR'_lt_R : R' < R := by
     have hδlt : δ < R - r1 := by
       simpa [δ] using (half_lt_self (sub_pos.mpr hr1_lt_R))
-    have : r1 + δ < r1 + (R - r1) := add_lt_add_left hδlt r1
+    have : r1 + δ < r1 + (R - r1) := add_lt_add_right hδlt r1
     simpa [R', sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using this
   -- z lies in the R'-closed ball
   have hz_le_r1 : ‖z‖ ≤ r1 := by
@@ -4971,7 +4971,7 @@ lemma hasDerivAt_of_local_decomposition' (g : ℂ → ℂ) (z F : ℂ)
     calc
       h⁻¹ • (g (z + h) - g z)
           = h⁻¹ • (F * h + Err_func h) := H0
-      _ = h⁻¹ * (F * h + Err_func h) := by simp [Algebra.id.smul_eq_mul]
+      _ = h⁻¹ * (F * h + Err_func h) := by simp [smul_eq_mul]
       _ = h⁻¹ * (F * h) + h⁻¹ * (Err_func h) := by simp [mul_add]
       _ = F + Err_func h / h := by simp [h1, h2]
   -- Limit of the RHS: F + Err h / h → F
@@ -4991,7 +4991,7 @@ lemma uniqueDiffWithinAt_convex_complex {s : Set ℂ} (hconv : Convex ℝ s)
     UniqueDiffWithinAt ℂ s x := by
   -- Use the real-field result for the underlying real vector space
   have hR : UniqueDiffWithinAt ℝ s x :=
-    uniqueDiffWithinAt_convex (G := ℂ) (conv := hconv) (hs := hs) (x := x) (hx := hx)
+    uniqueDiffWithinAt_convex (conv := hconv) (hs := hs) (x := x) (hx := hx)
   -- Density for the real-span of the real tangent cone
   have dR : Dense ((Submodule.span ℝ (tangentConeAt ℝ s x) : Submodule ℝ ℂ) : Set ℂ) := by
     simpa using (hR.dense_tangentConeAt)
@@ -5084,7 +5084,7 @@ lemma If_is_differentiable_on
       have hδlt : δ < R - r1 := by
         have : 0 < R - r1 := sub_pos.mpr hr1_lt_R
         simpa [δ] using (half_lt_self this)
-      have : r1 + δ < r1 + (R - r1) := add_lt_add_left hδlt r1
+      have : r1 + δ < r1 + (R - r1) := add_lt_add_right hδlt r1
       simpa [R', sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using this
     have hr1_lt_R' : r1 < R' := by
       have : r1 < r1 + δ := by simpa [add_comm, add_left_comm, add_assoc, R', δ] using (lt_of_le_of_lt (le_of_eq rfl) (add_lt_add_left hδ_pos r1))
@@ -5191,7 +5191,7 @@ lemma I_is_antiderivative
   have hR_mid_lt_R' : R_mid < R' := by
     have hδlt : δ < R' - r1 := by
       simpa [δ] using (half_lt_self (sub_pos.mpr hr1_lt_R'))
-    have : r1 + δ < r1 + (R' - r1) := add_lt_add_left hδlt r1
+    have : r1 + δ < r1 + (R' - r1) := add_lt_add_right hδlt r1
     simpa [R_mid, sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using this
   -- Define J as the primitive of L on radius R_mid with outer radius R'
   let J : ℂ → ℂ :=

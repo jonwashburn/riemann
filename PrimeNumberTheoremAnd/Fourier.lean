@@ -29,11 +29,13 @@ theorem hasDerivAt_e {u x : ℝ} : HasDerivAt (e u) (-2 * π * u * I * e u x) x 
   convert (hasDerivAt_fourierChar (-x * u)).scomp x l2 using 1
   simp ; ring
 
-lemma fourierIntegral_deriv_aux2 (e : ℝ →ᵇ ℂ) {f : ℝ → ℂ} (hf : Integrable f) : Integrable (⇑e * f) :=
-  hf.bdd_mul e.continuous.aestronglyMeasurable ⟨_, e.norm_coe_le_norm⟩
+lemma fourierIntegral_deriv_aux2 (e : ℝ →ᵇ ℂ) {f : ℝ → ℂ} (hf : Integrable f) :
+    Integrable (⇑e * f) := by
+  refine hf.bdd_mul (f := fun x => e x) (c := ‖e‖) e.continuous.aestronglyMeasurable ?_
+  exact Filter.Eventually.of_forall (fun x => e.norm_coe_le_norm x)
 
 @[simp] lemma F_neg {f : ℝ → ℂ} {u : ℝ} : 𝓕 (fun x => -f x) u = - 𝓕 f u := by
-  simp [fourierIntegral_eq, integral_neg]
+  simp [Real.fourier_eq, integral_neg]
 
 @[simp] lemma F_add {f g : ℝ → ℂ} (hf : Integrable f) (hg : Integrable g) (x : ℝ) :
     𝓕 (fun x => f x + g x) x = 𝓕 f x + 𝓕 g x := by
@@ -46,18 +48,19 @@ lemma fourierIntegral_deriv_aux2 (e : ℝ →ᵇ ℂ) {f : ℝ → ℂ} (hf : In
   simpa [sub_eq_add_neg, Pi.neg_def] using F_add hf hg.neg x
 
 @[simp] lemma F_mul {f : ℝ → ℂ} {c : ℂ} {u : ℝ} : 𝓕 (fun x => c * f x) u = c * 𝓕 f u := by
-  simp [fourierIntegral_real_eq, ← integral_const_mul] ; congr ; ext
+  simp [Real.fourier_real_eq, ← integral_const_mul] ; congr ; ext
   simp [Real.fourierChar, Circle.exp, ← smul_mul_assoc, mul_smul_comm]
 
 end lemmas
 
 theorem fourierIntegral_self_add_deriv_deriv (f : W21) (u : ℝ) :
-    (1 + u ^ 2) * 𝓕 f u = 𝓕 (fun u => f u - (1 / (4 * π ^ 2)) * deriv^[2] f u) u := by
+    (1 + u ^ 2) * 𝓕 (f : ℝ → ℂ) u =
+      𝓕 ((fun x : ℝ => f x - (1 / (4 * π ^ 2)) * deriv^[2] (f : ℝ → ℂ) x) : ℝ → ℂ) u := by
   have l1 : Integrable (fun x => (((π : ℂ) ^ 2)⁻¹ * 4⁻¹) * deriv (deriv f) x) := by
     apply Integrable.const_mul ; simpa [iteratedDeriv_succ] using f.integrable le_rfl
   have l4 : Differentiable ℝ f := f.differentiable
   have l5 : Differentiable ℝ (deriv f) := f.deriv.differentiable
-  simp [f.hf, l1, add_mul, Real.fourierIntegral_deriv f.hf' l5 f.hf'', Real.fourierIntegral_deriv f.hf l4 f.hf']
+  simp [f.hf, l1, add_mul, Real.fourier_deriv f.hf' l5 f.hf'', Real.fourier_deriv f.hf l4 f.hf']
   field_simp [pi_ne_zero] ; ring_nf ; simp
 
 @[simp] lemma deriv_ofReal : deriv ofReal = fun _ => 1 := by

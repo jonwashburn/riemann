@@ -259,7 +259,7 @@ lemma gaussianTilt_eq_shift
     _ = ∫ x, F (x + c) * φ 0 x := hTrans
     _ = ∫ x, F (x + c) ∂ gaussianReal 0 v := hR
 
-/-! ### Prereuqisites for the proof of `gaussianTilt_hasDerivAt_left`
+/-! ### Prerequisites for the proof of `gaussianTilt_hasDerivAt_left`
 
 We isolate:
 1. A core kernel `tiltKernel`.
@@ -608,7 +608,7 @@ lemma tiltKernel_diffquot_bound_of_le (v : ℝ≥0) {t x δ : ℝ}
       have : (0 : ℝ) ≤ (2 : ℝ)⁻¹ := by norm_num
       simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
         using mul_le_mul_of_nonneg_right h_mul this
-    exact add_le_add_left h_half _
+    exact (add_le_add_iff_left |x|).mpr h_half
   have hExpArg :
       |t| * |x| + (v:ℝ) * t^2 / 2
         ≤ δ * |x| + (v:ℝ) * δ^2 / 2 := by
@@ -2696,7 +2696,7 @@ lemma gaussianTilt_hasDerivAt_right_aux
     have hInner : HasDerivAt (fun s : ℝ => x + (v : ℝ) * s) (v : ℝ) t :=
       hInner0.const_add x
     have hOuter : HasDerivAt F (deriv F (x + (v : ℝ) * t)) (x + (v : ℝ) * t) :=
-      ((hF.differentiable le_rfl) _).hasDerivAt
+      (hF.differentiable one_ne_zero _).hasDerivAt
     simpa [G, G', mul_comm] using hOuter.comp t hInner
   have hDer :=
     hasDerivAt_integral_of_dominated_loc_of_deriv_le
@@ -2931,7 +2931,7 @@ theorem gaussian_integration_by_parts_general
     have hAdd : HasDerivAt (fun x => x + μ) 1 x := by
       simpa using (hasDerivAt_id x).add_const μ
     have hF' : HasDerivAt F (deriv F (x + μ)) (x + μ) :=
-      ((hF.differentiable le_rfl) (x + μ)).hasDerivAt
+      (hF.differentiable one_ne_zero _).hasDerivAt
     exact deriv_comp_add_const F μ x
   have hMod_shifted : HasModerateGrowth F_shifted := by
     rcases hMod with ⟨C, m, hCpos, hFbound, hF'bound⟩
