@@ -530,6 +530,11 @@ theorem re_J_le_one_div_twelve {x : ℝ} (hx : 0 < x) :
         = ∫ t in Set.Ioi (0 : ℝ), BinetKernel.Ktilde t * Real.exp (-t * x) := hJ
     _ ≤ 1 / (12 * x) := hmono''
 
+/-- Compatibility alias: historical name for the (non-strict) upper bound on `re (J x)`. -/
+theorem re_J_lt_one_div_twelve {x : ℝ} (hx : 0 < x) :
+    (Binet.J (x : ℂ)).re ≤ 1 / (12 * x) :=
+  re_J_le_one_div_twelve (x := x) hx
+
 /-- Compatibility wrapper: real Binet formula for `log Γ(x)` on `x > 0`. -/
 theorem Real_log_Gamma_eq_Binet {x : ℝ} (hx : 0 < x) :
     Real.log (Real.Gamma x) =
