@@ -1,6 +1,6 @@
-
-import Mathlib
-import Riemann.academic_framework.WeierstrassFactorBound
+import Mathlib.Analysis.CStarAlgebra.Classes
+import Mathlib.Analysis.SpecialFunctions.Gamma.BohrMollerup
+import Mathlib.Data.Real.StarOrdered
 
 /-!
 # Gamma Function Product Bounds (DLMF 5.6.7)

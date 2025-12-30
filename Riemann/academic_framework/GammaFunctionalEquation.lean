@@ -58,7 +58,7 @@ lemma Gamma_eq_div_prod (z : ℂ) (n : ℕ) (hz : ∀ k : ℕ, k < n → z + k �
     Gamma z = Gamma (z + n) / ∏ k ∈ Finset.range n, (z + k) := by
   have h := Gamma_add_nat_eq z n hz
   field_simp [hprod] at h ⊢
-  linarith [h.symm]
+  aesop
 
 /-! ## Part 2: Norm bounds in the strip [1, 2] -/
 

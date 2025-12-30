@@ -6,7 +6,6 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.Normed.Field.Basic
 import Mathlib.Topology.MetricSpace.Basic
-import Riemann.academic_framework.GammaBounds
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.LargeImaginaryBound
 
 /-!
@@ -103,7 +102,7 @@ theorem norm_polynomial_bound_re_ge_half
       have hsqrt : Real.sqrt Real.pi < 2 := by
         have : Real.pi < 4 := Real.pi_lt_four
         calc Real.sqrt Real.pi < Real.sqrt 4 := Real.sqrt_lt_sqrt Real.pi_pos.le this
-          _ = 2 := by norm_num
+          _ = 2 := by norm_num [Real.sqrt_eq_iff_eq_sq]
       have h_bound : 1 / (1/2 : ℝ) + Real.sqrt Real.pi ≤ 4 := by linarith
       calc ‖Complex.Gamma s‖ ≤ 4 := by linarith
         _ ≤ 4 + (1 + ‖s‖) ^ (‖s‖ + 2) := by
