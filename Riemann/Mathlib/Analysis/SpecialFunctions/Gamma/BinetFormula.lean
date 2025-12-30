@@ -296,3 +296,64 @@ theorem Gamma_bound_one_two' {s : ℂ} (hs_lo : 1 ≤ s.re) (hs_hi : s.re ≤ 2)
   Binet.norm_Gamma_le_one hs_lo hs_hi
 
 end Stirling.GammaAux
+
+/-!
+## Compatibility / centralized API (`BinetFormula.*`)
+
+Some downstream files historically refer to results in this file via the namespace `BinetFormula`.
+The core development lives in `namespace Binet`; we provide thin wrappers here to keep the
+namespace stable while we progressively centralize the Gamma/Stirling API inside `Riemann/Mathlib`.
+-/
+
+namespace BinetFormula
+
+open Real Complex Set MeasureTheory Filter Topology BinetKernel
+open scoped BigOperators
+
+/-- Real-part version of the Binet integral: for `x > 0`,
+`re (J x) = ∫₀^∞ K̃(t) * exp(-t*x) dt`. -/
+theorem re_J_eq_integral_Ktilde {x : ℝ} (hx : 0 < x) :
+    (Binet.J (x : ℂ)).re = ∫ t in Set.Ioi (0 : ℝ), BinetKernel.Ktilde t * Real.exp (-t * x) := by
+  have hx' : 0 < (x : ℂ).re := by simpa using hx
+  -- unfold `J`
+  rw [Binet.J_eq_integral (z := (x : ℂ)) hx']
+  -- move `re` inside the integral
+  have hInt :
+      Integrable (fun t : ℝ => (BinetKernel.Ktilde t : ℂ) * Complex.exp (-t * (x : ℂ)))
+        (volume.restrict (Set.Ioi (0 : ℝ))) :=
+    Binet.J_well_defined (z := (x : ℂ)) hx'
+  have hre :
+      ∫ t in Set.Ioi (0 : ℝ),
+          ((BinetKernel.Ktilde t : ℂ) * Complex.exp (-t * (x : ℂ))).re
+        = (∫ t in Set.Ioi (0 : ℝ),
+              (BinetKernel.Ktilde t : ℂ) * Complex.exp (-t * (x : ℂ))).re := by
+    simpa using
+      (integral_re (μ := volume.restrict (Set.Ioi (0 : ℝ)))
+        (f := fun t : ℝ => (BinetKernel.Ktilde t : ℂ) * Complex.exp (-t * (x : ℂ))) hInt)
+  -- rewrite `re (∫ ...)` using `hre`
+  rw [← hre]
+  -- pointwise simplification to a real integrand
+  refine MeasureTheory.setIntegral_congr_fun measurableSet_Ioi ?_
+  intro t _ht
+  -- Unfold the (β-reduced) pointwise goal.
+  dsimp
+  have hexp : Complex.exp (-t * (x : ℂ)) = (Real.exp (-t * x) : ℂ) := by
+    have harg : (-t * (x : ℂ)) = ((-t * x : ℝ) : ℂ) := by
+      simp
+    calc
+      Complex.exp (-t * (x : ℂ)) = Complex.exp ((-t * x : ℝ) : ℂ) := by
+        simp [harg]
+      _ = (Real.exp (-t * x) : ℂ) := by
+        simp
+  -- Reduce the integrand to a product of real numbers coerced to `ℂ`, then take real parts.
+  -- Important: avoid rewriting `(Real.exp _ : ℂ)` back into `Complex.exp _` (`Complex.ofReal_exp` is a simp lemma).
+  rw [hexp]
+  simp [-Complex.ofReal_exp]
+
+/-- Integrability of the real Binet integrand `K̃(t) * exp(-t*x)` on `(0,∞)` for `x > 0`. -/
+theorem integrable_Ktilde_mul_exp_neg_mul {x : ℝ} (hx : 0 < x) :
+    IntegrableOn (fun t : ℝ => BinetKernel.Ktilde t * Real.exp (-t * x)) (Set.Ioi 0) := by
+  -- this is exactly the helper lemma already proved in `namespace Binet`
+  simpa using (Binet.integrable_Ktilde_mul_exp_real (x := x) hx)
+
+end BinetFormula

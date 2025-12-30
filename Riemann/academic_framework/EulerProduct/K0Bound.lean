@@ -1,9 +1,9 @@
-import Mathlib.NumberTheory.EulerProduct.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Pow.Complex
-import Mathlib.Topology.Algebra.InfiniteSum.Basic
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.CStarAlgebra.Classes
+import Mathlib.Analysis.Real.Pi.Bounds
+import Mathlib.NumberTheory.LSeries.HurwitzZetaValues
+import Mathlib.Tactic.NormNum.NatFactorial
 import Riemann.academic_framework.EulerProduct.PrimeSeries
-import Mathlib
 
 /-!
 # The Prime-Power Tail Constant K₀ and Explicit Bounds
@@ -987,5 +987,3 @@ theorem K0_bound_on_strip_proved : K0_bound_on_strip := by
 
 
 end RH.AcademicFramework.EulerProduct.K0
-
-#min_imports
