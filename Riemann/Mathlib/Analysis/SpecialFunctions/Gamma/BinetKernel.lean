@@ -314,6 +314,9 @@ lemma g_aux'''_nonneg {t : ℝ} (_ht : 0 ≤ t) : 0 ≤ g_aux''' t := by
   simp only [g_aux''']
   exact mul_nonneg (sq_nonneg t) (Real.exp_pos t).le
 
+lemma g_aux'''_pos {t : ℝ} (ht : 0 < t) : 0 < g_aux''' t := by
+  simp [g_aux''', sq_pos_of_ne_zero (ne_of_gt ht), Real.exp_pos]
+
 /-! #### Derivative relations for g_aux hierarchy -/
 
 /-- g'' has derivative g''' -/
@@ -395,6 +398,21 @@ lemma g_aux''_nonneg {t : ℝ} (ht : 0 ≤ t) : 0 ≤ g_aux'' t := by
   · exact g_aux''_zero
   · exact ht
 
+lemma g_aux''_pos {t : ℝ} (ht : 0 < t) : 0 < g_aux'' t := by
+  have hdiff : Differentiable ℝ g_aux'' := fun x => (hasDerivAt_g_aux'' x).differentiableAt
+  have h_pos_deriv : ∀ x ∈ Set.Ioo (0 : ℝ) t, 0 < deriv g_aux'' x := fun x hx => by
+    -- `deriv g_aux'' x = g_aux''' x`
+    simpa [(hasDerivAt_g_aux'' x).deriv] using g_aux'''_pos (t := x) hx.1
+  have h_mono :=
+    strictMonoOn_of_deriv_pos (convex_Icc (0 : ℝ) t)
+      (hdiff.continuous.continuousOn) (fun x hx => by
+        rw [interior_Icc] at hx
+        exact h_pos_deriv x hx)
+  have h0 : (0 : ℝ) ∈ Set.Icc (0 : ℝ) t := ⟨le_rfl, le_of_lt ht⟩
+  have ht' : t ∈ Set.Icc (0 : ℝ) t := ⟨le_of_lt ht, le_rfl⟩
+  have := h_mono h0 ht' ht
+  simpa [g_aux''_zero] using this
+
 /-- g'(t) ≥ 0 for t ≥ 0. Follows from g'(0) = 0 and g'' ≥ 0. -/
 lemma g_aux'_nonneg {t : ℝ} (ht : 0 ≤ t) : 0 ≤ g_aux' t := by
   apply nonneg_of_deriv_nonneg_Ici differentiableOn_g_aux'
@@ -403,6 +421,20 @@ lemma g_aux'_nonneg {t : ℝ} (ht : 0 ≤ t) : 0 ≤ g_aux' t := by
     exact g_aux''_nonneg hx
   · exact g_aux'_zero
   · exact ht
+
+lemma g_aux'_pos {t : ℝ} (ht : 0 < t) : 0 < g_aux' t := by
+  have hdiff : Differentiable ℝ g_aux' := fun x => (hasDerivAt_g_aux' x).differentiableAt
+  have h_pos_deriv : ∀ x ∈ Set.Ioo (0 : ℝ) t, 0 < deriv g_aux' x := fun x hx => by
+    simpa [(hasDerivAt_g_aux' x).deriv] using g_aux''_pos (t := x) hx.1
+  have h_mono :=
+    strictMonoOn_of_deriv_pos (convex_Icc (0 : ℝ) t)
+      (hdiff.continuous.continuousOn) (fun x hx => by
+        rw [interior_Icc] at hx
+        exact h_pos_deriv x hx)
+  have h0 : (0 : ℝ) ∈ Set.Icc (0 : ℝ) t := ⟨le_rfl, le_of_lt ht⟩
+  have ht' : t ∈ Set.Icc (0 : ℝ) t := ⟨le_of_lt ht, le_rfl⟩
+  have := h_mono h0 ht' ht
+  simpa [g_aux'_zero] using this
 
 /-- g(t) ≥ 0 for t ≥ 0. This is the key inequality for proving Ktilde t ≤ 1/12.
 Follows from g(0) = 0 and g' ≥ 0. -/
@@ -413,6 +445,20 @@ lemma g_aux_nonneg {t : ℝ} (ht : 0 ≤ t) : 0 ≤ g_aux t := by
     exact g_aux'_nonneg hx
   · exact g_aux_zero
   · exact ht
+
+lemma g_aux_pos {t : ℝ} (ht : 0 < t) : 0 < g_aux t := by
+  have hdiff : Differentiable ℝ g_aux := fun x => (hasDerivAt_g_aux x).differentiableAt
+  have h_pos_deriv : ∀ x ∈ Set.Ioo (0 : ℝ) t, 0 < deriv g_aux x := fun x hx => by
+    simpa [(hasDerivAt_g_aux x).deriv] using g_aux'_pos (t := x) hx.1
+  have h_mono :=
+    strictMonoOn_of_deriv_pos (convex_Icc (0 : ℝ) t)
+      (hdiff.continuous.continuousOn) (fun x hx => by
+        rw [interior_Icc] at hx
+        exact h_pos_deriv x hx)
+  have h0 : (0 : ℝ) ∈ Set.Icc (0 : ℝ) t := ⟨le_rfl, le_of_lt ht⟩
+  have ht' : t ∈ Set.Icc (0 : ℝ) t := ⟨le_of_lt ht, le_rfl⟩
+  have := h_mono h0 ht' ht
+  simpa [g_aux_zero] using this
 
 /-- The Taylor expansion shows K(t) = t/12 - t³/720 + O(t⁵), so K(t)/t → 1/12 as t → 0⁺.
 Since K(t) < t/12 for t > 0 (the higher order terms are negative), we have K(t)/t < 1/12.
@@ -448,6 +494,34 @@ theorem Ktilde_le {t : ℝ} (ht : 0 ≤ t) : Ktilde t ≤ 1/12 := by
           unfold g_aux at hgoal
           unfold f
           linarith [hgoal, Real.exp_pos t, sq_nonneg t]
+
+theorem Ktilde_lt {t : ℝ} (ht : 0 < t) : Ktilde t < 1 / 12 := by
+  have hexp : 0 < Real.exp t - 1 := exp_sub_one_pos ht
+  calc
+    Ktilde t
+        = f t / (2 * t ^ 2 * (Real.exp t - 1)) := by
+            -- same algebra as in `Ktilde_le`
+            have hdenom : 0 < 2 * t * (Real.exp t - 1) := by positivity
+            calc
+              Ktilde t = (1 / (Real.exp t - 1) - 1 / t + 1 / 2) / t := Ktilde_pos ht
+              _ = (Real.exp t * (t - 2) + t + 2) / (2 * t * (Real.exp t - 1)) / t := by
+                    rw [← K_pos ht, K_eq_alt' ht]
+              _ = f t / (2 * t ^ 2 * (Real.exp t - 1)) := by
+                    unfold f
+                    field_simp
+    _ < 1 / 12 := by
+          -- Reduce to a strict inequality equivalent to `g_aux t > 0`.
+          have hdenom : (0 : ℝ) < 2 * t ^ 2 * (Real.exp t - 1) := by positivity
+          have h12 : (0 : ℝ) < (12 : ℝ) := by norm_num
+          -- Cross-multiply.
+          rw [div_lt_div_iff₀ hdenom h12]
+          -- Goal is `f t * 12 < 1 * (2 * t ^ 2 * (Real.exp t - 1))`.
+          have hpos_g : 0 < g_aux t := g_aux_pos ht
+          have hpos : 0 < 2 * g_aux t := mul_pos (by norm_num) hpos_g
+          unfold g_aux at hpos
+          unfold f
+          -- This is the same algebraic rearrangement as in `Ktilde_le`, but strict.
+          linarith [hpos, Real.exp_pos t, sq_nonneg t]
 
 /-! ## Section 5: Limit at zero -/
 
