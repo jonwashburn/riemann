@@ -1,4 +1,4 @@
-/******************************************************************************
+/-
   TwoChart_NeumannSeries
 
   Neumann-series inversion in a complete normed ring.
@@ -18,7 +18,7 @@
 
   No axioms and no placeholders are introduced here; all statements are proved
   from Mathlib’s geometric-series lemmas.
-*******************************************************************************/
+-/
 
 import Mathlib.Analysis.SpecificLimits.Normed
 
@@ -67,22 +67,24 @@ In applications, one frequently proves a bound of the form `‖E‖ ≤ r` with 
 The following lemmas package the corresponding `‖E‖ < 1` hypotheses.
 -/
 
-/** If `‖x‖ ≤ r` and `r < 1`, then `1 + x` is a unit. */
+/-- If `‖x‖ ≤ r` and `r < 1`, then `1 + x` is a unit. -/
 theorem isUnit_one_add_of_norm_le {x : R} {r : ℝ} (hx : ‖x‖ ≤ r) (hr : r < 1) :
     IsUnit (1 + x) :=
   isUnit_one_add_of_norm_lt_one (x := x) (lt_of_le_of_lt hx hr)
 
+omit [CompleteSpace R] in
 /-- Quantitative bound on the Neumann-series inverse.
 
-This is the bound from Mathlib’s `NormedRing.tsum_geometric_of_norm_lt_one`.
+This is the bound from Mathlib’s `tsum_geometric_le_of_norm_lt_one`.
 It does *not* assume `‖1‖ = 1`.
 -/
  theorem norm_invOneAdd_le (x : R) (hx : ‖x‖ < 1) :
     ‖invOneAdd x‖ ≤ ‖(1 : R)‖ - 1 + (1 - ‖x‖)⁻¹ := by
   -- Apply the geometric-series norm bound to `-x`.
   simpa [invOneAdd, norm_neg] using
-    (NormedRing.tsum_geometric_of_norm_lt_one (-x) (by simpa [norm_neg] using hx))
+    (tsum_geometric_le_of_norm_lt_one (-x) (by simpa [norm_neg] using hx))
 
+omit [CompleteSpace R] in
 /-- In a `NormOneClass`, the previous bound simplifies to `‖invOneAdd x‖ ≤ (1 - ‖x‖)⁻¹`. -/
  theorem norm_invOneAdd_le_inv_one_sub_norm
     (x : R) (hx : ‖x‖ < 1) [NormOneClass R] :
@@ -125,4 +127,5 @@ end CompleteNormedRing
 
 end Neumann
 
+end
 end TwoChartEgorov

@@ -1,9 +1,6 @@
 import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Analysis.SpecialFunctions.Gamma.BohrMollerup
 
-import Mathlib
-
-import StrongPNT
 
 open Real Set MeasureTheory Filter Asymptotics
 open scoped Real Topology
@@ -266,7 +263,7 @@ lemma norm_Complex_Gamma_le_of_re_ge' {w : ℂ} {a : ℝ}
         ‖∫ t in Ioi (0 : ℝ), Complex.exp (-t) * t ^ (w - 1)‖
           ≤ (∫ t in Ioc 0 1, t ^ (w.re - 1))
             + (∫ t in Ioi 1, Real.exp (-t) * t ^ (w.re - 1)) :=
-      H.trans (add_le_add_right h_drop_exp _)
+      H.trans (add_le_add_left h_drop_exp _)
     simpa [h_norm] using this
 
   -- now insert the explicit bounds found above
@@ -282,7 +279,7 @@ lemma norm_Complex_Gamma_le_of_re_ge' {w : ℂ} {a : ℝ}
   have h_one_div : 1 / w.re ≤ 1 / a :=
     one_div_le_one_div_of_le ha_pos hw
   have : 1 / w.re + Real.sqrt Real.pi ≤ 1 / a + Real.sqrt Real.pi :=
-    add_le_add_right h_one_div _
+    add_le_add_left h_one_div _
   exact h_big'.trans this
 
 lemma setIntegral_mono_ae_restrict {α} [MeasurableSpace α] {μ : Measure α}
@@ -383,7 +380,7 @@ lemma norm_Complex_Gamma_le_of_re_ge {w : ℂ} {a : ℝ}
     have step2 : (∫ t in Ioc 0 1, g t) + (∫ t in Ioi 1, g t)
         ≤ (∫ t in Ioc 0 1, t ^ (w.re - 1))
           + (∫ t in Ioi 1, g t) := by
-      exact add_le_add_right h_drop_exp _
+      exact add_le_add_left h_drop_exp _
     simpa [h_norm] using (le_trans step1 step2)
 
   -- 6.  Evaluate explicitly the integral on (0,1]
@@ -441,13 +438,13 @@ lemma norm_Complex_Gamma_le_of_re_ge {w : ℂ} {a : ℝ}
         ≤ (∫ t in Ioc 0 1, t ^ (w.re - 1)) + (∫ t in Ioi 1, g t) := h_big
       _ = 1 / w.re + (∫ t in Ioi 1, g t) := by rw [h_Ioc_exact]
       _ ≤ 1 / w.re + Real.sqrt Real.pi := by
-          exact add_le_add_left h_tail _
+          exact add_le_add_right h_tail _
 
   -- 9.  replace 1 / w.re by the slightly larger 1 / a
   have h_one_div : (1 / w.re : ℝ) ≤ 1 / a :=
     one_div_le_one_div_of_le ha_pos hw
   have : 1 / w.re + Real.sqrt Real.pi ≤ 1 / a + Real.sqrt Real.pi :=
-    add_le_add_right h_one_div _
+    add_le_add_left h_one_div _
   exact h_main.trans this
 
 
@@ -550,7 +547,8 @@ lemma norm_Gamma_le_four_half_strip {w : ℂ}
   have hsqrt : Real.sqrt Real.pi < 2 := by
     have hpi4 : Real.pi < 4 := Real.pi_lt_four
     have : Real.sqrt Real.pi < Real.sqrt 4 := Real.sqrt_lt_sqrt (le_of_lt Real.pi_pos) hpi4
-    have h4 : Real.sqrt 4 = 2 := by norm_num
+    have h4 : Real.sqrt 4 = 2 := by
+      rw [show (4 : ℝ) = 2^2 by norm_num, Real.sqrt_sq (by norm_num : (2 : ℝ) ≥ 0)]
     linarith
   calc ‖Complex.Gamma w‖
       ≤ 1 / (1/2 : ℝ) + Real.sqrt Real.pi := h
@@ -566,7 +564,8 @@ lemma norm_Gamma_le_six_quarter_strip {w : ℂ}
   have hsqrt : Real.sqrt Real.pi < 2 := by
     have hpi4 : Real.pi < 4 := Real.pi_lt_four
     have : Real.sqrt Real.pi < Real.sqrt 4 := Real.sqrt_lt_sqrt (le_of_lt Real.pi_pos) hpi4
-    have h4 : Real.sqrt 4 = 2 := by norm_num
+    have h4 : Real.sqrt 4 = 2 := by
+      rw [show (4 : ℝ) = 2^2 by norm_num, Real.sqrt_sq (by norm_num : (2 : ℝ) ≥ 0)]
     linarith
   calc ‖Complex.Gamma w‖
       ≤ 1 / (1/4 : ℝ) + Real.sqrt Real.pi := h
@@ -592,3 +591,5 @@ end RH.AcademicFramework.GammaBounds
 end
 
 end Complex.Gammaℝ
+
+#min_imports

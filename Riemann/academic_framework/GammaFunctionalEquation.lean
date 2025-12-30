@@ -1,8 +1,4 @@
-/-
-Copyright (c) 2024 The Riemann Project. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: The Riemann Project Contributors
--/
+
 import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
 import Mathlib.Analysis.SpecialFunctions.Gamma.BohrMollerup
 import Mathlib.Analysis.SpecialFunctions.Pow.Complex

@@ -1,15 +1,8 @@
-/-
-Copyright (c) 2024 The Riemann Project. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: The Riemann Project Contributors
--/
+
 import Mathlib
-import Riemann.academic_framework.FiniteOrder
-import Riemann.academic_framework.ZetaFiniteOrder
-import Riemann.academic_framework.StirlingBounds
-import Riemann.academic_framework.StirlingB
-import Riemann.Mathlib.Analysis.Complex.HardySpace.PowerSeriesBounds
-import PrimeNumberTheoremAnd.StrongPNT
+import Riemann.academic_framework.WeierstrassFactorBound
+import PrimeNumberTheoremAnd.BorelCaratheodory
+import PrimeNumberTheoremAnd.DerivativeBound
 
 /-!
 # Hadamard Factorization for Entire Functions of Finite Order
@@ -104,11 +97,12 @@ lemma continuous (hf : EntireOfFiniteOrder ρ f) : Continuous f := hf.entire.con
 
 /-- An entire function of finite order is analytic at every point. -/
 lemma analyticAt (hf : EntireOfFiniteOrder ρ f) (z : ℂ) : AnalyticAt ℂ f z :=
-  hf.entire.analyticAt isOpen_univ (mem_univ z)
+  hf.entire.analyticAt z
 
 /-- An entire function of finite order is analytic on all of ℂ. -/
-lemma analyticOnNhd (hf : EntireOfFiniteOrder ρ f) : AnalyticOnNhd ℂ f univ :=
-  hf.entire.analyticOnNhd isOpen_univ
+lemma analyticOnNhd (hf : EntireOfFiniteOrder ρ f) : AnalyticOnNhd ℂ f univ := by
+  intro z hz
+  simpa using hf.analyticAt z
 
 /-- A convenient coercion lemma: from `EntireOfFiniteOrder` to an explicit norm bound. -/
 lemma norm_bound (hf : EntireOfFiniteOrder ρ f) :
@@ -128,7 +122,9 @@ lemma maxModulus_bound (hf : EntireOfFiniteOrder ρ f) :
     ∃ C > 0, ∀ r : ℝ, 0 ≤ r → ∀ z : ℂ, ‖z‖ = r →
       ‖f z‖ ≤ Real.exp (C * (1 + r) ^ ρ) := by
   obtain ⟨C, hCpos, hC⟩ := hf.norm_bound
-  exact ⟨C, hCpos, fun r _ z hz => by rw [hz] at hC; exact hC z⟩
+  refine ⟨C, hCpos, ?_⟩
+  intro r _ z hz
+  simpa [hz] using (hC z)
 
 /-- If `f` has order `ρ` and `ρ ≤ ρ'`, then `f` has order at most `ρ'`. -/
 lemma of_le_order (hf : EntireOfFiniteOrder ρ f) (hρ : ρ ≤ ρ') :
@@ -191,137 +187,140 @@ lemma id : EntireOfFiniteOrder 1 (id : ℂ → ℂ) := by
     constructor; · norm_num
     intro z
     have h1 : 1 + ‖z‖ ≤ 2 * (1 + ‖z‖) := by linarith [norm_nonneg z]
-    have h2 : Real.log (1 + ‖z‖) ≤ 1 + ‖z‖ := Real.log_le_self_of_pos (by linarith [norm_nonneg z])
-    simp only [id, Real.rpow_one]
+    have h2 : Real.log (1 + ‖z‖) ≤ 1 + ‖z‖ := Real.log_le_self (by linarith [norm_nonneg z])
+    simp only [Real.rpow_one]
     calc Real.log (1 + ‖z‖) ≤ 1 + ‖z‖ := h2
       _ ≤ 2 * (1 + ‖z‖) := h1
 
 /-- Polynomial growth bound: |P(z)| ≤ C(1 + |z|)^n for degree n polynomial. -/
 lemma polynomial_growth_aux (P : Polynomial ℂ) :
     ∃ C > 0, ∀ z : ℂ, ‖Polynomial.eval z P‖ ≤ C * (1 + ‖z‖) ^ P.natDegree := by
-  by_cases hP : P = 0
-  · simp [hP]; use 1; simp
-  · -- For nonzero polynomial, bound each term
-    use P.natDegree.succ * (∑ i ∈ range P.natDegree.succ, ‖P.coeff i‖) + 1
-    constructor
-    · have h_sum_nn : 0 ≤ ∑ i ∈ range P.natDegree.succ, ‖P.coeff i‖ :=
-        sum_nonneg (fun _ _ => norm_nonneg _)
-      have h_prod_nn : 0 ≤ P.natDegree.succ * (∑ i ∈ range P.natDegree.succ, ‖P.coeff i‖) := by
-        apply mul_nonneg; simp; exact h_sum_nn
-      linarith
-    intro z
-    have h_bound := Polynomial.norm_eval_le P z
-    -- |P(z)| ≤ ∑ |aᵢ| |z|^i ≤ (∑ |aᵢ|) * max(1, |z|)^n
-    calc ‖Polynomial.eval z P‖
-        ≤ ∑ i ∈ range P.natDegree.succ, ‖P.coeff i‖ * ‖z‖ ^ i := h_bound
-      _ ≤ (∑ i ∈ range P.natDegree.succ, ‖P.coeff i‖) * (1 + ‖z‖) ^ P.natDegree := by
-          apply sum_le_sum_of_nonneg_of_le
-          · intro i _; exact mul_nonneg (norm_nonneg _) (pow_nonneg (norm_nonneg z) i)
+  classical
+  -- A clean universal constant: sum of coefficient norms, plus 1 to ensure positivity.
+  let C : ℝ := (∑ i ∈ Finset.range (P.natDegree + 1), ‖P.coeff i‖) + 1
+  refine ⟨C, ?_, ?_⟩
+  ·
+    have hsum :
+        0 ≤ ∑ i ∈ Finset.range (P.natDegree + 1), ‖P.coeff i‖ :=
+      Finset.sum_nonneg (fun _ _ => norm_nonneg _)
+    -- `C = sum + 1`, hence positive.
+    linarith [hsum]
+  · intro z
+    have hz0 : 0 ≤ ‖z‖ := norm_nonneg z
+    have hone : (1 : ℝ) ≤ 1 + ‖z‖ := by linarith
+    have h_eval : P.eval z = ∑ i ∈ Finset.range (P.natDegree + 1), P.coeff i * z ^ i := by
+      simpa using (Polynomial.eval_eq_sum_range (p := P) z)
+    have h₁ :
+        ‖P.eval z‖ ≤ ∑ i ∈ Finset.range (P.natDegree + 1), ‖P.coeff i‖ * ‖z‖ ^ i := by
+      calc
+        ‖P.eval z‖ = ‖∑ i ∈ Finset.range (P.natDegree + 1), P.coeff i * z ^ i‖ := by
+          simp [h_eval]
+        _ ≤ ∑ i ∈ Finset.range (P.natDegree + 1), ‖P.coeff i * z ^ i‖ := by
+          simpa using (norm_sum_le (Finset.range (P.natDegree + 1)) fun i => P.coeff i * z ^ i)
+        _ = ∑ i ∈ Finset.range (P.natDegree + 1), ‖P.coeff i‖ * ‖z‖ ^ i := by
+          refine Finset.sum_congr rfl (fun i _ => ?_)
+          simp [norm_pow]
+    have h_pow :
+        ∀ i ∈ Finset.range (P.natDegree + 1), ‖z‖ ^ i ≤ (1 + ‖z‖) ^ P.natDegree := by
           intro i hi
-          apply mul_le_mul_of_nonneg_left _ (norm_nonneg _)
-          have hi' : i ≤ P.natDegree := by
-            simp only [mem_range, Nat.lt_succ_iff] at hi; exact hi
-          calc ‖z‖ ^ i ≤ (1 + ‖z‖) ^ i := by
-                apply pow_le_pow_left (norm_nonneg z)
-                linarith [norm_nonneg z]
-            _ ≤ (1 + ‖z‖) ^ P.natDegree := by
-                apply pow_le_pow_right (by linarith [norm_nonneg z]) hi'
-      _ ≤ (P.natDegree.succ * (∑ i ∈ range P.natDegree.succ, ‖P.coeff i‖) + 1) *
-            (1 + ‖z‖) ^ P.natDegree := by
-          apply mul_le_mul_of_nonneg_right _ (pow_nonneg (by linarith [norm_nonneg z]) _)
-          have h_sum_nn : 0 ≤ ∑ i ∈ range P.natDegree.succ, ‖P.coeff i‖ :=
-            sum_nonneg (fun _ _ => norm_nonneg _)
-          nlinarith
+          have hi' : i ≤ P.natDegree := by simpa [Finset.mem_range] using (Nat.lt_succ_iff.mp (Finset.mem_range.mp hi))
+          have hzi : ‖z‖ ^ i ≤ (1 + ‖z‖) ^ i :=
+            pow_le_pow_left₀ hz0 (by linarith [hz0]) i
+          have hmono : (1 + ‖z‖) ^ i ≤ (1 + ‖z‖) ^ P.natDegree :=
+            pow_le_pow_right₀ hone hi'
+          exact le_trans hzi hmono
+    have h₂ :
+        ∑ i ∈ Finset.range (P.natDegree + 1), ‖P.coeff i‖ * ‖z‖ ^ i
+          ≤ (∑ i ∈ Finset.range (P.natDegree + 1), ‖P.coeff i‖) * (1 + ‖z‖) ^ P.natDegree := by
+      have hterm :
+          ∀ i ∈ Finset.range (P.natDegree + 1),
+            ‖P.coeff i‖ * ‖z‖ ^ i ≤ ‖P.coeff i‖ * (1 + ‖z‖) ^ P.natDegree := by
+        intro i hi
+        exact mul_le_mul_of_nonneg_left (h_pow i hi) (norm_nonneg _)
+      calc
+        ∑ i ∈ Finset.range (P.natDegree + 1), ‖P.coeff i‖ * ‖z‖ ^ i
+            ≤ ∑ i ∈ Finset.range (P.natDegree + 1), ‖P.coeff i‖ * (1 + ‖z‖) ^ P.natDegree := by
+              exact Finset.sum_le_sum (fun i hi => hterm i hi)
+        _ = (∑ i ∈ Finset.range (P.natDegree + 1), ‖P.coeff i‖) * (1 + ‖z‖) ^ P.natDegree := by
+              simp [Finset.sum_mul]
+    have hsum_le : (∑ i ∈ Finset.range (P.natDegree + 1), ‖P.coeff i‖) ≤ C := by
+      simp [C]
+    calc
+      ‖P.eval z‖
+          ≤ (∑ i ∈ Finset.range (P.natDegree + 1), ‖P.coeff i‖) * (1 + ‖z‖) ^ P.natDegree :=
+            le_trans h₁ h₂
+      _ ≤ C * (1 + ‖z‖) ^ P.natDegree := by
+            exact mul_le_mul_of_nonneg_right hsum_le (pow_nonneg (by linarith [norm_nonneg z]) _)
 
-/-- Polynomials have order 0 (or negative, which means finite growth). -/
-lemma polynomial (P : Polynomial ℂ) : EntireOfFiniteOrder 0 (fun z => Polynomial.eval z P) := by
+/-- Polynomials have finite order (in this coarse growth sense). -/
+lemma polynomial (P : Polynomial ℂ) :
+    EntireOfFiniteOrder (P.natDegree : ℝ) (fun z => P.eval z) := by
   constructor
-  · exact Polynomial.differentiable ℂ P
+  · exact P.differentiable
   · obtain ⟨C, hC_pos, hC⟩ := polynomial_growth_aux P
-    -- Use a constant that bounds log(1 + C·r^n) for all r
-    use C + P.natDegree + Real.log (1 + C) + 1
-    constructor
-    · have hlog : 0 ≤ Real.log (1 + C) := Real.log_nonneg (by linarith)
-      linarith
+    -- Use a crude but uniform log bound: `log x ≤ x` for `0 ≤ x`, and absorb constants.
+    refine ⟨C + 1, by linarith, ?_⟩
     intro z
-    simp only [Real.rpow_zero, mul_one]
-    have hP := hC z
-    have h_pos : 0 < 1 + ‖Polynomial.eval z P‖ := by linarith [norm_nonneg (Polynomial.eval z P)]
-    have h1 : 1 + ‖Polynomial.eval z P‖ ≤ 1 + C * (1 + ‖z‖) ^ P.natDegree := by linarith
-    by_cases hn : P.natDegree = 0
-    · -- Constant polynomial case
-      have hC_bound : C * (1 + ‖z‖) ^ 0 = C := by simp
-      calc Real.log (1 + ‖Polynomial.eval z P‖)
-          ≤ Real.log (1 + C) := by
-              apply Real.log_le_log h_pos
-              calc 1 + ‖Polynomial.eval z P‖
-                  ≤ 1 + C * (1 + ‖z‖) ^ P.natDegree := h1
-                _ = 1 + C := by simp [hn]
-        _ ≤ C + P.natDegree + Real.log (1 + C) + 1 := by
-              have h := Real.log_nonneg (by linarith : 1 ≤ 1 + C)
-              linarith
-    · -- Non-constant polynomial case: use log(1 + C·r^n) ≤ log(C) + n·log(r) + log(2)
-      push_neg at hn
-      have hn_pos : 0 < P.natDegree := Nat.pos_of_ne_zero hn
-      calc Real.log (1 + ‖Polynomial.eval z P‖)
-          ≤ Real.log (1 + C * (1 + ‖z‖) ^ P.natDegree) := Real.log_le_log h_pos h1
-        _ ≤ Real.log (2 * C * (1 + ‖z‖) ^ P.natDegree) := by
-              apply Real.log_le_log (by linarith [hC_pos, pow_nonneg (by linarith [norm_nonneg z] : 0 ≤ 1 + ‖z‖) P.natDegree])
-              have hpow : 1 ≤ (1 + ‖z‖) ^ P.natDegree := by
-                apply one_le_pow₀ (by linarith [norm_nonneg z])
-              nlinarith
-        _ = Real.log 2 + Real.log C + P.natDegree * Real.log (1 + ‖z‖) := by
-              rw [Real.log_mul (by norm_num) (by positivity)]
-              rw [Real.log_mul (by norm_num) (by positivity)]
-              rw [Real.log_pow]
-              ring
-        _ ≤ 1 + Real.log (1 + C) + P.natDegree * (1 + ‖z‖) := by
-              have hlog2 : Real.log 2 < 1 := Real.log_two_lt_d9.trans (by norm_num)
-              have hlogC : Real.log C ≤ Real.log (1 + C) := Real.log_le_log hC_pos (by linarith)
-              have hlog1z : Real.log (1 + ‖z‖) ≤ 1 + ‖z‖ := by
-                by_cases hz : 1 + ‖z‖ ≤ 1
-                · have hz' : ‖z‖ ≤ 0 := by linarith
-                  have hz'' : ‖z‖ = 0 := le_antisymm hz' (norm_nonneg z)
-                  simp [hz'']; norm_num
-                · push_neg at hz
-                  exact Real.log_le_self_of_pos (by linarith [norm_nonneg z])
-              have h := mul_le_mul_of_nonneg_left hlog1z (Nat.cast_nonneg P.natDegree)
-              linarith
-        _ ≤ C + P.natDegree + Real.log (1 + C) + 1 := by
-              have h_bound : P.natDegree * (1 + ‖z‖) ≤ P.natDegree + P.natDegree * ‖z‖ := by ring_nf
-              nlinarith [norm_nonneg z, hC_pos, Nat.cast_nonneg P.natDegree]
+    have hP : ‖P.eval z‖ ≤ C * (1 + ‖z‖) ^ P.natDegree := by
+      simpa using (hC z)
+    have hpos : 0 ≤ (1 : ℝ) + ‖P.eval z‖ := by linarith [norm_nonneg (P.eval z)]
+    have hlog : Real.log (1 + ‖P.eval z‖) ≤ (1 + ‖P.eval z‖) := Real.log_le_self hpos
+    have hone : (1 : ℝ) ≤ (1 + ‖z‖) ^ P.natDegree := by
+      have hbase : (1 : ℝ) ≤ 1 + ‖z‖ := by linarith [norm_nonneg z]
+      simpa using (one_le_pow₀ hbase : (1 : ℝ) ≤ (1 + ‖z‖) ^ P.natDegree)
+    have hrpow :
+        (1 + ‖z‖) ^ (P.natDegree : ℝ) = (1 + ‖z‖) ^ P.natDegree := by
+      simp
+    calc
+      Real.log (1 + ‖P.eval z‖)
+          ≤ 1 + ‖P.eval z‖ := hlog
+      _ ≤ 1 + C * (1 + ‖z‖) ^ P.natDegree := by linarith
+      _ ≤ (C + 1) * (1 + ‖z‖) ^ P.natDegree := by
+            -- since `1 ≤ (1+‖z‖)^{natDegree}`
+            nlinarith [hone]
+      _ = (C + 1) * (1 + ‖z‖) ^ (P.natDegree : ℝ) := by simp [hrpow]
 
 /-- exp(az) has order 1 for any a ≠ 0. -/
 lemma exp_linear {a : ℂ} (ha : a ≠ 0) : EntireOfFiniteOrder 1 (fun z => exp (a * z)) := by
   constructor
   · exact differentiable_exp.comp (differentiable_const a |>.mul differentiable_id)
-  · use ‖a‖ + 1
-    constructor; · linarith [norm_nonneg a]
+  · -- A slightly conservative constant suffices.
+    refine ⟨‖a‖ + 2, by linarith [norm_nonneg a], ?_⟩
     intro z
     simp only [Real.rpow_one]
-    calc Real.log (1 + ‖exp (a * z)‖)
-        ≤ Real.log (1 + Real.exp (‖a * z‖)) := by
-            apply Real.log_le_log (by linarith [norm_nonneg (exp (a * z))])
-            have h := Complex.abs_exp (a * z)
-            simp only [Complex.norm_eq_abs] at h ⊢
-            have h' : Complex.abs (exp (a * z)) = Real.exp ((a * z).re) := h
-            rw [h']
-            have h_re : (a * z).re ≤ ‖a * z‖ := Complex.re_le_norm _
-            linarith [Real.exp_le_exp.mpr h_re, norm_nonneg (exp (a * z))]
-      _ ≤ Real.log (1 + Real.exp (‖a‖ * ‖z‖)) := by
-            apply Real.log_le_log (by linarith [Real.exp_nonneg (‖a * z‖)])
-            have h : ‖a * z‖ ≤ ‖a‖ * ‖z‖ := norm_mul_le a z
-            linarith [Real.exp_le_exp.mpr h]
-      _ ≤ 1 + ‖a‖ * ‖z‖ := by
-            -- log(1 + e^x) ≤ 1 + x for x ≥ 0
-            have h_nn : 0 ≤ ‖a‖ * ‖z‖ := mul_nonneg (norm_nonneg a) (norm_nonneg z)
-            calc Real.log (1 + Real.exp (‖a‖ * ‖z‖))
-                ≤ Real.log (Real.exp 1 * Real.exp (‖a‖ * ‖z‖)) := by
-                    apply Real.log_le_log (by linarith [Real.exp_nonneg (‖a‖ * ‖z‖)])
-                    have : 1 ≤ Real.exp 1 := Real.one_le_exp (by norm_num)
-                    nlinarith [Real.exp_nonneg (‖a‖ * ‖z‖)]
-              _ = 1 + ‖a‖ * ‖z‖ := by rw [← Real.exp_add]; simp
-      _ ≤ (‖a‖ + 1) * (1 + ‖z‖) := by nlinarith [norm_nonneg a, norm_nonneg z]
+    have hnorm_exp : ‖Complex.exp (a * z)‖ ≤ Real.exp (‖a‖ * ‖z‖) := by
+      calc
+        ‖Complex.exp (a * z)‖
+            = Real.exp ((a * z).re) := by simpa using (Complex.norm_exp (a * z))
+        _ ≤ Real.exp ‖a * z‖ := by
+              gcongr
+              exact Complex.re_le_norm (a * z)
+        _ ≤ Real.exp (‖a‖ * ‖z‖) := by
+              gcongr
+              exact norm_mul_le a z
+    have hx0 : 0 ≤ ‖a‖ * ‖z‖ := mul_nonneg (norm_nonneg a) (norm_nonneg z)
+    have hlog_exp : Real.log (1 + Real.exp (‖a‖ * ‖z‖)) ≤ 1 + ‖a‖ * ‖z‖ := by
+      have hexp_ge : 1 ≤ Real.exp (‖a‖ * ‖z‖) := Real.one_le_exp hx0
+      have hle : 1 + Real.exp (‖a‖ * ‖z‖) ≤ 2 * Real.exp (‖a‖ * ‖z‖) := by linarith
+      have hpos : 0 < 1 + Real.exp (‖a‖ * ‖z‖) := by positivity
+      have hlog2 : Real.log 2 ≤ 1 := by
+        have h : Real.log 2 < 1 := by linarith [Real.log_two_lt_d9]
+        exact le_of_lt h
+      calc
+        Real.log (1 + Real.exp (‖a‖ * ‖z‖))
+            ≤ Real.log (2 * Real.exp (‖a‖ * ‖z‖)) := Real.log_le_log hpos hle
+        _ = Real.log 2 + (‖a‖ * ‖z‖) := by
+              simp [Real.log_mul, Real.log_exp]
+        _ ≤ 1 + ‖a‖ * ‖z‖ := by linarith
+    have hpos₁ : 0 < (1 : ℝ) + ‖Complex.exp (a * z)‖ := by
+      linarith [norm_nonneg (Complex.exp (a * z))]
+    calc
+      Real.log (1 + ‖Complex.exp (a * z)‖)
+          ≤ Real.log (1 + Real.exp (‖a‖ * ‖z‖)) := by
+                apply Real.log_le_log hpos₁
+                linarith
+      _ ≤ 1 + ‖a‖ * ‖z‖ := hlog_exp
+      _ ≤ (‖a‖ + 2) * (1 + ‖z‖) := by nlinarith [norm_nonneg a, norm_nonneg z]
 
 end EntireOfFiniteOrder
 
@@ -334,11 +333,11 @@ E_m(z) = (1 - z) * exp(z + z²/2 + ... + z^m/m)
 ```
 This is the building block for canonical products in the Hadamard factorization. -/
 def weierstrassFactor (m : ℕ) (z : ℂ) : ℂ :=
-  (1 - z) * exp (∑ k ∈ range m.succ, z ^ (k + 1) / (k + 1))
+  (1 - z) * exp (∑ k ∈ range m, z ^ (k + 1) / (k + 1))
 
 /-- The partial log sum z + z²/2 + ... + z^m/m. -/
 def partialLogSum (m : ℕ) (z : ℂ) : ℂ :=
-  ∑ k ∈ range m.succ, z ^ (k + 1) / (k + 1)
+  ∑ k ∈ range m, z ^ (k + 1) / (k + 1)
 
 /-- E_m(0) = 1 for all m. -/
 @[simp]
@@ -355,34 +354,46 @@ lemma partialLogSum_zero (m : ℕ) : partialLogSum m 0 = 0 := by
 
 /-- E_0(z) = 1 - z. -/
 lemma weierstrassFactor_genus_zero (z : ℂ) : weierstrassFactor 0 z = 1 - z := by
-  simp [weierstrassFactor, range_one, sum_singleton]
+  simp [weierstrassFactor]
 
 /-- E_1(z) = (1 - z) exp(z). -/
 lemma weierstrassFactor_genus_one (z : ℂ) : weierstrassFactor 1 z = (1 - z) * exp z := by
-  simp [weierstrassFactor, range_succ, sum_singleton]
-  ring_nf
+  simp [weierstrassFactor, Finset.range_one]
 
 /-- E_m(z) = 0 ⟺ z = 1. -/
 lemma weierstrassFactor_eq_zero_iff {m : ℕ} {z : ℂ} :
     weierstrassFactor m z = 0 ↔ z = 1 := by
-  simp only [weierstrassFactor, mul_eq_zero, exp_ne_zero, or_false, sub_eq_zero]
-  constructor <;> (intro h; linarith)
+  unfold weierstrassFactor
+  constructor
+  · intro h
+    have hmul : (1 - z) = 0 ∨ exp (∑ k ∈ range m, z ^ (k + 1) / (k + 1)) = 0 :=
+      mul_eq_zero.mp h
+    have hz : (1 - z) = 0 := by
+      rcases hmul with hz | hexp
+      · exact hz
+      · exfalso
+        exact (Complex.exp_ne_zero _ hexp)
+    -- `1 - z = 0` means `z = 1`.
+    simpa [eq_comm] using (sub_eq_zero.mp hz)
+  · intro hz
+    -- If `z = 1` then the linear factor vanishes.
+    simp [hz]
 
 /-- E_m is entire (differentiable on all of ℂ). -/
 lemma differentiable_weierstrassFactor (m : ℕ) : Differentiable ℂ (weierstrassFactor m) := by
   have h₁ : Differentiable ℂ (fun z : ℂ => (1 : ℂ) - z) :=
     Differentiable.sub (differentiable_const 1) differentiable_id
-  have h₂ : Differentiable ℂ (fun z : ℂ => ∑ k ∈ range m.succ, z ^ (k + 1) / (k + 1)) := by
+  have h₂ : Differentiable ℂ (fun z : ℂ => ∑ k ∈ range m, z ^ (k + 1) / (k + 1)) := by
     apply Differentiable.fun_sum
     intro k _
     exact (differentiable_id.pow _).div_const _
-  have h₃ : Differentiable ℂ (fun z : ℂ => exp (∑ k ∈ range m.succ, z ^ (k + 1) / (k + 1))) :=
+  have h₃ : Differentiable ℂ (fun z : ℂ => exp (∑ k ∈ range m, z ^ (k + 1) / (k + 1))) :=
     differentiable_exp.comp h₂
   exact h₁.mul h₃
 
 /-- E_m is analytic at every point. -/
 lemma analyticAt_weierstrassFactor (m : ℕ) (w : ℂ) : AnalyticAt ℂ (weierstrassFactor m) w :=
-  (differentiable_weierstrassFactor m).analyticAt isOpen_univ (mem_univ w)
+  (differentiable_weierstrassFactor m).analyticAt w
 
 /-! ### Bounds on Weierstrass factors -/
 
@@ -392,17 +403,31 @@ lemma norm_partialLogSum_le {m : ℕ} {z : ℂ} (hz : ‖z‖ < 1) :
   unfold partialLogSum
   have h_pos : 0 < 1 - ‖z‖ := by linarith
   have h_nn : 0 ≤ ‖z‖ := norm_nonneg z
-  calc ‖∑ k ∈ range m.succ, z ^ (k + 1) / (k + 1)‖
-      ≤ ∑ k ∈ range m.succ, ‖z ^ (k + 1) / (k + 1)‖ := norm_sum_le _ _
-    _ ≤ ∑ k ∈ range m.succ, ‖z‖ ^ (k + 1) := by
+  calc ‖∑ k ∈ range m, z ^ (k + 1) / (k + 1)‖
+      ≤ ∑ k ∈ range m, ‖z ^ (k + 1) / (k + 1)‖ := norm_sum_le _ _
+    _ ≤ ∑ k ∈ range m, ‖z‖ ^ (k + 1) := by
         apply sum_le_sum
         intro k _
         rw [norm_div, norm_pow]
         apply div_le_self (pow_nonneg h_nn _)
-        simp only [norm_natCast]
-        have : (1 : ℝ) ≤ (k : ℝ) + 1 := by linarith [Nat.cast_nonneg k]
-        exact this
-    _ = ‖z‖ * ∑ k ∈ range m.succ, ‖z‖ ^ k := by
+        -- Crude bound `1 ≤ ‖(↑k : ℂ) + 1‖`, enough for `div_le_self`.
+        have hk1 : (1 : ℝ) ≤ (k : ℝ) + 1 := by
+          -- `k + 1 ≥ 1`.
+          -- We phrase this on `ℕ` and cast.
+          have hk1_nat : (1 : ℕ) ≤ k + 1 := Nat.succ_le_succ (Nat.zero_le k)
+          exact_mod_cast hk1_nat
+        have hre_nonneg : 0 ≤ ((k : ℂ) + 1).re := by
+          -- `re (↑k + 1) = (k : ℝ) + 1 ≥ 1 ≥ 0`.
+          have : (0 : ℝ) ≤ (k : ℝ) + 1 := le_trans (by norm_num) hk1
+          simpa using this
+        have hre_le : ((k : ℂ) + 1).re ≤ ‖(k : ℂ) + 1‖ := by
+          -- `|re| ≤ ‖·‖` and `re` is nonnegative here.
+          have h := (abs_re_le_norm ((k : ℂ) + 1))
+          rw [abs_of_nonneg hre_nonneg] at h
+          exact h
+        have hk1' : (1 : ℝ) ≤ ((k : ℂ) + 1).re := by simp
+        exact le_trans hk1' hre_le
+    _ = ‖z‖ * ∑ k ∈ range m, ‖z‖ ^ k := by
         rw [mul_sum]
         apply sum_congr rfl
         intro k _
@@ -410,8 +435,9 @@ lemma norm_partialLogSum_le {m : ℕ} {z : ℂ} (hz : ‖z‖ < 1) :
     _ ≤ ‖z‖ * (1 / (1 - ‖z‖)) := by
         apply mul_le_mul_of_nonneg_left _ h_nn
         have h_geom := hasSum_geometric_of_lt_one h_nn hz
-        calc ∑ k ∈ range m.succ, ‖z‖ ^ k
-            ≤ ∑' k, ‖z‖ ^ k := sum_le_tsum _ (fun k _ => pow_nonneg h_nn k) h_geom.summable
+        calc ∑ k ∈ range m, ‖z‖ ^ k
+            ≤ ∑' k, ‖z‖ ^ k :=
+              Summable.sum_le_tsum (s := range m) (fun k _ => pow_nonneg h_nn k) h_geom.summable
           _ = 1 / (1 - ‖z‖) := by rw [h_geom.tsum_eq, one_div]
     _ = ‖z‖ / (1 - ‖z‖) := by ring
 
@@ -432,41 +458,21 @@ For |z| ≤ 1/2, we have |E_m(z) - 1| ≤ 12|z|.
 This linear bound is sufficient for convergence of canonical products. -/
 lemma weierstrassFactor_sub_one_bound_linear {m : ℕ} {z : ℂ} (hz : ‖z‖ ≤ 1/2) :
     ‖weierstrassFactor m z - 1‖ ≤ 12 * ‖z‖ := by
-  have hz_lt : ‖z‖ < 1 := lt_of_le_of_lt hz (by norm_num)
-  have hz_nn : 0 ≤ ‖z‖ := norm_nonneg z
-  unfold weierstrassFactor
-  let P := partialLogSum m z
-  have h_one_sub_z : ‖1 - z‖ ≤ 2 := by
-    calc ‖1 - z‖ ≤ ‖(1 : ℂ)‖ + ‖z‖ := norm_sub_le 1 z
-      _ = 1 + ‖z‖ := by simp
-      _ ≤ 1 + 1/2 := by linarith
-      _ = 3/2 := by norm_num
-      _ ≤ 2 := by norm_num
-  have h_P_bound : ‖P‖ ≤ 2 * ‖z‖ := norm_partialLogSum_le_two_mul hz
-  have h_P_le_1 : ‖P‖ ≤ 1 := by
-    calc ‖P‖ ≤ 2 * ‖z‖ := h_P_bound
-      _ ≤ 2 * (1/2) := by nlinarith
-      _ = 1 := by norm_num
-  have h_exp_bound : ‖exp P - 1‖ ≤ 2 * ‖z‖ * Real.exp 1 := by
-    have h1 : ‖exp P - 1‖ ≤ ‖P‖ * Real.exp ‖P‖ := Complex.norm_exp_sub_one_le P
-    calc ‖exp P - 1‖
-        ≤ ‖P‖ * Real.exp ‖P‖ := h1
-      _ ≤ (2 * ‖z‖) * Real.exp 1 := by
-          apply mul_le_mul h_P_bound (Real.exp_le_exp.mpr h_P_le_1) (Real.exp_nonneg _) (by linarith)
-  calc ‖(1 - z) * exp P - 1‖
-      = ‖(1 - z) * (exp P - 1) + ((1 - z) - 1)‖ := by ring_nf
-    _ ≤ ‖(1 - z) * (exp P - 1)‖ + ‖(1 - z) - 1‖ := norm_add_le _ _
-    _ = ‖1 - z‖ * ‖exp P - 1‖ + ‖-z‖ := by rw [norm_mul]; ring_nf
-    _ = ‖1 - z‖ * ‖exp P - 1‖ + ‖z‖ := by rw [norm_neg]
-    _ ≤ 2 * (2 * ‖z‖ * Real.exp 1) + ‖z‖ := by
-        apply add_le_add_right
-        apply mul_le_mul h_one_sub_z h_exp_bound (norm_nonneg _) (by norm_num)
-    _ = ‖z‖ * (4 * Real.exp 1 + 1) := by ring
-    _ ≤ ‖z‖ * 12 := by
-        apply mul_le_mul_of_nonneg_left _ hz_nn
-        have he : Real.exp 1 < 3 := Real.exp_one_lt_d9.trans (by norm_num)
-        linarith
-    _ = 12 * ‖z‖ := by ring
+  have hz0 : 0 ≤ ‖z‖ := norm_nonneg z
+  have hz1 : ‖z‖ ≤ 1 := le_trans hz (by norm_num)
+  have hpow : ‖weierstrassFactor m z - 1‖ ≤ 4 * ‖z‖ ^ (m + 1) := by
+    -- Reuse the fully rigorous tail/log proof from `WeierstrassFactorBound.lean`.
+    simpa [weierstrassFactor, weierstrassFactor', partialLogSum'] using
+      (weierstrassFactor_sub_one_pow_bound (m := m) (z := z) hz)
+  have hpow_le : ‖z‖ ^ (m + 1) ≤ ‖z‖ := by
+    have : ‖z‖ ^ (m + 1) ≤ ‖z‖ ^ (1 : ℕ) :=
+      pow_le_pow_of_le_one hz0 hz1 (Nat.succ_le_succ (Nat.zero_le m))
+    simpa using this
+  have h4 : ‖weierstrassFactor m z - 1‖ ≤ 4 * ‖z‖ := by
+    have : 4 * ‖z‖ ^ (m + 1) ≤ 4 * ‖z‖ := by nlinarith [hpow_le]
+    exact le_trans hpow this
+  have hconst : (4 : ℝ) * ‖z‖ ≤ 12 * ‖z‖ := by nlinarith [hz0]
+  exact le_trans h4 hconst
 
 /-- Power bound on |E_m(z) - 1|.
 
@@ -481,37 +487,9 @@ Using log(1-z) = -(z + z²/2 + z³/3 + ...), we get that E_m(z) has a zero of
 order m+1 at z = 0. More precisely, E_m(z) - 1 = -z^{m+1}/(m+1) + O(z^{m+2}). -/
 lemma weierstrassFactor_sub_one_bound_pow {m : ℕ} {z : ℂ} (hz : ‖z‖ ≤ 1/2) :
     ‖weierstrassFactor m z - 1‖ ≤ 4 * ‖z‖ ^ (m + 1) := by
-  by_cases hm : m = 0
-  · -- For m = 0: E_0(z) - 1 = -z, so |E_0(z) - 1| = |z| ≤ 4|z|
-    subst hm
-    simp only [weierstrassFactor_genus_zero, Nat.zero_add, pow_one]
-    calc ‖(1 - z) - 1‖ = ‖-z‖ := by ring_nf
-      _ = ‖z‖ := norm_neg z
-      _ ≤ 4 * ‖z‖ := by linarith [norm_nonneg z]
-  · -- For m ≥ 1, use the representation E_m(z) = exp(-T_m(z))
-    -- where T_m(z) = ∑_{k>m} z^k/k is the tail of -log(1-z)
-    push_neg at hm
-    have hm_pos : 0 < m := Nat.pos_of_ne_zero hm
-    have hz_lt : ‖z‖ < 1 := lt_of_le_of_lt hz (by norm_num)
-    have hz_nn : 0 ≤ ‖z‖ := norm_nonneg z
-    by_cases hz0 : z = 0
-    · -- z = 0: trivial
-      simp [hz0]
-    · -- z ≠ 0: use E_m(z) = exp(-T_m(z)) where |T_m(z)| ≤ 2|z|^{m+1}
-      -- |E_m(z) - 1| = |exp(-T) - 1| ≤ |T|·e^|T| for |T| ≤ 1
-      -- For |z| ≤ 1/2: |T| ≤ 2·(1/2)^{m+1} ≤ 1
-      -- So |E_m(z) - 1| ≤ 2|z|^{m+1}·e ≤ 4|z|^{m+1} since e < 3
-      --
-      -- The tail bound |T_m(z)| ≤ |z|^{m+1}/(1-|z|) ≤ 2|z|^{m+1} for |z| ≤ 1/2
-      -- follows from the geometric series bound.
-      --
-      -- TECHNICAL PROOF (requires power series infrastructure):
-      -- 1. Show -log(1-z) = z + z²/2 + z³/3 + ... for |z| < 1
-      -- 2. E_m(z) = (1-z)·exp(P_m(z)) = exp(log(1-z) + P_m(z)) = exp(-T_m(z))
-      -- 3. |T_m(z)| ≤ ∑_{k>m} |z|^k/k ≤ |z|^{m+1}·∑_{k≥0} |z|^k = |z|^{m+1}/(1-|z|)
-      -- 4. For |z| ≤ 1/2: |T_m(z)| ≤ 2|z|^{m+1}
-      -- 5. |exp(-T) - 1| ≤ |T|·exp(|T|) ≤ 2|z|^{m+1}·e ≤ 4|z|^{m+1}
-      sorry
+  -- Reuse the fully rigorous tail/log proof from `WeierstrassFactorBound.lean`.
+  simpa [weierstrassFactor, weierstrassFactor', partialLogSum'] using
+    (weierstrassFactor_sub_one_pow_bound (m := m) (z := z) hz)
 
 /-! ## Part 3: Zero Data and Counting Functions -/
 
@@ -527,7 +505,8 @@ structure ZeroData (f : ℂ → ℂ) where
   /-- The multiset of nonzero zeros (with multiplicity). -/
   zeros : Multiset ℂ
   /-- Local finiteness: only finitely many zeros in each closed ball. -/
-  zeros_finite_in_ball : ∀ R : ℝ, (zeros.filter (fun z => ‖z‖ ≤ R)).card < ⊤
+  zeros_finite_in_ball :
+    ∀ R : ℝ, ∃ n : ℕ, (zeros.filter (fun z => ‖z‖ ≤ R)).card ≤ n
   /-- Order of vanishing at `0`. -/
   ord0 : ℕ
   /-- Specification of the zero set (up to multiplicity) of `f`. -/
@@ -569,27 +548,41 @@ lemma canonicalProductFinite_at_zero {m : ℕ} {zeros : Finset ℂ} (h0 : (0 : �
 lemma canonicalProductFinite_ne_zero {m : ℕ} {zeros : Finset ℂ} {z : ℂ}
     (hz : z ∉ zeros) (h0 : (0 : ℂ) ∉ zeros) :
     canonicalProductFinite m zeros z ≠ 0 := by
+  classical
   unfold canonicalProductFinite
-  apply prod_ne_zero
+  -- Each factor is nonzero since `0 ∉ zeros` and `z ∉ zeros`.
+  refine (Finset.prod_ne_zero_iff).2 ?_
   intro ρ hρ
   have hρ_ne : ρ ≠ 0 := fun h => h0 (h ▸ hρ)
-  simp only [hρ_ne, ↓reduceIte]
-  rw [weierstrassFactor_eq_zero_iff]
-  intro h
-  have : z = ρ := by field_simp at h; exact h
-  rw [this] at hz
-  exact hz hρ
+  simp [hρ_ne]
+  intro hzero
+  have h : z / ρ = 1 := (weierstrassFactor_eq_zero_iff (m := m) (z := z / ρ)).1 hzero
+  have hzρ : z = ρ := by
+    have h' := congrArg (fun w : ℂ => w * ρ) h
+    simpa [div_eq_mul_inv, mul_assoc, hρ_ne] using h'
+  exact hz (hzρ ▸ hρ)
 
 /-- Differentiability of the finite canonical product. -/
 lemma differentiable_canonicalProductFinite (m : ℕ) (zeros : Finset ℂ) :
     Differentiable ℂ (canonicalProductFinite m zeros) := by
-  unfold canonicalProductFinite
-  apply Differentiable.finset_prod
-  intro ρ _
-  by_cases hρ : ρ = 0
-  · simp [hρ]; exact differentiable_const 1
-  · simp only [hρ, ↓reduceIte]
-    exact (differentiable_weierstrassFactor m).comp (differentiable_id.div_const ρ)
+  classical
+  -- View the product as a product of differentiable functions.
+  let F : ℂ → ℂ → ℂ := fun ρ z => if ρ = 0 then (1 : ℂ) else weierstrassFactor m (z / ρ)
+  have hF : ∀ ρ ∈ zeros, Differentiable ℂ (F ρ) := by
+    intro ρ hρ
+    by_cases hρ0 : ρ = 0
+    · simp [F, hρ0]
+    ·
+      have hdiff : Differentiable ℂ (fun z => weierstrassFactor m (z / ρ)) :=
+        (differentiable_weierstrassFactor m).comp (differentiable_id.div_const ρ)
+      simpa [F, hρ0] using hdiff
+  have hprod : Differentiable ℂ (∏ ρ ∈ zeros, F ρ) :=
+    Differentiable.finset_prod (u := zeros) (f := fun ρ => F ρ) hF
+  -- Rewrite the product-of-functions as the pointwise product in `canonicalProductFinite`.
+  have hEq : canonicalProductFinite m zeros = ∏ ρ ∈ zeros, F ρ := by
+    funext z
+    simp [canonicalProductFinite, F, Finset.prod_apply]
+  simpa [hEq] using hprod
 
 /-! ## Part 5: Product Convergence -/
 
@@ -605,20 +598,91 @@ theorem log_sum_converges_uniform {a : ℕ → ℂ} {m : ℕ}
         (fun N z => ∑ n ∈ range N, log (weierstrassFactor m (z / a n)))
         g atTop K := by
   intro K hK hK_avoid
-  -- Strategy:
-  -- 1. K is bounded, so ∃ R > 0 with K ⊆ B(0, R)
-  -- 2. For z ∈ K and |aₙ| > 2R: |z/aₙ| < 1/2
-  -- 3. log(E_m(w)) = log(1 + (E_m(w) - 1)) for |w| < 1/2
-  -- 4. |log(1 + u)| ≤ 2|u| for |u| ≤ 1/2
-  -- 5. |E_m(w) - 1| ≤ 4|w|^{m+1} by weierstrassFactor_sub_one_bound_pow
-  -- 6. So |log(E_m(z/aₙ))| ≤ 8|z/aₙ|^{m+1} ≤ 8R^{m+1}|aₙ|^{-(m+1)}
-  -- 7. Apply Weierstrass M-test: ∑ 8R^{m+1}|aₙ|^{-(m+1)} < ∞ by h_sum
-  --
-  -- The uniform convergence of ∑ log(E_m(z/aₙ)) follows from M-test.
-  obtain ⟨R, hR_pos, hR⟩ := hK.isBounded.subset_ball 0
-  -- Define the limit function
-  -- For formal proof, use `TendstoUniformlyOn` API
-  sorry
+  -- We use Mathlib's M-test lemma for `∑ log(1 + f n z)` with a summable majorant.
+  rcases (isBounded_iff_forall_norm_le.1 hK.isBounded) with ⟨R0, hR0⟩
+  -- Choose a strictly positive radius bounding `K`.
+  set R : ℝ := max R0 1
+  have hR_le : ∀ z ∈ K, ‖z‖ ≤ R := fun z hz => le_trans (hR0 z hz) (le_max_left _ _)
+  have hRpos : 0 < R := lt_of_lt_of_le (by norm_num : (0 : ℝ) < 1) (le_max_right _ _)
+
+  -- Majorant sequence: a constant multiple of the given summable sequence.
+  let u : ℕ → ℝ := fun n => (4 * R ^ (m + 1)) * (‖a n‖⁻¹ ^ (m + 1))
+  have hu : Summable u := h_sum.mul_left (4 * R ^ (m + 1))
+
+  -- Eventually, `‖a n‖` is large enough so that `‖z / a n‖ ≤ 1/2` for all `z ∈ K`.
+  have h_tend : Tendsto (fun n => ‖a n‖⁻¹ ^ (m + 1)) atTop (nhds (0 : ℝ)) := by
+    simpa [Nat.cofinite_eq_atTop] using h_sum.tendsto_cofinite_zero
+  have hRhalf_pos : 0 < (1 / (2 * R)) ^ (m + 1) := by
+    have : 0 < (1 / (2 * R) : ℝ) := by
+      have : 0 < (2 * R : ℝ) := by nlinarith [hRpos]
+      exact one_div_pos.mpr this
+    exact pow_pos this (m + 1)
+  have hLarge : ∀ᶠ n in atTop, (2 * R : ℝ) ≤ ‖a n‖ := by
+    have hEv := h_tend.eventually (eventually_lt_nhds hRhalf_pos)
+    filter_upwards [hEv] with n hn
+    by_contra h'
+    have hle : ‖a n‖ ≤ 2 * R := le_of_not_ge h'
+    have ha_pos : 0 < ‖a n‖ := norm_pos_iff.mpr (h_nonzero n)
+    have hinv : (1 / (2 * R : ℝ)) ≤ ‖a n‖⁻¹ := by
+      simpa [one_div] using (one_div_le_one_div_of_le ha_pos hle)
+    have hinv_pow : (1 / (2 * R : ℝ)) ^ (m + 1) ≤ ‖a n‖⁻¹ ^ (m + 1) :=
+      pow_le_pow_left₀ (by positivity) hinv (m + 1)
+    exact (not_lt_of_ge hinv_pow) (by simpa [one_div] using hn)
+
+  -- Apply Mathlib's uniform convergence lemma for logarithmic series.
+  refine ⟨fun z => ∑' n, log (weierstrassFactor m (z / a n)), ?_⟩
+  have hBound :
+      ∀ᶠ n in atTop, ∀ z ∈ K, ‖weierstrassFactor m (z / a n) - 1‖ ≤ u n := by
+    filter_upwards [hLarge] with n hn z hz
+    have hz' : ‖z / a n‖ ≤ (1 / 2 : ℝ) := by
+      have ha_pos : 0 < ‖a n‖ := norm_pos_iff.mpr (h_nonzero n)
+      have hzle : ‖z‖ ≤ R := hR_le z hz
+      have : ‖z / a n‖ = ‖z‖ / ‖a n‖ := by simp
+      rw [this]
+      have h2R_pos : 0 < (2 * R : ℝ) := by nlinarith [hRpos]
+      have hfrac₁ : ‖z‖ / ‖a n‖ ≤ ‖z‖ / (2 * R) :=
+        div_le_div_of_nonneg_left (norm_nonneg z) h2R_pos hn
+      have hfrac₂ : ‖z‖ / (2 * R) ≤ R / (2 * R) :=
+        div_le_div_of_nonneg_right hzle (le_of_lt h2R_pos)
+      have hRne : (R : ℝ) ≠ 0 := ne_of_gt hRpos
+      have hRsimp : (R / (2 * R : ℝ)) = (1 / 2 : ℝ) := by
+        field_simp [hRne]
+      have hfrac : ‖z‖ / ‖a n‖ ≤ R / (2 * R) := hfrac₁.trans hfrac₂
+      exact hfrac.trans_eq hRsimp
+    have hpow := weierstrassFactor_sub_one_bound_pow (m := m) (z := z / a n) hz'
+    have hzR : ‖z‖ ^ (m + 1) ≤ R ^ (m + 1) :=
+      pow_le_pow_left₀ (norm_nonneg z) (hR_le z hz) _
+    calc
+      ‖weierstrassFactor m (z / a n) - 1‖
+          ≤ 4 * ‖z / a n‖ ^ (m + 1) := hpow
+      _ = 4 * (‖z‖ ^ (m + 1) * ‖a n‖⁻¹ ^ (m + 1)) := by
+            simp [div_eq_mul_inv, mul_pow, norm_inv, mul_assoc, mul_comm]
+      _ ≤ 4 * (R ^ (m + 1) * ‖a n‖⁻¹ ^ (m + 1)) := by
+            gcongr
+      _ = u n := by
+            simp [u, mul_assoc, mul_comm]
+
+  have hmain :
+      TendstoUniformlyOn
+          (fun N z => ∑ n ∈ range N, log (1 + (weierstrassFactor m (z / a n) - 1)))
+          (fun z => ∑' n, log (1 + (weierstrassFactor m (z / a n) - 1))) atTop K := by
+    simpa [u] using (hu.tendstoUniformlyOn_tsum_nat_log_one_add (K := K) (f := fun n z =>
+      weierstrassFactor m (z / a n) - 1) hBound)
+  -- Rewrite back to `log (weierstrassFactor ...)`.
+  have hcongr :
+      ∀ᶠ N in atTop,
+        Set.EqOn
+          (fun z => ∑ n ∈ range N, log (1 + (weierstrassFactor m (z / a n) - 1)))
+          (fun z => ∑ n ∈ range N, log (weierstrassFactor m (z / a n))) K :=
+    Filter.Eventually.of_forall (fun N z hz => by simp)
+  have hlim :
+      TendstoUniformlyOn
+        (fun N z => ∑ n ∈ range N, log (weierstrassFactor m (z / a n)))
+        (fun z => ∑' n, log (1 + (weierstrassFactor m (z / a n) - 1))) atTop K :=
+    hmain.congr hcongr
+  refine hlim.congr_right ?_
+  intro z hz
+  simp
 
 /-- The canonical product converges uniformly on compact sets. -/
 theorem canonical_product_converges_uniform {a : ℕ → ℂ} {m : ℕ}
@@ -629,21 +693,140 @@ theorem canonical_product_converges_uniform {a : ℕ → ℂ} {m : ℕ}
         (fun N z => ∏ n ∈ range N, weierstrassFactor m (z / a n))
         g atTop K ∧ AnalyticOn ℂ g K := by
   intro K hK hK_avoid
-  -- Strategy:
-  -- 1. log_sum_converges_uniform gives ∑ log(E_m(z/aₙ)) → g_log(z) uniformly on K
-  -- 2. Then ∏ E_m(z/aₙ) = exp(∑ log(E_m(z/aₙ))) → exp(g_log(z)) uniformly
-  -- 3. exp preserves analyticity, so exp(g_log) is analytic on K
-  --
-  -- Technical detail: need to show each E_m(z/aₙ) ≠ 0 on K to use log
-  -- This follows from hK_avoid and the zero structure of E_m
-  obtain ⟨g_log, hg_log⟩ := log_sum_converges_uniform h_sum h_nonzero K hK hK_avoid
-  refine ⟨fun z => exp (g_log z), ?_, ?_⟩
-  · -- Uniform convergence of products from uniform convergence of log sums
-    -- ∏ E_m(z/aₙ) = exp(∑ log(E_m(z/aₙ)))
-    sorry
-  · -- Analyticity: exp composed with analytic function is analytic
-    -- g_log is the uniform limit of analytic functions on K, hence analytic
-    sorry
+  -- We avoid the logarithm (which is not continuous everywhere) and instead use Mathlib's
+  -- Weierstrass M-test for products of the form `∏ (1 + f n z)`.
+  rcases (isBounded_iff_forall_norm_le.1 hK.isBounded) with ⟨R0, hR0⟩
+  -- Choose a radius `R ≥ 1` bounding `K`, and an open ball `U` slightly larger than `K`.
+  set R : ℝ := max R0 1
+  let U : Set ℂ := Metric.ball (0 : ℂ) (R + 1)
+  have hUopen : IsOpen U := Metric.isOpen_ball
+  have hKU : K ⊆ U := by
+    intro z hz
+    have hzle : ‖z‖ ≤ R := le_trans (hR0 z hz) (le_max_left _ _)
+    have hzlt : ‖z‖ < R + 1 := lt_of_le_of_lt hzle (by linarith)
+    simpa [U, Metric.mem_ball, dist_zero_right] using hzlt
+
+  -- Let `f n z = weierstrassFactor m (z / a n) - 1`.
+  let f : ℕ → ℂ → ℂ := fun n z => weierstrassFactor m (z / a n) - 1
+  -- Majorant: a constant multiple of the given summable sequence.
+  let M : ℕ → ℝ := fun n => (4 * (R + 1) ^ (m + 1)) * (‖a n‖⁻¹ ^ (m + 1))
+  have hM : Summable M := h_sum.mul_left (4 * (R + 1) ^ (m + 1))
+
+  -- Eventually, `‖a n‖` is large enough so that `‖z / a n‖ ≤ 1/2` for all `z ∈ U`.
+  have h_tend : Tendsto (fun n => ‖a n‖⁻¹ ^ (m + 1)) atTop (nhds (0 : ℝ)) := by
+    simpa [Nat.cofinite_eq_atTop] using h_sum.tendsto_cofinite_zero
+  have hRpos : 0 < R := lt_of_lt_of_le (by norm_num : (0 : ℝ) < 1) (le_max_right _ _)
+  have hR1pos : 0 < R + 1 := by linarith
+  have hRhalf_pos : 0 < (1 / (2 * (R + 1))) ^ (m + 1) := by
+    have : 0 < (1 / (2 * (R + 1)) : ℝ) := by
+      have : 0 < (2 * (R + 1) : ℝ) := by nlinarith [hR1pos]
+      exact one_div_pos.mpr this
+    exact pow_pos this (m + 1)
+  have hLarge : ∀ᶠ n in atTop, (2 * (R + 1) : ℝ) ≤ ‖a n‖ := by
+    have hEv := h_tend.eventually (eventually_lt_nhds hRhalf_pos)
+    filter_upwards [hEv] with n hn
+    by_contra h'
+    have hle : ‖a n‖ ≤ 2 * (R + 1) := le_of_not_ge h'
+    have ha_pos : 0 < ‖a n‖ := norm_pos_iff.mpr (h_nonzero n)
+    have hinv : (1 / (2 * (R + 1) : ℝ)) ≤ ‖a n‖⁻¹ := by
+      simpa [one_div] using (one_div_le_one_div_of_le ha_pos hle)
+    have hinv_pow : (1 / (2 * (R + 1) : ℝ)) ^ (m + 1) ≤ ‖a n‖⁻¹ ^ (m + 1) :=
+      pow_le_pow_left₀ (by positivity) hinv (m + 1)
+    exact (not_lt_of_ge hinv_pow) (by simpa [one_div] using hn)
+
+  -- Bound the tail factors on `U` and get local uniform convergence there.
+  have hBoundU : ∀ᶠ n in atTop, ∀ z ∈ U, ‖f n z‖ ≤ M n := by
+    filter_upwards [hLarge] with n hn z hzU
+    have hzU' : ‖z‖ < R + 1 := by
+      simpa [U, Metric.mem_ball, dist_zero_right] using hzU
+    have hz' : ‖z / a n‖ ≤ (1 / 2 : ℝ) := by
+      have h2R1_pos : 0 < (2 * (R + 1) : ℝ) := by nlinarith [hR1pos]
+      have ha_pos : 0 < ‖a n‖ := norm_pos_iff.mpr (h_nonzero n)
+      have : ‖z / a n‖ = ‖z‖ / ‖a n‖ := by simp [Complex.norm_div]
+      rw [this]
+      have hfrac₁ : ‖z‖ / ‖a n‖ ≤ ‖z‖ / (2 * (R + 1)) :=
+        div_le_div_of_nonneg_left (norm_nonneg z) h2R1_pos hn
+      have hfrac₂ : ‖z‖ / (2 * (R + 1)) ≤ (R + 1) / (2 * (R + 1)) :=
+        div_le_div_of_nonneg_right (le_of_lt hzU') (le_of_lt h2R1_pos)
+      have hfrac : ‖z‖ / ‖a n‖ ≤ (R + 1) / (2 * (R + 1)) := hfrac₁.trans hfrac₂
+      have hRne : (R + 1 : ℝ) ≠ 0 := ne_of_gt hR1pos
+      have hRsimp : ((R + 1) / (2 * (R + 1) : ℝ)) = (1 / 2 : ℝ) := by
+        field_simp [hRne]
+      exact hfrac.trans_eq hRsimp
+    have hpow := weierstrassFactor_sub_one_bound_pow (m := m) (z := z / a n) hz'
+    have hzR : ‖z‖ ^ (m + 1) ≤ (R + 1) ^ (m + 1) :=
+      pow_le_pow_left₀ (norm_nonneg z) (le_of_lt hzU') _
+    have hnorm :
+        ‖f n z‖ = ‖weierstrassFactor m (z / a n) - 1‖ := by simp [f]
+    -- Main estimate.
+    calc
+      ‖f n z‖ = ‖weierstrassFactor m (z / a n) - 1‖ := hnorm
+      _ ≤ 4 * ‖z / a n‖ ^ (m + 1) := hpow
+      _ = 4 * (‖z‖ ^ (m + 1) * ‖a n‖⁻¹ ^ (m + 1)) := by
+            simp [div_eq_mul_inv, mul_pow, norm_inv, mul_assoc, mul_left_comm, mul_comm]
+      _ ≤ 4 * ((R + 1) ^ (m + 1) * ‖a n‖⁻¹ ^ (m + 1)) := by
+            gcongr
+      _ = M n := by
+            simp [M, mul_assoc, mul_left_comm, mul_comm]
+
+  have hcts : ∀ n, ContinuousOn (f n) U := by
+    intro n
+    -- `weierstrassFactor` is differentiable, hence continuous, and so is `z ↦ z / a n`.
+    have hcont : Continuous (fun z : ℂ => weierstrassFactor m (z / a n)) :=
+      ((differentiable_weierstrassFactor m).comp (differentiable_id.div_const (a n))).continuous
+    simpa [f] using (hcont.continuousOn.sub continuousOn_const)
+
+  -- Local uniform convergence of the infinite product on `U`.
+  have hloc :
+      HasProdLocallyUniformlyOn (fun n z ↦ 1 + f n z) (fun z ↦ ∏' n, (1 + f n z)) U :=
+    Summable.hasProdLocallyUniformlyOn_nat_one_add (K := U) hUopen hM hBoundU hcts
+
+  -- Restrict to `K` and extract uniform convergence there.
+  have hlocK :
+      HasProdLocallyUniformlyOn (fun n z ↦ 1 + f n z) (fun z ↦ ∏' n, (1 + f n z)) K :=
+    hloc.mono hKU
+  have hunifK :
+      HasProdUniformlyOn (fun n z ↦ 1 + f n z) (fun z ↦ ∏' n, (1 + f n z)) K :=
+    hlocK.hasProdUniformlyOn_of_isCompact hK
+  have htendK :
+      TendstoUniformlyOn (fun N z ↦ ∏ n ∈ range N, (1 + f n z))
+        (fun z ↦ ∏' n, (1 + f n z)) atTop K :=
+    hunifK.tendstoUniformlyOn_finsetRange
+
+  -- Differentiability (hence analyticity) of the limit on the open set `U`,
+  -- by the locally uniform limit theorem.
+  have hFdiff : ∀ᶠ s : Finset ℕ in (atTop : Filter (Finset ℕ)),
+      DifferentiableOn ℂ (fun z ↦ ∏ i ∈ s, (1 + f i z)) U :=
+    Filter.Eventually.of_forall (fun s => by
+      -- Finite products of differentiable functions are differentiable.
+      have hdf : ∀ i ∈ s, DifferentiableOn ℂ (fun z => (1 + f i z)) U := by
+        intro i hi
+        -- `1 + f i` is differentiable everywhere.
+        have : Differentiable ℂ (fun z => (1 + f i z)) := by
+          have hdiff : Differentiable ℂ (fun z => weierstrassFactor m (z / a i)) :=
+            (differentiable_weierstrassFactor m).comp (differentiable_id.div_const (a i))
+          simpa [f, add_comm, add_left_comm, add_assoc, sub_eq_add_neg] using
+            (hdiff.sub_const (1 : ℂ)).const_add (1 : ℂ)
+        exact this.differentiableOn
+      simpa [Finset.prod_fn] using
+        (DifferentiableOn.finset_prod (s := U) (u := s) (f := fun i z => (1 + f i z)) hdf))
+
+  have htlocU :
+      TendstoLocallyUniformlyOn (fun s z ↦ ∏ i ∈ s, (1 + f i z)) (fun z ↦ ∏' n, (1 + f n z))
+        (atTop : Filter (Finset ℕ)) U := by
+    -- This is just the definition of `HasProdLocallyUniformlyOn`.
+    simpa [HasProdLocallyUniformlyOn] using hloc
+  have hdiffU : DifferentiableOn ℂ (fun z ↦ ∏' n, (1 + f n z)) U :=
+    htlocU.differentiableOn hFdiff hUopen
+
+  refine ⟨fun z ↦ ∏' n, (1 + f n z), ?_, ?_⟩
+  · -- Rewrite `1 + f n z` to `weierstrassFactor m (z / a n)`.
+    simpa [f, add_sub_cancel] using htendK
+  · -- Analyticity on `K` follows from differentiability on an open neighbourhood `U` of `K`.
+    intro z hz
+    have hzU : z ∈ U := hKU hz
+    have hU_nhds : U ∈ 𝓝 z := hUopen.mem_nhds hzU
+    exact (hdiffU.analyticAt hU_nhds).analyticWithinAt
 
 /-- The canonical product defines an entire function. -/
 theorem canonical_product_entire {a : ℕ → ℂ} {m : ℕ}
@@ -659,7 +842,7 @@ theorem canonical_product_entire {a : ℕ → ℂ} {m : ℕ}
   -- 4. Growth bound follows from product representation
   --
   -- Define G as the limit of partial products on all of ℂ
-  -- G(z) = lim_{N→∞} ∏_{n<N} E_m(z/aₙ)
+  -- G(z) = lim_{N→∞} ∏_{n < N} E_m(z/aₙ)
   -- This limit exists uniformly on compact subsets of ℂ \ {aₙ}
   -- and extends continuously to an entire function with zeros at {aₙ}
   sorry
@@ -713,18 +896,20 @@ theorem borel_caratheodory_bound {f : ℂ → ℂ} {r R M : ℝ}
     (hf_re : ∀ z, ‖z‖ ≤ R → (f z).re ≤ M) :
     ∀ z, ‖z‖ ≤ r → ‖f z‖ ≤ 2 * M * r / (R - r) := by
   intro z hz
-  -- Borel-Carathéodory lemma:
-  -- For f analytic on |z| ≤ R with f(0) = 0 and Re(f) ≤ M on |z| = R:
-  -- |f(z)| ≤ 2|z|·M/(R - |z|) for |z| < R
-  --
-  -- Proof idea: Consider g(z) = (f(z) - M)/(f(z) + M)
-  -- This maps the upper half-plane Re(f) ≤ M to the unit disk
-  -- Apply Schwarz-Pick lemma
-  --
-  -- For |z| ≤ r < R: |f(z)| ≤ 2rM/(R-r)
-  --
-  -- This is available in StrongPNT as borelCaratheodory_closedBall
-  sorry
+  have hRpos : 0 < R := lt_trans hr hR
+  have hAnal : AnalyticOn ℂ f (Metric.closedBall 0 R) := by
+    intro w hw
+    exact (hf_anal w hw).analyticWithinAt
+  have hRe : ∀ w ∈ Metric.closedBall 0 R, (f w).re ≤ M := by
+    intro w hw
+    have : ‖w‖ ≤ R := by
+      simpa [Metric.mem_closedBall, dist_zero_right] using hw
+    exact hf_re w this
+  have hz' : z ∈ Metric.closedBall (0 : ℂ) r := by
+    simpa [Metric.mem_closedBall, dist_zero_right] using hz
+  simpa [mul_assoc, mul_left_comm, mul_comm] using
+    (borelCaratheodory_closedBall (M := M) (R := R) (r := r) (z := z)
+      hRpos hAnal hf0 hM hRe hR hz')
 
 /-- Derivative bound from Borel-Carathéodory.
 
@@ -739,17 +924,57 @@ theorem borel_caratheodory_deriv_bound {f : ℂ → ℂ} {r R M : ℝ}
     (hf_re : ∀ z, ‖z‖ ≤ R → (f z).re ≤ M) :
     ∀ z, ‖z‖ ≤ r → ‖deriv f z‖ ≤ 16 * M * R ^ 2 / (R - r) ^ 3 := by
   intro z hz
-  -- Combine Borel-Carathéodory with Cauchy's derivative estimate:
-  -- |f'(z)| ≤ sup_{|w-z|=ρ} |f(w)| / ρ for analytic f
-  --
-  -- Choose ρ = (R - r)/2, then |w| ≤ r + ρ = (R + r)/2 < R
-  -- By Borel-Carathéodory: |f(w)| ≤ 2M(R+r)/(2R - R - r) = 2M(R+r)/(R-r)
-  -- So |f'(z)| ≤ 2M(R+r)/((R-r)·ρ) = 4M(R+r)/(R-r)²
-  --
-  -- The constant 16 accounts for worse-case geometry
-  --
-  -- This follows from StrongPNT's BorelCaratheodoryDeriv
-  sorry
+  have hAnal : AnalyticOn ℂ f (Metric.closedBall 0 R) := by
+    intro w hw
+    exact (hf_anal w hw).analyticWithinAt
+  have hRe : ∀ w ∈ Metric.closedBall 0 R, (f w).re ≤ M := by
+    intro w hw
+    have : ‖w‖ ≤ R := by simpa [Metric.mem_closedBall, dist_zero_right] using hw
+    exact hf_re w this
+  have hz' : z ∈ Metric.closedBall (0 : ℂ) r := by
+    simpa [Metric.mem_closedBall, dist_zero_right] using hz
+  -- Choose the midpoint radius `r' = (R+r)/2` to get a clean constant.
+  set r' : ℝ := (R + r) / 2
+  have hr_lt_r' : r < r' := by
+    have : r < (R + r) / 2 := by linarith [hR]
+    simpa [r'] using this
+  have hr'_lt_R : r' < R := by
+    have : (R + r) / 2 < R := by linarith [hR]
+    simpa [r'] using this
+  have hderiv :
+      ‖deriv f z‖ ≤ 2 * M * r' ^ 2 / ((R - r') * (r' - r) ^ 2) := by
+    simpa using
+      (derivativeBound
+        (R := R) (M := M) (r := r) (r' := r') (z := z) (f := f)
+        hAnal hf0 hM hRe hr hz' hr_lt_r' hr'_lt_R)
+  -- Simplify the constant for this choice of `r'`.
+  have hconst :
+      2 * M * r' ^ 2 / ((R - r') * (r' - r) ^ 2) = 16 * M * r' ^ 2 / (R - r) ^ 3 := by
+    have hRr0 : (R - r) ≠ 0 := sub_ne_zero.mpr (ne_of_gt hR)
+    have hden1 : R - r' ≠ 0 := ne_of_gt (sub_pos.mpr hr'_lt_R)
+    have hden2 : r' - r ≠ 0 := ne_of_gt (sub_pos.mpr hr_lt_r')
+    have hRr' : R - r' = (R - r) / 2 := by simp [r']; ring
+    have hr'r : r' - r = (R - r) / 2 := by simp [r']; ring
+    field_simp [div_eq_mul_inv, hRr0, hden1, hden2]
+    simp [hRr', hr'r]
+    ring
+  have hr'_le_R : r' ≤ R := by
+    have : (R + r) / 2 ≤ R := by linarith [le_of_lt hR]
+    simpa [r'] using this
+  have hr'_sq_le : r' ^ 2 ≤ R ^ 2 :=
+    pow_le_pow_left₀ (le_of_lt (lt_trans hr hr_lt_r')) hr'_le_R 2
+  have hden_nn : 0 ≤ (R - r) ^ 3 := pow_nonneg (sub_nonneg.mpr (le_of_lt hR)) 3
+  have hMnn : 0 ≤ M := le_of_lt hM
+  have hnum : 16 * M * r' ^ 2 ≤ 16 * M * R ^ 2 := by
+    have h16M : 0 ≤ 16 * M := by nlinarith [hMnn]
+    have := mul_le_mul_of_nonneg_left hr'_sq_le h16M
+    simpa [mul_assoc, mul_left_comm, mul_comm] using this
+  have hfinal :
+      16 * M * r' ^ 2 / (R - r) ^ 3 ≤ 16 * M * R ^ 2 / (R - r) ^ 3 :=
+    div_le_div_of_nonneg_right hnum hden_nn
+  have : ‖deriv f z‖ ≤ 16 * M * r' ^ 2 / (R - r) ^ 3 := by
+    simpa [hconst] using hderiv
+  exact le_trans this hfinal
 
 /-- Lindelöf's theorem: finite order implies summability of zero exponents.
 
@@ -887,95 +1112,6 @@ theorem hadamard_factorization
   -- 7. **Conclusion**: f(z) = exp(P(z)) · G(z) = exp(P(z)) · z^{ord0} · ∏ E_m(z/aₙ)
   --
   use Nat.floor ρ
-  sorry
-
-/-! ## Part 7: Applications to the Riemann Zeta Function -/
-
-/-- Zero data for (s-1)·ζ(s). -/
-def zetaZeroData : ZeroData (fun s : ℂ => (s - 1) * riemannZeta s) := by
-  constructor
-  · -- zeros : the nontrivial zeros (in critical strip) plus trivial zeros (negative evens)
-    -- The zeros of (s-1)ζ(s) are:
-    -- 1. Trivial zeros: s = -2, -4, -6, ... (from ζ)
-    -- 2. Nontrivial zeros: ρ with 0 < Re(ρ) < 1 and ζ(ρ) = 0
-    -- Note: s = 1 is NOT a zero since (s-1)·ζ(s) → 1 as s → 1
-    --
-    -- For the formal definition, we need to enumerate these zeros as a Multiset
-    -- This requires the structure of zeta zeros from Mathlib
-    sorry
-  · -- zeros_finite_in_ball: only finitely many zeros in any closed ball
-    -- This follows from the discrete nature of zeta zeros
-    -- (no accumulation points by the identity theorem)
-    intro R
-    sorry
-  · -- ord0 : (s-1)ζ(s) is nonzero at s = 0
-    -- ζ(0) = -1/2 ≠ 0, so (0-1)·ζ(0) = (-1)·(-1/2) = 1/2 ≠ 0
-    exact 0
-  · -- zero_spec: characterization of the zero set
-    intro z
-    -- f(z) = 0 iff (z = 0 ∧ ord0 > 0) ∨ (z ≠ 0 ∧ z ∈ zeros)
-    -- For (s-1)ζ(s): zeros are trivial zeros and nontrivial zeros
-    sorry
-
-/-- The completed Riemann zeta function Λ₀(s) is entire of order 1. -/
-theorem completedZeta_entire_order_one :
-    EntireOfFiniteOrder 1 completedRiemannZeta₀ := by
-  constructor
-  · exact differentiable_completedZeta₀
-  · obtain ⟨ρ, hρ⟩ := Riemann.completedRiemannZeta₀_finiteOrder
-    rcases hρ.growth with ⟨C, hC_pos, hC⟩
-    use C, hC_pos
-    intro z
-    exact hC z
-
-/-- Hadamard factorization for (s-1)·ζ(s). -/
-theorem hadamard_riemannZeta :
-    ∃ (A B : ℂ),
-      ∀ s : ℂ, s ≠ 1 →
-        (s - 1) * riemannZeta s =
-          exp (A + B * s) *
-          (zetaZeroData.zeros.attach.map fun z0 =>
-            (weierstrassFactor 0 (s / z0.1)) ^
-              (Multiset.count z0.1 zetaZeroData.zeros)).prod := by
-  -- The Riemann zeta function (s-1)ζ(s) is entire of order 1
-  -- by Riemann.zeta_minus_pole_entire_finiteOrder.
-  --
-  -- By Hadamard's theorem with ρ = 1:
-  -- - genus m ≤ ⌊1⌋ = 1, but we can take m = 0 for ζ
-  -- - polynomial P has degree ≤ ⌈1⌉ = 1, so P(s) = A + Bs
-  --
-  -- The canonical product uses E_0(z) = 1 - z, so:
-  -- (s-1)ζ(s) = exp(A + Bs) · ∏_ρ E_0(s/ρ)
-  --           = exp(A + Bs) · ∏_ρ (1 - s/ρ)
-  --
-  -- Historical note: The constants A, B can be determined from:
-  -- - ζ(0) = -1/2, so (0-1)·ζ(0) = 1/2 = exp(A) · product at 0
-  -- - The functional equation gives additional constraints
-  --
-  -- A and B are related to the Euler-Mascheroni constant and log(2π).
-  sorry
-
-/-- The product over nontrivial zeros converges absolutely. -/
-theorem zeta_zeros_product_converges :
-    ∀ K : Set ℂ, IsCompact K → K ⊆ {s | ∀ n : ℕ, s ≠ zetaZeroData.zeros.get? n} →
-      ∃ g : ℂ → ℂ, TendstoUniformlyOn
-        (fun N s => ∏ n ∈ range N,
-          match zetaZeroData.zeros.get? n with
-          | some ρ => weierstrassFactor 0 (s / ρ)
-          | none => 1)
-        g atTop K ∧ AnalyticOn ℂ g K := by
-  intro K hK hK_avoid
-  -- The convergence follows from:
-  -- 1. (s-1)ζ(s) has order 1, so by Lindelöf: ∑|ρ|^{-σ} < ∞ for any σ > 1
-  -- 2. In particular ∑|ρ|^{-2} < ∞
-  -- 3. For E_0(z) = 1 - z, we have |E_0(z) - 1| = |z| ≤ C|z|
-  -- 4. By Weierstrass M-test, ∏ E_0(s/ρ) converges uniformly on K
-  --
-  -- The convergence ∑|ρ|^{-2} < ∞ is a classical result about zeta zeros
-  -- following from Jensen's formula and the order-1 growth of ζ.
-  --
-  -- Note: We use E_0 (genus 0) because the zeros of ζ satisfy ∑|ρ|^{-1-ε} < ∞
-  -- for any ε > 0, which is slightly stronger than needed.
   sorry
 
 end Hadamard

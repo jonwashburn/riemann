@@ -64,7 +64,6 @@ clean algebraic structure over sharp numerics.
 
 ## References
 
-This formalization synthesizes techniques from:
 - Davenport, H. (2000). *Multiplicative Number Theory*, 3rd ed., Chapter 13
 - Rosser & Schoenfeld (1975). "Approximate formulas for some functions of prime numbers"
 - Ramaré, O. (2013). "Explicit estimates on the summatory functions of the Möbius function"
@@ -84,9 +83,7 @@ This is the prime-restricted Dirichlet series evaluated at the integer k. For k 
 this converges absolutely since ∑_p p^{-k} < ∑_n n^{-k} = ζ(k) < ∞.
 
 Note: P is defined for all natural numbers but only converges for k ≥ 2. The definition
-is extended to all k for technical convenience; use `summable_P` for k ≥ 2.
-
-Historical note: P(2) ≈ 0.4522 was computed by Mertens; P(k) → 0 rapidly as k → ∞. -/
+is extended to all k for technical convenience; use `summable_P` for k ≥ 2. -/
 noncomputable def P (k : ℕ) : ℝ :=
   ∑' p : Nat.Primes, (p : ℝ) ^ (-(k : ℝ))
 
@@ -134,7 +131,6 @@ lemma summable_K0_terms :
     Summable (fun k : {n // 2 ≤ n} => P k / (((k : ℕ) : ℝ) ^ 2)) := by
   -- We prove this via comparison with ζ(k)/k² and use known bounds
   classical
-  -- Fix the majorant to avoid defeq blowups
   set g : {n // 2 ≤ n} → ℝ := fun k => P 2 / (((k : ℕ) : ℝ) ^ 2)
   refine Summable.of_nonneg_of_le
     (g := fun k : {n // 2 ≤ n} => P k / (((k : ℕ) : ℝ) ^ 2))
@@ -991,3 +987,5 @@ theorem K0_bound_on_strip_proved : K0_bound_on_strip := by
 
 
 end RH.AcademicFramework.EulerProduct.K0
+
+#min_imports

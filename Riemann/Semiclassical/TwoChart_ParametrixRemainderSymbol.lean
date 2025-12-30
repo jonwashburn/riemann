@@ -1,4 +1,4 @@
-/******************************************************************************
+/-
   TwoChart_ParametrixRemainderSymbol
 
   Continuation after `TwoChart_ParametrixCancellation`.
@@ -17,12 +17,10 @@
 
   This is the exact lemma needed later when we specialize the general Weyl
   kernel estimate/Schur test to the parametrix remainder symbol.
-*******************************************************************************/
+-/
 
-import TwoChart_ParametrixRecursion
+import Riemann.Semiclassical.TwoChart_ParametrixRecursion
 
-import Mathlib.Data.Nat.Interval
-import Mathlib.Tactic
 
 open scoped BigOperators
 
@@ -42,7 +40,7 @@ def remainderSymbol
     (a : ℝ → ℝ → ℝ → ℂ)
     (b : ℕ → (ℝ → ℝ → ℝ → ℂ))
     (N : ℕ) : (ℝ → ℝ → ℝ → ℂ) :=
-  fun h t τ => ∑ n in Finset.Icc 1 N, Pn n a (b (N - n)) h t τ
+  fun h t τ => ∑ n ∈ Finset.Icc 1 N, Pn n a (b (N - n)) h t τ
 
 namespace remainderSymbol
 
@@ -110,4 +108,5 @@ theorem mem_SmLambda
 
 end remainderSymbol
 
+end
 end TwoChartEgorov

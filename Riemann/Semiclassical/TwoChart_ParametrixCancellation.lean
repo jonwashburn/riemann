@@ -1,4 +1,4 @@
-/******************************************************************************
+/-
   TwoChart_ParametrixCancellation
 
   Symbolic cancellation for the parametrix recursion.
@@ -23,12 +23,11 @@
   In particular, all coefficients through order `N-1` cancel exactly.
 
   No placeholders and no additional axioms are introduced in this file.
-*******************************************************************************/
+-/
 
-import TwoChart_ParametrixRecursion
+import Riemann.Semiclassical.TwoChart_ParametrixRecursion
 
-import Mathlib.Data.Nat.Interval
-import Mathlib.Tactic
+import Mathlib
 
 open scoped BigOperators
 
@@ -45,7 +44,7 @@ def moyalCoeff
     (a : ℝ → ℝ → ℝ → ℂ)
     (b : ℕ → (ℝ → ℝ → ℝ → ℂ))
     (j : ℕ) : (ℝ → ℝ → ℝ → ℂ) :=
-  fun h t τ => ∑ n in Finset.Icc 0 j, Pn n a (b (j - n)) h t τ
+  fun h t τ => ∑ n ∈ Finset.Icc 0 j, Pn n a (b (j - n)) h t τ
 
 /-- The base Moyal coefficient is pointwise multiplication: `P_0(c,d) = c*d`. -/
 lemma Pn_zero (c d : ℝ → ℝ → ℝ → ℂ) :
@@ -67,7 +66,7 @@ This is a small finitary lemma that lets us isolate the `n=0` term in the sum de
 `moyalCoeff` at order `j+1`.
 -/
 lemma Icc_zero_succ_eq_insert (j : ℕ) :
-    Finset.Icc 0 (j + 1) = Finset.insert 0 (Finset.Icc 1 (j + 1)) := by
+    Finset.Icc 0 (j + 1) = insert 0 (Finset.Icc 1 (j + 1)) := by
   ext n
   by_cases hn0 : n = 0
   · subst hn0
@@ -77,7 +76,7 @@ lemma Icc_zero_succ_eq_insert (j : ℕ) :
       exact Nat.succ_le_iff.2 (Nat.pos_of_ne_zero hn0)
     -- Away from `0`, membership in `Icc 0 (j+1)` is equivalent to membership in
     -- `Icc 1 (j+1)`.
-    simp [Finset.mem_Icc, hn0, hn1, Nat.zero_le]
+    simp [Finset.mem_Icc, hn0, hn1]
 
 /-- Expand the order-`j+1` coefficient into the `n=0` term and the sum over `n ≥ 1`. -/
 lemma moyalCoeff_succ_expand
@@ -85,16 +84,16 @@ lemma moyalCoeff_succ_expand
     moyalCoeff a b (j + 1)
       = fun h t τ =>
           a h t τ * b (j + 1) h t τ
-            + ∑ n in Finset.Icc 1 (j + 1), Pn n a (b (j + 1 - n)) h t τ := by
+            + ∑ n ∈ Finset.Icc 1 (j + 1), Pn n a (b (j + 1 - n)) h t τ := by
   funext h t τ
   -- Split the sum by inserting `0`.
-  have hsplit : Finset.Icc 0 (j + 1) = Finset.insert 0 (Finset.Icc 1 (j + 1)) :=
+  have hsplit : Finset.Icc 0 (j + 1) = insert 0 (Finset.Icc 1 (j + 1)) :=
     Icc_zero_succ_eq_insert (j := j)
   -- `0 ∉ Icc 1 (j+1)`.
   have h0not : (0 : ℕ) ∉ Finset.Icc 1 (j + 1) := by
     simp [Finset.mem_Icc]
   -- Expand.
-  simp [moyalCoeff, hsplit, Finset.sum_insert, h0not, Pn_zero, add_assoc, add_left_comm, add_comm]
+  simp [moyalCoeff, hsplit, Finset.sum_insert, h0not, Pn_zero]
 
 /-- Main cancellation statement:
 
@@ -113,7 +112,7 @@ theorem moyalCoeff_succ_eq_zero
   intro j
   funext h t τ
   -- Abbreviate the inner sum from the recursion.
-  set S : ℂ := ∑ n in Finset.Icc 1 (j + 1), Pn n a (b (j + 1 - n)) h t τ
+  set S : ℂ := ∑ n ∈ Finset.Icc 1 (j + 1), Pn n a (b (j + 1 - n)) h t τ
 
   -- Evaluate the recursion formula for `b (j+1)`.
   have hb : b (j + 1) h t τ = (-1 : ℂ) * b0 h t τ * S := by
@@ -153,7 +152,7 @@ lemma moyalCoeff_zero_eq_one
   funext h t τ
   have hb0 : b 0 h t τ = b0 h t τ := by
     -- `hRec.1` says `b 0 = b0`.
-    simpa [hRec.1] using (rfl : b 0 h t τ = b 0 h t τ)
+    simp [hRec.1]
   -- Use `moyalCoeff_zero` and the inverse identity.
   simp [moyalCoeff_zero, hb0, hInv h t τ]
 
@@ -166,7 +165,7 @@ def moyalSeriesTrunc
     (a : ℝ → ℝ → ℝ → ℂ)
     (b : ℕ → (ℝ → ℝ → ℝ → ℂ))
     (N : ℕ) : (ℝ → ℝ → ℝ → ℂ) :=
-  fun h t τ => ∑ j in Finset.range N, (h ^ j : ℂ) * moyalCoeff a b j h t τ
+  fun h t τ => ∑ j ∈ Finset.range N, (h ^ j : ℂ) * moyalCoeff a b j h t τ
 
 /-- Exact cancellation of all coefficients of order `h^j` for `1 ≤ j ≤ N-1`.
 
@@ -188,7 +187,7 @@ theorem moyalSeriesTrunc_eq_one
   -- Isolate the `j=0` term in the finite sum.
   have h0mem : (0 : ℕ) ∈ Finset.range N := by
     -- `hN : 1 ≤ N` implies `0 < N`, hence `0 ∈ range N`.
-    have : 0 < N := Nat.pos_of_ne_zero (Nat.ne_zero_of_le hN)
+    have : 0 < N := (Nat.succ_le_iff).1 hN
     simpa using (Finset.mem_range.2 this)
 
   -- Every `j ≠ 0` contributes `0` because `moyalCoeff a b j = 0` for `j ≥ 1`.
@@ -202,9 +201,11 @@ theorem moyalSeriesTrunc_eq_one
 
   -- Reduce the sum to the single term `j=0`.
   have hsum_single :
-      (∑ j in Finset.range N, (h ^ j : ℂ) * moyalCoeff a b j h t τ)
+      (∑ j ∈ Finset.range N, (h ^ j : ℂ) * moyalCoeff a b j h t τ)
         = (h ^ (0 : ℕ) : ℂ) * moyalCoeff a b 0 h t τ := by
-    refine Finset.sum_eq_single 0 ?_ ?_
+    refine
+      Finset.sum_eq_single_of_mem (a := (0 : ℕ)) (s := Finset.range N)
+        (f := fun j => (h ^ j : ℂ) * moyalCoeff a b j h t τ) ?_ ?_
     · -- `0 ∈ range N`.
       exact h0mem
     · -- Any other term vanishes.
@@ -216,6 +217,7 @@ theorem moyalSeriesTrunc_eq_one
     simpa using congrArg (fun f => f h t τ) (moyalCoeff_zero_eq_one (a:=a) (b0:=b0) (b:=b) hInv hRec)
 
   -- Conclude.
-  simpa [moyalSeriesTrunc, hsum_single, hcoeff0]
+  simp [moyalSeriesTrunc, hsum_single, hcoeff0]
 
+end
 end TwoChartEgorov

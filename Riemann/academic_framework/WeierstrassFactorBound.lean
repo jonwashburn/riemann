@@ -171,7 +171,7 @@ lemma weierstrassFactor_eq_exp_neg_tail  (m : ℕ) {z : ℂ} (hz : ‖z‖ < 1) 
 
 This is the key bound for product convergence. -/
 theorem weierstrassFactor_sub_one_pow_bound {m : ℕ} {z : ℂ} (hz : ‖z‖ ≤ 1/2) :
-    ‖weierstrassFactor' m z - 1‖ ≤ 4 * ‖z‖ ^ m := by
+    ‖weierstrassFactor' m z - 1‖ ≤ 4 * ‖z‖ ^ (m + 1) := by
   by_cases hm : m = 0
   · -- m = 0: E_0(z) = 1 - z, so E_0(z) - 1 = -z
     subst hm
@@ -180,7 +180,8 @@ theorem weierstrassFactor_sub_one_pow_bound {m : ℕ} {z : ℂ} (hz : ‖z‖ �
     calc ‖(1 - z) - 1‖ = ‖-z‖ := by ring_nf
       _ = ‖z‖ := norm_neg z
       _ = ‖z‖ ^ 1 := by rw [pow_one]
-      _ ≤ 4 * ‖z‖ ^ 0 := by simp; linarith [norm_nonneg z]
+      _ ≤ 4 * ‖z‖ ^ 1 := by
+          nlinarith [pow_nonneg (norm_nonneg z) (1 : ℕ)]
   · -- m ≥ 1: use the representation E_m(z) = exp(-logTail(z))
     have hz_lt : ‖z‖ < 1 := lt_of_le_of_lt hz (by norm_num)
     by_cases hz1 : z = 1
@@ -213,16 +214,10 @@ theorem weierstrassFactor_sub_one_pow_bound {m : ℕ} {z : ℂ} (hz : ‖z‖ �
         ≤ 2 * ‖logTail m z‖ := h_exp_sub_one
       _ ≤ 2 * (2 * ‖z‖ ^ (m + 1)) := by gcongr
       _ = 4 * ‖z‖ ^ (m + 1) := by ring
-      _ = 4 * ‖z‖ * ‖z‖ ^ m := by rw [pow_succ]; ring
-      _ ≤ 4 * (1/2) * ‖z‖ ^ m := by gcongr
-      _ = 2 * ‖z‖ ^ m := by ring
-      _ ≤ 4 * ‖z‖ ^ m := by
-          gcongr
-          norm_num
 
 /-- Shifted version: |E_{m+1}(z) - 1| ≤ 4|z|^{m+1} for |z| ≤ 1/2. -/
 theorem weierstrassFactor_sub_one_pow_bound' {m : ℕ} {z : ℂ} (hz : ‖z‖ ≤ 1/2) :
-    ‖weierstrassFactor' (m + 1) z - 1‖ ≤ 4 * ‖z‖ ^ (m + 1) := by
+    ‖weierstrassFactor' (m + 1) z - 1‖ ≤ 4 * ‖z‖ ^ (m + 2) := by
   exact weierstrassFactor_sub_one_pow_bound hz
 
 end ComplexAnalysis.Hadamard
