@@ -1,4 +1,7 @@
-/******************************************************************************
+import Riemann.Semiclassical.Defs
+
+open scoped BigOperators
+/-
   Step 2 (prerequisite layer): standard semiclassical symbols `S^m` and their
   relationship to the λ-dependent symbol class `S^m_λ`.
 
@@ -8,18 +11,7 @@
     • Stability of S^m under multiplication (nontrivial Leibniz/seminorm bookkeeping)
 
   No axioms, no placeholders, no `sorry`.
-*******************************************************************************/
-
-import TwoChart_SmLambda
-
-import Mathlib.Analysis.Calculus.IteratedDeriv
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic
-
-open scoped BigOperators
-
+-/
 namespace TwoChartEgorov
 
 /-- Standard semiclassical symbol class `S^m(T*Y)` (paper Definition 3.1).
@@ -30,12 +22,14 @@ polynomial loss in `h⁻¹`.
 We work in the same 1D setting as the paper: `t ∈ Y ⊆ ℝ`, `τ ∈ ℝ`.
 -/
 def Sm (Y : Set ℝ) (h0 m : ℝ) (a : ℝ → ℝ → ℝ → ℂ) : Prop :=
-  ∀ α β : ℕ,
-    ∃ C : ℝ, 0 ≤ C ∧
-      ∀ ⦃h : ℝ⦄, h ∈ Set.Ioc (0 : ℝ) h0 →
-        ∀ ⦃t : ℝ⦄, t ∈ Y →
-          ∀ τ : ℝ,
-            ‖TwoChartEgorov.dtdτ α β a h t τ‖ ≤ C * (TwoChartEgorov.japaneseBracket τ) ^ (m - (β : ℝ))
+  (∀ h : ℝ, ContDiff ℝ ⊤ (fun p : ℝ × ℝ => a h p.1 p.2)) ∧
+    ∀ α β : ℕ,
+      ∃ C : ℝ, 0 ≤ C ∧
+        ∀ ⦃h : ℝ⦄, h ∈ Set.Ioc (0 : ℝ) h0 →
+          ∀ ⦃t : ℝ⦄, t ∈ Y →
+            ∀ τ : ℝ,
+              ‖TwoChartEgorov.dtdτ α β a h t τ‖ ≤
+                C * (TwoChartEgorov.japaneseBracket τ) ^ (m - (β : ℝ))
 
 namespace Sm
 
@@ -48,13 +42,14 @@ This is the exact formal analogue of the remark in §3 of the paper that the λ-
 symbol class only weakens the uniform-in-h bounds by allowing polynomial losses.
 -/
 theorem toSmLambda (ha : Sm Y h0 m a) : TwoChartEgorov.SmLambda Y h0 m a := by
+  refine ⟨ha.1, ?_⟩
   intro α β
-  rcases ha α β with ⟨C, hC, hbound⟩
+  rcases ha.2 α β with ⟨C, hC, hbound⟩
   refine ⟨C, 0, hC, ?_⟩
   intro h hh t ht τ
   -- `(h⁻¹)^0 = 1`.
   simpa using (by
-    have := hbound (h:=h) hh (t:=t) ht τ
+    have := hbound (h := h) hh (t := t) ht τ
     simpa using this)
 
 /-- Pointwise multiplication stability for standard symbols:
@@ -69,9 +64,12 @@ theorem mul
     (hb : Sm Y h0 m₂ b) :
     Sm Y h0 (m₁ + m₂) (fun h t τ => a h t τ * b h t τ) := by
   classical
+  refine ⟨?_, ?_⟩
+  · intro h
+    exact (ha.1 h).mul (hb.1 h)
   -- Choose witnesses globally.
-  choose Ca hCa using ha
-  choose Cb hCb using hb
+  choose Ca hCa using ha.2
+  choose Cb hCb using hb.2
   have hCa_nonneg : ∀ α β, 0 ≤ Ca α β := fun α β => (hCa α β).1
   have hCb_nonneg : ∀ α β, 0 ≤ Cb α β := fun α β => (hCb α β).1
   have hboundA :
@@ -79,13 +77,13 @@ theorem mul
         ∀ ⦃t : ℝ⦄, t ∈ Y →
           ∀ τ : ℝ,
             ‖TwoChartEgorov.dtdτ α β a h t τ‖ ≤ Ca α β * (TwoChartEgorov.japaneseBracket τ) ^ (m₁ - (β : ℝ)) :=
-    fun α β h hh t ht τ => (hCa α β).2 h hh t ht τ
+    fun α β {h} hh {t} ht τ => (hCa α β).2 hh ht τ
   have hboundB :
       ∀ α β ⦃h : ℝ⦄, h ∈ Set.Ioc (0 : ℝ) h0 →
         ∀ ⦃t : ℝ⦄, t ∈ Y →
           ∀ τ : ℝ,
             ‖TwoChartEgorov.dtdτ α β b h t τ‖ ≤ Cb α β * (TwoChartEgorov.japaneseBracket τ) ^ (m₂ - (β : ℝ)) :=
-    fun α β h hh t ht τ => (hCb α β).2 h hh t ht τ
+    fun α β {h} hh {t} ht τ => (hCb α β).2 hh ht τ
 
   intro α β
 
@@ -106,24 +104,27 @@ theorem mul
     have hCb' : 0 ≤ Cb (α - p.1) (β - p.2) := hCb_nonneg (α - p.1) (β - p.2)
     have hchooseA : 0 ≤ (Nat.choose α p.1 : ℝ) := by exact_mod_cast (Nat.zero_le _)
     have hchooseB : 0 ≤ (Nat.choose β p.2 : ℝ) := by exact_mod_cast (Nat.zero_le _)
-    dsimp [constTerm]
-    nlinarith
+    have : 0 ≤ (Nat.choose α p.1 : ℝ) * (Nat.choose β p.2 : ℝ) * Ca p.1 p.2 *
+        Cb (α - p.1) (β - p.2) :=
+      mul_nonneg (mul_nonneg (mul_nonneg hchooseA hchooseB) hCa') hCb'
+    simpa [constTerm, mul_assoc] using this
   · intro h hh t ht τ
     -- (1) Leibniz expansion.
     have hLeib :
         TwoChartEgorov.dtdτ α β (fun h t τ => a h t τ * b h t τ) h t τ =
-          ∑ p in I,
+          ∑ p ∈ I,
             (Nat.choose α p.1 : ℂ) * (Nat.choose β p.2 : ℂ) *
               TwoChartEgorov.dtdτ p.1 p.2 a h t τ *
               TwoChartEgorov.dtdτ (α - p.1) (β - p.2) b h t τ := by
-      unfold TwoChartEgorov.dtdτ
-      -- Expand in τ then in t.
-      simpa [I, Finset.sum_product, iteratedDeriv_mul, mul_assoc, mul_left_comm, mul_comm]
+      -- Reuse the mixed Leibniz formula from `TwoChartEgorov.SmLambda`.
+      simpa [I] using
+        (TwoChartEgorov.SmLambda.dtdτ_mul (a := a) (b := b) (h := h) (ha := ha.1 h) (hb := hb.1 h)
+          α β t τ)
 
     -- (2) `‖Σ‖ ≤ Σ ‖·‖`.
     have hnorm_sum :
         ‖TwoChartEgorov.dtdτ α β (fun h t τ => a h t τ * b h t τ) h t τ‖ ≤
-          ∑ p in I,
+          ∑ p ∈ I,
             ‖(Nat.choose α p.1 : ℂ) * (Nat.choose β p.2 : ℂ) *
               TwoChartEgorov.dtdτ p.1 p.2 a h t τ *
               TwoChartEgorov.dtdτ (α - p.1) (β - p.2) b h t τ‖ := by
@@ -160,8 +161,7 @@ theorem mul
           (TwoChartEgorov.japaneseBracket τ) ^ (m₁ - (p.2 : ℝ)) *
               (TwoChartEgorov.japaneseBracket τ) ^ (m₂ - ((β - p.2 : ℕ) : ℝ))
             = (TwoChartEgorov.japaneseBracket τ) ^ ((m₁ + m₂) - (β : ℝ)) := by
-        have hn : 0 ≤ TwoChartEgorov.japaneseBracket τ := le_of_lt hbr_pos
-        have := (Real.rpow_add hn (m₁ - (p.2 : ℝ)) (m₂ - ((β - p.2 : ℕ) : ℝ))).symm
+        have := (Real.rpow_add hbr_pos (m₁ - (p.2 : ℝ)) (m₂ - ((β - p.2 : ℕ) : ℝ))).symm
         simpa [hexp, mul_assoc, mul_left_comm, mul_comm] using this
 
       -- Norm factorization.
@@ -175,34 +175,47 @@ theorem mul
             = (Nat.choose α p.1 : ℝ) * (Nat.choose β p.2 : ℝ) *
                 ‖TwoChartEgorov.dtdτ p.1 p.2 a h t τ‖ *
                 ‖TwoChartEgorov.dtdτ (α - p.1) (β - p.2) b h t τ‖ := by
-              simp [mul_assoc, mul_left_comm, mul_comm, norm_mul, hnorm_chooseA, hnorm_chooseB]
+              simp [mul_assoc]
         _ ≤ (Nat.choose α p.1 : ℝ) * (Nat.choose β p.2 : ℝ) *
               (Ca p.1 p.2 * (TwoChartEgorov.japaneseBracket τ) ^ (m₁ - (p.2 : ℝ))) *
               (Cb (α - p.1) (β - p.2) * (TwoChartEgorov.japaneseBracket τ) ^ (m₂ - ((β - p.2 : ℕ) : ℝ))) := by
-              have hA0 : 0 ≤ Ca p.1 p.2 * (TwoChartEgorov.japaneseBracket τ) ^ (m₁ - (p.2 : ℝ)) := by
-                have : 0 ≤ (TwoChartEgorov.japaneseBracket τ) ^ (m₁ - (p.2 : ℝ)) := by
-                  exact Real.rpow_nonneg (TwoChartEgorov.japaneseBracket_nonneg τ) _
-                nlinarith [hCa_nonneg p.1 p.2, this]
-              have hB0 : 0 ≤ Cb (α - p.1) (β - p.2) * (TwoChartEgorov.japaneseBracket τ) ^ (m₂ - ((β - p.2 : ℕ) : ℝ)) := by
-                have : 0 ≤ (TwoChartEgorov.japaneseBracket τ) ^ (m₂ - ((β - p.2 : ℕ) : ℝ)) := by
-                  exact Real.rpow_nonneg (TwoChartEgorov.japaneseBracket_nonneg τ) _
-                nlinarith [hCb_nonneg (α - p.1) (β - p.2), this]
-              nlinarith [hAder, hBder, hA0, hB0]
+              have hA0 : 0 ≤ Ca p.1 p.2 * (TwoChartEgorov.japaneseBracket τ) ^ (m₁ - (p.2 : ℝ)) :=
+                mul_nonneg (hCa_nonneg p.1 p.2)
+                  (Real.rpow_nonneg (TwoChartEgorov.japaneseBracket_nonneg τ) _)
+              have hB0 :
+                  0 ≤ Cb (α - p.1) (β - p.2) *
+                      (TwoChartEgorov.japaneseBracket τ) ^ (m₂ - ((β - p.2 : ℕ) : ℝ)) :=
+                mul_nonneg (hCb_nonneg (α - p.1) (β - p.2))
+                  (Real.rpow_nonneg (TwoChartEgorov.japaneseBracket_nonneg τ) _)
+              have hchooseA : 0 ≤ (Nat.choose α p.1 : ℝ) := by exact_mod_cast (Nat.zero_le _)
+              have hchooseB : 0 ≤ (Nat.choose β p.2 : ℝ) := by exact_mod_cast (Nat.zero_le _)
+              have hchooseAB : 0 ≤ (Nat.choose α p.1 : ℝ) * (Nat.choose β p.2 : ℝ) :=
+                mul_nonneg hchooseA hchooseB
+              have hmul_norm :
+                  ‖TwoChartEgorov.dtdτ p.1 p.2 a h t τ‖ *
+                      ‖TwoChartEgorov.dtdτ (α - p.1) (β - p.2) b h t τ‖
+                    ≤
+                    (Ca p.1 p.2 * (TwoChartEgorov.japaneseBracket τ) ^ (m₁ - (p.2 : ℝ))) *
+                      (Cb (α - p.1) (β - p.2) *
+                        (TwoChartEgorov.japaneseBracket τ) ^ (m₂ - ((β - p.2 : ℕ) : ℝ))) :=
+                mul_le_mul hAder hBder (norm_nonneg _) hA0
+              have hmul_total := mul_le_mul_of_nonneg_left hmul_norm hchooseAB
+              simpa [mul_assoc] using hmul_total
         _ = constTerm p * (TwoChartEgorov.japaneseBracket τ) ^ ((m₁ + m₂) - (β : ℝ)) := by
               dsimp [constTerm]
               simp [mul_assoc, mul_left_comm, mul_comm, hweight]
 
     -- (4) Sum the termwise bounds and factor out the common weight.
     have hsum :
-        (∑ p in I,
+        (∑ p ∈ I,
           ‖(Nat.choose α p.1 : ℂ) * (Nat.choose β p.2 : ℂ) *
               TwoChartEgorov.dtdτ p.1 p.2 a h t τ *
               TwoChartEgorov.dtdτ (α - p.1) (β - p.2) b h t τ‖)
         ≤ C * (TwoChartEgorov.japaneseBracket τ) ^ ((m₁ + m₂) - (β : ℝ)) := by
       have := Finset.sum_le_sum (fun p hp => hterm p hp)
       have hfactor :
-          (∑ p in I, constTerm p * (TwoChartEgorov.japaneseBracket τ) ^ ((m₁ + m₂) - (β : ℝ)))
-            = (∑ p in I, constTerm p) * (TwoChartEgorov.japaneseBracket τ) ^ ((m₁ + m₂) - (β : ℝ)) := by
+          (∑ p ∈ I, constTerm p * (TwoChartEgorov.japaneseBracket τ) ^ ((m₁ + m₂) - (β : ℝ)))
+            = (∑ p ∈ I, constTerm p) * (TwoChartEgorov.japaneseBracket τ) ^ ((m₁ + m₂) - (β : ℝ)) := by
         symm
         simpa [mul_assoc] using (Finset.sum_mul I (fun p => constTerm p)
           ((TwoChartEgorov.japaneseBracket τ) ^ ((m₁ + m₂) - (β : ℝ))))

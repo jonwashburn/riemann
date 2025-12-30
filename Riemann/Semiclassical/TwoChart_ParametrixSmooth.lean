@@ -1,4 +1,4 @@
-/******************************************************************************
+/-
   TwoChart_ParametrixSmooth
 
   This file is the smooth-variant wrapper around `TwoChart_ParametrixRecursion`.
@@ -10,10 +10,10 @@
   After the upgrade in `TwoChart_SmoothUpgrade.lean`, we can express the
   same recursion under a more standard hypothesis: `ContDiffOn` of the symbol on
   `Y ×ˢ univ`, and we derive `MixedComm` from it.
-*******************************************************************************/
+-/
 
-import TwoChart_ParametrixRecursion
-import TwoChart_SmoothUpgrade
+import Riemann.Semiclassical.TwoChart_ParametrixRecursion
+import Riemann.Semiclassical.TwoChart_SmoothUpgrade
 
 open scoped BigOperators
 

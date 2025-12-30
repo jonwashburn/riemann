@@ -1,12 +1,4 @@
--- import rh.academic_framework.Core -- trimmed; provide local scaffolds instead
-import Mathlib.NumberTheory.PrimeCounting
-import Mathlib.NumberTheory.LSeries.RiemannZeta
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Pow.Complex
-import Mathlib.NumberTheory.PrimesCongruentOne
-import Mathlib.NumberTheory.EulerProduct.Basic
 import Mathlib.NumberTheory.SumPrimeReciprocals
-import Mathlib.Data.Complex.Basic
 
 /-!
 # Prime Series Convergence

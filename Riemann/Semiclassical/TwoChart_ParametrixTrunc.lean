@@ -1,4 +1,4 @@
-import TwoChart_ParametrixRecursion
+import Riemann.Semiclassical.TwoChart_ParametrixRecursion
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 
 open scoped BigOperators
@@ -16,20 +16,22 @@ lemma rpow_le_rpow_of_one_le {x : ℝ} (hx : (1 : ℝ) ≤ x) {r s : ℝ} (hrs :
     x ^ r ≤ x ^ s := by
   have hxpos : 0 < x := lt_of_lt_of_le (by norm_num) hx
   have hxlog : 0 ≤ Real.log x := Real.log_nonneg hx
-  have hmul : r * Real.log x ≤ s * Real.log x :=
-    mul_le_mul_of_nonneg_right hrs hxlog
-  have hexp : Real.exp (r * Real.log x) ≤ Real.exp (s * Real.log x) :=
+  -- `Real.rpow_def_of_pos` uses `exp (log x * r)`, so keep the factors in this order.
+  have hmul : Real.log x * r ≤ Real.log x * s :=
+    mul_le_mul_of_nonneg_left hrs hxlog
+  have hexp : Real.exp (Real.log x * r) ≤ Real.exp (Real.log x * s) :=
     (Real.exp_le_exp).2 hmul
   simpa [Real.rpow_def_of_pos hxpos] using hexp
 
 /-- Order monotonicity: if `m₁ ≤ m₂` then `S^{m₁}_λ ⊆ S^{m₂}_λ`. -/
 theorem mono_order (hm : m₁ ≤ m₂) (ha : SmLambda Y h0 m₁ a) : SmLambda Y h0 m₂ a := by
   classical
+  refine ⟨ha.1, ?_⟩
   intro α β
-  rcases ha α β with ⟨C, M, hC, hbound⟩
+  rcases ha.2 α β with ⟨C, M, hC, hbound⟩
   refine ⟨C, M, hC, ?_⟩
   intro h hh t ht τ
-  have hmain := hbound (h:=h) hh (t:=t) ht τ
+  have hmain := hbound (h := h) hh (t := t) ht τ
   have hwt : japaneseBracket τ ^ (m₁ - (β : ℝ)) ≤ japaneseBracket τ ^ (m₂ - (β : ℝ)) := by
     refine rpow_le_rpow_of_one_le (x := japaneseBracket τ) (one_le_japaneseBracket τ) ?_
     linarith
@@ -47,27 +49,38 @@ theorem mono_order (hm : m₁ ≤ m₂) (ha : SmLambda Y h0 m₁ a) : SmLambda Y
 theorem hpow (hh0 : h0 ≤ 1) (j : ℕ) :
     SmLambda Y h0 (0 : ℝ) (fun h _ _ => (h ^ j : ℂ)) := by
   classical
-  intro α β
-  refine ⟨1, 0, by simp, ?_⟩
-  intro h hh t ht τ
-  cases α with
-  | zero =>
-      cases β with
-      | zero =>
-          have hle1 : h ≤ 1 := le_trans hh.2 hh0
-          have hnonneg : 0 ≤ h := le_of_lt hh.1
-          have hpow_le : h ^ j ≤ 1 := pow_le_one j hnonneg hle1
-          have hpow_nonneg : 0 ≤ h ^ j := pow_nonneg hnonneg j
-          have hnorm : ‖(h ^ j : ℂ)‖ = Real.abs (h ^ j) := by simp
-          have habs : Real.abs (h ^ j) = h ^ j := by simpa [Real.abs_of_nonneg hpow_nonneg]
-          -- RHS is `1` since `M=0`, `m=0`, `α=β=0`.
-          simpa [dtdτ, hnorm, habs] using hpow_le
-      | succ β' =>
-          -- any τ-derivative is zero
-          simp [dtdτ]
-  | succ α' =>
-      -- any t-derivative is zero
-      simp [dtdτ]
+  refine ⟨?_, ?_⟩
+  · intro h
+    simpa using
+      (contDiff_const : ContDiff ℝ ⊤ (fun _p : ℝ × ℝ => (h ^ j : ℂ)))
+  · intro α β
+    refine ⟨1, 0, by simp, ?_⟩
+    intro h hh t ht τ
+    cases α with
+    | zero =>
+        cases β with
+        | zero =>
+            have hle1 : h ≤ 1 := le_trans hh.2 hh0
+            have hnonneg : 0 ≤ h := le_of_lt hh.1
+            have hpow_le : h ^ j ≤ 1 := pow_le_one₀ (n := j) hnonneg hle1
+            have hpow_nonneg : 0 ≤ h ^ j := pow_nonneg hnonneg j
+            have hnorm : ‖(h ^ j : ℂ)‖ = h ^ j := by
+              simpa using (Complex.norm_of_nonneg (r := h ^ j) hpow_nonneg)
+            -- RHS is `1` since `C=1`, `M=0`, `m=0`, `α=β=0`.
+            simpa [dtdτ, hnorm] using hpow_le
+        | succ β' =>
+            -- any τ-derivative is zero
+            have hbr_nonneg : 0 ≤ japaneseBracket τ := by
+              linarith [one_le_japaneseBracket τ]
+            have : 0 ≤ japaneseBracket τ ^ (-1 + -(β' : ℝ)) := Real.rpow_nonneg hbr_nonneg _
+            simpa [dtdτ, iteratedDeriv_const] using this
+    | succ α' =>
+        -- any t-derivative is zero
+        have hbr_nonneg : 0 ≤ japaneseBracket τ := by
+          linarith [one_le_japaneseBracket τ]
+        have : 0 ≤ (japaneseBracket τ ^ β)⁻¹ := by
+          exact inv_nonneg.2 (pow_nonneg hbr_nonneg β)
+        simpa [dtdτ, iteratedDeriv_const] using this
 
 end SmLambda
 
@@ -96,7 +109,7 @@ theorem bTrunc_mem_SmLambda (hh0 : h0 ≤ 1)
     simpa [zero_add] using (SmLambda.mul (Y := Y) (h0 := h0) (hh0 := hh0) hhj hb')
   -- sum of finitely many `S^{-m}` symbols stays in `S^{-m}`
   have hsum : SmLambda Y h0 (-m)
-      (fun h t τ => ∑ j in Finset.range N, (h ^ j : ℂ) * b j h t τ) :=
+      (fun h t τ => ∑ j ∈ Finset.range N, (h ^ j : ℂ) * b j h t τ) :=
     SmLambda.sum (Y := Y) (h0 := h0) (m := -m) (hh0 := hh0)
       (s := Finset.range N) (f := fun j => fun h t τ => (h ^ j : ℂ) * b j h t τ) hterm
   simpa [bTrunc] using hsum

@@ -1,4 +1,4 @@
-/******************************************************************************
+/-
   TwoChart_ParametrixInvertibility
 
   Next step after:
@@ -22,9 +22,9 @@
   This file formalizes that Banach-algebra upgrade in a complete normed ring.
 
   There are **no axioms**, **no placeholders**, and **no `sorry`** in this file.
-*******************************************************************************/
+-/
 
-import TwoChart_NeumannSeries
+import Riemann.Semiclassical.TwoChart_NeumannSeries
 
 namespace TwoChartEgorov
 
@@ -40,6 +40,7 @@ section CompleteNormedRing
 
 variable {R : Type*} [NormedRing R] [CompleteSpace R]
 
+omit [CompleteSpace R] in
 /-- In any monoid, a left inverse and a right inverse of the same element coincide. -/
 lemma leftInv_eq_rightInv {P invL invR : R}
     (hL : invL * P = 1) (hR : P * invR = 1) : invL = invR := by
@@ -49,6 +50,7 @@ lemma leftInv_eq_rightInv {P invL invR : R}
     _ = 1 * invR := by simp [hL]
     _ = invR := by simp
 
+omit [CompleteSpace R] in
 /-- If `P` admits both a left inverse and a right inverse, then `P` is a unit. -/
 theorem isUnit_of_left_right_inverse {P invL invR : R}
     (hL : invL * P = 1) (hR : P * invR = 1) : IsUnit P := by
@@ -96,11 +98,11 @@ theorem isUnit_of_twoSided_parametrix
 
   -- Conclude that `B * invOneAdd E` is a two-sided inverse.
   have hLeft' : (B * invOneAdd E) * P = 1 := by
-    simpa [hEqInv] using hLeft
+    simp only [invOneAdd]; aesop
 
   refine ⟨⟨P, B * invOneAdd E, hRight, hLeft'⟩, rfl, rfl, ?_⟩
   -- Also identify the inverse as `invOneAdd F * B`.
-  simpa [hEqInv]
+  aesop
 
 /-- A convenient corollary: if `P * B = 1 + E` and `B * P = 1 + F` with
 `‖E‖, ‖F‖ < 1`, then `P` is a unit. -/
@@ -112,6 +114,7 @@ theorem isUnit_of_twoSided_parametrix'
     ⟨u, hu, - , -⟩
   exact ⟨u, hu⟩
 
+omit [CompleteSpace R] in
 /-- Quantitative norm bound for the inverse in a `NormOneClass`.
 
 If `P` is inverted via the parametrix formula
@@ -128,7 +131,7 @@ This is the bound used in the paper after one has a uniform estimate on `‖B‖
 theorem norm_inv_le_mul_inv_one_sub_norm
     [NormOneClass R]
     {P B E : R}
-    (hPB : P * B = 1 + E) (hE : ‖E‖ < 1)
+    (_ : P * B = 1 + E) (hE : ‖E‖ < 1)
     {invP : R} (hinv : P * invP = 1) (hinvDef : invP = B * invOneAdd E) :
     ‖invP‖ ≤ ‖B‖ * (1 - ‖E‖)⁻¹ := by
   -- Reduce to the Neumann-series norm bound.
@@ -144,5 +147,5 @@ theorem norm_inv_le_mul_inv_one_sub_norm
 end CompleteNormedRing
 
 end Parametrix
-
+end
 end TwoChartEgorov

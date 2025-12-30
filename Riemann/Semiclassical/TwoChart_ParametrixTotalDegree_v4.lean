@@ -1,4 +1,4 @@
-/******************************************************************************
+/-
   TwoChart_ParametrixTotalDegree
 
   Next symbolic step after `TwoChart_ParametrixTrunc`.
@@ -29,12 +29,11 @@
   This file is purely symbolic: it does not assume the operator-level Moyal
   remainder theorem yet.  It supplies the exact coefficient identity which will
   later be combined with the analytic Moyal remainder bounds.
-*******************************************************************************/
+-/
 
-import TwoChart_ParametrixCancellation
-import TwoChart_ParametrixRemainderSymbol
+import Riemann.Semiclassical.TwoChart_ParametrixCancellation
+import Riemann.Semiclassical.TwoChart_ParametrixRemainderSymbol
 
-import Mathlib.Data.Nat.Interval
 import Mathlib.Tactic
 
 open scoped BigOperators
