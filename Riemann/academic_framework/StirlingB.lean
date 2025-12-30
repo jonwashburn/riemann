@@ -1,11 +1,4 @@
-import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
-import Mathlib.Analysis.SpecialFunctions.Gamma.BohrMollerup
-import Mathlib.Analysis.SpecialFunctions.Stirling
-import Mathlib.Analysis.SpecialFunctions.Pow.Complex
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Topology.MetricSpace.Basic
+import Mathlib
 import Riemann.academic_framework.GammaBounds
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.LargeImaginaryBound
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.StirlingAsymptotic
@@ -417,7 +410,8 @@ theorem Gamma_polynomial_growth {s : ℂ} (hs_re : 1 ≤ s.re) (hs_norm : 2 ≤ 
                             have : Real.sqrt 2.5 > Real.sqrt 1 := Real.sqrt_lt_sqrt (by norm_num) (by norm_num)
                             linarith [Real.sqrt_one]
 
-                    -- Use the exponential decay: |Γ(s-1)| ≤ 16π · e^{-π|s.im|/2}
+                    -- Use a Stirling-type bound with exponential decay:
+                    -- |Γ(s-1)| ≤ 16π · |s.im|^(Re(s-1)-1/2) · e^{-π|s.im|/2}
                     have h_decay := Complex.Gamma.norm_decay_strip_large_im
                       (by simp; linarith : (1/2 : ℝ) ≤ (s - 1).re)
                       (by simp; linarith : (s - 1).re ≤ 1)
@@ -432,10 +426,15 @@ theorem Gamma_polynomial_growth {s : ℂ} (hs_re : 1 ≤ s.re) (hs_norm : 2 ≤ 
                     -- This is MUCH smaller than exp(2|s|log|s| + 4|s|) for |s| ≥ 2
 
                     have h_decay_product : ‖s - 1‖ * ‖Complex.Gamma (s - 1)‖ ≤
-                        (‖s‖ + 1) * (16 * Real.pi * Real.exp (-Real.pi * |s.im| / 2)) := by
+                        (‖s‖ + 1) *
+                          ((16 * Real.pi) * (|s.im| ^ ((s - 1).re - 1 / 2)) *
+                            Real.exp (-Real.pi * |s.im| / 2)) := by
                       apply mul_le_mul h_s1_bound h_decay (norm_nonneg _) (by linarith [norm_nonneg s])
 
-                    have h_exp_bound : (‖s‖ + 1) * (16 * Real.pi * Real.exp (-Real.pi * |s.im| / 2)) ≤
+                    have h_exp_bound :
+                        (‖s‖ + 1) *
+                          ((16 * Real.pi) * (|s.im| ^ ((s - 1).re - 1 / 2)) *
+                            Real.exp (-Real.pi * |s.im| / 2)) ≤
                         Real.exp (2 * ‖s‖ * Real.log ‖s‖ + 4 * ‖s‖) := by
                       -- For |s.im| ≥ √2.5, -π|s.im|/2 ≤ -π√2.5/2 < -2.5
                       -- So exp(-π|s.im|/2) < exp(-2.5) < 0.1
