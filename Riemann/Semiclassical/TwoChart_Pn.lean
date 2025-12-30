@@ -1,4 +1,11 @@
-/******************************************************************************
+import Riemann.Semiclassical.TwoChart_Sm
+
+import Mathlib.Analysis.SpecialFunctions.Pow.Real
+import Mathlib.Data.Complex.Basic
+import Mathlib.Tactic
+
+open scoped BigOperators
+/-
   Step 3 (next step): Weyl/Moyal bidifferential coefficients `Pₙ`.
 
   Context (paper): equation (2.9) defines `Pₙ(c,d)` via a finite sum of products of
@@ -19,17 +26,7 @@
     • stability under taking mixed derivatives.
 
   No axioms, no placeholders, no `sorry`.
-*******************************************************************************/
-
-import TwoChart_SmLambda
-
-import Mathlib.Analysis.Calculus.IteratedDeriv
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Complex.Basic
-import Mathlib.Tactic
-
-open scoped BigOperators
-
+-/
 namespace TwoChartEgorov
 
 /-! ### Mixed-derivative commutation/additivity
@@ -56,6 +53,12 @@ def MixedComm (a : ℝ → ℝ → ℝ → ℂ) : Prop :=
     TwoChartEgorov.dtdτ α β (fun h t τ => TwoChartEgorov.dtdτ a0 b0 a h t τ) h t τ =
       TwoChartEgorov.dtdτ (α + a0) (β + b0) a h t τ
 
+/-- `MixedComm` restricted to a `t`-set `Y`: only require the regrouping identity for `t ∈ Y`. -/
+def MixedCommOn (Y : Set ℝ) (a : ℝ → ℝ → ℝ → ℂ) : Prop :=
+  ∀ (h t τ : ℝ) (_ht : t ∈ Y) (α β a0 b0 : ℕ),
+    TwoChartEgorov.dtdτ α β (fun h t τ => TwoChartEgorov.dtdτ a0 b0 a h t τ) h t τ =
+      TwoChartEgorov.dtdτ (α + a0) (β + b0) a h t τ
+
 namespace SmLambda
 
 variable {Y : Set ℝ} {h0 : ℝ} {m m₁ m₂ : ℝ}
@@ -63,10 +66,15 @@ variable {a b : ℝ → ℝ → ℝ → ℂ}
 
 /-- The zero symbol belongs to every `S^m_λ`. -/
 theorem zero : TwoChartEgorov.SmLambda Y h0 m (fun _ _ _ => (0 : ℂ)) := by
-  intro α β
-  refine ⟨0, 0, by simp, ?_⟩
-  intro h hh t ht τ
-  simp [TwoChartEgorov.dtdτ]
+  refine ⟨?_, ?_⟩
+  · intro h
+    -- constant zero is smooth in `(t,τ)`
+    simpa using (contDiff_const : ContDiff ℝ ⊤ (fun _p : ℝ × ℝ => (0 : ℂ)))
+  · intro α β
+    refine ⟨0, 0, by simp, ?_⟩
+    intro h hh t ht τ
+    -- all iterated derivatives of the zero function vanish
+    simp [TwoChartEgorov.dtdτ, iteratedDeriv_const]
 
 /-- Addition stability for `S^m_λ` at fixed order.
 
@@ -79,8 +87,12 @@ theorem add
     (hb : TwoChartEgorov.SmLambda Y h0 m b) :
     TwoChartEgorov.SmLambda Y h0 m (fun h t τ => a h t τ + b h t τ) := by
   classical
-  choose Ca Ma hA using ha
-  choose Cb Mb hB using hb
+  refine ⟨?_, ?_⟩
+  · intro h
+    exact (ha.1 h).add (hb.1 h)
+  -- Bounds component
+  choose Ca Ma hA using ha.2
+  choose Cb Mb hB using hb.2
   have hCa_nonneg : ∀ α β, 0 ≤ Ca α β := fun α β => (hA α β).1
   have hCb_nonneg : ∀ α β, 0 ≤ Cb α β := fun α β => (hB α β).1
 
@@ -90,7 +102,7 @@ theorem add
   refine ⟨C, M, ?_, ?_⟩
   · nlinarith [hCa_nonneg α β, hCb_nonneg α β]
   · intro h hh t ht τ
-    have h1 : (1 : ℝ) ≤ h⁻¹ := one_le_inv_of_mem_Ioc (Y:=Y) (h0:=h0) hh0 hh
+    have h1 : (1 : ℝ) ≤ h⁻¹ := one_le_inv_of_mem_Ioc hh0 hh
     have hpowA : (h⁻¹) ^ (Ma α β) ≤ (h⁻¹) ^ M := by
       apply pow_inv_mono_of_one_le (h:=h) h1
       exact le_max_left _ _
@@ -99,13 +111,70 @@ theorem add
       exact le_max_right _ _
     have hwt_nonneg : 0 ≤ (TwoChartEgorov.japaneseBracket τ) ^ (m - (β : ℝ)) := by
       exact Real.rpow_nonneg (TwoChartEgorov.japaneseBracket_nonneg τ) _
-    have hAder := (hA α β).2 h hh t ht τ
-    have hBder := (hB α β).2 h hh t ht τ
+    have hAder := (hA α β).2 hh ht τ
+    have hBder := (hB α β).2 hh ht τ
+    -- Linearity of `dtdτ` (requires `C^α`/`C^β` regularity, provided by `ha.1 h`/`hb.1 h`).
+    have hadd :
+        TwoChartEgorov.dtdτ α β (fun h t τ => a h t τ + b h t τ) h t τ =
+          TwoChartEgorov.dtdτ α β a h t τ + TwoChartEgorov.dtdτ α β b h t τ := by
+      -- Unfold to nested `iteratedDeriv` and use additivity at each level.
+      unfold TwoChartEgorov.dtdτ
+      have ha_h : ContDiff ℝ ⊤ (fun p : ℝ × ℝ => a h p.1 p.2) := ha.1 h
+      have hb_h : ContDiff ℝ ⊤ (fun p : ℝ × ℝ => b h p.1 p.2) := hb.1 h
+      -- τ-additivity (pointwise in `t'`).
+      have hτadd (t' : ℝ) :
+          iteratedDeriv β (fun τ' : ℝ => a h t' τ' + b h t' τ') τ =
+            iteratedDeriv β (fun τ' : ℝ => a h t' τ') τ +
+              iteratedDeriv β (fun τ' : ℝ => b h t' τ') τ := by
+        have hf : ContDiffAt ℝ β (fun τ' : ℝ => a h t' τ') τ := by
+          have : ContDiff ℝ β (fun τ' : ℝ => a h t' τ') :=
+            (ha_h.comp (contDiff_prodMk_right (e₀ := t'))).of_le (by simp)
+          exact this.contDiffAt
+        have hg : ContDiffAt ℝ β (fun τ' : ℝ => b h t' τ') τ := by
+          have : ContDiff ℝ β (fun τ' : ℝ => b h t' τ') :=
+            (hb_h.comp (contDiff_prodMk_right (e₀ := t'))).of_le (by simp)
+          exact this.contDiffAt
+        simpa using (iteratedDeriv_add (n := β) (x := τ) hf hg)
+      -- t-additivity at `t` for the functions `t' ↦ iteratedDeriv β … τ`.
+      have hAt : ContDiffAt ℝ α (fun t' : ℝ => iteratedDeriv β (fun τ' : ℝ => a h t' τ') τ) t := by
+        have hP :
+            ContDiff ℝ ⊤ (fun p : ℝ × ℝ => iteratedDeriv β (fun τ : ℝ => a h p.1 τ) p.2) :=
+          contDiff_iteratedDeriv_snd (f := fun p : ℝ × ℝ => a h p.1 p.2) ha_h β
+        have : ContDiff ℝ α (fun t' : ℝ => iteratedDeriv β (fun τ' : ℝ => a h t' τ') τ) :=
+          (hP.comp (contDiff_prodMk_left (f₀ := τ))).of_le (by simp)
+        exact this.contDiffAt
+      have hBt : ContDiffAt ℝ α (fun t' : ℝ => iteratedDeriv β (fun τ' : ℝ => b h t' τ') τ) t := by
+        have hP :
+            ContDiff ℝ ⊤ (fun p : ℝ × ℝ => iteratedDeriv β (fun τ : ℝ => b h p.1 τ) p.2) :=
+          contDiff_iteratedDeriv_snd (f := fun p : ℝ × ℝ => b h p.1 p.2) hb_h β
+        have : ContDiff ℝ α (fun t' : ℝ => iteratedDeriv β (fun τ' : ℝ => b h t' τ') τ) :=
+          (hP.comp (contDiff_prodMk_left (f₀ := τ))).of_le (by simp)
+        exact this.contDiffAt
+      -- Rewrite the inner function using `hτadd`, then split the outer iterated derivative.
+      have hrewrite :
+          (fun t' : ℝ => iteratedDeriv β (fun τ' : ℝ => a h t' τ' + b h t' τ') τ)
+            =
+            fun t' : ℝ =>
+              iteratedDeriv β (fun τ' : ℝ => a h t' τ') τ +
+                iteratedDeriv β (fun τ' : ℝ => b h t' τ') τ := by
+        funext t'
+        exact hτadd t'
+      -- apply `iteratedDeriv_add` in `t`
+      have hsplit :
+          iteratedDeriv α (fun t' : ℝ =>
+              iteratedDeriv β (fun τ' : ℝ => a h t' τ') τ +
+                iteratedDeriv β (fun τ' : ℝ => b h t' τ') τ) t
+            =
+            iteratedDeriv α (fun t' : ℝ => iteratedDeriv β (fun τ' : ℝ => a h t' τ') τ) t +
+              iteratedDeriv α (fun t' : ℝ => iteratedDeriv β (fun τ' : ℝ => b h t' τ') τ) t := by
+        simpa using (iteratedDeriv_add (n := α) (x := t) hAt hBt)
+      -- finish
+      simp [hrewrite, hsplit]
     calc
       ‖TwoChartEgorov.dtdτ α β (fun h t τ => a h t τ + b h t τ) h t τ‖
           = ‖TwoChartEgorov.dtdτ α β a h t τ + TwoChartEgorov.dtdτ α β b h t τ‖ := by
             -- linearity of iterated derivatives
-            simp [TwoChartEgorov.dtdτ, iteratedDeriv_add]
+            simp [hadd]
       _ ≤ ‖TwoChartEgorov.dtdτ α β a h t τ‖ + ‖TwoChartEgorov.dtdτ α β b h t τ‖ := by
             simpa using norm_add_le _ _
       _ ≤ Ca α β * (h⁻¹) ^ (Ma α β) * (TwoChartEgorov.japaneseBracket τ) ^ (m - (β : ℝ)) +
@@ -127,7 +196,7 @@ theorem add
       _ = (Ca α β + Cb α β) * (h⁻¹) ^ M * (TwoChartEgorov.japaneseBracket τ) ^ (m - (β : ℝ)) := by
             ring
 
-/-- Constant scalar multiplication stability for `S^m_λ`.
+/- Constant scalar multiplication stability for `S^m_λ`.
 
 We pull the constant out of mixed iterated derivatives using the corresponding
 Mathlib linearity lemmas for `iteratedDeriv`.
@@ -145,33 +214,34 @@ This is also the most robust approach when later generalizing the calculus to
 /-- The constant symbol `c` is a (λ-dependent) symbol of order `0`. -/
 theorem const (c : ℂ) : TwoChartEgorov.SmLambda Y h0 (0 : ℝ) (fun _ _ _ => c) := by
   classical
-  intro α β
-  refine ⟨‖c‖, 0, by simp, ?_⟩
-  intro h hh t ht τ
-  -- Case split on the mixed derivative order.
-  cases α with
-  | zero =>
-      cases β with
-      | zero =>
-          -- `dtdτ 0 0` is the identity.
-          simp [TwoChartEgorov.dtdτ]
-      | succ β' =>
-          -- Any positive τ-derivative of a constant is 0.
-          have hR : (0 : ℝ) ≤ ‖c‖ * (h⁻¹) ^ (0 : ℕ) *
-              (TwoChartEgorov.japaneseBracket τ) ^ ((0 : ℝ) - ((Nat.succ β' : ℕ) : ℝ)) := by
-            have : 0 ≤ (TwoChartEgorov.japaneseBracket τ) ^ ((0 : ℝ) - ((Nat.succ β' : ℕ) : ℝ)) := by
-              exact Real.rpow_nonneg (TwoChartEgorov.japaneseBracket_nonneg τ) _
-            nlinarith [norm_nonneg c, this]
-          -- `simp` reduces the LHS to `0`.
-          simpa [TwoChartEgorov.dtdτ] using hR
-  | succ α' =>
-      -- Any positive t-derivative of a constant is 0.
-      have hR : (0 : ℝ) ≤ ‖c‖ * (h⁻¹) ^ (0 : ℕ) *
-          (TwoChartEgorov.japaneseBracket τ) ^ ((0 : ℝ) - (β : ℝ)) := by
-        have : 0 ≤ (TwoChartEgorov.japaneseBracket τ) ^ ((0 : ℝ) - (β : ℝ)) := by
-          exact Real.rpow_nonneg (TwoChartEgorov.japaneseBracket_nonneg τ) _
-        nlinarith [norm_nonneg c, this]
-      simpa [TwoChartEgorov.dtdτ] using hR
+  refine ⟨?_, ?_⟩
+  · intro h
+    simpa using (contDiff_const : ContDiff ℝ ⊤ (fun _p : ℝ × ℝ => c))
+  · intro α β
+    refine ⟨‖c‖, 0, by simp, ?_⟩
+    intro h hh t ht τ
+    -- All mixed iterated derivatives of a constant function vanish unless `α = β = 0`,
+    -- and the remaining inequality is just nonnegativity of the RHS.
+    have hrhs_nonneg : 0 ≤ ‖c‖ * h⁻¹ ^ (0 : ℕ) * japaneseBracket τ ^ ((0 : ℝ) - (β : ℝ)) := by
+      have hpow : 0 ≤ h⁻¹ ^ (0 : ℕ) := by simp
+      have hwt : 0 ≤ japaneseBracket τ ^ ((0 : ℝ) - (β : ℝ)) :=
+        Real.rpow_nonneg (japaneseBracket_nonneg τ) _
+      have hn : 0 ≤ ‖c‖ := norm_nonneg c
+      -- reassociate to match `‖c‖ * (h⁻¹)^0 * weight`
+      simpa [mul_assoc] using mul_nonneg (mul_nonneg hn hpow) hwt
+    cases α with
+    | zero =>
+        cases β with
+        | zero =>
+            -- `dtdτ 0 0` is the identity.
+            simp [TwoChartEgorov.dtdτ, iteratedDeriv_const]
+        | succ β' =>
+            -- any positive τ-derivative vanishes
+            simpa [TwoChartEgorov.dtdτ, iteratedDeriv_const] using hrhs_nonneg
+    | succ α' =>
+        -- any positive t-derivative vanishes
+        simpa [TwoChartEgorov.dtdτ, iteratedDeriv_const] using hrhs_nonneg
+
 
 /-- Scalar multiplication stability for `S^m_λ` (implemented via multiplication by a constant symbol). -/
 theorem const_mul (hh0 : h0 ≤ 1) (c : ℂ) (ha : TwoChartEgorov.SmLambda Y h0 m a) :
@@ -192,23 +262,59 @@ theorem sum
     (hh0 : h0 ≤ 1)
     {ι : Type*} (s : Finset ι) (f : ι → (ℝ → ℝ → ℝ → ℂ))
     (hf : ∀ i ∈ s, TwoChartEgorov.SmLambda Y h0 m (f i)) :
-    TwoChartEgorov.SmLambda Y h0 m (fun h t τ => ∑ i in s, f i h t τ) := by
+    TwoChartEgorov.SmLambda Y h0 m (fun h t τ => ∑ i ∈ s, f i h t τ) := by
   classical
-  -- Induction with a strengthened statement that carries the membership hypothesis.
-  refine (Finset.induction_on s
-    (p := fun s => (∀ i ∈ s, TwoChartEgorov.SmLambda Y h0 m (f i)) →
-      TwoChartEgorov.SmLambda Y h0 m (fun h t τ => ∑ i in s, f i h t τ))
-    ?base ?step) hf
-  · intro _
-    simpa using (zero (Y:=Y) (h0:=h0) (m:=m))
-  · intro i s hi ih hf'
-    have hfi : TwoChartEgorov.SmLambda Y h0 m (f i) := hf' i (by simp [hi])
-    have hfs : ∀ j ∈ s, TwoChartEgorov.SmLambda Y h0 m (f j) := by
-      intro j hj
-      exact hf' j (by simp [hj, hi])
-    have ihs : TwoChartEgorov.SmLambda Y h0 m (fun h t τ => ∑ j in s, f j h t τ) := ih hfs
-    have hadd := add (Y:=Y) (h0:=h0) (m:=m) hh0 hfi ihs
-    simpa [Finset.sum_insert, hi, add_comm, add_left_comm, add_assoc] using hadd
+  -- `SmLambda` is a pair: smoothness in `(t,τ)` for each fixed `h`, and the quantitative bounds.
+  refine ⟨?_, ?_⟩
+  · intro h
+    -- Smoothness: finite sums preserve `ContDiff`.
+    -- We prove `ContDiff` for the uncurried function `(t,τ) ↦ ∑ i∈s, f i h t τ`.
+    -- For each term, use `hf i hi`.1 h.
+    have hterm : ∀ i ∈ s, ContDiff ℝ ⊤ (fun p : ℝ × ℝ => f i h p.1 p.2) := by
+      intro i hi
+      exact (hf i hi).1 h
+    -- `ContDiff` is closed under finite sums.
+    simpa using (ContDiff.sum hterm)
+  · -- Bounds: induct on the finite set.
+    -- (We only need the bounds component from each hypothesis.)
+    classical
+    -- strengthen the IH to carry the membership hypothesis
+    revert hf
+    refine Finset.induction_on s (motive := fun s =>
+      (∀ i ∈ s, TwoChartEgorov.SmLambda Y h0 m (f i)) →
+        ∀ α β : ℕ,
+          ∃ C : ℝ, ∃ M : ℕ, 0 ≤ C ∧
+            ∀ ⦃h : ℝ⦄, h ∈ Set.Ioc (0 : ℝ) h0 →
+              ∀ ⦃t : ℝ⦄, t ∈ Y →
+                ∀ τ : ℝ,
+                  ‖TwoChartEgorov.dtdτ α β (fun h t τ => ∑ i ∈ s, f i h t τ) h t τ‖
+                    ≤ C * (h⁻¹) ^ M * (TwoChartEgorov.japaneseBracket τ) ^ (m - (β : ℝ)))
+      ?base ?step
+    · intro _ α β
+      refine ⟨0, 0, by simp, ?_⟩
+      intro h hh t ht τ
+      simp [TwoChartEgorov.dtdτ, iteratedDeriv_const]
+    · intro i s hi IH hf' α β
+      have hfi : TwoChartEgorov.SmLambda Y h0 m (f i) := hf' i (by simp [hi])
+      have hfs : ∀ j ∈ s, TwoChartEgorov.SmLambda Y h0 m (f j) := by
+        intro j hj
+        exact hf' j (by simp [hj])
+      -- bounds for the tail sum
+      have htail :
+          ∀ α β : ℕ,
+            ∃ C : ℝ, ∃ M : ℕ, 0 ≤ C ∧
+              ∀ ⦃h : ℝ⦄, h ∈ Set.Ioc (0 : ℝ) h0 →
+                ∀ ⦃t : ℝ⦄, t ∈ Y →
+                  ∀ τ : ℝ,
+                    ‖TwoChartEgorov.dtdτ α β (fun h t τ => ∑ j ∈ s, f j h t τ) h t τ‖
+                      ≤ C * (h⁻¹) ^ M * (TwoChartEgorov.japaneseBracket τ) ^ (m - (β : ℝ)) :=
+        IH hfs
+      -- now use `add` on `f i` and the tail sum
+      have hadd :=
+        add (Y := Y) (h0 := h0) (m := m) hh0 hfi ⟨(by intro h; exact (ContDiff.sum (fun j hj => (hfs j hj).1 h))),
+          htail⟩
+      -- unfold the sum over `insert` and finish
+      simpa [Finset.sum_insert, hi, add_comm, add_left_comm, add_assoc] using (hadd.2 α β)
 
 /-- Iterated-derivative composition in one variable.
 
@@ -217,7 +323,9 @@ We keep it as a local lemma to make later proofs more readable.
 -/
 lemma iteratedDeriv_iteratedDeriv' {f : ℝ → ℂ} (n m : ℕ) (x : ℝ) :
     iteratedDeriv n (fun y => iteratedDeriv m f y) x = iteratedDeriv (n + m) f x := by
-  simpa using (iteratedDeriv_iteratedDeriv n m f x)
+  -- Use `iteratedDeriv_eq_iterate` and the semigroup law for iterates of `deriv`.
+  -- `iteratedDeriv m f = deriv^[m] f`, so iterating again adds the orders.
+  simp [iteratedDeriv_eq_iterate, Function.iterate_add, Function.comp_apply]
 
 /-- Mixed-derivative stability: taking `∂_t^{a0} ∂_τ^{b0}` lowers the order by `b0`.
 
@@ -228,18 +336,52 @@ theorem dtdτ_mem (a0 b0 : ℕ)
     (hcomm : TwoChartEgorov.MixedComm a) :
     TwoChartEgorov.SmLambda Y h0 (m - (b0 : ℝ)) (fun h t τ => TwoChartEgorov.dtdτ a0 b0 a h t τ) := by
   classical
-  intro α β
-  rcases ha (α + a0) (β + b0) with ⟨C, M, hC, hbound⟩
-  refine ⟨C, M, hC, ?_⟩
-  intro h hh t ht τ
-  have hmain := hbound (h:=h) hh (t:=t) ht τ
-  have hderiv :
-      TwoChartEgorov.dtdτ α β (fun h t τ => TwoChartEgorov.dtdτ a0 b0 a h t τ) h t τ =
-        TwoChartEgorov.dtdτ (α + a0) (β + b0) a h t τ := by
-    simpa using (hcomm h t τ α β a0 b0)
-  have hexp : m - ((β + b0 : ℕ) : ℝ) = (m - (b0 : ℝ)) - (β : ℝ) := by
-    nlinarith
-  simpa [hderiv, hexp] using hmain
+  refine ⟨?_, ?_⟩
+  · intro h
+    -- Smoothness of mixed derivatives follows from smoothness of `a` in `(t,τ)` and the fact that
+    -- `iteratedDeriv` preserves `ContDiff` in parameters.
+    have ha_h : ContDiff ℝ ⊤ (fun p : ℝ × ℝ => a h p.1 p.2) := ha.1 h
+    -- First take `b0` τ-derivatives: a smooth function of `(t,τ)`.
+    let g : ℝ × ℝ → ℂ := fun p =>
+      iteratedDeriv b0 (fun τ' : ℝ => a h p.1 τ') p.2
+    have hg : ContDiff ℝ ⊤ g :=
+      TwoChartEgorov.SmLambda.contDiff_iteratedDeriv_snd (f := fun p : ℝ × ℝ => a h p.1 p.2) ha_h b0
+    -- To take `a0` derivatives in the *first* coordinate, swap coordinates and reuse the same lemma.
+    have hswap : ContDiff ℝ ⊤ (fun p : ℝ × ℝ => (p.2, p.1)) := by fun_prop
+    have hg_swap : ContDiff ℝ ⊤ (fun p : ℝ × ℝ => g (p.2, p.1)) :=
+      hg.comp hswap
+    have htmp :
+        ContDiff ℝ ⊤ (fun p : ℝ × ℝ =>
+          iteratedDeriv a0 (fun s : ℝ => (fun q : ℝ × ℝ => g (q.2, q.1)) (p.1, s)) p.2) :=
+      TwoChartEgorov.SmLambda.contDiff_iteratedDeriv_snd
+        (f := fun q : ℝ × ℝ => g (q.2, q.1)) hg_swap a0
+    have htmp' :
+        ContDiff ℝ ⊤ (fun p : ℝ × ℝ =>
+          iteratedDeriv a0 (fun s : ℝ => g (s, p.1)) p.2) := by
+      simpa using htmp
+    have hfinal :
+        ContDiff ℝ ⊤ (fun p : ℝ × ℝ =>
+          iteratedDeriv a0 (fun s : ℝ => g (s, p.2)) p.1) :=
+      htmp'.comp hswap
+    -- This is exactly `dtdτ a0 b0 a h` as a function of `(t,τ)`.
+    simpa [TwoChartEgorov.dtdτ, g] using hfinal
+  · intro α β
+    rcases ha.2 (α + a0) (β + b0) with ⟨C, M, hC, hbound⟩
+    refine ⟨C, M, hC, ?_⟩
+    intro h hh t ht τ
+    have hmain := hbound (h := h) hh (t := t) ht τ
+    have hderiv :
+        TwoChartEgorov.dtdτ α β (fun h t τ => TwoChartEgorov.dtdτ a0 b0 a h t τ) h t τ =
+          TwoChartEgorov.dtdτ (α + a0) (β + b0) a h t τ := by
+      simpa using (hcomm h t τ α β a0 b0)
+    have hexp : m - ((β + b0 : ℕ) : ℝ) = m - (b0 : ℝ) - (β : ℝ) := by
+      -- rewrite `(β+b0 : ℕ)` to `β+b0` in ℝ and reassociate
+      have : ((β + b0 : ℕ) : ℝ) = (β : ℝ) + (b0 : ℝ) := by
+        norm_cast
+      -- `simp`/`ring_nf` handles the rest
+      nlinarith [this]
+    -- rewrite the exponent in the weight factor
+    simpa [hderiv, hexp, sub_eq_add_neg, add_assoc, add_left_comm, add_comm] using hmain
 
 end SmLambda
 
@@ -247,9 +389,9 @@ end SmLambda
 
 In 1D we parameterize the sum by `α ∈ {0,…,n}` and set `β = n-α`.
 -/
-def Pn (n : ℕ) (c d : ℝ → ℝ → ℝ → ℂ) : ℝ → ℝ → ℝ → ℂ :=
+noncomputable def Pn (n : ℕ) (c d : ℝ → ℝ → ℝ → ℂ) : ℝ → ℝ → ℝ → ℂ :=
   fun h t τ =>
-    ∑ α in Finset.range (n + 1),
+    ∑ α ∈ Finset.range (n + 1),
       ((1 : ℂ) / (Nat.factorial n : ℂ)) * ((Complex.I / 2) ^ n) *
         (let β : ℕ := n - α
          ((-1 : ℂ) ^ β) * (Nat.choose n α : ℂ) *
@@ -354,7 +496,7 @@ theorem mem_SmLambda
   -- Now use finite-sum stability.
   have hsum : TwoChartEgorov.SmLambda Y h0 (m₁ + m₂ - (n : ℝ))
       (fun h t τ =>
-        ∑ α in Finset.range (n + 1),
+        ∑ α ∈ Finset.range (n + 1),
           ((1 : ℂ) / (Nat.factorial n : ℂ)) * ((Complex.I / 2) ^ n) *
             (let β : ℕ := n - α
              ((-1 : ℂ) ^ β) * (Nat.choose n α : ℂ) *
@@ -373,7 +515,8 @@ theorem mem_SmLambda
     simpa using hterm α hα
 
   -- Finally, rewrite to the definition of `Pn`.
-  simpa [TwoChartEgorov.Pn] using hsum
+  -- unfold `Pn` and normalize the scalar prefactor
+  convert hsum using 4
 
 end Pn
 

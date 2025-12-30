@@ -15,10 +15,8 @@ lemma Z0bound_aux :
   -- The statement is that `-(ζ'(s)/ζ(s)) - 1/(s-1)` is bounded as `s -> 1` from the right.
   -- This is a direct consequence of `riemannZetaLogDerivResidueBigO`, which states that
   -- this function is `O(1)` in a punctured neighborhood of `1`.
-
   -- Let `F(s) = -(ζ'(s)/ζ(s)) - 1/(s-1)`.
   let F := fun s : ℂ => -(ζ' / ζ) s - (s - 1)⁻¹
-
   -- From `riemannZetaLogDerivResidueBigO`, we know `F` is `O(1)` near `1`.
   have h_F_bigO : F =O[𝓝[≠] 1] (1 : ℂ → ℂ) := by
     have h_fun_eq : F = (-ζ' / ζ - fun z ↦ (z - 1)⁻¹) := by
@@ -26,8 +24,6 @@ lemma Z0bound_aux :
       simp only [F, Pi.sub_apply, Pi.neg_apply, Pi.div_apply, neg_div]
     rw [h_fun_eq]
     exact riemannZetaLogDerivResidueBigO
-
-
   -- Let `u(delta) = 1 + delta`. As `delta` approaches `0` from the right, `u(delta)` approaches `1`
   -- from the right along the real axis, staying different from `1`.
   let u := fun (delta : ℝ) => (1 : ℂ) + delta
@@ -52,11 +48,9 @@ lemma Z0bound_aux :
       -- For any δ in `Ioi 0`, `u(δ) = 1 + δ ≠ 1`.
       filter_upwards [self_mem_nhdsWithin] with delta h_delta_pos
       simp only [u, ne_eq, add_eq_right, Complex.ofReal_eq_zero]
-
       refine add_ne_left.mpr ?_
       rw [Complex.ofReal_ne_zero]
       exact ne_of_gt h_delta_pos
-
   -- We can compose the `IsBigO` relation with the `tendsto` relation.
   have h_comp := h_F_bigO.comp_tendsto h_tendsto
   -- `h_comp` is `IsBigO (nhdsWithin 0 (Ioi 0)) (F ∘ u) ( (fun _ => 1) ∘ u )`.
@@ -71,3 +65,5 @@ lemma Z0bound_aux :
 
 lemma Z0bound :
     Asymptotics.IsBigO (nhdsWithin 0 (Set.Ioi 0)) (fun (delta : ℝ) => -logDerivZeta ((1 : ℂ) + delta) - (1 / (delta : ℂ))) (fun _ => (1 : ℂ)) := Z0bound_aux
+
+#min_imports

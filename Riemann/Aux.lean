@@ -1,6 +1,6 @@
-import Mathlib
-import Riemann.academic_framework.Compat
-
+import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
+import Mathlib.Data.Real.StarOrdered
+import Mathlib.Tactic
 namespace RH
 
 lemma pow_le_pow_of_le_left {α : Type*} [Semiring α] [LinearOrder α] [IsStrictOrderedRing α]

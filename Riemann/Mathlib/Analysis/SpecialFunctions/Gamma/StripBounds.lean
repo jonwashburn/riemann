@@ -208,7 +208,7 @@ lemma closedBall_subset_halfplane_of_re_ge
     -- (σ+tI).re - σ0/2 ≤ (σ+tI).re - ‖z-(σ+tI)‖
     have h2 : (σ + t * I).re - (σ0 / 2) ≤ (σ + t * I).re - ‖z - (σ + t * I)‖ := by
       have := neg_le_neg hz'
-      simpa [sub_eq_add_neg] using add_le_add_left this ((σ + t * I).re)
+      simpa [sub_eq_add_neg] using add_le_add_right this ((σ + t * I).re)
     -- combine
     have hzre_ge : (σ + t * I).re - (σ0 / 2) ≤ z.re := le_trans h2 (h1)
     simpa [sub_eq_add_neg] using hzre_ge
@@ -291,7 +291,7 @@ lemma norm_H_on_sphere_le
       simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using this
     have h2 : (σ + t * I).re - σ0 / 2 ≤ (σ + t * I).re - ‖z - (σ + t * I)‖ := by
       have := neg_le_neg hz'
-      simpa [sub_eq_add_neg] using add_le_add_left this ((σ + t * I).re)
+      simpa [sub_eq_add_neg] using add_le_add_right this ((σ + t * I).re)
     have : (σ + t * I).re - σ0 / 2 ≤ z.re := le_trans h2 h1
     have : σ - σ0 / 2 ≤ z.re := by simpa [sub_eq_add_neg] using this
     exact (le_trans (by have := hlo; linarith) this)
@@ -476,7 +476,7 @@ lemma one_le_pi : (1 : ℝ) ≤ Real.pi := le_trans (by norm_num : (1:ℝ) ≤ 2
 /-- `√π < 2`. -/
 lemma sqrt_pi_lt_two : Real.sqrt Real.pi < 2 := by
   have hπ4 : Real.pi < 4 := Real.pi_lt_four
-  have h4 : Real.sqrt (4 : ℝ) = (2 : ℝ) := by norm_num
+  have h4 : Real.sqrt (4 : ℝ) = (2 : ℝ) := by rw [show (4 : ℝ) = 2^2 by norm_num, Real.sqrt_sq (by norm_num : (2 : ℝ) ≥ 0)]
   calc Real.sqrt Real.pi < Real.sqrt 4 := Real.sqrt_lt_sqrt Real.pi_pos.le hπ4
     _ = 2 := h4
 
@@ -531,7 +531,7 @@ lemma prod_sub_norm_le {s : ℂ} {n : ℕ} :
           exact_mod_cast Nat.succ_le_of_lt this
         calc ‖s - (k + 1 : ℂ)‖ ≤ ‖s‖ + ‖(k + 1 : ℂ)‖ := h1
           _ = ‖s‖ + (k + 1 : ℝ) := by simp [h2]
-          _ ≤ ‖s‖ + n := add_le_add_left h3 _
+          _ ≤ ‖s‖ + n := add_le_add_right h3 _
     _ = (‖s‖ + n) ^ n := by simp [Finset.prod_const, Finset.card_range]
 
 /-- For any `s : ℂ`, the real part of `s' := s - ⌊Re(s)⌋` lies in `[0, 1)`. -/

@@ -1,6 +1,4 @@
-import TwoChart_Pn
-
-import Mathlib.Tactic
+import Riemann.Semiclassical.TwoChart_Pn
 
 open scoped BigOperators
 
@@ -17,7 +15,7 @@ def ParametrixRec
       b (j + 1) =
         (fun h t τ =>
           (-1 : ℂ) * b0 h t τ *
-            (∑ n in Finset.Icc 1 (j + 1),
+            (∑ n ∈ Finset.Icc 1 (j + 1),
               TwoChartEgorov.Pn n a (b (j + 1 - n)) h t τ))
 
 /-- Truncated parametrix symbol `b_N := Σ_{j=0}^{N-1} h^j b_j` (paper (2.7)). -/
@@ -25,7 +23,7 @@ def bTrunc
     (b : ℕ → (ℝ → ℝ → ℝ → ℂ))
     (N : ℕ) : (ℝ → ℝ → ℝ → ℂ) :=
   fun h t τ =>
-    ∑ j in Finset.range N, (h ^ j : ℂ) * b j h t τ
+    ∑ j ∈ Finset.range N, (h ^ j : ℂ) * b j h t τ
 
 namespace Parametrix
 
@@ -70,14 +68,14 @@ theorem coeff_mem_SmLambda
       have hrec : b (j' + 1) =
           (fun h t τ =>
             (-1 : ℂ) * b0 h t τ *
-              (∑ n in Finset.Icc 1 (j' + 1),
+              (∑ n ∈ Finset.Icc 1 (j' + 1),
                 TwoChartEgorov.Pn n a (b (j' + 1 - n)) h t τ)) := by
         simpa [Nat.succ_eq_add_one, add_assoc, add_left_comm, add_comm] using (hbRec.2 j')
 
       -- First show that the inner sum has order `-(j'+1)`.
       have hsum : TwoChartEgorov.SmLambda Y h0 (-(j' + 1 : ℕ) : ℝ)
           (fun h t τ =>
-            ∑ n in Finset.Icc 1 (j' + 1),
+            ∑ n ∈ Finset.Icc 1 (j' + 1),
               TwoChartEgorov.Pn n a (b (j' + 1 - n)) h t τ) := by
         -- Termwise membership for each `n` in the Icc.
         have hterm :
@@ -111,7 +109,12 @@ theorem coeff_mem_SmLambda
             have hcast : ((j' + 1 - n : ℕ) : ℝ) + (n : ℝ) = (j' + 1 : ℝ) := by
               -- since `n ≤ j'+1`.
               exact_mod_cast (Nat.sub_add_cancel hnj)
-            nlinarith [hcast]
+            -- Do the algebra explicitly to avoid `linarith`/`nlinarith` instability.
+            calc
+              m + (-m - ((j' + 1 - n : ℕ) : ℝ)) - (n : ℝ)
+                  = -(((j' + 1 - n : ℕ) : ℝ) + (n : ℝ)) := by ring
+              _ = -((j' + 1 : ℝ)) := by simp [hcast]
+              _ = (-(j' + 1 : ℕ) : ℝ) := by simp
 
           simpa [horder] using hPn
 
@@ -125,20 +128,20 @@ theorem coeff_mem_SmLambda
       -- Multiply by `b0` (order `-m`) and the scalar `-1`.
       have hprod : TwoChartEgorov.SmLambda Y h0 ((-m) + (-(j' + 1 : ℕ) : ℝ))
           (fun h t τ => b0 h t τ *
-            (∑ n in Finset.Icc 1 (j' + 1),
+            (∑ n ∈ Finset.Icc 1 (j' + 1),
               TwoChartEgorov.Pn n a (b (j' + 1 - n)) h t τ)) := by
         simpa [mul_assoc] using
           (TwoChartEgorov.SmLambda.mul (Y:=Y) (h0:=h0)
             (m₁:= -m) (m₂:= (-(j' + 1 : ℕ) : ℝ))
             (a:=b0)
             (b:=fun h t τ =>
-              ∑ n in Finset.Icc 1 (j' + 1),
+              ∑ n ∈ Finset.Icc 1 (j' + 1),
                 TwoChartEgorov.Pn n a (b (j' + 1 - n)) h t τ)
             hh0 hb0 hsum)
 
       have hneg : TwoChartEgorov.SmLambda Y h0 ((-m) + (-(j' + 1 : ℕ) : ℝ))
           (fun h t τ => (-1 : ℂ) * (b0 h t τ *
-            (∑ n in Finset.Icc 1 (j' + 1),
+            (∑ n ∈ Finset.Icc 1 (j' + 1),
               TwoChartEgorov.Pn n a (b (j' + 1 - n)) h t τ))) := by
         simpa [mul_assoc, mul_left_comm, mul_comm] using
           (TwoChartEgorov.SmLambda.const_mul (Y:=Y) (h0:=h0)
@@ -147,11 +150,14 @@ theorem coeff_mem_SmLambda
 
       -- Conclude, rewriting the recursion formula.
       have hfinal : TwoChartEgorov.SmLambda Y h0 (-m - (j' + 1 : ℕ) : ℝ) (b (j' + 1)) := by
-        -- `(-m) + (-(j'+1)) = -m - (j'+1)`.
-        have harith : (-m) + (-(j' + 1 : ℕ) : ℝ) = (-m - (j' + 1 : ℕ) : ℝ) := by
-          nlinarith
-        -- match the exact RHS of the recursion
-        simpa [hrec, harith, mul_assoc] using hneg
+        -- First match the exact RHS of the recursion (only reassociation needed).
+        have htmp : TwoChartEgorov.SmLambda Y h0 ((-m) + (-(j' + 1 : ℕ) : ℝ)) (b (j' + 1)) := by
+          simpa [hrec, mul_assoc] using hneg
+        -- Then rewrite the order parameter (simp normalizes casts into the form `-m + (-1 + -↑j')`).
+        have harith : (-m + (-1 + -(j' : ℝ))) = (-m - ((j' : ℝ) + 1)) := by
+          ring
+        -- match the goal's preferred normal form `-m - (↑j' + 1)`
+        simpa [harith, sub_eq_add_neg, add_assoc, add_left_comm, add_comm] using htmp
 
       -- Convert `j'+1` to the requested form `-m - ((Nat.succ j') : ℝ)`.
       simpa [Nat.succ_eq_add_one, add_assoc] using hfinal

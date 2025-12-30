@@ -170,11 +170,12 @@ lemma closedBall_subset_halfplane_of_re_ge
       simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using this
     -- (σ+tI).re - σ0/2 ≤ (σ+tI).re - ‖z-(σ+tI)‖
     have h2 : (σ + t * I).re - (σ0 / 2) ≤ (σ + t * I).re - ‖z - (σ + t * I)‖ := by
-      have := neg_le_neg hz'
-      simpa [sub_eq_add_neg] using add_le_add_left this ((σ + t * I).re)
+      have hneg := neg_le_neg hz'
+      linarith
     -- combine
     have hzre_ge : (σ + t * I).re - (σ0 / 2) ≤ z.re := le_trans h2 (h1)
-    simpa [sub_eq_add_neg] using hzre_ge
+    simp only [add_re, ofReal_re, mul_re, ofReal_im, I_re, mul_zero, I_im, mul_one, sub_zero] at hzre_ge
+    linarith
   have : 0 < z.re := by
     have hσpos : 0 < σ - σ0 / 2 := by linarith
     exact lt_of_lt_of_le hσpos (by simpa [ge_iff_le] using this)
@@ -254,7 +255,7 @@ lemma norm_H_on_sphere_le
       simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using this
     have h2 : (σ + t * I).re - σ0 / 2 ≤ (σ + t * I).re - ‖z - (σ + t * I)‖ := by
       have := neg_le_neg hz'
-      simpa [sub_eq_add_neg] using add_le_add_left this ((σ + t * I).re)
+      linarith
     have : (σ + t * I).re - σ0 / 2 ≤ z.re := le_trans h2 h1
     have : σ - σ0 / 2 ≤ z.re := by simpa [sub_eq_add_neg] using this
     exact (le_trans (by have := hlo; linarith) this)

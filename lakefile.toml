@@ -4,7 +4,7 @@ defaultTargets = ["Riemann"]
 [leanOptions]
 pp.unicode.fun = true
 autoImplicit = true
-relaxedAutoImplicit = false
+relaxedAutoImplicit = true
 
 [[require]]
 name = "mathlib"

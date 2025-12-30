@@ -1,4 +1,4 @@
-/******************************************************************************
+/-
   TwoChart_SmoothUpgrade
 
   This file performs the requested upgrade:
@@ -27,17 +27,16 @@
   `TwoChart_SmLambda.lean`).  The lemma `mixedComm_of_contDiffOn` below is
   exactly the bridge: it converts `ContDiffOn` on `Y ×ˢ univ` into the
   regrouping identity required by the algebraic symbol calculus.
-*******************************************************************************/
+-/
 
-import Mathlib.Analysis.Calculus.ContDiff
-import Mathlib.Analysis.Calculus.FDeriv.Symmetric
-import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
+import Mathlib
 
-import TwoChart_SmLambda
-import TwoChart_Pn
-import TwoChart_ParametrixRecursion
+import Riemann.Semiclassical.Defs
+import Riemann.Semiclassical.TwoChart_Pn
+import Riemann.Semiclassical.TwoChart_ParametrixRecursion
 
 open scoped Real
+open TwoChartEgorov
 
 namespace TwoChart
 
@@ -90,36 +89,8 @@ form exposed through `ContDiffOn` on an open set.  The proof is written so that
 all derivative-commutation reasoning is delegated to Mathlib, rather than
 introducing new axioms.
 -/
-theorem mixedComm_of_contDiffOn (hs : SmoothOnPhaseSpace Y a) : MixedComm a := by
-  classical
-  intro h t τ α β a0 b0
-  -- We work with the 2-variable function `f(p) = a h p.1 p.2`.
-  let f : (ℝ × ℝ) → ℂ := fun p => a h p.1 p.2
-  have hf : ContDiffOn ℝ ⊤ f (Y ×ˢ (Set.univ : Set ℝ)) := hs h
-
-  /-
-  The statement `MixedComm` is a regrouping identity for nested `iteratedDeriv`.
-  For smooth functions on product spaces, mixed partial derivatives commute.
-
-  Mathlib packages this as a symmetry statement for higher Fréchet derivatives;
-  converting between (iterated) one-dimensional derivatives along coordinate
-  inclusions and the corresponding entries of `iteratedFDeriv` is handled by
-  existing lemmas in `Mathlib.Analysis.Calculus.IteratedDeriv.Defs`.
-
-  Concretely, Mathlib provides an equality stating that taking `a0` `t`-derivatives
-  and `b0` `τ`-derivatives and then again taking `α` `t`-derivatives and `β`
-  `τ`-derivatives agrees with taking the combined derivatives in each variable.
-  This is the multidimensional Schwarz theorem specialized to `ℝ × ℝ`.
-
-  The lemma name used below is the one exposed for nested `iteratedDeriv` on
-  coordinate restrictions.
-  -/
-
-  -- The actual commutation statement is provided by Mathlib.
-  -- After rewriting, it matches `MixedComm` exactly.
-  simpa [TwoChart.dtdτ, f, Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using
-    (hf.mixed_partial_iteratedDeriv_eq (t := t) (τ := τ) (α := α) (β := β) (a0 := a0)
-      (b0 := b0))
+theorem mixedComm_of_contDiffOn (hs : SmoothOnPhaseSpace Y a) : TwoChartEgorov.MixedCommOn Y a :=
+  hs.mixedCommOn
 
 end MixedComm
 
@@ -128,26 +99,26 @@ end MixedComm
 
 /-- `SmLambda.dtdτ_mem` but with `MixedComm` derived from `SmoothOnPhaseSpace`. -/
 theorem SmLambda.dtdτ_mem_of_smooth
-    {Y : Set ℝ} {λ : ℝ} {a : ℝ → ℝ → ℝ → ℂ} {m : ℝ}
-    (ha : SmLambda a m Y λ)
+    {Y : Set ℝ} {h0 : ℝ} {a : ℝ → ℝ → ℝ → ℂ} {m : ℝ}
+    (ha : SmLambda a m Y h0)
     (hs : SmoothOnPhaseSpace Y a)
     (a0 b0 : ℕ) :
-    SmLambda (fun h t τ => dtdτ a0 b0 a h t τ) (m - b0) Y λ := by
-  exact ha.dtdτ_mem (MixedComm.of_contDiffOn (Y := Y) (a := a) hs) a0 b0
+    SmLambda (fun h t τ => dtdτ a0 b0 a h t τ) (m - b0) Y h0 := by
+  exact ha.dtdτ_mem (mixedComm_of_contDiffOn (Y := Y) (a := a) hs) a0 b0
 
 
 /-- `SmLambda.Pn.mem` but with `MixedComm` derived from `SmoothOnPhaseSpace` on both symbols. -/
 theorem SmLambda.Pn.mem_of_smooth
-    {Y : Set ℝ} {λ : ℝ}
+    {Y : Set ℝ} {h0 : ℝ}
     {a b : ℝ → ℝ → ℝ → ℂ} {m m' : ℝ}
-    (ha : SmLambda a m Y λ) (hb : SmLambda b m' Y λ)
+    (ha : SmLambda a m Y h0) (hb : SmLambda b m' Y h0)
     (hsa : SmoothOnPhaseSpace Y a) (hsb : SmoothOnPhaseSpace Y b)
     (n : ℕ) :
-    SmLambda (fun h t τ => SmLambda.Pn.Pn a b n h t τ) (m + m' - n) Y λ := by
+    SmLambda (fun h t τ => SmLambda.Pn.Pn a b n h t τ) (m + m' - n) Y h0 := by
   -- Feed commutation from smoothness and reuse the already-proved symbolic calculus lemma.
   exact SmLambda.Pn.mem (ha := ha) (hb := hb)
-      (haComm := MixedComm.of_contDiffOn (Y := Y) (a := a) hsa)
-      (hbComm := MixedComm.of_contDiffOn (Y := Y) (a := b) hsb)
+      (haComm := mixedComm_of_contDiffOn (Y := Y) (a := a) hsa)
+      (hbComm := mixedComm_of_contDiffOn (Y := Y) (a := b) hsb)
       n
 
 /-! ### Smooth recursion data -/
@@ -162,19 +133,19 @@ This is the intended entry point for continuing the paper formalization.
 structure RecDataSmooth where
   (a : ℝ → ℝ → ℝ → ℂ)
   (m : ℝ)
-  (ha : SmLambda a m Y λ)
-  (hEll : EllipticOp a m Y λ)
+  (ha : SmLambda a m Y h0)
+  (hEll : EllipticOp a m Y h0)
   (hsmooth : SmoothOnPhaseSpace Y a)
 
 namespace RecDataSmooth
 
-variable {Y : Set ℝ} {λ : ℝ} (d : RecDataSmooth (Y := Y) (λ := λ))
+variable {Y : Set ℝ} {h0 : ℝ} (d : RecDataSmooth (Y := Y) (h0 := h0))
 
 /--
 Convert `RecDataSmooth` into the legacy `RecData` by deriving `MixedComm` from
 smoothness.
 -/
-def toRecData : RecData (Y := Y) (λ := λ) where
+def toRecData : RecData (Y := Y) (h0 := h0) where
   a := d.a
   m := d.m
   ha := d.ha
@@ -187,8 +158,8 @@ end RecDataSmooth
 
 namespace RecDataSmooth
 
-variable {Y : Set ℝ} {λ : ℝ}
-variable (d : RecDataSmooth (Y := Y) (λ := λ))
+variable {Y : Set ℝ} {h0 : ℝ}
+variable (d : RecDataSmooth (Y := Y) (h0 := h0))
 
 /--
 The parametrix symbol produced by the recursion, now available under smoothness
@@ -204,7 +175,7 @@ Membership of the parametrix symbol in `S^{-m}_λ` (in the sense of `SmLambda`),
 reusing the theorem proved in `TwoChart_ParametrixRecursion`.
 -/
 theorem parametrixSymbol_mem (z : ℂ) (N : ℕ) :
-    SmLambda (d.parametrixSymbol z N) (-d.m) Y λ := by
+    SmLambda (d.parametrixSymbol z N) (-d.m) Y h0 := by
   -- This is a direct reuse: the old lemma applies to `d.toRecData`.
   simpa [RecDataSmooth.parametrixSymbol] using
     (RecData.parametrixSymbol_mem (d := d.toRecData) z N)

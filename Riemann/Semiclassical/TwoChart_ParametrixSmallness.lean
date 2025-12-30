@@ -1,4 +1,4 @@
-import TwoChart_ParametrixInvertibility
+import Riemann.Semiclassical.TwoChart_ParametrixInvertibility
 
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
@@ -60,7 +60,7 @@ lemma pow_le_self_of_le_one {h : ℝ} (hh0 : 0 ≤ h) (hh1 : h ≤ 1) {k : ℕ}
             -- Apply the previous lemma with exponent `n+1`.
             simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using
               (pow_succ_le_pow (h := h) hh0 hh1 (n := n + 1))
-          exact le_trans hstep ih
+          exact le_trans hstep (ih (Nat.le_add_left 1 n))
 
 /-! ## Turning polynomial smallness into a uniform `< 1` bound -/
 
@@ -75,7 +75,7 @@ lemma mul_le_half_of_le_inv {C h : ℝ} (hC : 0 < C) (hh : h ≤ 1 / (2 * C)) :
   have hcalc : C * (1 / (2 * C)) = (1/2 : ℝ) := by
     have hne : (C : ℝ) ≠ 0 := ne_of_gt hC
     field_simp [hne]
-  simpa [hcalc] using hmul
+  exact le_of_le_of_eq hmul hcalc
 
 /-- Convenience bound used throughout the parametrix argument.
 
@@ -146,27 +146,31 @@ lemma hSmall_pos {h0 CE CF : ℝ} (hh0 : 0 < h0) (hCE : 0 < CE) (hCF : 0 < CF) :
   simpa [hSmall] using hmin1
 
 lemma hSmall_le_h0 (h0 CE CF : ℝ) : hSmall h0 CE CF ≤ h0 :=
-  le_min_left _ _
+  by
+  simp [hSmall]
 
 lemma hSmall_le_one (h0 CE CF : ℝ) : hSmall h0 CE CF ≤ 1 := by
   -- `hSmall ≤ min 1 ... ≤ 1`.
   have : hSmall h0 CE CF ≤ min 1 (min (1 / (2 * CE)) (1 / (2 * CF))) :=
-    le_min_right _ _
-  exact le_trans this (le_min_left _ _)
+    by
+    simp [hSmall]
+  exact le_trans this (min_le_left _ _)
 
 lemma hSmall_le_invCE (h0 CE CF : ℝ) : hSmall h0 CE CF ≤ 1 / (2 * CE) := by
   have : hSmall h0 CE CF ≤ min 1 (min (1 / (2 * CE)) (1 / (2 * CF))) :=
-    le_min_right _ _
+    by
+    simp [hSmall]
   have : hSmall h0 CE CF ≤ min (1 / (2 * CE)) (1 / (2 * CF)) :=
-    le_trans this (le_min_right _ _)
-  exact le_trans this (le_min_left _ _)
+    le_trans this (min_le_right _ _)
+  exact le_trans this (min_le_left _ _)
 
 lemma hSmall_le_invCF (h0 CE CF : ℝ) : hSmall h0 CE CF ≤ 1 / (2 * CF) := by
   have : hSmall h0 CE CF ≤ min 1 (min (1 / (2 * CE)) (1 / (2 * CF))) :=
-    le_min_right _ _
+    by
+    simp [hSmall]
   have : hSmall h0 CE CF ≤ min (1 / (2 * CE)) (1 / (2 * CF)) :=
-    le_trans this (le_min_right _ _)
-  exact le_trans this (le_min_right _ _)
+    le_trans this (min_le_right _ _)
+  exact le_trans this (min_le_right _ _)
 
 /-- **Family-level parametrix-to-invertibility upgrade.**
 
@@ -220,5 +224,5 @@ theorem isUnit_of_twoSided_parametrix_family_of_polyBound
 end Family
 
 end Parametrix
-
+end
 end TwoChartEgorov
