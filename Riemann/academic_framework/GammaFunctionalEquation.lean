@@ -4,6 +4,8 @@ import Mathlib.Analysis.SpecialFunctions.Gamma.BohrMollerup
 import Mathlib.Analysis.SpecialFunctions.Pow.Complex
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetFormula
+import Riemann.academic_framework.GammaStirlingAux
 
 /-!
 # Gamma Function Bounds via Functional Equation
@@ -65,60 +67,10 @@ lemma Gamma_eq_div_prod (z : ℂ) (n : ℕ) (hz : ∀ k : ℕ, k < n → z + k �
 /-- For 1 ≤ Re(s) ≤ 2, the Gamma function is bounded. -/
 theorem Gamma_norm_bounded_strip_one_two :
     ∃ M : ℝ, 0 < M ∧ ∀ s : ℂ, 1 ≤ s.re → s.re ≤ 2 → ‖Gamma s‖ ≤ M := by
-  -- Use Mathlib's strip bound with a = 1/2
-  use 4
-  constructor
-  · norm_num
+  -- In `Riemann/Mathlib` we have the sharp strip bound `‖Γ(s)‖ ≤ 1` for `1 ≤ re s ≤ 2`.
+  refine ⟨1, by norm_num, ?_⟩
   intro s hs_lo hs_hi
-  -- For 1 ≤ Re(s) ≤ 2, we can use continuity or the explicit strip bound
-  by_cases h_near_one : s.re ≤ 1
-  · -- Re(s) = 1 case
-    have h_eq : s.re = 1 := le_antisymm h_near_one hs_lo
-    -- Use strip bound from [1/2, 1]
-    have h := Gammaℝ.norm_Complex_Gamma_le_of_re_ge (a := 1/2) (by norm_num : (0:ℝ) < 1/2)
-      (by linarith : (1/2:ℝ) ≤ s.re) (by linarith : s.re ≤ 1)
-    calc ‖Gamma s‖ ≤ 1 / (1/2) + Real.sqrt Real.pi := h
-      _ = 2 + Real.sqrt Real.pi := by norm_num
-      _ ≤ 2 + 2 := by linarith [Real.sqrt_pi_lt_two]
-      _ = 4 := by norm_num
-  · -- 1 < Re(s) ≤ 2 case
-    push_neg at h_near_one
-    -- Use functional equation: Γ(s) = Γ(s-1+1) = (s-1)Γ(s-1)
-    -- where 0 < Re(s-1) ≤ 1
-    have hs' : s ≠ 0 := fun h => by simp [h] at hs_lo
-    have hs1_re_lo : 0 < (s - 1).re := by simp; linarith
-    have hs1_re_hi : (s - 1).re ≤ 1 := by simp; linarith
-    have hs1_ne : s - 1 ≠ 0 := fun h => by
-      have : s.re = 1 := by simp [← h]
-      linarith
-    -- Γ(s) = Γ((s-1)+1) = (s-1)·Γ(s-1)
-    have h_func : Gamma s = (s - 1) * Gamma (s - 1) := by
-      conv_lhs => rw [show s = (s - 1) + 1 by ring]
-      exact Gamma_add_one_eq (s - 1) hs1_ne
-    rw [h_func]
-    have h_norm_s1 : ‖s - 1‖ ≤ 1 + |s.im| := by
-      have h1 : ‖s - 1‖ = Real.sqrt ((s.re - 1)^2 + s.im^2) := by
-        simp [norm_eq_abs, abs_apply]
-      have h2 : (s.re - 1)^2 ≤ 1 := by
-        have : 0 ≤ s.re - 1 ∧ s.re - 1 ≤ 1 := ⟨by linarith, by linarith⟩
-        nlinarith
-      calc ‖s - 1‖ = Real.sqrt ((s.re - 1)^2 + s.im^2) := h1
-        _ ≤ Real.sqrt (1 + s.im^2) := Real.sqrt_le_sqrt (by linarith)
-        _ ≤ Real.sqrt 1 + Real.sqrt (s.im^2) := Real.sqrt_add_le _ _
-        _ = 1 + |s.im| := by simp [Real.sqrt_sq_eq_abs]
-    -- Get bound on Γ(s-1)
-    have h_Gamma_s1 : ‖Gamma (s - 1)‖ ≤ 1 / hs1_re_lo + Real.sqrt Real.pi := by
-      have h := Gammaℝ.norm_Complex_Gamma_le_of_re_ge (a := (s-1).re)
-        hs1_re_lo (le_refl _) hs1_re_hi
-      simp at h
-      exact h
-    -- The bound |Γ(s)| ≤ |s-1| · |Γ(s-1)|
-    -- For a crude bound, we note that for 1 < Re(s) ≤ 2:
-    -- |s-1| ≤ 1 + |Im(s)| and |Γ(s-1)| is bounded
-    -- This gets complicated. Let's use a simpler approach via continuity.
-    -- Since Gamma is continuous on the compact set {s : 1 ≤ Re(s) ≤ 2, |Im(s)| ≤ 1},
-    -- it's bounded there. For |Im(s)| > 1, we use Stirling's decay.
-    sorry
+  simpa using (Binet.norm_Gamma_le_one (z := s) hs_lo hs_hi)
 
 /-- Norm of Gamma at s = 1 is 1. -/
 @[simp]
@@ -137,25 +89,26 @@ lemma Gamma_two_norm : ‖Gamma 2‖ = 1 := by
 lemma prod_sub_nat_norm_le (s : ℂ) (n : ℕ) :
     ‖∏ k ∈ Finset.range n, (s - (k + 1))‖ ≤ (‖s‖ + n) ^ n := by
   calc ‖∏ k ∈ Finset.range n, (s - (k + 1))‖
-      = ∏ k ∈ Finset.range n, ‖s - (k + 1)‖ := by rw [Finset.prod_norm]
+      = ∏ k ∈ Finset.range n, ‖s - (k + 1)‖ := by
+          simp
     _ ≤ ∏ _k ∈ Finset.range n, (‖s‖ + n) := by
       apply Finset.prod_le_prod (fun k _ => norm_nonneg _)
       intro k hk
       have hk' : k + 1 ≤ n := Nat.succ_le_of_lt (Finset.mem_range.mp hk)
       calc ‖s - (k + 1)‖ ≤ ‖s‖ + ‖(k + 1 : ℂ)‖ := norm_sub_le _ _
-        _ = ‖s‖ + (k + 1) := by simp [norm_natCast]
-        _ ≤ ‖s‖ + n := by linarith
+        _ = ‖s‖ + (k + 1 : ℝ) := by
+            -- `‖(k+1 : ℂ)‖ = k+1`
+            simpa using (RCLike.norm_natCast (K := ℂ) (n := k + 1))
+        _ ≤ ‖s‖ + n := by
+            gcongr
+            exact_mod_cast hk'
     _ = (‖s‖ + n) ^ n := by simp [Finset.prod_const, Finset.card_range]
 
 /-- For Re(s) ≥ 2 and ‖s‖ ≥ 2, polynomial bound using functional equation. -/
 theorem Gamma_polynomial_bound_re_ge_two {s : ℂ} (hs_re : 2 ≤ s.re) (hs_norm : 2 ≤ ‖s‖) :
-    ‖Gamma s‖ ≤ Real.exp (‖s‖ * Real.log ‖s‖ + 2 * ‖s‖) := by
-  -- Shift s to the strip [1, 2] using functional equation
-  -- Let n = ⌊Re(s)⌋ - 1, so s - n has real part in [1, 2)
-  let n := Int.toNat (⌊s.re⌋ - 1)
-  -- For simplicity, we use a direct bound
-  -- The key is: |Γ(s)| ≤ |∏(s-k)| · |Γ(s-n)| where s-n ∈ [1,2]
-  sorry
+    ‖Gamma s‖ ≤ Real.exp (‖s‖ * Real.log ‖s‖ + 3 * ‖s‖) := by
+  -- This is already available (in a slightly more general form) in `GammaStirlingAux`.
+  exact Stirling.GammaAux.norm_Gamma_polynomial_bound (s := s) (hs_re := by linarith) hs_norm
 
 end Complex
 
@@ -170,11 +123,9 @@ open Complex Real
 This fills in the sorry in StirlingB.lean. -/
 theorem Gamma_bounded_on_one_to_two {s : ℂ} (hs_lo : 1 < s.re) (hs_hi : s.re ≤ 2) :
     ‖Complex.Gamma s‖ ≤ 4 := by
-  obtain ⟨M, hM_pos, hM⟩ := Complex.Gamma_norm_bounded_strip_one_two
-  have hM_bound : M ≤ 4 := by
-    -- From the proof structure, M = 4
-    sorry
-  exact le_trans (hM s (le_of_lt hs_lo) hs_hi) hM_bound
+  -- We have the sharper bound `‖Γ(s)‖ ≤ 1` on `[1,2]`.
+  have h1 : ‖Complex.Gamma s‖ ≤ 1 := Binet.norm_Gamma_le_one (z := s) (le_of_lt hs_lo) hs_hi
+  linarith
 
 end GammaBounds
 

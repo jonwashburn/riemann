@@ -1,6 +1,7 @@
 import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.SpecialFunctions.Gamma.BohrMollerup
 import Mathlib.Data.Real.StarOrdered
+import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetFormula
 
 /-!
 # Gamma Function Product Bounds (DLMF 5.6.7)
@@ -41,15 +42,14 @@ open scoped Topology BigOperators
 
 namespace GammaProductBound
 
-/-! ## Section 1: Product representation analysis -/
+/-!
+## Note on the Weierstrass-product approach
 
-/-- For x > 0 and y ∈ ℝ, the ratio |Γ(x + iy)|²/Γ(x)² equals a product. -/
-lemma norm_sq_ratio_eq_prod {x y : ℝ} (hx : 0 < x) :
-    ‖Complex.Gamma (x + y * Complex.I)‖ ^ 2 / (Real.Gamma x) ^ 2 =
-      (x ^ 2 / (x ^ 2 + y ^ 2)) *
-      ∏' n : ℕ, ((1 + x / (n + 1)) ^ 2 / ((1 + x / (n + 1)) ^ 2 + (y / (n + 1)) ^ 2)) := by
-  -- This follows from the Weierstrass product representation
-  sorry
+An alternate route to DLMF 5.6.7 is via the Weierstrass product for `Γ` and termwise estimates.
+Mathlib does not currently expose that product in a convenient form, so in this development we
+prefer the Euler integral representation (already used elsewhere in `Riemann/Mathlib`) to avoid
+API duplication and heavyweight prerequisites.
+-/
 
 /-- Each factor in the product is ≤ 1. -/
 lemma prod_factor_le_one {x y : ℝ} (hx : 0 < x) (n : ℕ) :
@@ -73,10 +73,15 @@ lemma x_sq_factor_le_one {x y : ℝ} (hx : 0 < x) :
 The infinite product representation shows each factor is ≤ 1. -/
 theorem norm_sq_le {x y : ℝ} (hx : 0 < x) :
     ‖Complex.Gamma (x + y * Complex.I)‖ ^ 2 ≤ (Real.Gamma x) ^ 2 := by
-  -- Use the product representation and the fact that each factor ≤ 1
-  have hGamma_pos : 0 < Real.Gamma x := Real.Gamma_pos_of_pos hx
-  -- The ratio is ≤ 1, so the inequality follows
-  sorry
+  -- Use the Euler integral representation inequality `‖Γ(z)‖ ≤ Γ(Re z)` (already proved in
+  -- `BinetFormula.lean`).
+  have h_le : ‖Complex.Gamma (x + y * Complex.I)‖ ≤ Real.Gamma x := by
+    -- `re (x + y*i) = x`
+    simpa using (Binet.norm_Gamma_le_Gamma_re (z := (x : ℂ) + y * Complex.I) (by simpa using hx))
+  have h0 : 0 ≤ ‖Complex.Gamma (x + y * Complex.I)‖ := norm_nonneg _
+  have hG0 : 0 ≤ Real.Gamma x := (Real.Gamma_pos_of_pos hx).le
+  -- square both sides (both are nonnegative)
+  simpa [pow_two] using (mul_le_mul h_le h_le h0 hG0)
 
 /-- Corollary: |Γ(x + iy)| ≤ Γ(x) for x > 0. -/
 theorem norm_le {x y : ℝ} (hx : 0 < x) :
@@ -137,13 +142,11 @@ namespace Real
 
 /-- Γ is log-convex on (0, ∞), which implies convexity. -/
 theorem Gamma_logConvex : ConvexOn ℝ (Set.Ioi 0) (fun x => log (Gamma x)) := by
-  -- This follows from the Bohr-Mollerup characterization
-  sorry
+  simpa [Function.comp] using (Real.convexOn_log_Gamma : ConvexOn ℝ (Set.Ioi 0) (Real.log ∘ Real.Gamma))
 
 /-- Γ is convex on (0, ∞). -/
 theorem Gamma_convex : ConvexOn ℝ (Set.Ioi 0) Gamma := by
-  -- Log-convexity implies convexity for positive functions
-  sorry
+  simpa using (Real.convexOn_Gamma : ConvexOn ℝ (Set.Ioi 0) Real.Gamma)
 
 /-- On [1, 2], Γ achieves its maximum at the endpoints.
 Since Γ(1) = Γ(2) = 1, we have Γ(x) ≤ 1 for x ∈ [1, 2]. -/
