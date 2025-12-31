@@ -90,7 +90,8 @@ lemma prod_sub_nat_norm_le (s : ℂ) (n : ℕ) :
     ‖∏ k ∈ Finset.range n, (s - (k + 1))‖ ≤ (‖s‖ + n) ^ n := by
   calc ‖∏ k ∈ Finset.range n, (s - (k + 1))‖
       = ∏ k ∈ Finset.range n, ‖s - (k + 1)‖ := by
-          simp
+          simpa using
+            (norm_prod (s := Finset.range n) (f := fun k : ℕ => s - (k + 1)))
     _ ≤ ∏ _k ∈ Finset.range n, (‖s‖ + n) := by
       apply Finset.prod_le_prod (fun k _ => norm_nonneg _)
       intro k hk

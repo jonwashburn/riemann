@@ -20,7 +20,7 @@ and derives rigorous error bounds for the Stirling asymptotic series.
 * `Binet.log_Gamma_eq`: log Γ(z) = (z-1/2)log z - z + log(2π)/2 + J(z)
 * `Binet.J_bound`: |J(z)| ≤ 1/(12|z|) for Re(z) > 0
 * `stirling_error_bound`: Error bound for truncated Stirling series
-* `factorial_upper_bound`: n! ≤ √(2πn)(n/e)^n e^{1/(12n)} (Robbins bound)
+* (Robbins bounds for `n!`) live in `Riemann/Mathlib/Analysis/SpecialFunctions/Gamma/StirlingRobbins.lean`.
 
 ## References
 
@@ -141,17 +141,21 @@ theorem J_norm_le_real {x : ℝ} (hx : 0 < x) : ‖J (x : ℂ)‖ ≤ 1 / (12 * 
 
 /-! ## Section 2: Binet's formula for log Γ -/
 
-/-- **Binet's First Formula**: For Re(z) > 0,
-log Γ(z) = (z - 1/2) log z - z + log(2π)/2 + J(z)
+/-!
+### About a complex `log Γ` statement
 
-This is the fundamental representation connecting Γ to the Binet integral.
-The proof requires deep analysis of the Gamma function. -/
-theorem log_Gamma_eq {z : ℂ} (hz : 0 < z.re) :
-    Complex.log (Complex.Gamma z) =
-      (z - 1/2) * Complex.log z - z + Complex.log (2 * Real.pi) / 2 + J z := by
-  -- This is a deep theorem requiring integration by parts and
-  -- verification of the functional equation. Deferred.
-  sorry
+Be careful: a statement of the form
+
+`Complex.log (Complex.Gamma z) = (z - 1/2) * Complex.log z - z + log(2π)/2 + J z`
+
+using the *principal* complex logarithm `Complex.log` is **not valid on all of** `{z | 0 < re z}`:
+`Γ` crosses the negative real axis infinitely many times in the right half-plane, so the composite
+`Complex.log ∘ Complex.Gamma` cannot be holomorphic there.  See
+`Riemann/Mathlib/Analysis/SpecialFunctions/Gamma/GammaSlitPlane_PR_PLAN.md` for details.
+
+A principled complex formulation should instead use a holomorphic branch of `log Γ`
+(often called `logGamma`) on a suitable simply-connected domain.
+-/
 
 /-- Binet's formula for real arguments. -/
 theorem log_Gamma_real_eq {x : ℝ} (hx : 0 < x) :
@@ -198,40 +202,7 @@ theorem stirlingRemainder_zero_bound_real {x : ℝ} (hx : 0 < x) :
   simp only [sub_zero]
   exact J_norm_le_real hx
 
-/-! ## Section 4: Factorial bounds -/
-
-/-- **Stirling's approximation for log(n!)**: For n ≥ 1,
-log(n!) = n log n - n + log(2πn)/2 + θ/(12n) where 0 < θ < 1. -/
-theorem log_factorial_stirling {n : ℕ} (hn : 0 < n) :
-    ∃ θ : ℝ, 0 < θ ∧ θ < 1 ∧
-      Real.log (n.factorial : ℝ) =
-        n * Real.log n - n + Real.log (2 * Real.pi * n) / 2 + θ / (12 * n) := by
-  -- Proof: Apply Binet's formula to Γ(n+1) = n! and use the bound on J
-  sorry
-
-/-- **Robbins Upper Bound**: n! ≤ √(2πn)(n/e)^n e^{1/(12n)} -/
-theorem factorial_upper_bound (n : ℕ) (hn : 0 < n) :
-    (n.factorial : ℝ) ≤
-      Real.sqrt (2 * Real.pi * n) * (n / Real.exp 1) ^ n * Real.exp (1 / (12 * n)) := by
-  -- Follows from the upper bound θ < 1 in log_factorial_stirling
-  sorry
-
-/-- **Robbins Lower Bound**: n! ≥ √(2πn)(n/e)^n e^{1/(12n+1)} -/
-theorem factorial_lower_bound (n : ℕ) (hn : 0 < n) :
-    Real.sqrt (2 * Real.pi * n) * (n / Real.exp 1) ^ n * Real.exp (1 / (12 * n + 1)) ≤
-      n.factorial := by
-  -- Follows from the lower bound 0 < θ in log_factorial_stirling
-  sorry
-
-/-- The two-sided Robbins bound. -/
-theorem factorial_robbins_bound (n : ℕ) (hn : 0 < n) :
-    Real.sqrt (2 * Real.pi * n) * (n / Real.exp 1) ^ n * Real.exp (1 / (12 * n + 1)) ≤
-      n.factorial ∧
-    (n.factorial : ℝ) ≤
-      Real.sqrt (2 * Real.pi * n) * (n / Real.exp 1) ^ n * Real.exp (1 / (12 * n)) :=
-  ⟨factorial_lower_bound n hn, factorial_upper_bound n hn⟩
-
-/-! ## Section 5: Gamma function bounds -/
+/-! ## Section 4: Gamma function bounds -/
 
 /-- For x ∈ [1, 2], Γ(x) ≤ 1 since Γ(1) = Γ(2) = 1 and the function is convex. -/
 theorem Gamma_le_one_of_mem_Icc {x : ℝ} (hlo : 1 ≤ x) (hhi : x ≤ 2) :
@@ -283,12 +254,6 @@ end Binet
 /-! ## Section 6: Connection to Stirling.GammaAux -/
 
 namespace Stirling.GammaAux
-
-/-- The Robbins upper bound, proved via Binet's formula. -/
-theorem factorial_asymptotic' (n : ℕ) (hn : 0 < n) :
-    (n.factorial : ℝ) ≤ Real.sqrt (2 * Real.pi * n) * (n / Real.exp 1) ^ n *
-      Real.exp (1 / (12 * n)) :=
-  Binet.factorial_upper_bound n hn
 
 /-- The Gamma bound on [1, 2], proved via convexity. -/
 theorem Gamma_bound_one_two' {s : ℂ} (hs_lo : 1 ≤ s.re) (hs_hi : s.re ≤ 2) :
@@ -505,7 +470,7 @@ theorem re_J_le_one_div_twelve {x : ℝ} (hx : 0 < x) :
       (∫ t in Set.Ioi (0 : ℝ), (12 : ℝ)⁻¹ * Real.exp (-(t * x)))
           = (12 : ℝ)⁻¹ * ∫ t in Set.Ioi (0 : ℝ), Real.exp (-(t * x)) := by
               -- pull out the constant and normalize the exponent
-              simp [MeasureTheory.integral_const_mul, mul_assoc, mul_comm, mul_left_comm]
+              simp [MeasureTheory.integral_const_mul, mul_comm]
       _ = (12 : ℝ)⁻¹ * (1 / x) := by simp [hbase]
       _ = x⁻¹ * (12 : ℝ)⁻¹ := by ring
   -- finish
@@ -587,7 +552,7 @@ theorem re_J_lt_one_div_twelve {x : ℝ} (hx : 0 < x) :
           exact sub_pos.2 hlt
         exact ne_of_gt this
       have ht_support : t ∈ Function.support h := by
-        simpa [Function.mem_support, this] using this
+        simp [Function.mem_support, this]
       exact ⟨ht_support, htI⟩
     -- the volume of `Ioc 0 1` is positive
     have hvol_pos : (0 : ENNReal) < volume (Set.Ioc (0 : ℝ) 1) := by simp
@@ -619,7 +584,7 @@ theorem re_J_lt_one_div_twelve {x : ℝ} (hx : 0 < x) :
     calc
       (∫ t in Set.Ioi (0 : ℝ), g t)
           = (1 / 12 : ℝ) * ∫ t in Set.Ioi (0 : ℝ), Real.exp (-(t * x)) := by
-              simp [g, MeasureTheory.integral_const_mul, mul_assoc, mul_comm, mul_left_comm]
+              simp [g, MeasureTheory.integral_const_mul, mul_comm]
       _ = (1 / 12 : ℝ) * (1 / x) := by simp [hbase]
       _ = 1 / (12 * x) := by ring
 
