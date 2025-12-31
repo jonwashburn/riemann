@@ -2,6 +2,7 @@ import Mathlib
 import Riemann.academic_framework.ZetaFunctionalEquation
 import Riemann.academic_framework.CompletedXi
 import Riemann.academic_framework.GammaBounds
+import Riemann.academic_framework.StirlingBounds
 import Riemann.academic_framework.FiniteOrder
 
 /-!
@@ -105,14 +106,17 @@ lemma pi_pow_neg_half_bound (s : ℂ) :
   rw [Real.rpow_def_of_pos hpi_pos]
   apply Real.exp_le_exp.mpr
   -- -Re(s)/2 · log π ≤ |Re(s)|/2 · log π + |Im(s)|/2 · log π
-  have hlog_pi_pos : 0 < Real.log Real.pi := Real.log_pos Real.one_lt_pi
-  calc -(s.re / 2) * Real.log Real.pi
-      ≤ |s.re| / 2 * Real.log Real.pi := by
+  have hlog_pi_pos : 0 < Real.log Real.pi := by
+    have hone_lt_pi : (1 : ℝ) < Real.pi := lt_of_lt_of_le (by norm_num) Real.two_le_pi
+    exact Real.log_pos hone_lt_pi
+  calc Real.log Real.pi * (-(s.re / 2))
+      = -(s.re / 2) * Real.log Real.pi := by ring
+    _ ≤ |s.re| / 2 * Real.log Real.pi := by
           apply mul_le_mul_of_nonneg_right _ (le_of_lt hlog_pi_pos)
           have h : -(s.re / 2) ≤ |s.re| / 2 := by
-            calc -(s.re / 2) ≤ |-(s.re / 2)| := neg_le_abs _
-              _ = |s.re / 2| := by rw [abs_neg]
-              _ = |s.re| / 2 := by rw [abs_div, abs_of_pos (by norm_num : (0:ℝ) < 2)]
+            calc -(s.re / 2) ≤ |s.re / 2| := neg_le_abs (s.re / 2)
+              _ = |s.re| / 2 := by
+                rw [abs_div, abs_of_pos (by norm_num : (0 : ℝ) < 2)]
           exact h
     _ = |s.re| * Real.log Real.pi / 2 := by ring
     _ ≤ |s.im| * Real.log Real.pi / 2 + |s.re| * Real.log Real.pi / 2 := by
@@ -124,7 +128,7 @@ lemma pi_pow_neg_half_bound (s : ℂ) :
 /-! ### Finite order of the completed zeta function -/
 
 /-- Boundedness of completedRiemannZeta₀ on compact sets. -/
-lemma completedRiemannZeta₀_bounded_on_closedBall (R : ℝ) (hR : 0 < R) :
+lemma completedRiemannZeta₀_bounded_on_closedBall (R : ℝ) (_hR : 0 < R) :
     ∃ M : ℝ, 0 ≤ M ∧ ∀ w : ℂ, ‖w‖ ≤ R → ‖completedRiemannZeta₀ w‖ ≤ M := by
   have hcomp : IsCompact (Metric.closedBall (0 : ℂ) R) := isCompact_closedBall 0 R
   have hcont : ContinuousOn completedRiemannZeta₀ (Metric.closedBall 0 R) :=

@@ -1,7 +1,3 @@
-
-import Mathlib
-import Mathlib.Analysis.SpecialFunctions.Gamma.Beta
-import Mathlib.Analysis.Complex.LocallyUniformLimit
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetKernel
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.GammaUniformBounds
 
@@ -446,11 +442,56 @@ lemma tendsto_digamma_euler_seq {z : ℂ} (hz : ∀ n : ℕ, z ≠ -n) :
     -- From Γ(z+1) = z Γ(z), we get digamma(z+1) = digamma(z) + 1/z
     -- Iterating m times: digamma(z) = digamma(z+m) - ∑_{k=0}^{m-1} 1/(z+k)
     have h_func_eq : digamma z = digamma (z + m) - correction := by
-      unfold digamma correction
-      -- Use the digamma_add_one recurrence iterated m times
-      -- ψ(z) = ψ(z+1) - 1/z, hence ψ(z) = ψ(z+m) - Σ_{k=0}^{m-1} 1/(z+k)
-      -- This is a standard result from the Gamma function recurrence.
-      sorry
+      -- First prove the iterated functional equation:
+      -- `digamma (z + m) = digamma z + ∑_{k < m} 1/(z+k)`.
+      have hz_shift : ∀ k n : ℕ, z + k ≠ -n := by
+        intro k n hk
+        have : z = -((n + k : ℕ) : ℂ) := by
+          -- subtract `k` from both sides
+          have := congrArg (fun w : ℂ => w - (k : ℂ)) hk
+          simpa [sub_eq_add_neg, add_assoc, add_left_comm, add_comm, Nat.cast_add] using this
+        exact hz (n + k) (by simp [this, Nat.cast_add])
+      have hz0 : z ≠ 0 := by simpa using (hz 0)
+      have h_iter : digamma (z + m) = digamma z + ∑ k ∈ Finset.range m, (1 : ℂ) / (z + k) := by
+        classical
+        -- Induction on `m`
+        induction m with
+        | zero =>
+            simp
+        | succ m hm =>
+            -- Apply the recurrence at `z + m`
+            have hzm : ∀ n : ℕ, z + m ≠ -n := by
+              intro n hn
+              have : z = -((n + m : ℕ) : ℂ) := by
+                have := congrArg (fun w : ℂ => w - (m : ℂ)) hn
+                simpa [sub_eq_add_neg, add_assoc, add_left_comm, add_comm, Nat.cast_add] using this
+              exact hz (n + m) (by simp [this, Nat.cast_add])
+            have hzm0 : z + m ≠ 0 := by
+              intro h0
+              have : z = -((m : ℕ) : ℂ) := by
+                have := congrArg (fun w : ℂ => w - (m : ℂ)) h0
+                simpa [sub_eq_add_neg, add_assoc, add_left_comm, add_comm] using this
+              exact hz m (by simp [this])
+            have hrec := digamma_add_one (z := z + m) hzm hzm0
+            -- Combine
+            have : digamma (z + (m + 1)) = digamma z + ∑ k ∈ Finset.range (m + 1), (1 : ℂ) / (z + k) := by
+              -- `digamma(z+m+1) = digamma(z+m) + 1/(z+m)`
+              -- and use `hm` for `digamma(z+m)`
+              calc
+                digamma (z + (m + 1))
+                    = digamma (z + m + 1) := by ring_nf
+                _ = digamma (z + m) + 1 / (z + m) := by simpa [add_assoc] using hrec
+                _ = (digamma z + (∑ k ∈ Finset.range m, (1 : ℂ) / (z + k))) + 1 / (z + m) := by
+                      simp [hm, add_left_comm, add_comm]
+                _ = digamma z + ((∑ k ∈ Finset.range m, (1 : ℂ) / (z + k)) + 1 / (z + m)) := by abel
+                _ = digamma z + (∑ k ∈ Finset.range (m + 1), (1 : ℂ) / (z + k)) := by
+                      simp [Finset.sum_range_succ, add_comm]
+            simpa [Nat.succ_eq_add_one, Nat.cast_add, add_assoc, add_comm, add_left_comm] using this
+      -- Rearrange
+      have : digamma (z + m) - (∑ k ∈ Finset.range m, (1 : ℂ) / (z + k)) = digamma z := by
+        have := congrArg (fun w => w - (∑ k ∈ Finset.range m, (1 : ℂ) / (z + k))) h_iter
+        simpa [sub_eq_add_neg, add_assoc, add_left_comm, add_comm] using this
+      simpa [correction] using this.symm
     rw [h_func_eq]
     -- Show: digamma_euler_seq z n - digamma_euler_seq (z+m) n → -correction
     -- digamma_euler_seq z n = log n - ∑_{j=0}^{n} 1/(z+j)
@@ -459,28 +500,63 @@ lemma tendsto_digamma_euler_seq {z : ℂ} (hz : ∀ n : ℕ, z ≠ -n) :
     --   = ∑_{k=n+1}^{n+m} 1/(z+k) - ∑_{k=0}^{m-1} 1/(z+k) → -correction as n → ∞
     have h_diff : Tendsto (fun n => digamma_euler_seq z n - digamma_euler_seq (z + m) n)
         atTop (𝓝 (-correction)) := by
-      simp only [digamma_euler_seq]
-      -- The difference: log n - ∑_{j≤n} 1/(z+j) - (log n - ∑_{j≤n} 1/(z+m+j))
-      --   = ∑_{j≤n} 1/(z+m+j) - ∑_{j≤n} 1/(z+j)
-      -- Substituting k = j+m in first sum gives ∑_{k=m}^{n+m} 1/(z+k)
-      -- This telescopes to: ∑_{k=n+1}^{n+m} 1/(z+k) - ∑_{k=0}^{m-1} 1/(z+k)
-      -- As n → ∞: tail sum → 0, leaving -correction
-      have h_eq : ∀ n : ℕ, (log (n : ℂ) - ∑ j ∈ Finset.range (n + 1), 1 / (z + (j : ℂ))) -
-          (log (n : ℂ) - ∑ j ∈ Finset.range (n + 1), 1 / (z + (m : ℂ) + (j : ℂ))) =
-          ∑ j ∈ Finset.range (n + 1), (1 / (z + (m : ℂ) + (j : ℂ)) - 1 / (z + (j : ℂ))) := by
+      -- We rewrite the difference as `tail n - correction`, where `tail n = ∑_{k < m} 1/(z + (n+1+k))`.
+      let g : ℕ → ℂ := fun k => (1 : ℂ) / (z + k)
+      let tail : ℕ → ℂ := fun n => ∑ k ∈ Finset.range m, g (n + 1 + k)
+      have hdiff_eq : ∀ n : ℕ,
+          digamma_euler_seq z n - digamma_euler_seq (z + m) n = tail n - correction := by
         intro n
-        simp only [one_div]
-        -- LHS = log n - ∑ 1/(z+j) - log n + ∑ 1/(z+m+j) = ∑ 1/(z+m+j) - ∑ 1/(z+j)
-        have h1 : log (n : ℂ) - ∑ x ∈ Finset.range (n + 1), (z + ↑x)⁻¹ -
-            (log (n : ℂ) - ∑ x ∈ Finset.range (n + 1), (z + ↑m + ↑x)⁻¹) =
-            ∑ x ∈ Finset.range (n + 1), (z + ↑m + ↑x)⁻¹ -
-            ∑ x ∈ Finset.range (n + 1), (z + ↑x)⁻¹ := by ring
-        rw [h1, ← Finset.sum_sub_distrib]
-      simp_rw [h_eq]
-      -- The telescoping sum converges to -correction
-      -- ∑_{j≤n} (1/(z+m+j) - 1/(z+j)) = -∑_{k<m} 1/(z+k) + tail → -correction
-      -- as the tail sum ∑_{k=n+1}^{n+m} 1/(z+k) → 0
-      sorry
+        -- Step 1: rewrite the difference as a difference of finite sums.
+        have h_basic :
+            digamma_euler_seq z n - digamma_euler_seq (z + m) n
+              = (∑ j ∈ Finset.range (n + 1), g (m + j)) - (∑ j ∈ Finset.range (n + 1), g j) := by
+          simp [digamma_euler_seq, g, sub_eq_add_neg, add_assoc, add_left_comm, add_comm]
+        -- Step 2: shifted sum = (long sum) - (initial segment), by `sum_range_add`.
+        have hshift :
+            (∑ j ∈ Finset.range (n + 1), g (m + j))
+              = (∑ k ∈ Finset.range (m + (n + 1)), g k) - (∑ k ∈ Finset.range m, g k) := by
+          refine (eq_sub_iff_add_eq).2 ?_
+          -- `shifted + prefix = total`, which is `sum_range_add` with the summands swapped.
+          simpa [add_comm, add_left_comm, add_assoc] using
+            (Finset.sum_range_add g m (n + 1)).symm
+        -- Step 3: long sum = prefix + tail, again by `sum_range_add`.
+        have htotal :
+            (∑ k ∈ Finset.range (m + (n + 1)), g k)
+              = (∑ k ∈ Finset.range (n + 1), g k) + (∑ k ∈ Finset.range m, g (n + 1 + k)) := by
+          simpa [add_comm, add_left_comm, add_assoc] using
+            (Finset.sum_range_add g (n + 1) m)
+        -- Step 4: combine and cancel.
+        rw [h_basic, hshift, htotal]
+        simp [tail, correction, g]
+        abel_nf
+      have hdiff_eq' :
+          (fun n => digamma_euler_seq z n - digamma_euler_seq (z + m) n) = fun n => tail n - correction :=
+        funext hdiff_eq
+      -- Now take limits: `tail n → 0`, so `tail n - correction → -correction`.
+      have htail : Tendsto tail atTop (𝓝 (0 : ℂ)) := by
+        -- each summand tends to 0, and there are finitely many of them
+        have hsingle :
+            ∀ k ∈ Finset.range m, Tendsto (fun n : ℕ => g (n + 1 + k)) atTop (𝓝 (0 : ℂ)) := by
+          intro k hk
+          have h := tendsto_inv_add_nat_atTop (z + (k + 1))
+          have hrew :
+              (fun n : ℕ => g (n + 1 + k)) = fun n : ℕ => (1 : ℂ) / ((z + (k + 1)) + n) := by
+            ext n
+            simp [g, Nat.cast_add, add_left_comm, add_comm]
+          simpa [hrew] using h
+        have hsum :
+            Tendsto (fun n : ℕ => ∑ k ∈ Finset.range m, g (n + 1 + k)) atTop
+              (𝓝 (∑ k ∈ Finset.range m, (0 : ℂ))) := by
+          refine (tendsto_finset_sum (s := Finset.range m) (f := fun k n => g (n + 1 + k))
+            (a := fun _ => (0 : ℂ)) (x := atTop) ?_)
+          intro k hk
+          simpa using hsingle k hk
+        simpa [tail] using (hsum.trans (by simp))
+      -- conclude
+      have ht' : Tendsto (fun n => tail n - correction) atTop (𝓝 (-correction)) := by
+        simpa using (htail.sub_const correction)
+      -- Rewrite the function using the pointwise identity `hdiff_eq`.
+      exact (Tendsto.congr (fun n => (hdiff_eq n).symm) ht')
     -- Combine: digamma_euler_seq z = (diff) + digamma_euler_seq (z+m)
     have h_eq : digamma_euler_seq z = fun n =>
         (digamma_euler_seq z n - digamma_euler_seq (z + m) n) +
@@ -604,3 +680,4 @@ theorem logGamma_stirling_error {x : ℝ} (hx : 1 ≤ x) :
 end Real
 
 end
+#min_imports

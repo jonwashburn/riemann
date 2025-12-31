@@ -1,0 +1,11 @@
+/-
+Backup note (non-code):
+
+`Complex.Gamma.norm_bound_re_ge_one` in
+`Riemann/Mathlib/Analysis/SpecialFunctions/Gamma/StripBounds.lean` went through an
+earlier overcomplicated proof attempt while refactoring strip/Stirling bounds.
+
+That attempt was replaced by a cleaner proof (functional equation + product bound +
+`Real.rpow` comparison). The previous intermediate state can be recovered from the git
+history / Cursor patch log if needed.
+-/

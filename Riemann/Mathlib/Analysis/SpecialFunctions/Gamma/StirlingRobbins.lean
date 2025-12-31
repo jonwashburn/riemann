@@ -57,7 +57,7 @@ lemma Gamma_nat_eq_factorial (n : ℕ) : Real.Gamma (n + 1) = n.factorial := by
   exact_mod_cast Real.Gamma_nat_eq_factorial n
 
 /-- log(n!) = log Γ(n+1) for n ≥ 1. -/
-lemma log_factorial_eq_log_Gamma {n : ℕ} (hn : 0 < n) :
+lemma log_factorial_eq_log_Gamma {n : ℕ} (_hn : 0 < n) :
     Real.log (n.factorial : ℝ) = Real.log (Real.Gamma (n + 1)) := by
   rw [Gamma_nat_eq_factorial]
 
