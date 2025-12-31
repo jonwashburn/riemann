@@ -1043,7 +1043,6 @@ theorem Ktilde_ge_one_div_twelve_mul_exp_neg_div_twelve {t : ℝ} (ht : 0 < t) :
             ≤ ((1 / 12 : ℝ) * Real.exp (-t / 12)) * (12 * Real.exp (t * (1 / 12 : ℝ)) * f t) := hmain'
         _ = f t := by
             -- Cancel the exponential factors and `12` by a clean algebraic rearrangement.
-            have h12 : ((1 / 12 : ℝ) * 12) = 1 := by norm_num
             have hExp : Real.exp (-t / 12) * Real.exp (t * (1 / 12 : ℝ)) = 1 := by
               have : (-t / 12 : ℝ) + (t * (1 / 12 : ℝ)) = 0 := by ring
               have := congrArg Real.exp this
@@ -1053,7 +1052,7 @@ theorem Ktilde_ge_one_div_twelve_mul_exp_neg_div_twelve {t : ℝ} (ht : 0 < t) :
                   = ((1 / 12 : ℝ) * 12) * (Real.exp (-t / 12) * Real.exp (t * (1 / 12 : ℝ))) * f t := by
                       ring
               _ = (Real.exp (-t / 12) * Real.exp (t * (1 / 12 : ℝ))) * f t := by
-                      simp [h12, mul_assoc]
+                      simp [mul_assoc]
               _ = f t := by
                       simpa [mul_assoc] using congrArg (fun z => z * f t) hExp
     -- now conclude by dividing by the positive denominator
