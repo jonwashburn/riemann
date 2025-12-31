@@ -314,6 +314,9 @@ lemma g_aux'''_nonneg {t : ℝ} (_ht : 0 ≤ t) : 0 ≤ g_aux''' t := by
   simp only [g_aux''']
   exact mul_nonneg (sq_nonneg t) (Real.exp_pos t).le
 
+lemma g_aux'''_pos {t : ℝ} (ht : 0 < t) : 0 < g_aux''' t := by
+  simp [g_aux''', sq_pos_of_ne_zero (ne_of_gt ht), Real.exp_pos]
+
 /-! #### Derivative relations for g_aux hierarchy -/
 
 /-- g'' has derivative g''' -/
@@ -395,6 +398,21 @@ lemma g_aux''_nonneg {t : ℝ} (ht : 0 ≤ t) : 0 ≤ g_aux'' t := by
   · exact g_aux''_zero
   · exact ht
 
+lemma g_aux''_pos {t : ℝ} (ht : 0 < t) : 0 < g_aux'' t := by
+  have hdiff : Differentiable ℝ g_aux'' := fun x => (hasDerivAt_g_aux'' x).differentiableAt
+  have h_pos_deriv : ∀ x ∈ Set.Ioo (0 : ℝ) t, 0 < deriv g_aux'' x := fun x hx => by
+    -- `deriv g_aux'' x = g_aux''' x`
+    simpa [(hasDerivAt_g_aux'' x).deriv] using g_aux'''_pos (t := x) hx.1
+  have h_mono :=
+    strictMonoOn_of_deriv_pos (convex_Icc (0 : ℝ) t)
+      (hdiff.continuous.continuousOn) (fun x hx => by
+        rw [interior_Icc] at hx
+        exact h_pos_deriv x hx)
+  have h0 : (0 : ℝ) ∈ Set.Icc (0 : ℝ) t := ⟨le_rfl, le_of_lt ht⟩
+  have ht' : t ∈ Set.Icc (0 : ℝ) t := ⟨le_of_lt ht, le_rfl⟩
+  have := h_mono h0 ht' ht
+  simpa [g_aux''_zero] using this
+
 /-- g'(t) ≥ 0 for t ≥ 0. Follows from g'(0) = 0 and g'' ≥ 0. -/
 lemma g_aux'_nonneg {t : ℝ} (ht : 0 ≤ t) : 0 ≤ g_aux' t := by
   apply nonneg_of_deriv_nonneg_Ici differentiableOn_g_aux'
@@ -403,6 +421,20 @@ lemma g_aux'_nonneg {t : ℝ} (ht : 0 ≤ t) : 0 ≤ g_aux' t := by
     exact g_aux''_nonneg hx
   · exact g_aux'_zero
   · exact ht
+
+lemma g_aux'_pos {t : ℝ} (ht : 0 < t) : 0 < g_aux' t := by
+  have hdiff : Differentiable ℝ g_aux' := fun x => (hasDerivAt_g_aux' x).differentiableAt
+  have h_pos_deriv : ∀ x ∈ Set.Ioo (0 : ℝ) t, 0 < deriv g_aux' x := fun x hx => by
+    simpa [(hasDerivAt_g_aux' x).deriv] using g_aux''_pos (t := x) hx.1
+  have h_mono :=
+    strictMonoOn_of_deriv_pos (convex_Icc (0 : ℝ) t)
+      (hdiff.continuous.continuousOn) (fun x hx => by
+        rw [interior_Icc] at hx
+        exact h_pos_deriv x hx)
+  have h0 : (0 : ℝ) ∈ Set.Icc (0 : ℝ) t := ⟨le_rfl, le_of_lt ht⟩
+  have ht' : t ∈ Set.Icc (0 : ℝ) t := ⟨le_of_lt ht, le_rfl⟩
+  have := h_mono h0 ht' ht
+  simpa [g_aux'_zero] using this
 
 /-- g(t) ≥ 0 for t ≥ 0. This is the key inequality for proving Ktilde t ≤ 1/12.
 Follows from g(0) = 0 and g' ≥ 0. -/
@@ -413,6 +445,20 @@ lemma g_aux_nonneg {t : ℝ} (ht : 0 ≤ t) : 0 ≤ g_aux t := by
     exact g_aux'_nonneg hx
   · exact g_aux_zero
   · exact ht
+
+lemma g_aux_pos {t : ℝ} (ht : 0 < t) : 0 < g_aux t := by
+  have hdiff : Differentiable ℝ g_aux := fun x => (hasDerivAt_g_aux x).differentiableAt
+  have h_pos_deriv : ∀ x ∈ Set.Ioo (0 : ℝ) t, 0 < deriv g_aux x := fun x hx => by
+    simpa [(hasDerivAt_g_aux x).deriv] using g_aux'_pos (t := x) hx.1
+  have h_mono :=
+    strictMonoOn_of_deriv_pos (convex_Icc (0 : ℝ) t)
+      (hdiff.continuous.continuousOn) (fun x hx => by
+        rw [interior_Icc] at hx
+        exact h_pos_deriv x hx)
+  have h0 : (0 : ℝ) ∈ Set.Icc (0 : ℝ) t := ⟨le_rfl, le_of_lt ht⟩
+  have ht' : t ∈ Set.Icc (0 : ℝ) t := ⟨le_of_lt ht, le_rfl⟩
+  have := h_mono h0 ht' ht
+  simpa [g_aux_zero] using this
 
 /-- The Taylor expansion shows K(t) = t/12 - t³/720 + O(t⁵), so K(t)/t → 1/12 as t → 0⁺.
 Since K(t) < t/12 for t > 0 (the higher order terms are negative), we have K(t)/t < 1/12.
@@ -448,6 +494,574 @@ theorem Ktilde_le {t : ℝ} (ht : 0 ≤ t) : Ktilde t ≤ 1/12 := by
           unfold g_aux at hgoal
           unfold f
           linarith [hgoal, Real.exp_pos t, sq_nonneg t]
+
+theorem Ktilde_lt {t : ℝ} (ht : 0 < t) : Ktilde t < 1 / 12 := by
+  have hexp : 0 < Real.exp t - 1 := exp_sub_one_pos ht
+  calc
+    Ktilde t
+        = f t / (2 * t ^ 2 * (Real.exp t - 1)) := by
+            -- same algebra as in `Ktilde_le`
+            have hdenom : 0 < 2 * t * (Real.exp t - 1) := by positivity
+            calc
+              Ktilde t = (1 / (Real.exp t - 1) - 1 / t + 1 / 2) / t := Ktilde_pos ht
+              _ = (Real.exp t * (t - 2) + t + 2) / (2 * t * (Real.exp t - 1)) / t := by
+                    rw [← K_pos ht, K_eq_alt' ht]
+              _ = f t / (2 * t ^ 2 * (Real.exp t - 1)) := by
+                    unfold f
+                    field_simp
+    _ < 1 / 12 := by
+          -- Reduce to a strict inequality equivalent to `g_aux t > 0`.
+          have hdenom : (0 : ℝ) < 2 * t ^ 2 * (Real.exp t - 1) := by positivity
+          have h12 : (0 : ℝ) < (12 : ℝ) := by norm_num
+          -- Cross-multiply.
+          rw [div_lt_div_iff₀ hdenom h12]
+          -- Goal is `f t * 12 < 1 * (2 * t ^ 2 * (Real.exp t - 1))`.
+          have hpos_g : 0 < g_aux t := g_aux_pos ht
+          have hpos : 0 < 2 * g_aux t := mul_pos (by norm_num) hpos_g
+          unfold g_aux at hpos
+          unfold f
+          -- This is the same algebraic rearrangement as in `Ktilde_le`, but strict.
+          linarith [hpos, Real.exp_pos t, sq_nonneg t]
+
+/-! ## Section 4b: Robbins-type lower bound for `Ktilde` -/
+
+/-!
+Robbins' sharpened factorial lower bound is equivalent (via Binet's integral) to a pointwise
+lower bound on the Binet kernel:
+
+`(1/12) * exp(-t/12) ≤ Ktilde t` for all `t > 0`.
+
+We prove this by reducing it to positivity of an explicit auxiliary function and then using a
+derivative-chain argument (similar to the proof of `Ktilde_le`).
+-/
+
+noncomputable def robbinsAux (t : ℝ) : ℝ :=
+  12 * Real.exp (t * (13 / 12 : ℝ)) * (t - 2)
+    + 12 * Real.exp (t * (1 / 12 : ℝ)) * (t + 2)
+    - 2 * t ^ 2 * Real.exp t + 2 * t ^ 2
+
+noncomputable def robbinsAux' (t : ℝ) : ℝ :=
+  Real.exp (t * (13 / 12 : ℝ)) * (13 * t - 14)
+    + Real.exp (t * (1 / 12 : ℝ)) * (t + 14)
+    - 2 * Real.exp t * (t * (t + 2)) + 4 * t
+
+noncomputable def robbinsAux'' (t : ℝ) : ℝ :=
+  Real.exp (t * (13 / 12 : ℝ)) * ((169 * t - 26) / 12)
+    + Real.exp (t * (1 / 12 : ℝ)) * ((t + 26) / 12)
+    - 2 * Real.exp t * (t ^ 2 + 4 * t + 2) + 4
+
+noncomputable def robbinsAux''' (t : ℝ) : ℝ :=
+  Real.exp (t * (13 / 12 : ℝ)) * ((2197 * t + 1690) / 144)
+    + Real.exp (t * (1 / 12 : ℝ)) * ((t + 38) / 144)
+    - 2 * Real.exp t * (t ^ 2 + 6 * t + 6)
+
+noncomputable def robbinsAux'''' (t : ℝ) : ℝ :=
+  Real.exp (t * (13 / 12 : ℝ)) * ((28561 * t + 48334) / 1728)
+    + Real.exp (t * (1 / 12 : ℝ)) * ((t + 50) / 1728)
+    - 2 * Real.exp t * (t ^ 2 + 8 * t + 12)
+
+lemma robbinsAux_zero : robbinsAux 0 = 0 := by
+  simp [robbinsAux]
+
+lemma robbinsAux'_zero : robbinsAux' 0 = 0 := by
+  simp [robbinsAux']
+
+lemma robbinsAux''_zero : robbinsAux'' 0 = 0 := by
+  simp [robbinsAux'']
+  norm_num
+
+lemma robbinsAux'''_zero : robbinsAux''' 0 = 0 := by
+  simp [robbinsAux''']
+  norm_num
+
+lemma hasDerivAt_robbinsAux (t : ℝ) : HasDerivAt robbinsAux (robbinsAux' t) t := by
+  -- Differentiate term-by-term; using the fact `d/dt (exp (t*c)) = exp (t*c) * c`.
+  have hexp13 : HasDerivAt (fun x : ℝ => Real.exp (x * (13 / 12 : ℝ)))
+      (Real.exp (t * (13 / 12 : ℝ)) * (13 / 12 : ℝ)) t := by
+    have hlin : HasDerivAt (fun x : ℝ => x * (13 / 12 : ℝ)) (13 / 12 : ℝ) t := by
+      simpa using (hasDerivAt_id t).mul_const (13 / 12 : ℝ)
+    simpa [Function.comp, mul_assoc, mul_left_comm, mul_comm] using
+      (Real.hasDerivAt_exp (t * (13 / 12 : ℝ))).comp t hlin
+  have hexp1 : HasDerivAt (fun x : ℝ => Real.exp (x * (1 / 12 : ℝ)))
+      (Real.exp (t * (1 / 12 : ℝ)) * (1 / 12 : ℝ)) t := by
+    have hlin : HasDerivAt (fun x : ℝ => x * (1 / 12 : ℝ)) (1 / 12 : ℝ) t := by
+      simpa using (hasDerivAt_id t).mul_const (1 / 12 : ℝ)
+    simpa [Function.comp, mul_assoc, mul_left_comm, mul_comm] using
+      (Real.hasDerivAt_exp (t * (1 / 12 : ℝ))).comp t hlin
+  have hA :
+      HasDerivAt (fun x : ℝ => 12 * Real.exp (x * (13 / 12 : ℝ)) * (x - 2))
+        (Real.exp (t * (13 / 12 : ℝ)) * (13 * t - 14)) t := by
+    have hpoly : HasDerivAt (fun x : ℝ => x - 2) 1 t := (hasDerivAt_id t).sub_const 2
+    have hmul :
+        HasDerivAt (fun x : ℝ => Real.exp (x * (13 / 12 : ℝ)) * (x - 2))
+          (Real.exp (t * (13 / 12 : ℝ)) * (13 / 12 : ℝ) * (t - 2) + Real.exp (t * (13 / 12 : ℝ)) * 1) t :=
+      (hexp13.mul hpoly)
+    -- multiply by 12
+    have h := hmul.const_mul (12 : ℝ)
+    -- normalize function and derivative values
+    convert h using 1 <;> ring_nf
+  have hB :
+      HasDerivAt (fun x : ℝ => 12 * Real.exp (x * (1 / 12 : ℝ)) * (x + 2))
+        (Real.exp (t * (1 / 12 : ℝ)) * (t + 14)) t := by
+    have hpoly : HasDerivAt (fun x : ℝ => x + 2) 1 t := (hasDerivAt_id t).add_const 2
+    have hmul :
+        HasDerivAt (fun x : ℝ => Real.exp (x * (1 / 12 : ℝ)) * (x + 2))
+          (Real.exp (t * (1 / 12 : ℝ)) * (1 / 12 : ℝ) * (t + 2) + Real.exp (t * (1 / 12 : ℝ)) * 1) t :=
+      (hexp1.mul hpoly)
+    have h := hmul.const_mul (12 : ℝ)
+    convert h using 1 <;> ring_nf
+  have hC :
+      HasDerivAt (fun x : ℝ => -2 * x ^ 2 * Real.exp x)
+        (-2 * (Real.exp t * (t * (t + 2)))) t := by
+    have hpow : HasDerivAt (fun x : ℝ => x ^ 2) ((2 : ℝ) * t) t := by
+      simpa using (hasDerivAt_pow 2 t)
+    have hexp : HasDerivAt Real.exp (Real.exp t) t := Real.hasDerivAt_exp t
+    have hmul : HasDerivAt (fun x : ℝ => x ^ 2 * Real.exp x)
+        ((2 : ℝ) * t * Real.exp t + t ^ 2 * Real.exp t) t := hpow.mul hexp
+    have h := hmul.const_mul (-2 : ℝ)
+    convert h using 1 <;> ring_nf
+  have hD :
+      HasDerivAt (fun x : ℝ => 2 * x ^ 2) (4 * t) t := by
+    have hpow : HasDerivAt (fun x : ℝ => x ^ 2) ((2 : ℝ) * t) t := by
+      simpa using (hasDerivAt_pow 2 t)
+    have h := hpow.const_mul (2 : ℝ)
+    convert h using 1; ring_nf
+  -- combine
+  have h := ((hA.add hB).add (hC.add hD))
+  -- unfold the target definitions and normalize
+  unfold robbinsAux robbinsAux'
+  convert h using 1
+  · funext x
+    -- unfold pointwise addition/multiplication of functions, then normalize
+    simp [Pi.add_apply, sub_eq_add_neg, add_assoc, add_comm, mul_assoc, mul_comm]
+  · ring_nf
+
+lemma hasDerivAt_robbinsAux' (t : ℝ) : HasDerivAt robbinsAux' (robbinsAux'' t) t := by
+  have hexp13 : HasDerivAt (fun x : ℝ => Real.exp (x * (13 / 12 : ℝ)))
+      (Real.exp (t * (13 / 12 : ℝ)) * (13 / 12 : ℝ)) t := by
+    have hlin : HasDerivAt (fun x : ℝ => x * (13 / 12 : ℝ)) (13 / 12 : ℝ) t := by
+      simpa using (hasDerivAt_id t).mul_const (13 / 12 : ℝ)
+    simpa [Function.comp, mul_assoc, mul_left_comm, mul_comm] using
+      (Real.hasDerivAt_exp (t * (13 / 12 : ℝ))).comp t hlin
+  have hexp1 : HasDerivAt (fun x : ℝ => Real.exp (x * (1 / 12 : ℝ)))
+      (Real.exp (t * (1 / 12 : ℝ)) * (1 / 12 : ℝ)) t := by
+    have hlin : HasDerivAt (fun x : ℝ => x * (1 / 12 : ℝ)) (1 / 12 : ℝ) t := by
+      simpa using (hasDerivAt_id t).mul_const (1 / 12 : ℝ)
+    simpa [Function.comp, mul_assoc, mul_left_comm, mul_comm] using
+      (Real.hasDerivAt_exp (t * (1 / 12 : ℝ))).comp t hlin
+  have hA :
+      HasDerivAt (fun x : ℝ => Real.exp (x * (13 / 12 : ℝ)) * (13 * x - 14))
+        (Real.exp (t * (13 / 12 : ℝ)) * ((169 * t - 26) / 12)) t := by
+    have hpoly : HasDerivAt (fun x : ℝ => 13 * x - 14) 13 t := by
+      simpa [sub_eq_add_neg, mul_assoc, mul_left_comm, mul_comm] using
+        ((hasDerivAt_id t).const_mul (13 : ℝ)).sub_const 14
+    have hmul := hexp13.mul hpoly
+    -- normalize the derivative value
+    convert hmul using 1; ring_nf
+  have hB :
+      HasDerivAt (fun x : ℝ => Real.exp (x * (1 / 12 : ℝ)) * (x + 14))
+        (Real.exp (t * (1 / 12 : ℝ)) * ((t + 26) / 12)) t := by
+    have hpoly : HasDerivAt (fun x : ℝ => x + 14) 1 t := (hasDerivAt_id t).add_const 14
+    have hmul := hexp1.mul hpoly
+    convert hmul using 1; ring_nf
+  have hC :
+      HasDerivAt (fun x : ℝ => -2 * Real.exp x * (x * (x + 2)))
+        (-2 * Real.exp t * (t ^ 2 + 4 * t + 2)) t := by
+    have hexp : HasDerivAt Real.exp (Real.exp t) t := Real.hasDerivAt_exp t
+    have hpoly : HasDerivAt (fun x : ℝ => x * (x + 2)) (t + (t + 2)) t := by
+      -- derivative of x*(x+2) is (x+2)+x
+      have h1 : HasDerivAt (fun x : ℝ => x) 1 t := hasDerivAt_id t
+      have h2 : HasDerivAt (fun x : ℝ => x + 2) 1 t := (hasDerivAt_id t).add_const 2
+      have := h1.mul h2
+      simpa [mul_assoc, mul_left_comm, mul_comm, add_assoc, add_left_comm, add_comm] using this
+    have hmul := hexp.mul hpoly
+    have h := hmul.const_mul (-2 : ℝ)
+    convert h using 1
+    · funext x
+      simp [Pi.mul_apply, mul_assoc, mul_comm, mul_left_comm]
+    · ring_nf
+  have hD : HasDerivAt (fun x : ℝ => 4 * x) 4 t := by
+    simpa [mul_comm] using (hasDerivAt_id t).const_mul (4 : ℝ)
+  have h := ((hA.add hB).add (hC.add hD))
+  unfold robbinsAux' robbinsAux''
+  convert h using 1
+  · funext x
+    simp [Pi.add_apply, sub_eq_add_neg, add_assoc, add_comm, mul_assoc, mul_comm]
+  · ring_nf
+
+lemma hasDerivAt_robbinsAux'' (t : ℝ) : HasDerivAt robbinsAux'' (robbinsAux''' t) t := by
+  have hexp13 : HasDerivAt (fun x : ℝ => Real.exp (x * (13 / 12 : ℝ)))
+      (Real.exp (t * (13 / 12 : ℝ)) * (13 / 12 : ℝ)) t := by
+    have hlin : HasDerivAt (fun x : ℝ => x * (13 / 12 : ℝ)) (13 / 12 : ℝ) t := by
+      simpa using (hasDerivAt_id t).mul_const (13 / 12 : ℝ)
+    simpa [Function.comp, mul_assoc, mul_left_comm, mul_comm] using
+      (Real.hasDerivAt_exp (t * (13 / 12 : ℝ))).comp t hlin
+  have hexp1 : HasDerivAt (fun x : ℝ => Real.exp (x * (1 / 12 : ℝ)))
+      (Real.exp (t * (1 / 12 : ℝ)) * (1 / 12 : ℝ)) t := by
+    have hlin : HasDerivAt (fun x : ℝ => x * (1 / 12 : ℝ)) (1 / 12 : ℝ) t := by
+      simpa using (hasDerivAt_id t).mul_const (1 / 12 : ℝ)
+    simpa [Function.comp, mul_assoc, mul_left_comm, mul_comm] using
+      (Real.hasDerivAt_exp (t * (1 / 12 : ℝ))).comp t hlin
+  have hA :
+      HasDerivAt (fun x : ℝ => Real.exp (x * (13 / 12 : ℝ)) * ((169 * x - 26) / 12))
+        (Real.exp (t * (13 / 12 : ℝ)) * ((2197 * t + 1690) / 144)) t := by
+    have hpoly : HasDerivAt (fun x : ℝ => ((169 * x - 26) / 12)) (169 / 12) t := by
+      have : HasDerivAt (fun x : ℝ => (169 * x - 26)) 169 t := by
+        simpa [sub_eq_add_neg, mul_assoc, mul_left_comm, mul_comm] using
+          ((hasDerivAt_id t).const_mul (169 : ℝ)).sub_const 26
+      simpa [div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm] using this.const_mul (1 / 12 : ℝ)
+    have hmul := hexp13.mul hpoly
+    convert hmul using 1; ring_nf
+  have hB :
+      HasDerivAt (fun x : ℝ => Real.exp (x * (1 / 12 : ℝ)) * ((x + 26) / 12))
+        (Real.exp (t * (1 / 12 : ℝ)) * ((t + 38) / 144)) t := by
+    have hpoly : HasDerivAt (fun x : ℝ => ((x + 26) / 12)) (1 / 12) t := by
+      simpa [div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm] using
+        ((hasDerivAt_id t).add_const 26).const_mul (1 / 12 : ℝ)
+    have hmul := hexp1.mul hpoly
+    convert hmul using 1; ring_nf
+  have hC :
+      HasDerivAt (fun x : ℝ => -2 * Real.exp x * (x ^ 2 + 4 * x + 2))
+        (-2 * Real.exp t * (t ^ 2 + 6 * t + 6)) t := by
+    have hexp : HasDerivAt Real.exp (Real.exp t) t := Real.hasDerivAt_exp t
+    have hpoly : HasDerivAt (fun x : ℝ => x ^ 2 + 4 * x + 2) (2 * t + 4) t := by
+      have h1 : HasDerivAt (fun x : ℝ => x ^ 2) ((2 : ℝ) * t) t := by
+        simpa using (hasDerivAt_pow 2 t)
+      have h2 : HasDerivAt (fun x : ℝ => 4 * x) 4 t := by
+        simpa [mul_comm] using (hasDerivAt_id t).const_mul (4 : ℝ)
+      have h3 : HasDerivAt (fun x : ℝ => (2 : ℝ)) 0 t := hasDerivAt_const t 2
+      have := (h1.add (h2.add h3))
+      simpa [add_assoc, add_left_comm, add_comm, mul_assoc, mul_left_comm, mul_comm] using this
+    have hmul := hexp.mul hpoly
+    have h := hmul.const_mul (-2 : ℝ)
+    convert h using 1
+    · funext x
+      simp [Pi.mul_apply, mul_comm, mul_left_comm]
+    · ring_nf
+  have hD : HasDerivAt (fun _x : ℝ => (4 : ℝ)) 0 t := hasDerivAt_const t 4
+  have h := ((hA.add hB).add hC).add hD
+  unfold robbinsAux'' robbinsAux'''
+  convert h using 1
+  · funext x
+    simp [Pi.add_apply, sub_eq_add_neg, add_comm, mul_comm]
+  · ring_nf
+
+lemma hasDerivAt_robbinsAux''' (t : ℝ) : HasDerivAt robbinsAux''' (robbinsAux'''' t) t := by
+  have hexp13 : HasDerivAt (fun x : ℝ => Real.exp (x * (13 / 12 : ℝ)))
+      (Real.exp (t * (13 / 12 : ℝ)) * (13 / 12 : ℝ)) t := by
+    have hlin : HasDerivAt (fun x : ℝ => x * (13 / 12 : ℝ)) (13 / 12 : ℝ) t := by
+      simpa using (hasDerivAt_id t).mul_const (13 / 12 : ℝ)
+    simpa [Function.comp, mul_assoc, mul_left_comm, mul_comm] using
+      (Real.hasDerivAt_exp (t * (13 / 12 : ℝ))).comp t hlin
+  have hexp1 : HasDerivAt (fun x : ℝ => Real.exp (x * (1 / 12 : ℝ)))
+      (Real.exp (t * (1 / 12 : ℝ)) * (1 / 12 : ℝ)) t := by
+    have hlin : HasDerivAt (fun x : ℝ => x * (1 / 12 : ℝ)) (1 / 12 : ℝ) t := by
+      simpa using (hasDerivAt_id t).mul_const (1 / 12 : ℝ)
+    simpa [Function.comp, mul_assoc, mul_left_comm, mul_comm] using
+      (Real.hasDerivAt_exp (t * (1 / 12 : ℝ))).comp t hlin
+  have hA :
+      HasDerivAt (fun x : ℝ => Real.exp (x * (13 / 12 : ℝ)) * ((2197 * x + 1690) / 144))
+        (Real.exp (t * (13 / 12 : ℝ)) * ((28561 * t + 48334) / 1728)) t := by
+    have hpoly : HasDerivAt (fun x : ℝ => ((2197 * x + 1690) / 144)) (2197 / 144) t := by
+      have : HasDerivAt (fun x : ℝ => (2197 * x + 1690)) 2197 t := by
+        simpa [mul_assoc, mul_left_comm, mul_comm] using
+          ((hasDerivAt_id t).const_mul (2197 : ℝ)).add_const 1690
+      simpa [div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm] using this.const_mul (1 / 144 : ℝ)
+    have hmul := hexp13.mul hpoly
+    convert hmul using 1; ring_nf
+  have hB :
+      HasDerivAt (fun x : ℝ => Real.exp (x * (1 / 12 : ℝ)) * ((x + 38) / 144))
+        (Real.exp (t * (1 / 12 : ℝ)) * ((t + 50) / 1728)) t := by
+    have hpoly : HasDerivAt (fun x : ℝ => ((x + 38) / 144)) (1 / 144) t := by
+      simpa [div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm] using
+        ((hasDerivAt_id t).add_const 38).const_mul (1 / 144 : ℝ)
+    have hmul := hexp1.mul hpoly
+    convert hmul using 1; ring_nf
+  have hC :
+      HasDerivAt (fun x : ℝ => -2 * Real.exp x * (x ^ 2 + 6 * x + 6))
+        (-2 * Real.exp t * (t ^ 2 + 8 * t + 12)) t := by
+    have hexp : HasDerivAt Real.exp (Real.exp t) t := Real.hasDerivAt_exp t
+    have hpoly : HasDerivAt (fun x : ℝ => x ^ 2 + 6 * x + 6) (2 * t + 6) t := by
+      have h1 : HasDerivAt (fun x : ℝ => x ^ 2) ((2 : ℝ) * t) t := by
+        simpa using (hasDerivAt_pow 2 t)
+      have h2 : HasDerivAt (fun x : ℝ => 6 * x) 6 t := by
+        simpa [mul_comm] using (hasDerivAt_id t).const_mul (6 : ℝ)
+      have h3 : HasDerivAt (fun x : ℝ => (6 : ℝ)) 0 t := hasDerivAt_const t 6
+      have := h1.add (h2.add h3)
+      simpa [add_assoc, add_left_comm, add_comm, mul_assoc, mul_left_comm, mul_comm] using this
+    have hmul := hexp.mul hpoly
+    have h := hmul.const_mul (-2 : ℝ)
+    convert h using 1
+    · funext x
+      simp [Pi.mul_apply, mul_comm, mul_left_comm]
+    · ring_nf
+  have h := (hA.add hB).add hC
+  unfold robbinsAux''' robbinsAux''''
+  convert h using 1
+  · funext x
+    simp [Pi.add_apply, sub_eq_add_neg, add_comm, mul_comm]
+  · ring_nf
+
+lemma differentiableOn_robbinsAux : DifferentiableOn ℝ robbinsAux (Set.Ici 0) := fun x _ =>
+  (hasDerivAt_robbinsAux x).differentiableAt.differentiableWithinAt
+
+lemma differentiableOn_robbinsAux' : DifferentiableOn ℝ robbinsAux' (Set.Ici 0) := fun x _ =>
+  (hasDerivAt_robbinsAux' x).differentiableAt.differentiableWithinAt
+
+lemma differentiableOn_robbinsAux'' : DifferentiableOn ℝ robbinsAux'' (Set.Ici 0) := fun x _ =>
+  (hasDerivAt_robbinsAux'' x).differentiableAt.differentiableWithinAt
+
+lemma differentiableOn_robbinsAux''' : DifferentiableOn ℝ robbinsAux''' (Set.Ici 0) := fun x _ =>
+  (hasDerivAt_robbinsAux''' x).differentiableAt.differentiableWithinAt
+
+/-! ### Positivity of the fourth derivative -/
+
+noncomputable def robbinsPoly (t : ℝ) : ℝ :=
+  (3431 / 864 : ℝ) + (29645 / 10368 : ℝ) * t - (130765 / 248832 : ℝ) * t ^ 2 +
+    (28561 / 497664 : ℝ) * t ^ 3
+
+noncomputable def robbinsPoly' (t : ℝ) : ℝ :=
+  (28561 / 165888 : ℝ) * t ^ 2 - (130765 / 124416 : ℝ) * t + (29645 / 10368 : ℝ)
+
+lemma hasDerivAt_robbinsPoly (t : ℝ) : HasDerivAt robbinsPoly (robbinsPoly' t) t := by
+  unfold robbinsPoly robbinsPoly'
+  -- derivative of a cubic polynomial
+  have h0 : HasDerivAt (fun _x : ℝ => (3431 / 864 : ℝ)) 0 t := hasDerivAt_const t _
+  have h1 : HasDerivAt (fun x : ℝ => (29645 / 10368 : ℝ) * x) (29645 / 10368 : ℝ) t := by
+    simpa [mul_comm] using (hasDerivAt_id t).const_mul (29645 / 10368 : ℝ)
+  have h2 : HasDerivAt (fun x : ℝ => -(130765 / 248832 : ℝ) * x ^ 2)
+      (-(130765 / 124416 : ℝ) * t) t := by
+    have hpow : HasDerivAt (fun x : ℝ => x ^ 2) ((2 : ℝ) * t) t := by
+      simpa using (hasDerivAt_pow 2 t)
+    have h := hpow.const_mul (-(130765 / 248832 : ℝ))
+    convert h using 1; ring_nf
+  have h3 : HasDerivAt (fun x : ℝ => (28561 / 497664 : ℝ) * x ^ 3)
+      ((28561 / 165888 : ℝ) * t ^ 2) t := by
+    have hpow : HasDerivAt (fun x : ℝ => x ^ 3) ((3 : ℝ) * t ^ 2) t := by
+      simpa using (hasDerivAt_pow 3 t)
+    have h := hpow.const_mul (28561 / 497664 : ℝ)
+    convert h using 1; ring_nf
+  have h := (((h0.add h1).add h2).add h3)
+  convert h using 1
+  · funext x
+    simp [Pi.add_apply]
+    ring_nf
+  · ring_nf
+
+lemma robbinsPoly'_pos (t : ℝ) : 0 < robbinsPoly' t := by
+  -- Use a discriminant computation (completing the square).
+  have hderiv : deriv robbinsPoly t = robbinsPoly' t := by
+    simpa using (hasDerivAt_robbinsPoly t).deriv
+  -- `robbinsPoly'` is a quadratic with negative discriminant.
+  -- We prove positivity by completing the square.
+  -- Setup coefficients.
+  let a : ℝ := (28561 / 165888 : ℝ)
+  let b : ℝ := (-(130765 / 124416 : ℝ))
+  let c : ℝ := (29645 / 10368 : ℝ)
+  have ha : 0 < a := by norm_num [a]
+  have hD : b ^ 2 - 4 * a * c < 0 := by
+    -- exact rational computation
+    norm_num [a, b, c]
+  have hquad :
+      robbinsPoly' t = a * t ^ 2 + b * t + c := by
+    simp [robbinsPoly', a, b, c, pow_two, mul_assoc, mul_comm, sub_eq_add_neg]
+  -- Apply the generic completed-square argument.
+  have : 0 < a * t ^ 2 + b * t + c := by
+    have ha0 : a ≠ 0 := ne_of_gt ha
+    have hsq : a * t ^ 2 + b * t + c = a * (t + b / (2 * a)) ^ 2 + (4 * a * c - b ^ 2) / (4 * a) := by
+      field_simp [ha0]
+      ring
+    have hconst_pos : 0 < (4 * a * c - b ^ 2) / (4 * a) := by
+      have hn : 0 < 4 * a * c - b ^ 2 := by linarith
+      have hd : 0 < 4 * a := by nlinarith [ha]
+      exact div_pos hn hd
+    have hsq_nonneg : 0 ≤ a * (t + b / (2 * a)) ^ 2 := by
+      exact mul_nonneg (le_of_lt ha) (sq_nonneg _)
+    have hsum_pos : 0 < a * (t + b / (2 * a)) ^ 2 + (4 * a * c - b ^ 2) / (4 * a) :=
+      lt_of_lt_of_le hconst_pos (le_add_of_nonneg_left hsq_nonneg)
+    simpa [hsq] using hsum_pos
+  simpa [hquad]
+
+lemma robbinsPoly_pos {t : ℝ} (_ht : 0 ≤ t) : 0 < robbinsPoly t := by
+  -- `robbinsPoly` is strictly increasing everywhere, so `robbinsPoly t ≥ robbinsPoly 0 > 0`.
+  have hpos_deriv : ∀ x : ℝ, 0 < deriv robbinsPoly x := by
+    intro x
+    rw [(hasDerivAt_robbinsPoly x).deriv]
+    exact robbinsPoly'_pos x
+  have hmono : StrictMono robbinsPoly := strictMono_of_deriv_pos hpos_deriv
+  have h0 : 0 < robbinsPoly 0 := by
+    simp [robbinsPoly]
+  -- since `0 < t`, or `t = 0`, both imply `0 < robbinsPoly t`
+  have : 0 ≤ robbinsPoly 0 := le_of_lt h0
+  have hle : robbinsPoly 0 ≤ robbinsPoly t := by
+    exact (hmono.monotone (by simpa using _ht))
+  exact lt_of_lt_of_le h0 hle
+
+lemma robbinsAux''''_nonneg {t : ℝ} (ht : 0 ≤ t) : 0 ≤ robbinsAux'''' t := by
+  -- Rewrite `exp (t * (13/12))` as `exp t * exp (t/12)` and use a cubic lower bound for the
+  -- remaining bracket.
+  have hexp13 : Real.exp (t * (13 / 12 : ℝ)) = Real.exp t * Real.exp (t * (1 / 12 : ℝ)) := by
+    have : t * (13 / 12 : ℝ) = t + t * (1 / 12 : ℝ) := by ring
+    calc
+      Real.exp (t * (13 / 12 : ℝ)) = Real.exp (t + t * (1 / 12 : ℝ)) := by simp [this]
+      _ = Real.exp t * Real.exp (t * (1 / 12 : ℝ)) := by simp [Real.exp_add]
+  have hpi : 0 ≤ Real.exp (t * (1 / 12 : ℝ)) := (Real.exp_pos _).le
+  have htlin : 0 ≤ (28561 * t + 48334) / 1728 := by
+    have : (0 : ℝ) ≤ 28561 * t + 48334 := by nlinarith [ht]
+    nlinarith
+  have hExpLower :
+      robbinsPoly t ≤
+        Real.exp (t * (1 / 12 : ℝ)) * ((28561 * t + 48334) / 1728) - 2 * (t ^ 2 + 8 * t + 12) := by
+    -- use `exp u ≥ 1 + u + u^2/2` with `u = t/12`
+    have hu : 0 ≤ t * (1 / 12 : ℝ) := by nlinarith [ht]
+    have hexp_lb : 1 + (t * (1 / 12 : ℝ)) + (t * (1 / 12 : ℝ)) ^ 2 / 2 ≤ Real.exp (t * (1 / 12 : ℝ)) :=
+      exp_ge_one_add_sq hu
+    -- multiply by the nonnegative scalar `((28561*t+48334)/1728)`
+    have hmul :
+        (1 + (t * (1 / 12 : ℝ)) + (t * (1 / 12 : ℝ)) ^ 2 / 2) * ((28561 * t + 48334) / 1728)
+          ≤ Real.exp (t * (1 / 12 : ℝ)) * ((28561 * t + 48334) / 1728) :=
+      mul_le_mul_of_nonneg_right hexp_lb htlin
+    have hsub :
+        (1 + (t * (1 / 12 : ℝ)) + (t * (1 / 12 : ℝ)) ^ 2 / 2) * ((28561 * t + 48334) / 1728)
+            - 2 * (t ^ 2 + 8 * t + 12)
+          ≤ Real.exp (t * (1 / 12 : ℝ)) * ((28561 * t + 48334) / 1728) - 2 * (t ^ 2 + 8 * t + 12) :=
+      sub_le_sub_right hmul _
+    -- show the LHS equals `robbinsPoly t`
+    have : (1 + (t * (1 / 12 : ℝ)) + (t * (1 / 12 : ℝ)) ^ 2 / 2) * ((28561 * t + 48334) / 1728)
+          - 2 * (t ^ 2 + 8 * t + 12) = robbinsPoly t := by
+      -- purely algebraic normalization
+      unfold robbinsPoly
+      ring
+    grind --simpa [this] using hsub
+  have hpoly_pos : 0 < robbinsPoly t := robbinsPoly_pos (t := t) ht
+  have hbracket : 0 ≤ Real.exp (t * (1 / 12 : ℝ)) * ((28561 * t + 48334) / 1728) - 2 * (t ^ 2 + 8 * t + 12) :=
+    le_of_lt (lt_of_lt_of_le hpoly_pos hExpLower)
+  -- finish: `robbinsAux''''` is `exp t * bracket + exp(t/12) * ((t+50)/1728)`
+  have hterm2 : 0 ≤ Real.exp (t * (1 / 12 : ℝ)) * ((t + 50) / 1728) := by
+    have : 0 ≤ (t + 50) / 1728 := by nlinarith [ht]
+    exact mul_nonneg (Real.exp_pos _).le this
+  -- rewrite and conclude
+  have : robbinsAux'''' t =
+      Real.exp t * (Real.exp (t * (1 / 12 : ℝ)) * ((28561 * t + 48334) / 1728) - 2 * (t ^ 2 + 8 * t + 12))
+        + Real.exp (t * (1 / 12 : ℝ)) * ((t + 50) / 1728) := by
+    unfold robbinsAux''''
+    -- use `hexp13` and `ring`
+    simp [hexp13, mul_add, add_mul, mul_assoc, mul_left_comm, mul_comm, sub_eq_add_neg]
+    ring
+  rw [this]
+  exact add_nonneg (mul_nonneg (Real.exp_pos _).le hbracket) hterm2
+
+lemma robbinsAux'''_nonneg {t : ℝ} (ht : 0 ≤ t) : 0 ≤ robbinsAux''' t := by
+  apply nonneg_of_deriv_nonneg_Ici differentiableOn_robbinsAux'''
+  · intro x hx
+    rw [(hasDerivAt_robbinsAux''' x).deriv]
+    exact robbinsAux''''_nonneg (t := x) hx
+  · exact robbinsAux'''_zero
+  · exact ht
+
+lemma robbinsAux''_nonneg {t : ℝ} (ht : 0 ≤ t) : 0 ≤ robbinsAux'' t := by
+  apply nonneg_of_deriv_nonneg_Ici differentiableOn_robbinsAux''
+  · intro x hx
+    rw [(hasDerivAt_robbinsAux'' x).deriv]
+    exact robbinsAux'''_nonneg (t := x) hx
+  · exact robbinsAux''_zero
+  · exact ht
+
+lemma robbinsAux'_nonneg {t : ℝ} (ht : 0 ≤ t) : 0 ≤ robbinsAux' t := by
+  apply nonneg_of_deriv_nonneg_Ici differentiableOn_robbinsAux'
+  · intro x hx
+    rw [(hasDerivAt_robbinsAux' x).deriv]
+    exact robbinsAux''_nonneg (t := x) hx
+  · exact robbinsAux'_zero
+  · exact ht
+
+lemma robbinsAux_nonneg {t : ℝ} (ht : 0 ≤ t) : 0 ≤ robbinsAux t := by
+  apply nonneg_of_deriv_nonneg_Ici differentiableOn_robbinsAux
+  · intro x hx
+    rw [(hasDerivAt_robbinsAux x).deriv]
+    exact robbinsAux'_nonneg (t := x) hx
+  · exact robbinsAux_zero
+  · exact ht
+
+theorem Ktilde_ge_one_div_twelve_mul_exp_neg_div_twelve {t : ℝ} (ht : 0 < t) :
+    (1 / 12 : ℝ) * Real.exp (-t / 12) ≤ Ktilde t := by
+  -- Rewrite `Ktilde t` via the `f`-formula and reduce to `robbinsAux_nonneg`.
+  have ht0 : 0 ≤ t := le_of_lt ht
+  have hexp : 0 < Real.exp t - 1 := exp_sub_one_pos ht
+  have hK : Ktilde t = f t / (2 * t ^ 2 * (Real.exp t - 1)) := by
+    -- same algebra as in `Ktilde_le`
+    calc
+      Ktilde t = (1 / (Real.exp t - 1) - 1 / t + 1 / 2) / t := Ktilde_pos ht
+      _ = (Real.exp t * (t - 2) + t + 2) / (2 * t * (Real.exp t - 1)) / t := by
+            rw [← K_pos ht, K_eq_alt' ht]
+      _ = f t / (2 * t ^ 2 * (Real.exp t - 1)) := by
+            unfold f
+            field_simp
+  rw [hK]
+  -- Convert to `2*t^2*(exp t - 1) ≤ 12*exp(t/12)*f t`.
+  have hdenom : 0 < (2 * t ^ 2 * (Real.exp t - 1)) := by positivity
+  -- multiply the desired inequality by the positive scalar `12*exp(t/12)*(2*t^2*(exp t -1))`
+  have hmain :
+      2 * t ^ 2 * (Real.exp t - 1) ≤ 12 * Real.exp (t * (1 / 12 : ℝ)) * f t := by
+    -- this is exactly `robbinsAux_nonneg` after expanding `robbinsAux`
+    have h0 : 0 ≤ robbinsAux t := robbinsAux_nonneg (t := t) ht0
+    -- rewrite `robbinsAux` into the target inequality
+    have hrobbins :
+        robbinsAux t = 12 * Real.exp (t * (1 / 12 : ℝ)) * f t - 2 * t ^ 2 * (Real.exp t - 1) := by
+      -- unfold and simplify
+      unfold robbinsAux f
+      -- use `exp_add` to rewrite `exp(t + t/12)` as product
+      have : t * (13 / 12 : ℝ) = t + t * (1 / 12 : ℝ) := by ring
+      simp [this, Real.exp_add, mul_assoc, mul_left_comm, mul_comm, sub_eq_add_neg]
+      ring
+    -- conclude
+    have : 2 * t ^ 2 * (Real.exp t - 1) ≤ 12 * Real.exp (t * (1 / 12 : ℝ)) * f t := by
+      -- `0 ≤ A - B` implies `B ≤ A`
+      have : 0 ≤ 12 * Real.exp (t * (1 / 12 : ℝ)) * f t - 2 * t ^ 2 * (Real.exp t - 1) := by
+        simpa [hrobbins] using h0
+      exact sub_nonneg.1 this
+    simpa [mul_assoc, mul_left_comm, mul_comm] using this
+  -- divide both sides by the positive denominator
+  -- and rewrite `exp(-t/12)` as inverse.
+  have : (1 / 12 : ℝ) * Real.exp (-t / 12) ≤ f t / (2 * t ^ 2 * (Real.exp t - 1)) := by
+    -- start from `le_div_iff₀`
+    have : ((1 / 12 : ℝ) * Real.exp (-t / 12)) * (2 * t ^ 2 * (Real.exp t - 1)) ≤ f t := by
+      -- multiply `hmain` by `exp(-t/12)/12` and simplify
+      have hexp' : Real.exp (-t / 12) = (Real.exp (t * (1 / 12 : ℝ)))⁻¹ := by
+        -- `exp(-a)= (exp a)⁻¹`
+        have : (-t / 12 : ℝ) = -(t * (1 / 12 : ℝ)) := by ring
+        simp [this, Real.exp_neg]
+      -- use `hmain` and rearrange
+      have hmain' :
+          ((1 / 12 : ℝ) * Real.exp (-t / 12)) * (2 * t ^ 2 * (Real.exp t - 1))
+            ≤ ((1 / 12 : ℝ) * Real.exp (-t / 12)) * (12 * Real.exp (t * (1 / 12 : ℝ)) * f t) := by
+        exact mul_le_mul_of_nonneg_left hmain (by positivity)
+      -- simplify RHS to `f t`
+      -- `((1/12)*exp(-t/12))*(12*exp(t/12)*f t) = f t`
+      calc
+        ((1 / 12 : ℝ) * Real.exp (-t / 12)) * (2 * t ^ 2 * (Real.exp t - 1))
+            ≤ ((1 / 12 : ℝ) * Real.exp (-t / 12)) * (12 * Real.exp (t * (1 / 12 : ℝ)) * f t) := hmain'
+        _ = f t := by
+            -- Cancel the exponential factors and `12` by a clean algebraic rearrangement.
+            have h12 : ((1 / 12 : ℝ) * 12) = 1 := by norm_num
+            have hExp : Real.exp (-t / 12) * Real.exp (t * (1 / 12 : ℝ)) = 1 := by
+              have : (-t / 12 : ℝ) + (t * (1 / 12 : ℝ)) = 0 := by ring
+              have := congrArg Real.exp this
+              simpa [Real.exp_add, Real.exp_zero] using this
+            calc
+              ((1 / 12 : ℝ) * Real.exp (-t / 12)) * (12 * Real.exp (t * (1 / 12 : ℝ)) * f t)
+                  = ((1 / 12 : ℝ) * 12) * (Real.exp (-t / 12) * Real.exp (t * (1 / 12 : ℝ))) * f t := by
+                      ring
+              _ = (Real.exp (-t / 12) * Real.exp (t * (1 / 12 : ℝ))) * f t := by
+                      simp [h12, mul_assoc]
+              _ = f t := by
+                      simpa [mul_assoc] using congrArg (fun z => z * f t) hExp
+    -- now conclude by dividing by the positive denominator
+    have : (1 / 12 : ℝ) * Real.exp (-t / 12) ≤ f t / (2 * t ^ 2 * (Real.exp t - 1)) := by
+      exact (le_div_iff₀ hdenom).2 this
+    exact this
+  -- and finish with the rewritten `Ktilde`
+  exact this
 
 /-! ## Section 5: Limit at zero -/
 
