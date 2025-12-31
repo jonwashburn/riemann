@@ -1,5 +1,6 @@
 import Mathlib
 import Riemann.academic_framework.GammaBounds
+import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.StirlingRobbins
 
 /-!
 # Auxiliary Stirling lemmas for Gamma bounds
@@ -104,10 +105,8 @@ The upper bound requires the Robbins error analysis which is not yet in Mathlib.
 lemma factorial_asymptotic (n : ℕ) (hn : 0 < n) :
     (n.factorial : ℝ) ≤ Real.sqrt (2 * Real.pi * n) * (n / Real.exp 1) ^ n *
       Real.exp (1 / (12 * n)) := by
-  -- The Robbins bound states: √(2πn)(n/e)^n e^{1/(12n+1)} < n! < √(2πn)(n/e)^n e^{1/(12n)}
-  -- Proof requires analysis of the Binet formula for log Γ with error bounds
-  -- Not yet available in Mathlib as of 2024
-  sorry
+  -- This is Robbins' sharp upper bound, proved in `Riemann/Mathlib`.
+  simpa using Stirling.factorial_upper_robbins n hn
 
 /-! ## Section 4: Strip bounds for Gamma -/
 
@@ -131,10 +130,8 @@ The proof requires two facts:
 Neither fact is currently in Mathlib. -/
 lemma Gamma_bound_one_two {s : ℂ} (hs_lo : 1 ≤ s.re) (hs_hi : s.re ≤ 2) :
     ‖Complex.Gamma s‖ ≤ 1 := by
-  -- From DLMF 5.6.7: |Γ(x+iy)|² ≤ |Γ(x)|² for x ≥ 1/2
-  -- For x ∈ [1, 2], Γ(x) ∈ [0.886..., 1] ⊆ [0, 1]
-  -- These bounds are not yet in Mathlib
-  sorry
+  -- This is available in `Riemann/Mathlib` as `Binet.norm_Gamma_le_one`.
+  exact Binet.norm_Gamma_le_one hs_lo hs_hi
 
 /-! ## Section 4: Iterated functional equation -/
 

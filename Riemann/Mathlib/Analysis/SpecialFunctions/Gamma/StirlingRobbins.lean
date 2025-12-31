@@ -172,9 +172,9 @@ theorem factorial_upper_robbins (n : ℕ) (hn : 0 < n) :
 /-- For the lower bound, we need J(n+1) ≥ 1/(12(n+1)+1).
 
 This refined lower bound on the Binet integral uses monotonicity of K̃. -/
-lemma J_lower_bound {n : ℕ} (hn : 0 < n) :
+lemma J_lower_bound (n : ℕ) :
     1 / (12 * (n + 1 : ℝ) + 1) ≤ (Binet.J (n + 1 : ℂ)).re := by
-  -- This requires showing K̃(t) > 0 for t > 0 with quantitative bounds
+  -- The proof only uses `n+1 > 0`.
   let x : ℝ := n + 1
   have hx : 0 < x := by
     dsimp [x]
@@ -186,10 +186,9 @@ lemma J_lower_bound {n : ℕ} (hn : 0 < n) :
   rw [hJ]
   -- We use the bound K̃(t) ≥ (1/12) * e^{-t/12}
   have h_bound : ∀ t ∈ Ioi 0, (1/12) * Real.exp (-t/12) ≤ BinetKernel.Ktilde t := by
-    -- This inequality holds for the Binet kernel
-    -- K̃(t) = (1/2 - 1/t + 1/(e^t - 1)) / t
-    -- We assume this bound is provable or available. No!! we need to prove everything in a principled mathlib way!!
-    sorry
+    intro t ht
+    -- Robbins-type pointwise lower bound for the Binet kernel, proved in `BinetKernel.lean`.
+    simpa using (BinetKernel.Ktilde_ge_one_div_twelve_mul_exp_neg_div_twelve (t := t) (by simpa using ht))
 
   -- We integrate the inequality
   have h_int_le : ∫ t in Ioi 0, (1/12) * Real.exp (-t/12) * Real.exp (-t * x) ≤
@@ -281,10 +280,14 @@ theorem factorial_lower_robbins (n : ℕ) (hn : 0 < n) :
     Real.sqrt (2 * Real.pi * n) * (n / Real.exp 1) ^ n * Real.exp (1 / (12 * n + 1)) ≤
       n.factorial := by
   have hn_pos : (0 : ℝ) < n := Nat.cast_pos.mpr hn
-  have h_J_ge : 1 / (12 * (n : ℝ) + 1) ≤ (Binet.J n).re := by
-    convert J_lower_bound (n := n - 1) using 1
-    · simp [Nat.cast_sub (Nat.succ_le_of_lt hn)]; ring_nf
-    · simp [Nat.cast_sub (Nat.succ_le_of_lt hn)]
+  have h_J_ge : (1 + (n : ℝ) * 12)⁻¹ ≤ (Binet.J n).re := by
+    -- apply the bound to `n = (n-1)+1`
+    have h0 : (1 / (12 * (n : ℝ) + 1) : ℝ) ≤ (Binet.J n).re := by
+      simpa [Nat.add_sub_cancel, Nat.cast_sub (Nat.succ_le_of_lt hn)] using (J_lower_bound (n := n - 1))
+    have h0' : (12 * (n : ℝ) + 1)⁻¹ ≤ (Binet.J n).re := by
+      simpa [one_div] using h0
+    -- rewrite `(12*n+1)⁻¹` to `(1+n*12)⁻¹`
+    convert h0' using 1; ring_nf
   have h_log_ge : n * Real.log n - n + Real.log (2 * Real.pi * n) / 2 + 1 / (12 * n + 1) ≤ Real.log (n.factorial : ℝ) := by
     have h_fact : Real.log (n.factorial) = Real.log n + Real.log (Real.Gamma n) := by
       rw [← Real.log_mul (Nat.cast_ne_zero.mpr (ne_of_gt hn)) (Real.Gamma_pos_of_pos (Nat.cast_pos.mpr hn)).ne']
@@ -293,16 +296,24 @@ theorem factorial_lower_robbins (n : ℕ) (hn : 0 < n) :
     have h_binet : Real.log (Real.Gamma n) = (n - 1/2) * Real.log n - n + Real.log (2 * Real.pi) / 2 + (Binet.J n).re := by
       exact BinetFormula.Real_log_Gamma_eq_Binet hn_pos
     rw [h_fact, h_binet]
-    rw [Real.log_mul (by positivity) (by positivity)]
+    have h2pi_pos : (0 : ℝ) < 2 * Real.pi := by nlinarith [Real.pi_pos]
+    rw [Real.log_mul h2pi_pos.ne' (Nat.cast_pos.mpr hn).ne']
     ring_nf
     simp only [add_le_add_iff_left]
     exact h_J_ge
-  rw [← Real.log_le_log_iff (mul_pos (mul_pos (Real.sqrt_pos.mpr (mul_pos (by norm_num) hn_pos)) (pow_pos (div_pos hn_pos (Real.exp_pos 1)) n)) (Real.exp_pos _)) (Nat.cast_pos.mpr (Nat.factorial_pos n))]
+  have h2pi_pos : (0 : ℝ) < 2 * Real.pi := by nlinarith [Real.pi_pos]
+  have h_sqrt_pos : 0 < Real.sqrt (2 * Real.pi * n) := by
+    apply Real.sqrt_pos.mpr
+    -- `0 < 2 * π * n`
+    simpa [mul_assoc] using (mul_pos h2pi_pos hn_pos)
+  rw [← Real.log_le_log_iff
+    (mul_pos (mul_pos h_sqrt_pos (pow_pos (div_pos hn_pos (Real.exp_pos 1)) n)) (Real.exp_pos _))
+    (Nat.cast_pos.mpr (Nat.factorial_pos n))]
   convert h_log_ge using 1
-  rw [Real.log_mul (mul_pos (Real.sqrt_pos.mpr (mul_pos (by norm_num) hn_pos)) (pow_pos (div_pos hn_pos (Real.exp_pos 1)) n)).ne' (Real.exp_pos _).ne']
+  rw [Real.log_mul (mul_pos h_sqrt_pos (pow_pos (div_pos hn_pos (Real.exp_pos 1)) n)).ne' (Real.exp_pos _).ne']
   rw [Real.log_exp]
-  rw [Real.log_mul (Real.sqrt_pos.mpr (mul_pos (by norm_num) hn_pos)).ne' (pow_pos (div_pos hn_pos (Real.exp_pos 1)) n).ne']
-  rw [Real.log_sqrt (mul_pos (by norm_num) hn_pos)]
+  rw [Real.log_mul h_sqrt_pos.ne' (pow_pos (div_pos hn_pos (Real.exp_pos 1)) n).ne']
+  rw [Real.log_sqrt (le_of_lt (mul_pos h2pi_pos hn_pos))]
   rw [Real.log_pow, Real.log_div hn_pos.ne' (Real.exp_pos 1).ne', Real.log_exp]
   ring
 
@@ -331,21 +342,47 @@ theorem factorial_asymptotic :
     let stirling := Real.sqrt (2 * Real.pi * n) * (n / Real.exp 1) ^ n
     have h_stirling_pos : 0 < stirling := by
       apply mul_pos
-      · apply Real.sqrt_pos.mpr; apply mul_pos; norm_num; exact Nat.cast_pos.mpr hn
+      ·
+        have h2pi_pos : (0 : ℝ) < 2 * Real.pi := by nlinarith [Real.pi_pos]
+        have hn_pos : (0 : ℝ) < n := Nat.cast_pos.mpr hn
+        exact Real.sqrt_pos.mpr (mul_pos h2pi_pos hn_pos)
       · apply pow_pos; apply div_pos (Nat.cast_pos.mpr hn) (Real.exp_pos 1)
     rw [le_div_iff₀ h_stirling_pos, div_le_iff₀ h_stirling_pos]
     have h_log_stirling : Real.log stirling = n * Real.log n - n + Real.log (2 * Real.pi * n) / 2 := by
-      rw [Real.log_mul (Real.sqrt_pos.mpr (mul_pos (by norm_num) (Nat.cast_pos.mpr hn))).ne' (pow_pos (div_pos (Nat.cast_pos.mpr hn) (Real.exp_pos 1)) n).ne']
-      rw [Real.log_sqrt (mul_pos (by norm_num) (Nat.cast_pos.mpr hn))]
+      have h2pi_pos : (0 : ℝ) < 2 * Real.pi := by nlinarith [Real.pi_pos]
+      have hn_pos : (0 : ℝ) < n := Nat.cast_pos.mpr hn
+      rw [Real.log_mul (Real.sqrt_pos.mpr (mul_pos h2pi_pos hn_pos)).ne'
+        (pow_pos (div_pos hn_pos (Real.exp_pos 1)) n).ne']
+      rw [Real.log_sqrt (le_of_lt (mul_pos h2pi_pos hn_pos))]
       rw [Real.log_pow, Real.log_div (Nat.cast_ne_zero.mpr (ne_of_gt hn)) (Real.exp_pos 1).ne']
       rw [Real.log_exp]; ring
-    rw [hlog]
     constructor
-    · rw [← Real.log_le_log_iff h_stirling_pos (Nat.cast_pos.mpr (Nat.factorial_pos n)), h_log_stirling]
-      simp only [le_add_iff_nonneg_right]; positivity
-    · rw [← Real.log_le_log_iff (Nat.cast_pos.mpr (Nat.factorial_pos n)) (mul_pos (Real.exp_pos _) h_stirling_pos)]
+    · -- `lower n = 1`, so this is `stirling ≤ n!`
+      simp [lower]
+      rw [← Real.log_le_log_iff h_stirling_pos (Nat.cast_pos.mpr (Nat.factorial_pos n)), h_log_stirling]
+      -- rewrite `log (n!)` using the Robbins/Binet expansion
+      rw [hlog]
+      simp only [le_add_iff_nonneg_right]
+      positivity
+    · -- `upper n = exp (1/(12n))`
+      simp [upper]
+      rw [← Real.log_le_log_iff (Nat.cast_pos.mpr (Nat.factorial_pos n)) (mul_pos (Real.exp_pos _) h_stirling_pos)]
       rw [Real.log_mul (Real.exp_pos _).ne' h_stirling_pos.ne', Real.log_exp, h_log_stirling]
-      simp only [add_le_add_iff_left]; gcongr; exact hθ_lt_one.le
+      -- rewrite `log (n!)` using the Robbins/Binet expansion
+      rw [hlog]
+      -- reduce to `θ / (12n) ≤ 1 / (12n)` and use `θ < 1`
+      have hn' : (0 : ℝ) < 12 * (n : ℝ) := by
+        have hn0 : (0 : ℝ) < (n : ℝ) := Nat.cast_pos.mpr hn
+        nlinarith
+      have hθle : θ ≤ 1 := le_of_lt hθ_lt_one
+      have hθ_div : θ / (12 * (n : ℝ)) ≤ 1 / (12 * (n : ℝ)) :=
+        div_le_div_of_nonneg_right hθle (le_of_lt hn')
+      -- isolate the common term and use `add_le_add_left`
+      set c : ℝ := (n : ℝ) * Real.log n - n + Real.log (2 * Real.pi * n) / 2
+      have hc : c + θ / (12 * (n : ℝ)) ≤ c + 1 / (12 * (n : ℝ)) := by
+        simpa [c, add_assoc, add_left_comm, add_comm] using add_le_add_left hθ_div c
+      -- goal is the same inequality, up to commutativity and rewriting `1/(12n)` as an inverse
+      simpa [one_div, c, add_assoc, add_left_comm, add_comm, mul_assoc, mul_left_comm, mul_comm] using hc
   refine (tendsto_of_tendsto_of_tendsto_of_le_of_le'
     (f := fun n : ℕ =>
       (n.factorial : ℝ) / (Real.sqrt (2 * Real.pi * n) * (n / Real.exp 1) ^ n))

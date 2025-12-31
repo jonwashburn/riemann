@@ -7,7 +7,7 @@ import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.Normed.Field.Basic
 import Mathlib.Topology.MetricSpace.Basic
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.LargeImaginaryBound
-
+import Riemann.Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
 /-!
 # Stirling's Asymptotic Formula for the Complex Gamma Function
 
