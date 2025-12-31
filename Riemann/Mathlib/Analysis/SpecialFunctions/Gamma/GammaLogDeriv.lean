@@ -482,10 +482,10 @@ lemma tendsto_digamma_euler_seq {z : ℂ} (hz : ∀ n : ℕ, z ≠ -n) :
                     = digamma (z + m + 1) := by ring_nf
                 _ = digamma (z + m) + 1 / (z + m) := by simpa [add_assoc] using hrec
                 _ = (digamma z + (∑ k ∈ Finset.range m, (1 : ℂ) / (z + k))) + 1 / (z + m) := by
-                      simp [hm, add_assoc, add_left_comm, add_comm]
+                      simp [hm, add_left_comm, add_comm]
                 _ = digamma z + ((∑ k ∈ Finset.range m, (1 : ℂ) / (z + k)) + 1 / (z + m)) := by abel
                 _ = digamma z + (∑ k ∈ Finset.range (m + 1), (1 : ℂ) / (z + k)) := by
-                      simp [Finset.sum_range_succ, add_assoc, add_left_comm, add_comm]
+                      simp [Finset.sum_range_succ, add_comm]
             simpa [Nat.succ_eq_add_one, Nat.cast_add, add_assoc, add_comm, add_left_comm] using this
       -- Rearrange
       have : digamma (z + m) - (∑ k ∈ Finset.range m, (1 : ℂ) / (z + k)) = digamma z := by
