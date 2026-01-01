@@ -91,11 +91,11 @@ We package it in a single definition for later use in canonical products.
 -/
 noncomputable
 def weierstrassFactor (m : ℕ) (z : ℂ) : ℂ :=
-(1 - z) * Complex.exp
-  (∑ k ∈ Finset.range m.succ, z^(k + 1) / (k + 1))
+  (1 - z) * Complex.exp
+    (∑ k ∈ Finset.range m.succ, z^(k + 1) / (k + 1))
 
 lemma weierstrassFactor_zero (m : ℕ) : weierstrassFactor m 0 = 1 := by
-simp [weierstrassFactor]
+  simp [weierstrassFactor]
 
 /-- Helper: difference of constant and identity is differentiable. -/
 lemma differentiable_one_sub_id : Differentiable ℂ (fun z : ℂ => (1 : ℂ) - z) :=

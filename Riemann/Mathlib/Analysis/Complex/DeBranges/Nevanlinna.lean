@@ -138,7 +138,8 @@ lemma meanType_add_le (f g : ℂ → ℂ) :
        rw [← Real.log_mul]
        · apply Real.log_le_log
          · exact add_pos_of_nonneg_of_pos (norm_nonneg _) zero_lt_one
-         · apply le_trans (add_le_add_right (norm_add_le _ _) 1)
+         · have h1 : ‖f (Complex.I * y) + g (Complex.I * y)‖ ≤ ‖f (Complex.I * y)‖ + ‖g (Complex.I * y)‖ :=
+             norm_add_le _ _
            -- (a+b+1) <= (a+1)(b+1) <=> a+b+1 <= ab+a+b+1 <=> 0 <= ab
            nlinarith [norm_nonneg (f (Complex.I * y)), norm_nonneg (g (Complex.I * y))]
        · exact ne_of_gt (add_pos_of_nonneg_of_pos (norm_nonneg _) zero_lt_one)

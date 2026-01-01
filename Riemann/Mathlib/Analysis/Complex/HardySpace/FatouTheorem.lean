@@ -228,7 +228,8 @@ lemma IsInHInfty.boundaryValue_aemeasurable {f : ℂ → ℂ} (hf : IsInHInfty f
     have h_maps : ∀ θ : ℝ, circleMap 0 (rₙ n) θ ∈ unitDisc := by
       intro θ
       simp only [mem_unitDisc, circleMap, zero_add, norm_mul, Complex.norm_exp_ofReal_mul_I,
-        mul_one, Complex.norm_real, abs_eq_abs, abs_of_pos (hrₙ_pos n)]
+        mul_one, Complex.norm_real]
+      rw [Real.norm_eq_abs, abs_of_pos (hrₙ_pos n)]
       exact hrₙ_lt n
     have h_cont : Continuous (fun θ : ℝ => f (circleMap 0 (rₙ n) θ)) :=
       hf.continuousOn.comp_continuous h_circle_cont h_maps
