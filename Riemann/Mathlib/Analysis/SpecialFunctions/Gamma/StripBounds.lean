@@ -659,9 +659,9 @@ theorem half_bound_re_ge_zero :
       calc
         2 * Real.exp (C₀ * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖))
             = Real.exp (Real.log 2) * Real.exp (C₀ * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖)) := by
-                simp [htwo, mul_assoc, mul_left_comm, mul_comm]
+                simp [htwo, mul_assoc]
         _ = Real.exp (Real.log 2 + C₀ * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖)) := by
-              simp [Real.exp_add, add_assoc]
+              simp [Real.exp_add]
     refine le_trans htmp (by
       -- compare exponents
       have hexp_le :

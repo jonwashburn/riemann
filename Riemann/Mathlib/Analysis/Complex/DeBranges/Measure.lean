@@ -1,5 +1,5 @@
+import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Basic
-import Mathlib
 
 /-!
 # Hermite–Biehler functions and the de Branges measure
@@ -60,7 +60,6 @@ lemma set_lintegral_pos_iff_ae_pos_on {α : Type*} [MeasurableSpace α] {μ : Me
   have : Function.support (s.indicator f) = {a | a ∈ s ∧ 0 < f a} := by
     ext x
     simp [Function.mem_support]
-    by_cases hx : x ∈ s <;> simp [hx, pos_iff_ne_zero]
   rw [this]
 
 /-- The de Branges measure associated with a Hermite–Biehler function is locally finite.
@@ -82,7 +81,6 @@ instance : Measure.IsOpenPosMeasure E.measure := by
   rw [this]
   exact hUo.measure_pos volume hUne
 
-set_option maxHeartbeats 0 in
 /-- The de Branges measure associated with a Hermite–Biehler function is non-atomic.
 
 Since it is defined as a `withDensity` of Lebesgue measure by a positive continuous
