@@ -32,9 +32,6 @@ name = "Carleson"
 name = "DeRhamCohomology"
 
 [[lean_lib]]
-name = "CReals"
-
-[[lean_lib]]
 name = "Notes"
 
 [[lean_lib]]
