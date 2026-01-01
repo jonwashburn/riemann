@@ -1,5 +1,4 @@
 import Mathlib
-import Riemann
 import Mathlib.NumberTheory.LSeries.Basic
 import Mathlib.NumberTheory.EulerProduct.Basic
 import Mathlib.Analysis.SpecialFunctions.Gamma.Basic

@@ -1,7 +1,5 @@
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.Cayley
-import Mathlib.Analysis.Complex.HalfPlane
-import Mathlib
 
 open Complex UpperHalfPlane
 open scoped Topology
@@ -529,7 +527,7 @@ lemma meanType_of_isBoundedOnUpperHalfPlane
       exact add_pos_of_nonneg_of_pos this zero_lt_one
     have h_pos_const : 0 < C + 1 := add_pos_of_nonneg_of_pos hC0 zero_lt_one
     have h_add_le : ‖f (Complex.I * y)‖ + 1 ≤ C + 1 :=
-      add_le_add_right hnorm 1
+      add_le_add_left hnorm 1
     have h_log_le :
         Real.log (‖f (Complex.I * y)‖ + 1) ≤ Real.log (C + 1) :=
           (Real.log_le_log_iff h_pos_arg h_pos_const).mpr h_add_le
@@ -623,7 +621,7 @@ lemma limsup_atImInfty_of_isBoundedOnUpperHalfPlane
       exact add_pos_of_nonneg_of_pos this zero_lt_one
     have h_pos_const : 0 < C + 1 := add_pos_of_nonneg_of_pos hC0 zero_lt_one
     have h_add_le : ‖f z‖ + 1 ≤ C + 1 :=
-      add_le_add_right hnorm 1
+      add_le_add_left hnorm 1
     have h_log_le :
         Real.log (‖f z‖ + 1) ≤ Real.log (C + 1) :=
       (Real.log_le_log_iff h_pos_arg h_pos_const).mpr h_add_le
