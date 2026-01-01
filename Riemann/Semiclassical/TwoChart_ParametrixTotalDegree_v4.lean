@@ -56,7 +56,7 @@ def moyalCoeffTrunc
     (b : ℕ → (ℝ → ℝ → ℝ → ℂ))
     (N j : ℕ) : (ℝ → ℝ → ℝ → ℂ) :=
   fun h t τ =>
-    ∑ n in Finset.Icc 0 j,
+    ∑ n ∈ Finset.Icc 0 j,
       if (j - n) < N then Pn n a (b (j - n)) h t τ else (0 : ℂ)
 
 /-- For degrees `j < N`, truncation has no effect: `moyalCoeffTrunc = moyalCoeff`. -/
@@ -75,7 +75,7 @@ lemma moyalCoeffTrunc_eq_moyalCoeff_of_lt
   refine (Finset.sum_congr rfl ?_)
   intro n hn
   have : (j - n) < N := hguard n hn
-  simp [moyalCoeffTrunc, moyalCoeff, this]
+  simp [this]
 
 /-- At the first omitted total degree `N`, the coefficient is exactly the explicit remainder symbol
 `∑_{n=1..N} Pn n a (b (N-n))`.
@@ -107,22 +107,22 @@ lemma moyalCoeffTrunc_at_N_eq_remainderSymbol
         have hnpos : 0 < n := lt_of_lt_of_le (Nat.zero_lt_succ 0) hn1
         exact Nat.sub_lt_self (Nat.succ_pos N') hnpos
       have hsum :
-          (∑ n in Finset.Icc 1 (N' + 1),
+          (∑ n ∈ Finset.Icc 1 (N' + 1),
               if (N' + 1 - n) < (N' + 1) then Pn n a (b (N' + 1 - n)) h t τ else 0)
-            = ∑ n in Finset.Icc 1 (N' + 1), Pn n a (b (N' + 1 - n)) h t τ := by
+            = ∑ n ∈ Finset.Icc 1 (N' + 1), Pn n a (b (N' + 1 - n)) h t τ := by
         refine Finset.sum_congr rfl ?_
         intro n hn
         have : (N' + 1 - n) < (N' + 1) := hcond n hn
         simp [this]
       -- Put everything together.
-      simp [moyalCoeffTrunc, remainderSymbol, hsplit, Finset.sum_insert, h0not, hsum]
+      simp [moyalCoeffTrunc, remainderSymbol, hsplit]
 
 /-- Total-degree truncated series built from `moyalCoeffTrunc`. -/
 def moyalSeriesTruncTrunc
     (a : ℝ → ℝ → ℝ → ℂ)
     (b : ℕ → (ℝ → ℝ → ℝ → ℂ))
     (N : ℕ) : (ℝ → ℝ → ℝ → ℂ) :=
-  fun h t τ => ∑ j in Finset.range N, (h ^ j : ℂ) * moyalCoeffTrunc a b N j h t τ
+  fun h t τ => ∑ j ∈ Finset.range N, (h ^ j : ℂ) * moyalCoeffTrunc a b N j h t τ
 
 /-- The truncated series built from `moyalCoeffTrunc` equals the standard truncated series from
 `TwoChart_ParametrixCancellation` (since for every `j ∈ range N` we have `j < N`). -/
@@ -138,7 +138,7 @@ lemma moyalSeriesTruncTrunc_eq_moyalSeriesTrunc
   have hcoeff :
       moyalCoeffTrunc a b N j h t τ = moyalCoeff a b j h t τ := by
     exact congrArg (fun f => f h t τ) (moyalCoeffTrunc_eq_moyalCoeff_of_lt (a := a) (b := b) (N := N) hjlt)
-  simp [moyalSeriesTruncTrunc, moyalSeriesTrunc, hcoeff]
+  simp [hcoeff]
 
 /-- Exact cancellation of total-degree coefficients `< N` for the truncated series.
 
@@ -170,7 +170,7 @@ def moyalSeriesTruncTruncSucc
     (a : ℝ → ℝ → ℝ → ℂ)
     (b : ℕ → (ℝ → ℝ → ℝ → ℂ))
     (N : ℕ) : (ℝ → ℝ → ℝ → ℂ) :=
-  fun h t τ => ∑ j in Finset.range (N + 1), (h ^ j : ℂ) * moyalCoeffTrunc a b N j h t τ
+  fun h t τ => ∑ j ∈ Finset.range (N + 1), (h ^ j : ℂ) * moyalCoeffTrunc a b N j h t τ
 
 /-- Explicit cancellation up to total degree `N-1`, with the first nontrivial term at degree `N`.
 
@@ -193,9 +193,9 @@ theorem moyalSeriesTruncTruncSucc_eq_one_add_hpow_mul_remainderSymbol
   funext h t τ
   -- Let `f j` denote the `j`th term in the total-degree polynomial.
   let f : ℕ → ℂ := fun j => (h ^ j : ℂ) * moyalCoeffTrunc a b N j h t τ
-  have hsum : (∑ j in Finset.range (N + 1), f j) = (∑ j in Finset.range N, f j) + f N := by
+  have hsum : (∑ j ∈ Finset.range (N + 1), f j) = (∑ j ∈ Finset.range N, f j) + f N := by
     simpa using (Finset.sum_range_succ (f := f) N)
-  have hcancel : (∑ j in Finset.range N, f j) = (1 : ℂ) := by
+  have hcancel : (∑ j ∈ Finset.range N, f j) = (1 : ℂ) := by
     -- `∑_{j < N} f j = moyalSeriesTruncTrunc a b N`, which cancels to `1`.
     have hc :=
       congrArg (fun g => g h t τ)
@@ -208,11 +208,11 @@ theorem moyalSeriesTruncTruncSucc_eq_one_add_hpow_mul_remainderSymbol
   -- Conclude.
   calc
     moyalSeriesTruncTruncSucc a b N h t τ
-        = (∑ j in Finset.range (N + 1), f j) := by
+        = (∑ j ∈ Finset.range (N + 1), f j) := by
             simp [moyalSeriesTruncTruncSucc, f]
-    _ = (∑ j in Finset.range N, f j) + f N := by simpa using hsum
+    _ = (∑ j ∈ Finset.range N, f j) + f N := by simpa using hsum
     _ = (1 : ℂ) + (h ^ N : ℂ) * remainderSymbol a b N h t τ := by
             simpa [hcancel, hremainder, add_assoc]
 
-
+end
 end TwoChartEgorov
