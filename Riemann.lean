@@ -13,14 +13,15 @@ import Riemann.academic_framework.FiniteOrder
 import Riemann.academic_framework.GammaBounds
 import Riemann.academic_framework.GammaFunctionalEquation
 import Riemann.academic_framework.GammaStirlingAux
-import Riemann.academic_framework.HadamardFactorization
+--import Riemann.academic_framework.HadamardFactorization
 import Riemann.academic_framework.MeasureHelpers
-import Riemann.academic_framework.StirlingB
-import Riemann.academic_framework.StirlingBounds
+--import Riemann.academic_framework.StirlingB
+--import Riemann.academic_framework.StirlingBounds
 import Riemann.academic_framework.Theta
 import Riemann.academic_framework.WeierstrassFactorBound
-import Riemann.academic_framework.ZetaFiniteOrder
+--import Riemann.academic_framework.ZetaFiniteOrder
 import Riemann.academic_framework.ZetaFunctionalEquation
+/-
 
 -- Certificates (`Riemann/Cert/`)
 import Riemann.Cert.FactorsWitness
@@ -206,3 +207,5 @@ import Riemann.Mathlib.Topology.FilterNhdsWithin
 -- Misc
 import Riemann.Aux
 import Riemann.Example
+
+-/

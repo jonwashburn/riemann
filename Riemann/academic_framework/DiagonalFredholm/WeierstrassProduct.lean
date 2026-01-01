@@ -73,7 +73,7 @@ lemma norm_log_one_sub_le_of_lt_one {z : ℂ} (hz : ‖z‖ < (1 : ℝ)) :
     simpa using norm_sub_le (Complex.log (1 - z) + z) z
   have hle : ‖(Complex.log (1 - z) + z) - z‖
       ≤ ‖z‖ ^ 2 * (1 - ‖z‖)⁻¹ / 2 + ‖z‖ :=
-    (le_trans hsub (add_le_add_right hquad _))
+    (le_trans hsub (add_le_add_left hquad _))
   have hEq : ‖Complex.log (1 - z)‖ = ‖(Complex.log (1 - z) + z) - z‖ := by
     ring_nf
   simpa [hEq]

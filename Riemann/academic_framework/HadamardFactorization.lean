@@ -3,6 +3,12 @@ import Mathlib
 import Riemann.academic_framework.WeierstrassFactorBound
 import PrimeNumberTheoremAnd.BorelCaratheodory
 import PrimeNumberTheoremAnd.DerivativeBound
+import Mathlib.Analysis.Calculus.Deriv.Polynomial
+import Mathlib.Analysis.Complex.ExponentialBounds
+import Mathlib.Analysis.Normed.Group.FunctionSeries
+import Mathlib.Analysis.Complex.ValueDistribution.FirstMainTheorem
+import Mathlib.Analysis.Complex.JensenFormula
+import Mathlib.Topology.Algebra.InfiniteSum.UniformOn
 
 /-!
 # Hadamard Factorization for Entire Functions of Finite Order
@@ -586,6 +592,10 @@ lemma differentiable_canonicalProductFinite (m : ℕ) (zeros : Finset ℂ) :
 
 /-! ## Part 5: Product Convergence -/
 
+open Filter Function
+
+open scoped Topology
+
 /-- Weierstrass M-test for canonical products: logarithmic version.
 
 If ∑ₙ |z/aₙ|^{m+1} converges uniformly on a compact set K, then
@@ -856,10 +866,10 @@ from the StrongPNT infrastructure. These tools are essential for:
 3. Establishing that log(f/G) is a polynomial (Liouville argument)
 -/
 
-/-- Jensen's bound on counting function from boundedness.
+/-- Jensen's bound on the number of zeros from boundedness.
 
 If f is analytic on |z| ≤ R with f(0) = 1 and |f(z)| ≤ B for |z| ≤ R,
-then the number of zeros (with multiplicity) in |z| ≤ r < R is at most
+then the number of zeros in |z| ≤ r < R is at most
 log B / log(R/r).
 
 This is a reformulation of `ZerosBound` from StrongPNT. -/
@@ -868,20 +878,243 @@ theorem jensen_zeros_bound {f : ℂ → ℂ} {r R B : ℝ}
     (hr : 0 < r) (hR : r < R) (hR1 : R < 1)
     (hf0 : f 0 = 1) (hB : 1 < B)
     (hf_bound : ∀ z, ‖z‖ ≤ R → ‖f z‖ ≤ B) :
-    ∃ (zeros : Finset ℂ), (∀ z ∈ zeros, ‖z‖ ≤ r ∧ f z = 0) ∧
+    ∃ (zeros : Finset ℂ), (∀ z, z ∈ zeros ↔ ‖z‖ ≤ r ∧ f z = 0) ∧
       zeros.card ≤ Nat.ceil (Real.log B / Real.log (R / r)) := by
-  -- Jensen's formula: if f is analytic on |z| ≤ R with f(0) ≠ 0, then
-  -- log|f(0)| + ∑_{|ρ|≤R, f(ρ)=0} log(R/|ρ|) = (1/2π) ∫_0^{2π} log|f(Re^{iθ})| dθ
-  --
-  -- For f(0) = 1 and |f| ≤ B:
-  -- 0 + ∑_{|ρ|≤r} log(R/|ρ|) ≤ ∑_{|ρ|≤R} log(R/|ρ|) ≤ log B
-  --
-  -- Since log(R/|ρ|) ≥ log(R/r) for |ρ| ≤ r:
-  -- n(r) · log(R/r) ≤ log B
-  -- n(r) ≤ log B / log(R/r)
-  --
-  -- This follows from StrongPNT's ZerosBound or Mathlib's Jensen infrastructure
-  sorry
+  classical
+  have hRpos : 0 < R := lt_trans hr hR
+  have hRne : R ≠ 0 := ne_of_gt hRpos
+  have habsR : |R| = R := abs_of_pos hRpos
+
+  -- Work on `closedBall 0 |R|` to match Mathlib's Jensen formula API.
+  let U : Set ℂ := Metric.closedBall (0 : ℂ) |R|
+  have hf_analU : AnalyticOnNhd ℂ f U := by
+    simpa [U, habsR] using hf_anal
+  have hf_merU : MeromorphicOn f U := hf_analU.meromorphicOn
+
+  -- Exclude the degenerate case `order = ⊤` (local identically-zero), using `f 0 = 1`.
+  have h_not_top : ∀ u ∈ U, meromorphicOrderAt f u ≠ ⊤ := by
+    intro u huU hu_top
+    have hfreq : ∃ᶠ z in 𝓝[≠] u, f z = 0 :=
+      (Filter.Eventually.frequently ((meromorphicOrderAt_eq_top_iff).1 hu_top))
+    have hEq : Set.EqOn f 0 U :=
+      hf_analU.eqOn_zero_of_preconnected_of_frequently_eq_zero
+        (hU := (convex_closedBall (0 : ℂ) |R|).isPreconnected) huU hfreq
+    have h0U : (0 : ℂ) ∈ U := by
+      simp [U, abs_nonneg R]
+    have : f 0 = 0 := by simpa using hEq h0U
+    -- Contradiction with `f 0 = 1`.
+    simpa [hf0] using this
+
+  -- Build a finset of (distinct) zeros using the divisor support.
+  have hDfin : (MeromorphicOn.divisor f U).support.Finite :=
+    (MeromorphicOn.divisor f U).finiteSupport (isCompact_closedBall (0 : ℂ) |R|)
+  let s : Finset ℂ := hDfin.toFinset
+  let zeros : Finset ℂ := s.filter fun z ↦ ‖z‖ ≤ r
+
+  have h_nf : MeromorphicNFOn f U := hf_analU.meromorphicNFOn
+  have h_not_top' : ∀ u : U, meromorphicOrderAt f u ≠ ⊤ := fun u ↦ h_not_top u.1 u.2
+  have hzeroset :
+      U ∩ f ⁻¹' ({0} : Set ℂ) = Function.support (MeromorphicOn.divisor f U) :=
+    h_nf.zero_set_eq_divisor_support h_not_top'
+  have hsupport :
+      Function.support (MeromorphicOn.divisor f U) = U ∩ f ⁻¹' ({0} : Set ℂ) := by
+    simpa using hzeroset.symm
+
+  refine ⟨zeros, ?_, ?_⟩
+  · intro z
+    constructor
+    · intro hz
+      have hz' : z ∈ s ∧ ‖z‖ ≤ r := by
+        simpa [zeros, Finset.mem_filter] using hz
+      have hz_s : z ∈ s := hz'.1
+      have hz_r : ‖z‖ ≤ r := hz'.2
+      have hz_supp : z ∈ Function.support (MeromorphicOn.divisor f U) := by
+        simpa [s, Finite.mem_toFinset] using hz_s
+      have hzU0 : z ∈ U ∧ f z = 0 := by
+        -- unpack membership in `U ∩ f ⁻¹' {0}`
+        simpa [hsupport, Set.mem_inter_iff, Set.mem_preimage, Set.mem_singleton_iff] using hz_supp
+      exact ⟨hz_r, hzU0.2⟩
+    · rintro ⟨hz_r, hfz⟩
+      have hzU : z ∈ U := by
+        -- `‖z‖ ≤ r < R = |R|`
+        have : ‖z‖ ≤ |R| := by
+          have : ‖z‖ ≤ R := le_trans hz_r (le_of_lt hR)
+          simpa [habsR] using this
+        simpa [U, Metric.mem_closedBall, dist_zero_right] using this
+      have hz_supp : z ∈ Function.support (MeromorphicOn.divisor f U) := by
+        -- via `support = U ∩ f ⁻¹' {0}`
+        have : z ∈ U ∩ f ⁻¹' ({0} : Set ℂ) := by
+          simpa [Set.mem_inter_iff, Set.mem_preimage, Set.mem_singleton_iff] using And.intro hzU hfz
+        simpa [hsupport] using this
+      have hz_s : z ∈ s := by
+        simpa [s, Finite.mem_toFinset] using hz_supp
+      have : z ∈ zeros := by
+        simpa [zeros, Finset.mem_filter, hz_s, hz_r]
+      exact this
+  · -- Bound the number of (distinct) zeros using Jensen's formula.
+    -- Step 1: bound the circle average by `log B`.
+    have hCircleInt : CircleIntegrable (Real.log ‖f ·‖) (0 : ℂ) R := by
+      -- `log ‖f ·‖` is circle integrable if `f` is meromorphic on the circle.
+      apply circleIntegrable_log_norm_meromorphicOn
+      have : MeromorphicOn f (Metric.sphere (0 : ℂ) |R|) :=
+        hf_merU.mono Metric.sphere_subset_closedBall
+      simpa [habsR] using this
+    have hCA_le : Real.circleAverage (Real.log ‖f ·‖) (0 : ℂ) R ≤ Real.log B := by
+      apply Real.circleAverage_mono_on_of_le_circle (hf := hCircleInt)
+      intro z hz
+      have hz_leR : ‖z‖ ≤ R := by
+        have hz_eq : ‖z‖ = |R| := by
+          simpa [Metric.mem_sphere, dist_eq_norm, sub_zero] using hz
+        have : ‖z‖ ≤ |R| := le_of_eq hz_eq
+        simpa [habsR] using this
+      have hfz_le : ‖f z‖ ≤ B := hf_bound z hz_leR
+      by_cases h0 : ‖f z‖ = 0
+      · -- `log 0 = 0 ≤ log B` since `B > 1`.
+        have : 0 ≤ Real.log B := le_of_lt (Real.log_pos hB)
+        simpa [h0, this] using this
+      · have hpos : 0 < ‖f z‖ := lt_of_le_of_ne (norm_nonneg _) (Ne.symm h0)
+        exact Real.log_le_log hpos hfz_le
+
+    -- Step 2: Jensen's formula, specialized to `c = 0`.
+    have h0U : (0 : ℂ) ∈ U := by simp [U, abs_nonneg R]
+    have hAnal0 : AnalyticAt ℂ f 0 := by
+      have h0R : (0 : ℂ) ∈ Metric.closedBall (0 : ℂ) R := by
+        simp [Metric.mem_closedBall, hRpos.le]
+      exact hf_anal 0 h0R
+    have hf0_ne : f 0 ≠ 0 := by simpa [hf0] using (one_ne_zero : (1 : ℂ) ≠ 0)
+    have hdiv0 : MeromorphicOn.divisor f U 0 = 0 := by
+      have : meromorphicOrderAt f 0 = 0 := by
+        have horder : meromorphicOrderAt f 0 = (analyticOrderAt f 0).map (↑) :=
+          hAnal0.meromorphicOrderAt_eq
+        have han0 : analyticOrderAt f 0 = 0 := (hAnal0.analyticOrderAt_eq_zero).2 hf0_ne
+        simpa [horder, han0]
+      simp [MeromorphicOn.divisor_apply hf_merU h0U, this]
+    have htrail : meromorphicTrailingCoeffAt f 0 = f 0 :=
+      hAnal0.meromorphicTrailingCoeffAt_of_ne_zero hf0_ne
+
+    have hJensen :
+        Real.circleAverage (Real.log ‖f ·‖) (0 : ℂ) R
+          = (∑ᶠ u, (MeromorphicOn.divisor f U u : ℝ) * Real.log (R * ‖u‖⁻¹)) := by
+      -- Start from Mathlib's Jensen formula and simplify the extra terms using `f 0 = 1`.
+      have hJ :=
+        (MeromorphicOn.circleAverage_log_norm (c := (0 : ℂ)) (R := R) (f := f) hRne hf_merU)
+      -- Rewrite `‖0 - u‖` to `‖u‖`, and eliminate the center/divisor/trailing-coefficient terms.
+      -- The convention `log 0 = 0` is built into the formula.
+      simpa [hdiv0, htrail, hf0, sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using hJ
+
+    have hFsum_le :
+        (∑ᶠ u, (MeromorphicOn.divisor f U u : ℝ) * Real.log (R * ‖u‖⁻¹)) ≤ Real.log B := by
+      -- `circleAverage ≤ log B`, and Jensen identifies the circle average with the finsum.
+      simpa [hJensen] using hCA_le
+
+    -- Step 3: compare the finsum to the finite sum over `s = support (divisor)`.
+    let g : ℂ → ℝ :=
+      fun u ↦ (MeromorphicOn.divisor f U u : ℝ) * Real.log (R * ‖u‖⁻¹)
+    have hsupp_g : g.support ⊆ s := by
+      intro u hu
+      have hdiv_ne : MeromorphicOn.divisor f U u ≠ 0 := by
+        intro hdiv
+        have : g u = 0 := by simp [g, hdiv]
+        exact (Function.mem_support.mp hu) this
+      have : u ∈ (MeromorphicOn.divisor f U).support := by
+        simpa [Function.mem_support] using hdiv_ne
+      simpa [s, Finite.mem_toFinset] using this
+    have hsum_s : (∑ᶠ u, g u) = ∑ u ∈ s, g u := by
+      simpa [g] using (finsum_eq_sum_of_support_subset (s := s) g hsupp_g)
+    have hsum_s_le : (∑ u ∈ s, g u) ≤ Real.log B := by
+      simpa [hsum_s] using hFsum_le
+
+    -- Step 4: restrict from `s` to `zeros` and use `log(R/‖u‖) ≥ log(R/r)` for `‖u‖ ≤ r`.
+    have hzeros_subset : zeros ⊆ s := by
+      intro u hu
+      exact (Finset.mem_filter.1 hu).1
+    have hDnonneg : (0 : ℤ) ≤ MeromorphicOn.divisor f U := hf_analU.divisor_nonneg
+    have hlog_pos : 0 < Real.log (R / r) := by
+      have : 1 < R / r := (one_lt_div hr).2 hR
+      exact Real.log_pos this
+    have hlog_nonneg : 0 ≤ Real.log (R / r) := le_of_lt hlog_pos
+
+    have hsum_zeros_le : (∑ u ∈ zeros, g u) ≤ Real.log B := by
+      refine (Finset.sum_le_sum_of_subset_of_nonneg hzeros_subset ?_).trans hsum_s_le
+      intro u hu_s hu_not
+      have hu_support : u ∈ Function.support (MeromorphicOn.divisor f U) := by
+        simpa [s, Finite.mem_toFinset] using hu_s
+      have huU : u ∈ U := (MeromorphicOn.divisor f U).supportWithinDomain hu_support
+      have hdiv0 : 0 ≤ (MeromorphicOn.divisor f U u : ℝ) := by
+        exact_mod_cast (hDnonneg u)
+      have hlog0 : 0 ≤ Real.log (R * ‖u‖⁻¹) := by
+        by_cases hu0 : u = 0
+        · simp [hu0]
+        · have hnorm_pos : 0 < ‖u‖ := norm_pos_iff.mpr hu0
+          have hnorm_le : ‖u‖ ≤ R := by
+            have : ‖u‖ ≤ |R| := by
+              simpa [U, Metric.mem_closedBall, dist_zero_right] using huU
+            simpa [habsR] using this
+          have : 1 ≤ R / ‖u‖ := (one_le_div hnorm_pos).2 hnorm_le
+          -- `R / ‖u‖ = R * ‖u‖⁻¹`
+          simpa [div_eq_mul_inv] using (Real.log_nonneg this)
+      exact mul_nonneg hdiv0 hlog0
+
+    -- Step 5: lower bound `∑_{u∈zeros} g u` by `zeros.card * log(R/r)`.
+    have hsum_lower :
+        (zeros.card : ℝ) * Real.log (R / r) ≤ ∑ u ∈ zeros, g u := by
+      -- rewrite the left side as the sum of a constant
+      have : ∑ _u ∈ zeros, Real.log (R / r) = (zeros.card : ℝ) * Real.log (R / r) := by
+        simp [Finset.sum_const, nsmul_eq_mul]
+      -- show pointwise: `log(R/r) ≤ g u` on `zeros`
+      refine this.symm.le.trans (Finset.sum_le_sum ?_)
+      intro u hu
+      have hu' : u ∈ s ∧ ‖u‖ ≤ r := by
+        simpa [zeros, Finset.mem_filter] using hu
+      have hu_s : u ∈ s := hu'.1
+      have hu_r : ‖u‖ ≤ r := hu'.2
+      have hu_support : u ∈ Function.support (MeromorphicOn.divisor f U) := by
+        simpa [s, Finite.mem_toFinset] using hu_s
+      have hdiv_ne : MeromorphicOn.divisor f U u ≠ 0 := by
+        simpa [Function.mem_support] using hu_support
+      have hdiv_nonneg_int : (0 : ℤ) ≤ MeromorphicOn.divisor f U u := hDnonneg u
+      have hdiv_pos_int : (0 : ℤ) < MeromorphicOn.divisor f U u :=
+        lt_of_le_of_ne hdiv_nonneg_int (Ne.symm hdiv_ne)
+      have hdiv_ge_one_int : (1 : ℤ) ≤ MeromorphicOn.divisor f U u := by
+        simpa using (Int.add_one_le_iff).2 hdiv_pos_int
+      have hdiv_ge_one : (1 : ℝ) ≤ (MeromorphicOn.divisor f U u : ℝ) := by
+        exact_mod_cast hdiv_ge_one_int
+      have hdiv_nonneg : (0 : ℝ) ≤ (MeromorphicOn.divisor f U u : ℝ) := by
+        exact_mod_cast hdiv_nonneg_int
+      -- `log(R/r) ≤ log(R*‖u‖⁻¹)` since `‖u‖ ≤ r`.
+      have hu0 : u ≠ 0 := by
+        intro hu0
+        -- `u = 0` would force `f 0 = 0`, contradicting `f 0 = 1`
+        have huU0 : u ∈ U ∧ f u = 0 := by
+          simpa [hsupport, Set.mem_inter_iff, Set.mem_preimage, Set.mem_singleton_iff] using hu_support
+        have : f 0 = 0 := by simpa [hu0] using huU0.2
+        simpa [hf0] using this
+      have hnorm_pos : 0 < ‖u‖ := norm_pos_iff.mpr hu0
+      have harg_le :
+          R / r ≤ R * ‖u‖⁻¹ := by
+        have hinv : (1 / r) ≤ (1 / ‖u‖) := one_div_le_one_div_of_le hnorm_pos hu_r
+        have := mul_le_mul_of_nonneg_left hinv hRpos.le
+        simpa [div_eq_mul_inv, one_div] using this
+      have hlog_le : Real.log (R / r) ≤ Real.log (R * ‖u‖⁻¹) := by
+        have hpos : 0 < R / r := div_pos hRpos hr
+        exact Real.log_le_log hpos harg_le
+      -- combine
+      have : (1 : ℝ) * Real.log (R / r)
+          ≤ (MeromorphicOn.divisor f U u : ℝ) * Real.log (R * ‖u‖⁻¹) :=
+        mul_le_mul hdiv_ge_one hlog_le hlog_nonneg hdiv_nonneg
+      simpa [g] using this
+
+    -- Step 6: conclude `zeros.card ≤ ceil(log B / log(R/r))`.
+    have hcard_le_real :
+        (zeros.card : ℝ) ≤ Real.log B / Real.log (R / r) := by
+      -- Divide the inequality by `log(R/r) > 0`.
+      have : (zeros.card : ℝ) * Real.log (R / r) ≤ Real.log B :=
+        (hsum_lower.trans hsum_zeros_le)
+      exact (le_div_iff₀ hlog_pos).2 (by simpa [mul_assoc] using this)
+    have hcard_le_ceil_real :
+        (zeros.card : ℝ) ≤ (Nat.ceil (Real.log B / Real.log (R / r)) : ℝ) :=
+      hcard_le_real.trans (Nat.le_ceil _)
+    exact_mod_cast hcard_le_ceil_real
 
 /-- Borel-Carathéodory bound for entire functions.
 
@@ -983,7 +1216,9 @@ converges, where aₙ are the nonzero zeros of f. -/
 theorem lindelof_zero_exponent {f : ℂ → ℂ} {ρ σ : ℝ}
     (hf : EntireOfFiniteOrder ρ f)
     (hσ : ρ < σ)
+    (hf0 : f 0 ≠ 0)
     (zeros : ℕ → ℂ)
+    (h_inj : Function.Injective zeros)
     (h_zeros : ∀ n, f (zeros n) = 0 ∧ zeros n ≠ 0) :
     Summable (fun n => ‖zeros n‖⁻¹ ^ σ) := by
   -- Lindelöf's theorem proof outline:
@@ -1012,24 +1247,124 @@ for z not a zero of f, then f/G extends to an entire function. -/
 theorem quotient_entire {f G : ℂ → ℂ}
     (hf : Differentiable ℂ f)
     (hG : Differentiable ℂ G)
-    (h_zeros : ∀ z, f z = 0 ↔ G z = 0) :
+    (hG_nontrivial : ∃ z, G z ≠ 0)
+    (h_ord : ∀ z : ℂ, analyticOrderAt G z ≤ analyticOrderAt f z) :
     ∃ H : ℂ → ℂ, Differentiable ℂ H ∧ ∀ z, G z ≠ 0 → H z = f z / G z := by
-  -- This is the removable singularity theorem for quotients.
-  --
-  -- At any point z₀ where f(z₀) = G(z₀) = 0:
-  -- - Both f and G have a zero of some order m ≥ 1
-  -- - f(z) = (z - z₀)^m · f₁(z), G(z) = (z - z₀)^m · G₁(z) with f₁(z₀), G₁(z₀) ≠ 0
-  -- - f/G = f₁/G₁ near z₀, which is analytic
-  --
-  -- Key: the multiplicity condition ensures no poles in the quotient.
-  -- The hypothesis h_zeros says f and G vanish at exactly the same points,
-  -- but we also need equal multiplicities for the quotient to extend analytically.
-  --
-  -- For the full proof, we use:
-  -- 1. The discrete set of zeros of f (and G) is isolated
-  -- 2. At each zero z₀, use Taylor expansion to show f/G extends
-  -- 3. Patch together to get a globally defined entire function
-  sorry
+  classical
+  -- Define the quotient on the punctured neighbourhoods.
+  let q : ℂ → ℂ := fun z ↦ f z / G z
+  -- Fill in the removable singularities by taking the `limUnder` at each potential pole.
+  let H : ℂ → ℂ := fun z ↦ if hz : G z = 0 then limUnder (𝓝[≠] z) q else q z
+  refine ⟨H, ?_, ?_⟩
+  · -- `H` is entire: check differentiability at each point.
+    intro z0
+    by_cases hz0 : G z0 = 0
+    · -- Removable singularity at `z0`.
+      have hf_an : AnalyticAt ℂ f z0 := (hf.analyticAt z0)
+      have hG_an : AnalyticAt ℂ G z0 := (hG.analyticAt z0)
+      -- `G` is not locally zero anywhere, otherwise it would be identically zero.
+      have hG_not_eventually_zero : ¬ (∀ᶠ z in 𝓝 z0, G z = 0) := by
+        intro hloc
+        have hG_univ : AnalyticOnNhd ℂ G (Set.univ : Set ℂ) :=
+          (analyticOnNhd_univ_iff_differentiable).2 hG
+        have hfreq : ∃ᶠ z in 𝓝[≠] z0, G z = 0 :=
+          (hloc.filter_mono nhdsWithin_le_nhds).frequently
+        have hEq : Set.EqOn G 0 (Set.univ : Set ℂ) :=
+          AnalyticOnNhd.eqOn_zero_of_preconnected_of_frequently_eq_zero
+            (f := G) (U := (Set.univ : Set ℂ)) hG_univ (by simpa using isPreconnected_univ)
+            (by simp) hfreq
+        rcases hG_nontrivial with ⟨w, hw⟩
+        exact hw (by simpa using hEq (by simp : w ∈ (Set.univ : Set ℂ)))
+      -- Hence `G` is eventually nonzero on a punctured neighbourhood of `z0`.
+      have hG_ne : ∀ᶠ z in 𝓝[≠] z0, G z ≠ 0 :=
+        (hG_an.eventually_eq_zero_or_eventually_ne_zero).resolve_left hG_not_eventually_zero
+
+      -- On a punctured neighbourhood of `z0`, `H = q`.
+      have hH_eq_q : ∀ᶠ z in 𝓝[≠] z0, H z = q z := by
+        filter_upwards [hG_ne] with z hz
+        simp [H, q, hz]
+
+      -- `q` is meromorphic at `z0`, and has nonnegative order thanks to `h_ord`.
+      have hq_mer : MeromorphicAt q z0 :=
+        (hf_an.meromorphicAt).div (hG_an.meromorphicAt)
+      have h_cast_mono : Monotone (fun n : ℕ => (n : ℤ)) := by
+        intro a b hab
+        exact Int.ofNat_le_ofNat.mpr hab
+      have hmap_mono : Monotone (fun t : ℕ∞ => t.map (fun n : ℕ => (n : ℤ))) :=
+        (ENat.monotone_map_iff (f := fun n : ℕ => (n : ℤ))).2 h_cast_mono
+      have hG_le_f : meromorphicOrderAt G z0 ≤ meromorphicOrderAt f z0 := by
+        -- Transport the analytic order inequality to a meromorphic order inequality.
+        have : (analyticOrderAt G z0).map (fun n : ℕ => (n : ℤ))
+              ≤ (analyticOrderAt f z0).map (fun n : ℕ => (n : ℤ)) :=
+          hmap_mono (h_ord z0)
+        simpa [hG_an.meromorphicOrderAt_eq, hf_an.meromorphicOrderAt_eq] using this
+      have hq_nonneg : (0 : WithTop ℤ) ≤ meromorphicOrderAt q z0 := by
+        -- `order(q) = order(f) - order(G)`.
+        have hq_order :
+            meromorphicOrderAt q z0 = meromorphicOrderAt f z0 - meromorphicOrderAt G z0 := by
+          simp [q, div_eq_mul_inv, sub_eq_add_neg, meromorphicOrderAt_mul hq_mer (hG_an.meromorphicAt.inv),
+            meromorphicOrderAt_inv]
+        -- Nonnegativity follows from `order(G) ≤ order(f)`.
+        rw [hq_order]
+        exact sub_nonneg.mpr hG_le_f
+
+      -- `q` has a limit along `𝓝[≠] z0`, hence tends to `limUnder ... q`.
+      have hq_hasLimit : ∃ c, Tendsto q (𝓝[≠] z0) (𝓝 c) :=
+        MeromorphicAt.tendsto_nhds_of_meromorphicOrderAt_nonneg hq_mer hq_nonneg
+      have hq_tendsto_lim : Tendsto q (𝓝[≠] z0) (𝓝 (limUnder (𝓝[≠] z0) q)) :=
+        tendsto_nhds_limUnder hq_hasLimit
+
+      -- Choose a neighbourhood on which `G` is nonzero except at the center; there `H` is an update
+      -- of `q` by the computed limit.
+      rcases (eventually_nhdsWithin_iff.1 hG_ne) with ⟨U, hU_nhds, hU, hU0⟩
+      -- Continuity of the updated quotient at `z0`.
+      have hcont_update :
+          ContinuousAt (Function.update q z0 (limUnder (𝓝[≠] z0) q)) z0 := by
+        -- `q → limUnder ... q` on the punctured neighbourhood.
+        exact (continuousAt_update_same).2 hq_tendsto_lim
+      -- The update is meromorphic at `z0` (it agrees with `q` on a punctured neighbourhood).
+      have hmer_update : MeromorphicAt (Function.update q z0 (limUnder (𝓝[≠] z0) q)) z0 := by
+        refine hq_mer.congr ?_
+        -- `update q z0 _` equals `q` on `𝓝[≠] z0`.
+        filter_upwards [self_mem_nhdsWithin] with z hz
+        simpa [Function.update, hz.2]  -- `z ≠ z0`
+      -- Hence the update is analytic at `z0`, and therefore differentiable at `z0`.
+      have han_update :
+          AnalyticAt ℂ (Function.update q z0 (limUnder (𝓝[≠] z0) q)) z0 :=
+        MeromorphicAt.analyticAt hmer_update hcont_update
+
+      -- Finally, `H` agrees with this update on a neighbourhood of `z0`, hence is analytic at `z0`.
+      have hEq_on : (fun z => H z) =ᶠ[𝓝 z0] (Function.update q z0 (limUnder (𝓝[≠] z0) q)) := by
+        -- On `U`, there are no other zeros of `G`, so `H` matches `q` off `z0` and matches the
+        -- update at `z0` by definition.
+        refine (eventually_of_mem hU_nhds ?_)
+        intro z hzU
+        by_cases hz : z = z0
+        · subst hz
+          simp [H, hz0, q]
+        · have : z ∈ (U \ {z0}) := ⟨hzU, by simpa [Set.mem_singleton_iff] using hz⟩
+          have hGz : G z ≠ 0 := hU z this
+          simp [H, q, hz, hGz, Function.update, hz]
+
+      have hanH : AnalyticAt ℂ H z0 := han_update.congr hEq_on
+      exact hanH.differentiableAt
+    · -- Regular point: `G z0 ≠ 0`, so `H = f/G` near `z0`.
+      have hG0 : G z0 ≠ 0 := hz0
+      -- On this branch, `H z0 = f z0 / G z0`.
+      have hHz0 : H z0 = f z0 / G z0 := by simp [H, q, hG0]
+      -- Differentiability of the quotient at a point with nonzero denominator.
+      have hdiff : DifferentiableAt ℂ (fun z => f z / G z) z0 :=
+        (hf z0).div (hG z0) hG0
+      -- `H` agrees with the quotient in a neighbourhood of `z0` (by continuity of `G`).
+      have hG_near : ∀ᶠ z in 𝓝 z0, G z ≠ 0 :=
+        (hG.continuousAt z0).eventually_ne hG0
+      have hEq : (fun z => H z) =ᶠ[𝓝 z0] (fun z => f z / G z) := by
+        filter_upwards [hG_near] with z hz
+        simp [H, q, hz]
+      -- Conclude.
+      exact (hdiff.congr_of_eventuallyEq hEq).differentiableAt
+  · intro z hz
+    simp [H, q, hz]
 
 /-- A zero-free entire function with polynomial growth is exp of a polynomial.
 
@@ -1085,9 +1420,7 @@ theorem hadamard_factorization
       ∀ z : ℂ,
         f z = exp (Polynomial.eval z P) *
           z ^ hz.ord0 *
-          (hz.zeros.attach.map fun z0 =>
-            (weierstrassFactor m (z / z0.1)) ^
-              (Multiset.count z0.1 hz.zeros)).prod := by
+          (hz.zeros.map fun ρ => weierstrassFactor m (z / ρ)).prod := by
   -- **Hadamard Factorization Proof Outline:**
   --
   -- 1. **Lindelöf's theorem**: Since f has order ρ, for any σ > ρ,
@@ -1130,9 +1463,7 @@ theorem ComplexAnalysis.hadamard_factorization_main
       ∀ z : ℂ,
         f z = Complex.exp (Polynomial.eval z P) *
           z ^ hz.ord0 *
-          (hz.zeros.attach.map fun z0 =>
-            (ComplexAnalysis.Hadamard.weierstrassFactor m (z / z0.1)) ^
-              (Multiset.count z0.1 hz.zeros)).prod :=
+          (hz.zeros.map fun ρ => (ComplexAnalysis.Hadamard.weierstrassFactor m (z / ρ))).prod :=
   ComplexAnalysis.Hadamard.hadamard_factorization hf hz
 
 end
