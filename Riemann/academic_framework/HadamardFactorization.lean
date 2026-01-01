@@ -933,11 +933,12 @@ theorem log_sum_converges_uniform {a : ℕ → ℂ} {m : ℕ}
 theorem canonical_product_converges_uniform {a : ℕ → ℂ} {m : ℕ}
     (h_sum : Summable (fun n => ‖a n‖⁻¹ ^ (m + 1)))
     (h_nonzero : ∀ n, a n ≠ 0) :
-    ∀ K : Set ℂ, IsCompact K → K ⊆ {z | ∀ n, z ≠ a n} →
-      ∃ g : ℂ → ℂ, TendstoUniformlyOn
+    ∀ K : Set ℂ, IsCompact K →
+      TendstoUniformlyOn
         (fun N z => ∏ n ∈ range N, weierstrassFactor m (z / a n))
-        g atTop K ∧ AnalyticOn ℂ g K := by
-  intro K hK hK_avoid
+        (fun z => ∏' n, weierstrassFactor m (z / a n)) atTop K ∧
+      AnalyticOn ℂ (fun z => ∏' n, weierstrassFactor m (z / a n)) K := by
+  intro K hK
   -- We avoid the logarithm (which is not continuous everywhere) and instead use Mathlib's
   -- Weierstrass M-test for products of the form `∏ (1 + f n z)`.
   rcases (isBounded_iff_forall_norm_le.1 hK.isBounded) with ⟨R0, hR0⟩
@@ -1064,14 +1065,79 @@ theorem canonical_product_converges_uniform {a : ℕ → ℂ} {m : ℕ}
   have hdiffU : DifferentiableOn ℂ (fun z ↦ ∏' n, (1 + f n z)) U :=
     htlocU.differentiableOn hFdiff hUopen
 
-  refine ⟨fun z ↦ ∏' n, (1 + f n z), ?_, ?_⟩
+  refine ⟨?_, ?_⟩
   · -- Rewrite `1 + f n z` to `weierstrassFactor m (z / a n)`.
     simpa [f, add_sub_cancel] using htendK
   · -- Analyticity on `K` follows from differentiability on an open neighbourhood `U` of `K`.
     intro z hz
     have hzU : z ∈ U := hKU hz
     have hU_nhds : U ∈ 𝓝 z := hUopen.mem_nhds hzU
-    exact (hdiffU.analyticAt hU_nhds).analyticWithinAt
+    -- `hdiffU` provides analyticity at `z`, hence analytic on `K`.
+    simpa [f, add_sub_cancel] using (hdiffU.analyticAt hU_nhds).analyticWithinAt
+
+/-! ### Pointwise summability of the Weierstrass-factor tail -/
+
+lemma summable_weierstrassFactor_sub_one {a : ℕ → ℂ} {m : ℕ}
+    (h_sum : Summable (fun n => ‖a n‖⁻¹ ^ (m + 1)))
+    (h_nonzero : ∀ n, a n ≠ 0) (z : ℂ) :
+    Summable (fun n => weierstrassFactor m (z / a n) - 1) := by
+  classical
+  -- Bound `z` by a positive radius `R ≥ ‖z‖`.
+  set R : ℝ := max ‖z‖ 1
+  have hRpos : 0 < R := lt_of_lt_of_le (by norm_num : (0 : ℝ) < 1) (le_max_right _ _)
+  -- Majorant for the tail.
+  let g : ℕ → ℝ := fun n => (4 * R ^ (m + 1)) * (‖a n‖⁻¹ ^ (m + 1))
+  have hg : Summable g := h_sum.mul_left (4 * R ^ (m + 1))
+
+  -- Eventually, `‖a n‖` is large enough so that `‖z / a n‖ ≤ 1/2`.
+  have h_tend : Tendsto (fun n => ‖a n‖⁻¹ ^ (m + 1)) atTop (nhds (0 : ℝ)) := by
+    simpa [Nat.cofinite_eq_atTop] using h_sum.tendsto_cofinite_zero
+  have hRhalf_pos : 0 < (1 / (2 * R)) ^ (m + 1) := by
+    have : 0 < (1 / (2 * R) : ℝ) := by
+      have : 0 < (2 * R : ℝ) := by nlinarith [hRpos]
+      exact one_div_pos.mpr this
+    exact pow_pos this (m + 1)
+  have hLarge : ∀ᶠ n in atTop, (2 * R : ℝ) ≤ ‖a n‖ := by
+    have hEv := h_tend.eventually (eventually_lt_nhds hRhalf_pos)
+    filter_upwards [hEv] with n hn
+    by_contra h'
+    have hle : ‖a n‖ ≤ 2 * R := le_of_not_ge h'
+    have ha_pos : 0 < ‖a n‖ := norm_pos_iff.mpr (h_nonzero n)
+    have hinv : (1 / (2 * R : ℝ)) ≤ ‖a n‖⁻¹ := by
+      simpa [one_div] using (one_div_le_one_div_of_le ha_pos hle)
+    have hinv_pow : (1 / (2 * R : ℝ)) ^ (m + 1) ≤ ‖a n‖⁻¹ ^ (m + 1) :=
+      pow_le_pow_left₀ (by positivity) hinv (m + 1)
+    exact (not_lt_of_ge hinv_pow) (by simpa [one_div] using hn)
+
+  have hbound : ∀ᶠ n in atTop, ‖weierstrassFactor m (z / a n) - 1‖ ≤ g n := by
+    filter_upwards [hLarge] with n hn
+    have hz' : ‖z / a n‖ ≤ (1 / 2 : ℝ) := by
+      have hzle : ‖z‖ ≤ R := le_max_left _ _
+      have : ‖z / a n‖ = ‖z‖ / ‖a n‖ := by simp
+      rw [this]
+      have h2R_pos : 0 < (2 * R : ℝ) := by nlinarith [hRpos]
+      have hfrac₁ : ‖z‖ / ‖a n‖ ≤ ‖z‖ / (2 * R) :=
+        div_le_div_of_nonneg_left (norm_nonneg z) h2R_pos hn
+      have hfrac₂ : ‖z‖ / (2 * R) ≤ R / (2 * R) :=
+        div_le_div_of_nonneg_right hzle (le_of_lt h2R_pos)
+      have hRne : (R : ℝ) ≠ 0 := ne_of_gt hRpos
+      have hRsimp : (R / (2 * R : ℝ)) = (1 / 2 : ℝ) := by field_simp [hRne]
+      exact (hfrac₁.trans hfrac₂).trans_eq hRsimp
+    have hpow := weierstrassFactor_sub_one_bound_pow (m := m) (z := z / a n) hz'
+    have hzR : ‖z‖ ^ (m + 1) ≤ R ^ (m + 1) :=
+      pow_le_pow_left₀ (norm_nonneg z) (le_max_left _ _) _
+    calc
+      ‖weierstrassFactor m (z / a n) - 1‖
+          ≤ 4 * ‖z / a n‖ ^ (m + 1) := hpow
+      _ = 4 * (‖z‖ ^ (m + 1) * ‖a n‖⁻¹ ^ (m + 1)) := by
+            simp [div_eq_mul_inv, mul_pow, norm_inv, mul_assoc, mul_comm]
+      _ ≤ 4 * (R ^ (m + 1) * ‖a n‖⁻¹ ^ (m + 1)) := by
+            gcongr
+      _ = g n := by
+            simp [g, mul_assoc, mul_comm]
+
+  -- Comparison test.
+  exact Summable.of_norm_bounded_eventually_nat (E := ℂ) hg hbound
 
 /-- The canonical product defines an entire function. -/
 theorem canonical_product_entire {a : ℕ → ℂ} {m : ℕ}
@@ -1080,17 +1146,255 @@ theorem canonical_product_entire {a : ℕ → ℂ} {m : ℕ}
     ∃ G : ℂ → ℂ, Differentiable ℂ G ∧
       (∀ z, G z = 0 ↔ ∃ n, z = a n) ∧
       EntireOfFiniteOrder (m + 1 : ℝ) G := by
-  -- Strategy:
-  -- 1. Use canonical_product_converges_uniform to get uniform limits on compact sets
-  -- 2. Uniform limits of analytic functions are analytic
-  -- 3. The zeros of the limit are exactly the aₙ
-  -- 4. Growth bound follows from product representation
-  --
-  -- Define G as the limit of partial products on all of ℂ
-  -- G(z) = lim_{N→∞} ∏_{n < N} E_m(z/aₙ)
-  -- This limit exists uniformly on compact subsets of ℂ \ {aₙ}
-  -- and extends continuously to an entire function with zeros at {aₙ}
-  sorry
+  classical
+  -- Define the canonical product as an infinite product.
+  let G : ℂ → ℂ := fun z => ∏' n, weierstrassFactor m (z / a n)
+
+  -- Locally uniform convergence of the partial products to `G` on `univ`.
+  have htloc :
+      TendstoLocallyUniformlyOn
+        (fun N z => ∏ n ∈ range N, weierstrassFactor m (z / a n))
+        G atTop (Set.univ : Set ℂ) := by
+    rw [tendstoLocallyUniformlyOn_iff_forall_isCompact isOpen_univ]
+    intro K _ hK
+    simpa [G] using (canonical_product_converges_uniform (a := a) (m := m) h_sum h_nonzero K hK).1
+
+  -- Each partial product is entire.
+  have hFdiff :
+      ∀ᶠ N : ℕ in atTop,
+        DifferentiableOn ℂ (fun z => ∏ n ∈ range N, weierstrassFactor m (z / a n))
+          (Set.univ : Set ℂ) :=
+    Filter.Eventually.of_forall (fun N => by
+      -- Finite products of differentiable functions are differentiable.
+      have hdf :
+          ∀ n ∈ range N,
+            DifferentiableOn ℂ (fun z => weierstrassFactor m (z / a n)) (Set.univ : Set ℂ) := by
+        intro n hn
+        have hdiff : Differentiable ℂ (fun z => weierstrassFactor m (z / a n)) :=
+          (differentiable_weierstrassFactor m).comp (differentiable_id.div_const (a n))
+        exact hdiff.differentiableOn
+      simpa [Finset.prod_fn] using
+        (DifferentiableOn.finset_prod (s := (Set.univ : Set ℂ)) (u := range N)
+          (f := fun n z => weierstrassFactor m (z / a n)) hdf))
+
+  have hdiff_on : DifferentiableOn ℂ G (Set.univ : Set ℂ) :=
+    htloc.differentiableOn hFdiff isOpen_univ
+  have hdiff : Differentiable ℂ G := (differentiableOn_univ.1 hdiff_on)
+
+  -- Zeros: `G z = 0 ↔ ∃ n, z = a n`.
+  have hzeros : ∀ z, G z = 0 ↔ ∃ n, z = a n := by
+    intro z
+    constructor
+    · intro hz0
+      by_contra h
+      have hz : ∀ n, z ≠ a n := by
+        intro n hn
+        exact h ⟨n, hn⟩
+      -- If `z` avoids all `a n`, then all factors are nonzero and the product is nonzero.
+      have htail : Summable (fun n => weierstrassFactor m (z / a n) - 1) :=
+        summable_weierstrassFactor_sub_one (a := a) (m := m) h_sum h_nonzero z
+      have hlog : Summable (fun n => Complex.log (weierstrassFactor m (z / a n))) := by
+        simpa [add_sub_cancel] using
+          (Complex.summable_log_one_add_of_summable
+            (f := fun n => weierstrassFactor m (z / a n) - 1) htail)
+      have hne : ∀ n, weierstrassFactor m (z / a n) ≠ 0 := by
+        intro n h0
+        have h1 : z / a n = (1 : ℂ) :=
+          (weierstrassFactor_eq_zero_iff (m := m) (z := z / a n)).1 h0
+        have : z = (1 : ℂ) * a n :=
+          (div_eq_iff (a := z) (b := a n) (c := (1 : ℂ)) (h_nonzero n)).1 h1
+        have : z = a n := by simpa using this
+        exact hz n this
+      have hprod :
+          Complex.exp (∑' n, Complex.log (weierstrassFactor m (z / a n)))
+            = ∏' n, weierstrassFactor m (z / a n) := by
+        simpa using (Complex.cexp_tsum_eq_tprod (f := fun n => weierstrassFactor m (z / a n)) hne hlog)
+      have hexp_ne : Complex.exp (∑' n, Complex.log (weierstrassFactor m (z / a n))) ≠ 0 :=
+        Complex.exp_ne_zero _
+      have hG_ne : G z ≠ 0 := by
+        -- Rewrite `G z` using `hprod`.
+        have hEq : Complex.exp (∑' n, Complex.log (weierstrassFactor m (z / a n))) = G z := by
+          simpa [G] using hprod
+        simpa [hEq] using hexp_ne
+      exact hG_ne hz0
+    · rintro ⟨n, rfl⟩
+      -- One factor is zero, hence the whole product is zero.
+      have hz : weierstrassFactor m ((a n) / (a n)) = 0 := by
+        have : (a n) / (a n) = (1 : ℂ) := by simp [h_nonzero n]
+        exact (weierstrassFactor_eq_zero_iff (m := m) (z := (a n) / (a n))).2 this
+      have : (∃ k, weierstrassFactor m ((a n) / a k) = 0) := ⟨n, hz⟩
+      simpa [G] using
+        (tprod_of_exists_eq_zero (f := fun k => weierstrassFactor m ((a n) / a k)) this)
+
+  -- Growth: `G` has order at most `m+1`.
+  have hgrowth :
+      ∃ C > 0, ∀ z : ℂ, Real.log (1 + ‖G z‖) ≤ C * (1 + ‖z‖) ^ (m + 1 : ℝ) := by
+    -- Auxiliary bound: `log(1 + exp B) ≤ B + log 2` for `B ≥ 0`.
+    have log_one_add_exp_le (B : ℝ) (hB : 0 ≤ B) : Real.log (1 + Real.exp B) ≤ B + Real.log 2 := by
+      have hle : (1 : ℝ) + Real.exp B ≤ 2 * Real.exp B := by
+        have : (1 : ℝ) ≤ Real.exp B := by simpa using (Real.exp_monotone hB)
+        nlinarith
+      have hpos : 0 < (1 : ℝ) + Real.exp B := by
+        have : 0 < Real.exp B := Real.exp_pos _
+        linarith
+      have hlog_le : Real.log (1 + Real.exp B) ≤ Real.log (2 * Real.exp B) :=
+        Real.log_le_log hpos (hle.trans_eq (by rfl))
+      have hlog_mul : Real.log (2 * Real.exp B) = Real.log 2 + B := by
+        simp [Real.log_mul, show (2 : ℝ) ≠ 0 by norm_num]
+      linarith [hlog_le, hlog_mul]
+
+    obtain ⟨C0, hC0pos, hC0⟩ := norm_weierstrassFactor_le_exp_pow m
+    let S : ℝ := ∑' n, ‖a n‖⁻¹ ^ (m + 1)
+    let C : ℝ := C0 * S + Real.log 2
+    refine ⟨C, ?_, ?_⟩
+    · have hlog2 : 0 < Real.log (2 : ℝ) := by
+        have : (1 : ℝ) < 2 := by norm_num
+        simpa using Real.log_pos this
+      have hC0' : 0 ≤ C0 := le_of_lt hC0pos
+      have hS' : 0 ≤ S := tsum_nonneg (fun n => by positivity)
+      have hCS : 0 ≤ C0 * S := mul_nonneg hC0' hS'
+      linarith
+    · intro z
+      -- First, bound `‖G z‖` by an exponential.
+      have htail : Summable (fun n => weierstrassFactor m (z / a n) - 1) :=
+        summable_weierstrassFactor_sub_one (a := a) (m := m) h_sum h_nonzero z
+      have hmult : Multipliable (fun n => weierstrassFactor m (z / a n)) := by
+        simpa [add_sub_cancel] using
+          (Complex.multipliable_one_add_of_summable
+            (f := fun n => weierstrassFactor m (z / a n) - 1) htail)
+
+      have hnorm_tprod :
+          ‖G z‖ = ∏' n, ‖weierstrassFactor m (z / a n)‖ := by
+        simpa [G] using (Multipliable.norm_tprod (f := fun n => weierstrassFactor m (z / a n)) hmult)
+
+      have hle_term :
+          ∀ n, ‖weierstrassFactor m (z / a n)‖ ≤ Real.exp (C0 * ‖z / a n‖ ^ (m + 1)) :=
+        fun n => hC0 (z / a n)
+
+      have hle_partial :
+          ∀ N,
+            (∏ n ∈ range N, ‖weierstrassFactor m (z / a n)‖)
+              ≤ ∏ n ∈ range N, Real.exp (C0 * ‖z / a n‖ ^ (m + 1)) := by
+        intro N
+        refine Finset.prod_le_prod (fun n hn => norm_nonneg _) (fun n hn => hle_term n)
+
+      have htend_left :
+          Tendsto (fun N => ∏ n ∈ range N, ‖weierstrassFactor m (z / a n)‖) atTop
+            (𝓝 (∏' n, ‖weierstrassFactor m (z / a n)‖)) := by
+        have : Multipliable (fun n => ‖weierstrassFactor m (z / a n)‖) := (Multipliable.norm hmult)
+        simpa using (Multipliable.tendsto_prod_tprod_nat this)
+
+      have hsum_exp : Summable (fun n => (C0 * ‖z / a n‖ ^ (m + 1) : ℝ)) := by
+        have : Summable (fun n => (C0 * ‖z‖ ^ (m + 1)) * (‖a n‖⁻¹ ^ (m + 1))) := by
+          simpa [mul_assoc, mul_left_comm, mul_comm] using (h_sum.mul_left (C0 * ‖z‖ ^ (m + 1)))
+        refine this.congr (fun n => ?_)
+        simp [div_eq_mul_inv, mul_pow, mul_assoc]
+
+      have hhasProd_exp :
+          HasProd (fun n => Real.exp (C0 * ‖z / a n‖ ^ (m + 1)))
+            (Real.exp (∑' n, (C0 * ‖z / a n‖ ^ (m + 1) : ℝ))) := by
+        simpa [Function.comp] using (hsum_exp.hasSum).rexp
+
+      have htend_right :
+          Tendsto (fun N => ∏ n ∈ range N, Real.exp (C0 * ‖z / a n‖ ^ (m + 1))) atTop
+            (𝓝 (Real.exp (∑' n, (C0 * ‖z / a n‖ ^ (m + 1) : ℝ)))) :=
+        hhasProd_exp.tendsto_prod_nat
+
+      have hle_tprod :
+          (∏' n, ‖weierstrassFactor m (z / a n)‖)
+            ≤ Real.exp (∑' n, (C0 * ‖z / a n‖ ^ (m + 1) : ℝ)) :=
+        le_of_tendsto_of_tendsto' htend_left htend_right hle_partial
+
+      have hsum_simp :
+          (∑' n, (C0 * ‖z / a n‖ ^ (m + 1) : ℝ)) = C0 * ‖z‖ ^ (m + 1) * S := by
+        have hterm :
+            ∀ n, (C0 * ‖z / a n‖ ^ (m + 1) : ℝ)
+              = (C0 * ‖z‖ ^ (m + 1)) * (‖a n‖⁻¹ ^ (m + 1)) := by
+          intro n
+          simp [div_eq_mul_inv, mul_pow, mul_assoc]
+        calc
+          (∑' n, (C0 * ‖z / a n‖ ^ (m + 1) : ℝ))
+              = ∑' n, (C0 * ‖z‖ ^ (m + 1)) * (‖a n‖⁻¹ ^ (m + 1)) := by
+                  simpa using (tsum_congr hterm)
+          _ = (C0 * ‖z‖ ^ (m + 1)) * (∑' n, ‖a n‖⁻¹ ^ (m + 1)) := by
+                simp [tsum_mul_left]
+          _ = C0 * ‖z‖ ^ (m + 1) * S := by
+                simp [S, mul_assoc]
+
+      have hnorm_le : ‖G z‖ ≤ Real.exp (C0 * ‖z‖ ^ (m + 1) * S) := by
+        have htmp :
+            ‖G z‖ ≤ Real.exp (∑' n, (C0 * ‖z / a n‖ ^ (m + 1) : ℝ)) := by
+          -- Avoid `simp` rewriting `‖z / a n‖` into `‖z‖ / ‖a n‖`.
+          calc
+            ‖G z‖ = ∏' n, ‖weierstrassFactor m (z / a n)‖ := hnorm_tprod
+            _ ≤ Real.exp (∑' n, (C0 * ‖z / a n‖ ^ (m + 1) : ℝ)) := hle_tprod
+        -- Rewrite the exponent sum.
+        have htmp' := htmp
+        rw [hsum_simp] at htmp'
+        exact htmp'
+
+      -- Take logs, then compare `‖z‖^(m+1)` with `(1+‖z‖)^(m+1)`.
+      have hpos1 : 0 < (1 : ℝ) + ‖G z‖ := by
+        have : 0 ≤ ‖G z‖ := norm_nonneg _
+        linarith
+      have hlog_mon :
+          Real.log (1 + ‖G z‖) ≤ Real.log (1 + Real.exp (C0 * ‖z‖ ^ (m + 1) * S)) :=
+        Real.log_le_log hpos1 (by linarith [hnorm_le])
+      have hB : 0 ≤ C0 * ‖z‖ ^ (m + 1) * S := by
+        have hC0' : 0 ≤ C0 := le_of_lt hC0pos
+        have hz' : 0 ≤ ‖z‖ ^ (m + 1) := by positivity
+        have hS' : 0 ≤ S := tsum_nonneg (fun n => by positivity)
+        exact mul_nonneg (mul_nonneg hC0' hz') hS'
+      have hlog2 :
+          Real.log (1 + Real.exp (C0 * ‖z‖ ^ (m + 1) * S))
+            ≤ (C0 * ‖z‖ ^ (m + 1) * S) + Real.log 2 :=
+        log_one_add_exp_le (B := C0 * ‖z‖ ^ (m + 1) * S) hB
+      have hmain :
+          Real.log (1 + ‖G z‖) ≤ (C0 * ‖z‖ ^ (m + 1) * S) + Real.log 2 :=
+        le_trans hlog_mon hlog2
+
+      have hz_le : ‖z‖ ^ (m + 1) ≤ (1 + ‖z‖) ^ (m + 1) := by
+        have : ‖z‖ ≤ 1 + ‖z‖ := by linarith [norm_nonneg z]
+        exact pow_le_pow_left₀ (norm_nonneg z) this _
+      have hpow_ge1 : (1 : ℝ) ≤ (1 + ‖z‖) ^ (m + 1) := by
+        have hbase : (1 : ℝ) ≤ 1 + ‖z‖ := by linarith [norm_nonneg z]
+        exact one_le_pow₀ (a := (1 + ‖z‖)) hbase
+
+      have hterm1 :
+          C0 * ‖z‖ ^ (m + 1) * S ≤ (C0 * S) * (1 + ‖z‖) ^ (m + 1) := by
+        have hC0' : 0 ≤ C0 := le_of_lt hC0pos
+        have hS' : 0 ≤ S := tsum_nonneg (fun n => by positivity)
+        have : C0 * (‖z‖ ^ (m + 1)) * S ≤ C0 * ((1 + ‖z‖) ^ (m + 1)) * S := by
+          gcongr
+        simpa [mul_assoc, mul_left_comm, mul_comm] using this
+
+      have hterm2 :
+          Real.log 2 ≤ (Real.log 2) * (1 + ‖z‖) ^ (m + 1) := by
+        have hlog2_nonneg : 0 ≤ Real.log (2 : ℝ) := by
+          have : (1 : ℝ) ≤ 2 := by norm_num
+          simpa using Real.log_nonneg this
+        have := mul_le_mul_of_nonneg_left hpow_ge1 hlog2_nonneg
+        simpa [mul_assoc, mul_left_comm, mul_comm] using this
+
+      have hnat :
+          Real.log (1 + ‖G z‖) ≤ (C0 * S + Real.log 2) * (1 + ‖z‖) ^ (m + 1) := by
+        have h1 :
+            (C0 * ‖z‖ ^ (m + 1) * S) + Real.log 2
+              ≤ (C0 * S) * (1 + ‖z‖) ^ (m + 1) + (Real.log 2) * (1 + ‖z‖) ^ (m + 1) :=
+          add_le_add hterm1 hterm2
+        have h2 :
+            (C0 * S) * (1 + ‖z‖) ^ (m + 1) + (Real.log 2) * (1 + ‖z‖) ^ (m + 1)
+              = (C0 * S + Real.log 2) * (1 + ‖z‖) ^ (m + 1) := by
+          ring
+        exact (hmain.trans (h1.trans_eq h2))
+
+      have hpow :
+          (1 + ‖z‖ : ℝ) ^ (m + 1 : ℝ) = (1 + ‖z‖ : ℝ) ^ (m + 1 : ℕ) := by
+        simpa using (Real.rpow_natCast (x := (1 + ‖z‖ : ℝ)) (n := m + 1))
+      simpa [C, hpow] using hnat
+
+  refine ⟨G, hdiff, hzeros, ?_⟩
+  refine ⟨hdiff, hgrowth⟩
 
 /-! ## Part 5b: Zeros Counting and Jensen's Formula
 
@@ -1138,7 +1442,7 @@ theorem jensen_zeros_bound {f : ℂ → ℂ} {r R B : ℝ}
       simp [U, abs_nonneg R]
     have : f 0 = 0 := by simpa using hEq h0U
     -- Contradiction with `f 0 = 1`.
-    simpa [hf0] using this
+    simp [hf0] at this
 
   -- Build a finset of (distinct) zeros using the divisor support.
   have hDfin : (MeromorphicOn.divisor f U).support.Finite :=
