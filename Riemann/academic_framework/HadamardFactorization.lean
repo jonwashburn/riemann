@@ -287,7 +287,7 @@ lemma polynomial (P : Polynomial ℂ) :
       _ = (C + 1) * (1 + ‖z‖) ^ (P.natDegree : ℝ) := by simp [hrpow]
 
 /-- exp(az) has order 1 for any a ≠ 0. -/
-lemma exp_linear {a : ℂ} (ha : a ≠ 0) : EntireOfFiniteOrder 1 (fun z => exp (a * z)) := by
+lemma exp_linear {a : ℂ} (_ : a ≠ 0) : EntireOfFiniteOrder 1 (fun z => exp (a * z)) := by
   constructor
   · exact differentiable_exp.comp (differentiable_const a |>.mul differentiable_id)
   · -- A slightly conservative constant suffices.
@@ -496,6 +496,241 @@ lemma weierstrassFactor_sub_one_bound_pow {m : ℕ} {z : ℂ} (hz : ‖z‖ ≤ 
   -- Reuse the fully rigorous tail/log proof from `WeierstrassFactorBound.lean`.
   simpa [weierstrassFactor, weierstrassFactor', partialLogSum'] using
     (weierstrassFactor_sub_one_pow_bound (m := m) (z := z) hz)
+
+/-!
+### A global growth bound for a single Weierstrass factor
+
+For the finite-order bound on the canonical product, we need a bound of the form
+`‖E_m(w)‖ ≤ exp(C * ‖w‖^(m+1))` valid for all `w`.
+-/
+
+lemma norm_weierstrassFactor_le_exp_pow (m : ℕ) :
+    ∃ C > 0, ∀ w : ℂ, ‖weierstrassFactor m w‖ ≤ Real.exp (C * ‖w‖ ^ (m + 1)) := by
+  classical
+  -- A convenient explicit constant.
+  let C : ℝ := max 4 ((m + 1 : ℝ) * (2 : ℝ) ^ (m + 1))
+  have hCpos : 0 < C := by
+    have : (0 : ℝ) < (4 : ℝ) := by norm_num
+    exact lt_of_lt_of_le this (le_max_left _ _)
+  refine ⟨C, hCpos, ?_⟩
+  intro w
+  by_cases hw : ‖w‖ ≤ (1 / 2 : ℝ)
+  · -- Small `w`: use `‖E_m(w) - 1‖ ≤ 4‖w‖^(m+1)` and `1 + x ≤ exp x`.
+    have hsub : ‖weierstrassFactor m w - 1‖ ≤ 4 * ‖w‖ ^ (m + 1) :=
+      weierstrassFactor_sub_one_bound_pow (m := m) (z := w) hw
+    have hnorm : ‖weierstrassFactor m w‖ ≤ 4 * ‖w‖ ^ (m + 1) + 1 := by
+      -- `E = (E - 1) + 1`
+      have hdecomp : (weierstrassFactor m w - 1) + (1 : ℂ) = weierstrassFactor m w := by
+        simp
+      calc
+        ‖weierstrassFactor m w‖ = ‖(weierstrassFactor m w - 1) + (1 : ℂ)‖ := by
+          simp [hdecomp]
+        _ ≤ ‖weierstrassFactor m w - 1‖ + ‖(1 : ℂ)‖ := norm_add_le _ _
+        _ ≤ (4 * ‖w‖ ^ (m + 1)) + 1 := by
+          simp [hsub]
+    have hle_exp : (4 * ‖w‖ ^ (m + 1) + 1) ≤ Real.exp (4 * ‖w‖ ^ (m + 1)) := by
+      -- `x + 1 ≤ exp x`
+        simpa [add_comm, add_left_comm, add_assoc] using (Real.add_one_le_exp (4 * ‖w‖ ^ (m + 1)))
+    have hCge4 : (4 : ℝ) ≤ C := le_max_left _ _
+    have hpow_nonneg : 0 ≤ ‖w‖ ^ (m + 1) := pow_nonneg (norm_nonneg w) _
+    have hexp_mono :
+        Real.exp (4 * ‖w‖ ^ (m + 1)) ≤ Real.exp (C * ‖w‖ ^ (m + 1)) := by
+      apply Real.exp_monotone
+      exact mul_le_mul_of_nonneg_right hCge4 hpow_nonneg
+    exact hnorm.trans (hle_exp.trans hexp_mono)
+  · -- Large `w`: use the definition and crude bounds.
+    have hw' : (1 / 2 : ℝ) < ‖w‖ := lt_of_not_ge hw
+    by_cases hw1 : ‖w‖ ≤ (1 : ℝ)
+    · -- `1/2 < ‖w‖ ≤ 1`: bound by a constant and absorb into `exp (C * ‖w‖^(m+1))`.
+      have hpartial :
+          ‖partialLogSum m w‖ ≤ (m : ℝ) := by
+        -- Bound the finite sum termwise by `1` (since `‖w‖ ≤ 1`).
+        unfold partialLogSum
+        have : ‖∑ k ∈ range m, w ^ (k + 1) / (k + 1)‖ ≤ ∑ k ∈ range m, ‖w ^ (k + 1) / (k + 1)‖ :=
+          norm_sum_le _ _
+        refine this.trans ?_
+        have hterm : ∀ k ∈ range m, ‖w ^ (k + 1) / (k + 1)‖ ≤ (1 : ℝ) := by
+          intro k hk
+          rw [norm_div, Complex.norm_pow]
+          have hk1 : (1 : ℝ) ≤ (k : ℝ) + 1 := by
+            have hk1_nat : (1 : ℕ) ≤ k + 1 := Nat.succ_le_succ (Nat.zero_le k)
+            exact_mod_cast hk1_nat
+          have hdenom : ‖((k : ℂ) + 1)‖ = (k : ℝ) + 1 := by
+            -- rewrite as a natural cast
+            simpa [Nat.cast_add_one, add_assoc, add_comm, add_left_comm] using
+              (Complex.norm_natCast (k + 1))
+          -- crude: `‖w‖^(k+1) / (k+1) ≤ ‖w‖^(k+1) ≤ 1`
+          calc
+            ‖w‖ ^ (k + 1) / ‖((k : ℂ) + 1)‖
+                = ‖w‖ ^ (k + 1) / ((k : ℝ) + 1) := by simp [hdenom]
+            _ ≤ ‖w‖ ^ (k + 1) := by
+              exact div_le_self (pow_nonneg (norm_nonneg w) _) hk1
+            _ ≤ (1 : ℝ) := by
+              exact pow_le_one₀ (norm_nonneg w) hw1
+        -- Sum the termwise bound.
+        calc
+          (∑ k ∈ range m, ‖w ^ (k + 1) / (k + 1)‖) ≤ ∑ _k ∈ range m, (1 : ℝ) :=
+            Finset.sum_le_sum (fun k hk => hterm k hk)
+          _ = (m : ℝ) := by simp [Finset.sum_const]
+      have hE :
+          ‖weierstrassFactor m w‖ ≤ (2 : ℝ) * Real.exp (m : ℝ) := by
+        -- `‖(1-w) * exp(partialLogSum)‖ ≤ (1+‖w‖) * exp(‖partialLogSum‖)`.
+        have h1w : ‖(1 : ℂ) - w‖ ≤ 1 + ‖w‖ := by
+          simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using
+            (norm_add_le (1 : ℂ) (-w))
+        have hexp : ‖exp (partialLogSum m w)‖ ≤ Real.exp ‖partialLogSum m w‖ :=
+          Complex.norm_exp_le_exp_norm _
+        have hnorm_mul :
+            ‖weierstrassFactor m w‖ ≤ (1 + ‖w‖) * Real.exp ‖partialLogSum m w‖ := by
+          simpa [weierstrassFactor, mul_assoc, mul_left_comm, mul_comm] using
+            (mul_le_mul h1w hexp (by positivity) (by positivity))
+        have h1w_le2 : (1 + ‖w‖) ≤ (2 : ℝ) := by linarith [hw1, norm_nonneg w]
+        have hexp_le : Real.exp ‖partialLogSum m w‖ ≤ Real.exp (m : ℝ) := by
+          exact Real.exp_monotone hpartial
+        calc
+          ‖weierstrassFactor m w‖
+              ≤ (1 + ‖w‖) * Real.exp ‖partialLogSum m w‖ := hnorm_mul
+          _ ≤ (2 : ℝ) * Real.exp (m : ℝ) := by
+              gcongr
+      -- Now `2 * exp m ≤ exp (m+1)` and `m+1 ≤ C * ‖w‖^(m+1)` since `‖w‖ ≥ 1/2`.
+      have h2le : (2 : ℝ) ≤ Real.exp 1 := by
+        -- `1 + 1 ≤ exp 1`
+        have h := Real.add_one_le_exp (1 : ℝ)
+        -- `1 + 1 = 2`
+        linarith
+      have hE' : ‖weierstrassFactor m w‖ ≤ Real.exp ((m : ℝ) + 1) := by
+        have : (2 : ℝ) * Real.exp (m : ℝ) ≤ Real.exp 1 * Real.exp (m : ℝ) :=
+          mul_le_mul_of_nonneg_right h2le (Real.exp_nonneg _)
+        have : (2 : ℝ) * Real.exp (m : ℝ) ≤ Real.exp ((1 : ℝ) + m) := by
+          simpa [Real.exp_add, mul_assoc, mul_left_comm, mul_comm] using this
+        have : (2 : ℝ) * Real.exp (m : ℝ) ≤ Real.exp ((m : ℝ) + 1) := by
+          simpa [add_comm, add_left_comm, add_assoc] using this
+        exact hE.trans this
+      have hCbig : ((m : ℝ) + 1) ≤ C * ‖w‖ ^ (m + 1) := by
+        have hCge : ((m + 1 : ℝ) * (2 : ℝ) ^ (m + 1)) ≤ C := le_max_right _ _
+        have hwpow : (1 : ℝ) ≤ (2 : ℝ) ^ (m + 1) * ‖w‖ ^ (m + 1) := by
+          have hw0 : (0 : ℝ) ≤ ‖w‖ := norm_nonneg w
+          have hw_ge : (1 / 2 : ℝ) ≤ ‖w‖ := le_of_lt hw'
+          -- Multiply `‖w‖^(m+1) ≥ (1/2)^(m+1)` by `2^(m+1)`.
+          have hwpow' : (1 / 2 : ℝ) ^ (m + 1) ≤ ‖w‖ ^ (m + 1) := by
+            -- `‖w‖ ≥ 1/2`
+            exact pow_le_pow_left₀ (a := (1 / 2 : ℝ)) (b := ‖w‖) (by positivity) hw_ge (m + 1)
+          have htwo : (2 : ℝ) ^ (m + 1) * (1 / 2 : ℝ) ^ (m + 1) = (1 : ℝ) := by
+            -- `(2 * (1/2))^(m+1) = 1`
+            simp [inv_pow]
+          calc
+            (1 : ℝ) = (2 : ℝ) ^ (m + 1) * (1 / 2 : ℝ) ^ (m + 1) := htwo.symm
+            _ ≤ (2 : ℝ) ^ (m + 1) * ‖w‖ ^ (m + 1) := by gcongr
+        calc
+          (m : ℝ) + 1 ≤ (m + 1 : ℝ) * (2 : ℝ) ^ (m + 1) * ‖w‖ ^ (m + 1) := by
+            -- Since `1 ≤ 2^(m+1) * ‖w‖^(m+1)`.
+            have : (m + 1 : ℝ) ≤ (m + 1 : ℝ) * ((2 : ℝ) ^ (m + 1) * ‖w‖ ^ (m + 1)) := by
+              have hm0 : (0 : ℝ) ≤ (m + 1 : ℝ) := by positivity
+              simpa [mul_assoc] using (mul_le_mul_of_nonneg_left hwpow hm0)
+            simpa [Nat.cast_add_one, add_comm, add_left_comm, add_assoc, mul_assoc] using this
+          _ ≤ C * ‖w‖ ^ (m + 1) := by
+            have hw0 : 0 ≤ ‖w‖ ^ (m + 1) := pow_nonneg (norm_nonneg w) _
+            -- Use `((m+1)*2^(m+1)) ≤ C`.
+            simpa [mul_assoc] using
+              (mul_le_mul_of_nonneg_right hCge hw0)
+      have : Real.exp ((m : ℝ) + 1) ≤ Real.exp (C * ‖w‖ ^ (m + 1)) :=
+        Real.exp_monotone hCbig
+      exact hE'.trans this
+    · -- `‖w‖ > 1`: bound directly by `exp ((m+1) * ‖w‖^(m+1))`.
+      have hw1' : (1 : ℝ) < ‖w‖ := lt_of_not_ge hw1
+      have hw_ge1 : (1 : ℝ) ≤ ‖w‖ := le_of_lt hw1'
+      -- First bound `‖partialLogSum m w‖` by `m * ‖w‖^(m+1)`.
+      have hpartial :
+          ‖partialLogSum m w‖ ≤ (m : ℝ) * ‖w‖ ^ (m + 1) := by
+        unfold partialLogSum
+        have hsum :
+            ‖∑ k ∈ range m, w ^ (k + 1) / (k + 1)‖ ≤ ∑ k ∈ range m, ‖w ^ (k + 1) / (k + 1)‖ :=
+          norm_sum_le _ _
+        refine hsum.trans ?_
+        -- Bound each term by `‖w‖^(m+1)`.
+        have hterm : ∀ k ∈ range m, ‖w ^ (k + 1) / (k + 1)‖ ≤ ‖w‖ ^ (m + 1) := by
+          intro k hk
+          rw [norm_div, Complex.norm_pow]
+          have hk1 : (1 : ℝ) ≤ (k : ℝ) + 1 := by
+            have hk1_nat : (1 : ℕ) ≤ k + 1 := Nat.succ_le_succ (Nat.zero_le k)
+            exact_mod_cast hk1_nat
+          have hdenom : ‖((k : ℂ) + 1)‖ = (k : ℝ) + 1 := by
+            simpa [Nat.cast_add_one, add_assoc, add_comm, add_left_comm] using
+              (Complex.norm_natCast (k + 1))
+          have hk_le : (k + 1 : ℕ) ≤ m + 1 := Nat.succ_le_succ (Nat.le_of_lt (Finset.mem_range.mp hk))
+          have hw0 : (0 : ℝ) ≤ ‖w‖ := norm_nonneg w
+          have hpow_le : ‖w‖ ^ (k + 1) ≤ ‖w‖ ^ (m + 1) :=
+            pow_le_pow_right₀ (a := ‖w‖) (by simpa using hw_ge1) hk_le
+          calc
+            ‖w‖ ^ (k + 1) / ‖((k : ℂ) + 1)‖
+                = ‖w‖ ^ (k + 1) / ((k : ℝ) + 1) := by simp [hdenom]
+            _ ≤ ‖w‖ ^ (k + 1) := div_le_self (pow_nonneg (norm_nonneg w) _) hk1
+            _ ≤ ‖w‖ ^ (m + 1) := hpow_le
+        calc
+          (∑ k ∈ range m, ‖w ^ (k + 1) / (k + 1)‖) ≤ ∑ _k ∈ range m, ‖w‖ ^ (m + 1) :=
+            Finset.sum_le_sum (fun k hk => hterm k hk)
+          _ = (m : ℝ) * ‖w‖ ^ (m + 1) := by simp [Finset.sum_const]
+      -- Now estimate `‖weierstrassFactor m w‖`.
+      have h1w : ‖(1 : ℂ) - w‖ ≤ 1 + ‖w‖ := by
+        simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using
+          (norm_add_le (1 : ℂ) (-w))
+      have hexp : ‖exp (partialLogSum m w)‖ ≤ Real.exp ‖partialLogSum m w‖ :=
+        Complex.norm_exp_le_exp_norm _
+      have hnorm_mul :
+          ‖weierstrassFactor m w‖ ≤ (1 + ‖w‖) * Real.exp ‖partialLogSum m w‖ := by
+        simpa [weierstrassFactor, mul_assoc, mul_left_comm, mul_comm] using
+          (mul_le_mul h1w hexp (by positivity) (by positivity))
+      have h1w_exp : (1 + ‖w‖) ≤ Real.exp ‖w‖ := by
+        -- `‖w‖ + 1 ≤ exp ‖w‖`
+        simpa [add_comm, add_left_comm, add_assoc] using Real.add_one_le_exp (‖w‖)
+      have hw_le_pow : ‖w‖ ≤ ‖w‖ ^ (m + 1) := by
+        -- for `‖w‖ ≥ 1`, powers are monotone
+        exact le_self_pow₀ (a := ‖w‖) (by simpa using hw_ge1) (Nat.succ_ne_zero m)
+      have h1w_exp' : (1 + ‖w‖) ≤ Real.exp (‖w‖ ^ (m + 1)) := by
+        have : Real.exp ‖w‖ ≤ Real.exp (‖w‖ ^ (m + 1)) := Real.exp_monotone hw_le_pow
+        exact h1w_exp.trans this
+      have hexp_partial :
+          Real.exp ‖partialLogSum m w‖ ≤ Real.exp ((m : ℝ) * ‖w‖ ^ (m + 1)) :=
+        Real.exp_monotone hpartial
+      have hE :
+          ‖weierstrassFactor m w‖ ≤ Real.exp (((m : ℝ) + 1) * ‖w‖ ^ (m + 1)) := by
+        -- Combine the bounds.
+        have : ‖weierstrassFactor m w‖ ≤ Real.exp (‖w‖ ^ (m + 1)) * Real.exp ((m : ℝ) * ‖w‖ ^ (m + 1)) := by
+          calc
+            ‖weierstrassFactor m w‖
+                ≤ (1 + ‖w‖) * Real.exp ‖partialLogSum m w‖ := hnorm_mul
+            _ ≤ Real.exp (‖w‖ ^ (m + 1)) * Real.exp ((m : ℝ) * ‖w‖ ^ (m + 1)) := by
+                gcongr
+        -- Rewrite product of exponentials.
+        have hexp_mul :
+            Real.exp (‖w‖ ^ (m + 1)) * Real.exp ((m : ℝ) * ‖w‖ ^ (m + 1)) =
+              Real.exp (((m : ℝ) + 1) * ‖w‖ ^ (m + 1)) := by
+          -- `exp A * exp B = exp (A + B)`
+          have : (‖w‖ ^ (m + 1)) + (m : ℝ) * ‖w‖ ^ (m + 1) = ((m : ℝ) + 1) * ‖w‖ ^ (m + 1) := by
+            ring
+          -- `exp_add` gives `exp A * exp B = exp (A + B)`
+          simpa [Real.exp_add, this, mul_comm, mul_left_comm, mul_assoc] using
+            (Real.exp_add (‖w‖ ^ (m + 1)) ((m : ℝ) * ‖w‖ ^ (m + 1))).symm
+        -- Keep the inequality and rewrite the RHS.
+        exact this.trans_eq hexp_mul
+      have hCge : (m : ℝ) + 1 ≤ C := by
+        have : (m : ℝ) + 1 ≤ (m + 1 : ℝ) * (2 : ℝ) ^ (m + 1) := by
+          -- since `2^(m+1) ≥ 1`.
+          have h2 : (1 : ℝ) ≤ (2 : ℝ) ^ (m + 1) := by
+            -- `pow` on `ℝ` is monotone for base `≥ 1` (here `2`)
+            simpa using (one_le_pow₀ (a := (2 : ℝ)) (by norm_num) (n := m + 1))
+          have hm : (0 : ℝ) ≤ (m + 1 : ℝ) := by positivity
+          -- `(m+1) = (m+1) * 1 ≤ (m+1) * 2^(m+1)`
+          simpa [Nat.cast_add_one, add_comm, add_left_comm, add_assoc, mul_assoc] using
+            (mul_le_mul_of_nonneg_left h2 hm)
+        exact this.trans (le_max_right _ _)
+      have hw0 : 0 ≤ ‖w‖ ^ (m + 1) := pow_nonneg (norm_nonneg w) _
+      have : ((m : ℝ) + 1) * ‖w‖ ^ (m + 1) ≤ C * ‖w‖ ^ (m + 1) :=
+        mul_le_mul_of_nonneg_right hCge hw0
+      have : Real.exp (((m : ℝ) + 1) * ‖w‖ ^ (m + 1)) ≤ Real.exp (C * ‖w‖ ^ (m + 1)) :=
+        Real.exp_monotone this
+      -- `hE` already has the `exp(((m+1) * ‖w‖^(m+1)))` bound.
+      exact hE.trans this
 
 /-! ## Part 3: Zero Data and Counting Functions -/
 
@@ -752,7 +987,7 @@ theorem canonical_product_converges_uniform {a : ℕ → ℂ} {m : ℕ}
     have hz' : ‖z / a n‖ ≤ (1 / 2 : ℝ) := by
       have h2R1_pos : 0 < (2 * (R + 1) : ℝ) := by nlinarith [hR1pos]
       have ha_pos : 0 < ‖a n‖ := norm_pos_iff.mpr (h_nonzero n)
-      have : ‖z / a n‖ = ‖z‖ / ‖a n‖ := by simp [Complex.norm_div]
+      have : ‖z / a n‖ = ‖z‖ / ‖a n‖ := by simp
       rw [this]
       have hfrac₁ : ‖z‖ / ‖a n‖ ≤ ‖z‖ / (2 * (R + 1)) :=
         div_le_div_of_nonneg_left (norm_nonneg z) h2R1_pos hn
@@ -773,11 +1008,11 @@ theorem canonical_product_converges_uniform {a : ℕ → ℂ} {m : ℕ}
       ‖f n z‖ = ‖weierstrassFactor m (z / a n) - 1‖ := hnorm
       _ ≤ 4 * ‖z / a n‖ ^ (m + 1) := hpow
       _ = 4 * (‖z‖ ^ (m + 1) * ‖a n‖⁻¹ ^ (m + 1)) := by
-            simp [div_eq_mul_inv, mul_pow, norm_inv, mul_assoc, mul_left_comm, mul_comm]
+            simp [div_eq_mul_inv, mul_pow, norm_inv, mul_assoc, mul_comm]
       _ ≤ 4 * ((R + 1) ^ (m + 1) * ‖a n‖⁻¹ ^ (m + 1)) := by
             gcongr
       _ = M n := by
-            simp [M, mul_assoc, mul_left_comm, mul_comm]
+            simp [M, mul_assoc, mul_comm]
 
   have hcts : ∀ n, ContinuousOn (f n) U := by
     intro n
@@ -875,7 +1110,7 @@ log B / log(R/r).
 This is a reformulation of `ZerosBound` from StrongPNT. -/
 theorem jensen_zeros_bound {f : ℂ → ℂ} {r R B : ℝ}
     (hf_anal : AnalyticOnNhd ℂ f (Metric.closedBall 0 R))
-    (hr : 0 < r) (hR : r < R) (hR1 : R < 1)
+    (hr : 0 < r) (hR : r < R) (_ : R < 1)
     (hf0 : f 0 = 1) (hB : 1 < B)
     (hf_bound : ∀ z, ‖z‖ ≤ R → ‖f z‖ ≤ B) :
     ∃ (zeros : Finset ℂ), (∀ z, z ∈ zeros ↔ ‖z‖ ≤ r ∧ f z = 0) ∧
@@ -949,15 +1184,16 @@ theorem jensen_zeros_bound {f : ℂ → ℂ} {r R B : ℝ}
       have hz_s : z ∈ s := by
         simpa [s, Finite.mem_toFinset] using hz_supp
       have : z ∈ zeros := by
-        simpa [zeros, Finset.mem_filter, hz_s, hz_r]
+        simp [zeros, Finset.mem_filter, hz_s, hz_r]
       exact this
   · -- Bound the number of (distinct) zeros using Jensen's formula.
     -- Step 1: bound the circle average by `log B`.
     have hCircleInt : CircleIntegrable (Real.log ‖f ·‖) (0 : ℂ) R := by
       -- `log ‖f ·‖` is circle integrable if `f` is meromorphic on the circle.
       apply circleIntegrable_log_norm_meromorphicOn
-      have : MeromorphicOn f (Metric.sphere (0 : ℂ) |R|) :=
-        hf_merU.mono Metric.sphere_subset_closedBall
+      have : MeromorphicOn f (Metric.sphere (0 : ℂ) |R|) := by
+        intro z hz
+        exact hf_merU z (Metric.sphere_subset_closedBall hz)
       simpa [habsR] using this
     have hCA_le : Real.circleAverage (Real.log ‖f ·‖) (0 : ℂ) R ≤ Real.log B := by
       apply Real.circleAverage_mono_on_of_le_circle (hf := hCircleInt)
@@ -971,7 +1207,7 @@ theorem jensen_zeros_bound {f : ℂ → ℂ} {r R B : ℝ}
       by_cases h0 : ‖f z‖ = 0
       · -- `log 0 = 0 ≤ log B` since `B > 1`.
         have : 0 ≤ Real.log B := le_of_lt (Real.log_pos hB)
-        simpa [h0, this] using this
+        simp [h0, this]
       · have hpos : 0 < ‖f z‖ := lt_of_le_of_ne (norm_nonneg _) (Ne.symm h0)
         exact Real.log_le_log hpos hfz_le
 
@@ -981,13 +1217,13 @@ theorem jensen_zeros_bound {f : ℂ → ℂ} {r R B : ℝ}
       have h0R : (0 : ℂ) ∈ Metric.closedBall (0 : ℂ) R := by
         simp [Metric.mem_closedBall, hRpos.le]
       exact hf_anal 0 h0R
-    have hf0_ne : f 0 ≠ 0 := by simpa [hf0] using (one_ne_zero : (1 : ℂ) ≠ 0)
+    have hf0_ne : f 0 ≠ 0 := by simp [hf0]
     have hdiv0 : MeromorphicOn.divisor f U 0 = 0 := by
       have : meromorphicOrderAt f 0 = 0 := by
         have horder : meromorphicOrderAt f 0 = (analyticOrderAt f 0).map (↑) :=
           hAnal0.meromorphicOrderAt_eq
         have han0 : analyticOrderAt f 0 = 0 := (hAnal0.analyticOrderAt_eq_zero).2 hf0_ne
-        simpa [horder, han0]
+        simp [horder, han0]
       simp [MeromorphicOn.divisor_apply hf_merU h0U, this]
     have htrail : meromorphicTrailingCoeffAt f 0 = f 0 :=
       hAnal0.meromorphicTrailingCoeffAt_of_ne_zero hf0_ne
@@ -1000,7 +1236,7 @@ theorem jensen_zeros_bound {f : ℂ → ℂ} {r R B : ℝ}
         (MeromorphicOn.circleAverage_log_norm (c := (0 : ℂ)) (R := R) (f := f) hRne hf_merU)
       -- Rewrite `‖0 - u‖` to `‖u‖`, and eliminate the center/divisor/trailing-coefficient terms.
       -- The convention `log 0 = 0` is built into the formula.
-      simpa [hdiv0, htrail, hf0, sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using hJ
+      simpa [U, hdiv0, htrail, hf0, sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using hJ
 
     have hFsum_le :
         (∑ᶠ u, (MeromorphicOn.divisor f U u : ℝ) * Real.log (R * ‖u‖⁻¹)) ≤ Real.log B := by
@@ -1022,13 +1258,14 @@ theorem jensen_zeros_bound {f : ℂ → ℂ} {r R B : ℝ}
     have hsum_s : (∑ᶠ u, g u) = ∑ u ∈ s, g u := by
       simpa [g] using (finsum_eq_sum_of_support_subset (s := s) g hsupp_g)
     have hsum_s_le : (∑ u ∈ s, g u) ≤ Real.log B := by
-      simpa [hsum_s] using hFsum_le
+      simpa [hsum_s, g] using hFsum_le
 
     -- Step 4: restrict from `s` to `zeros` and use `log(R/‖u‖) ≥ log(R/r)` for `‖u‖ ≤ r`.
     have hzeros_subset : zeros ⊆ s := by
       intro u hu
       exact (Finset.mem_filter.1 hu).1
-    have hDnonneg : (0 : ℤ) ≤ MeromorphicOn.divisor f U := hf_analU.divisor_nonneg
+    have hf_analU' : AnalyticOnNhd ℂ f U := hf_analU
+    have hDnonneg : 0 ≤ MeromorphicOn.divisor f U := MeromorphicOn.AnalyticOnNhd.divisor_nonneg hf_analU'
     have hlog_pos : 0 < Real.log (R / r) := by
       have : 1 < R / r := (one_lt_div hr).2 hR
       exact Real.log_pos this
@@ -1088,7 +1325,7 @@ theorem jensen_zeros_bound {f : ℂ → ℂ} {r R B : ℝ}
         have huU0 : u ∈ U ∧ f u = 0 := by
           simpa [hsupport, Set.mem_inter_iff, Set.mem_preimage, Set.mem_singleton_iff] using hu_support
         have : f 0 = 0 := by simpa [hu0] using huU0.2
-        simpa [hf0] using this
+        simp [hf0] at this
       have hnorm_pos : 0 < ‖u‖ := norm_pos_iff.mpr hu0
       have harg_le :
           R / r ≤ R * ‖u‖⁻¹ := by
@@ -1289,7 +1526,7 @@ theorem quotient_entire {f G : ℂ → ℂ}
         (hf_an.meromorphicAt).div (hG_an.meromorphicAt)
       have h_cast_mono : Monotone (fun n : ℕ => (n : ℤ)) := by
         intro a b hab
-        exact Int.ofNat_le_ofNat.mpr hab
+        exact Int.ofNat_le.2 hab
       have hmap_mono : Monotone (fun t : ℕ∞ => t.map (fun n : ℕ => (n : ℤ))) :=
         (ENat.monotone_map_iff (f := fun n : ℕ => (n : ℤ))).2 h_cast_mono
       have hG_le_f : meromorphicOrderAt G z0 ≤ meromorphicOrderAt f z0 := by
@@ -1299,24 +1536,50 @@ theorem quotient_entire {f G : ℂ → ℂ}
           hmap_mono (h_ord z0)
         simpa [hG_an.meromorphicOrderAt_eq, hf_an.meromorphicOrderAt_eq] using this
       have hq_nonneg : (0 : WithTop ℤ) ≤ meromorphicOrderAt q z0 := by
-        -- `order(q) = order(f) - order(G)`.
         have hq_order :
-            meromorphicOrderAt q z0 = meromorphicOrderAt f z0 - meromorphicOrderAt G z0 := by
-          simp [q, div_eq_mul_inv, sub_eq_add_neg, meromorphicOrderAt_mul hq_mer (hG_an.meromorphicAt.inv),
-            meromorphicOrderAt_inv]
-        -- Nonnegativity follows from `order(G) ≤ order(f)`.
-        rw [hq_order]
-        exact sub_nonneg.mpr hG_le_f
+            meromorphicOrderAt q z0 = meromorphicOrderAt f z0 + -meromorphicOrderAt G z0 := by
+          -- `order(q) = order(f) + order(1/G)`.
+          have hmul :
+              meromorphicOrderAt (fun z => f z * (G z)⁻¹) z0
+                = meromorphicOrderAt f z0 + meromorphicOrderAt (fun z => (G z)⁻¹) z0 := by
+            simpa using
+              (meromorphicOrderAt_mul (x := z0) (f := f) (g := fun z => (G z)⁻¹)
+                (hf := hf_an.meromorphicAt) (hg := (hG_an.meromorphicAt.inv)))
+          have hinv : meromorphicOrderAt (fun z => (G z)⁻¹) z0 = -meromorphicOrderAt G z0 := by
+            simpa using (meromorphicOrderAt_inv (f := G) (x := z0))
+          calc
+            meromorphicOrderAt q z0
+                = meromorphicOrderAt (fun z => f z * (G z)⁻¹) z0 := by
+                    simp [q, div_eq_mul_inv]
+            _ = meromorphicOrderAt f z0 + meromorphicOrderAt (fun z => (G z)⁻¹) z0 := hmul
+            _ = meromorphicOrderAt f z0 + -meromorphicOrderAt G z0 := by simp [hinv]
+        -- Nonnegativity follows from `order(G) ≤ order(f)` and the fact that `G` is not locally zero.
+        have hG_ne_top : meromorphicOrderAt G z0 ≠ ⊤ :=
+          (meromorphicOrderAt_ne_top_iff_eventually_ne_zero (hG_an.meromorphicAt)).2 hG_ne
+        have hcancel : meromorphicOrderAt G z0 + -meromorphicOrderAt G z0 = 0 :=
+          LinearOrderedAddCommGroupWithTop.add_neg_cancel_of_ne_top (x := meromorphicOrderAt G z0) hG_ne_top
+        have h0 : (0 : WithTop ℤ) ≤ meromorphicOrderAt f z0 + -meromorphicOrderAt G z0 := by
+          have h := add_le_add_left hG_le_f (-meromorphicOrderAt G z0)
+          simpa [hcancel, add_assoc] using h
+        simpa [hq_order] using h0
 
       -- `q` has a limit along `𝓝[≠] z0`, hence tends to `limUnder ... q`.
       have hq_hasLimit : ∃ c, Tendsto q (𝓝[≠] z0) (𝓝 c) :=
-        MeromorphicAt.tendsto_nhds_of_meromorphicOrderAt_nonneg hq_mer hq_nonneg
+        tendsto_nhds_of_meromorphicOrderAt_nonneg hq_mer hq_nonneg
       have hq_tendsto_lim : Tendsto q (𝓝[≠] z0) (𝓝 (limUnder (𝓝[≠] z0) q)) :=
         tendsto_nhds_limUnder hq_hasLimit
 
       -- Choose a neighbourhood on which `G` is nonzero except at the center; there `H` is an update
       -- of `q` by the computed limit.
-      rcases (eventually_nhdsWithin_iff.1 hG_ne) with ⟨U, hU_nhds, hU, hU0⟩
+      have hmem : {z : ℂ | G z ≠ 0} ∈ 𝓝[≠] z0 := hG_ne
+      rcases (mem_nhdsWithin.1 hmem) with ⟨U, hU_open, hz0U, hU⟩
+      have hU_nhds : U ∈ 𝓝 z0 := hU_open.mem_nhds hz0U
+      have hU' : ∀ z, z ∈ U \ {z0} → G z ≠ 0 := by
+        intro z hz
+        have : z ∈ U ∩ ({z0}ᶜ : Set ℂ) := by
+          refine ⟨hz.1, ?_⟩
+          simpa [Set.mem_compl_iff, Set.mem_singleton_iff] using hz.2
+        exact hU this
       -- Continuity of the updated quotient at `z0`.
       have hcont_update :
           ContinuousAt (Function.update q z0 (limUnder (𝓝[≠] z0) q)) z0 := by
@@ -1327,7 +1590,9 @@ theorem quotient_entire {f G : ℂ → ℂ}
         refine hq_mer.congr ?_
         -- `update q z0 _` equals `q` on `𝓝[≠] z0`.
         filter_upwards [self_mem_nhdsWithin] with z hz
-        simpa [Function.update, hz.2]  -- `z ≠ z0`
+        have hz_ne : z ≠ z0 := by
+          simpa [Set.mem_compl_iff, Set.mem_singleton_iff] using hz
+        simp [Function.update, hz_ne]  -- `z ≠ z0`
       -- Hence the update is analytic at `z0`, and therefore differentiable at `z0`.
       have han_update :
           AnalyticAt ℂ (Function.update q z0 (limUnder (𝓝[≠] z0) q)) z0 :=
@@ -1343,10 +1608,10 @@ theorem quotient_entire {f G : ℂ → ℂ}
         · subst hz
           simp [H, hz0, q]
         · have : z ∈ (U \ {z0}) := ⟨hzU, by simpa [Set.mem_singleton_iff] using hz⟩
-          have hGz : G z ≠ 0 := hU z this
-          simp [H, q, hz, hGz, Function.update, hz]
+          have hGz : G z ≠ 0 := hU' z this
+          simp [H, q, hGz, Function.update, hz]
 
-      have hanH : AnalyticAt ℂ H z0 := han_update.congr hEq_on
+      have hanH : AnalyticAt ℂ H z0 := han_update.congr hEq_on.symm
       exact hanH.differentiableAt
     · -- Regular point: `G z0 ≠ 0`, so `H = f/G` near `z0`.
       have hG0 : G z0 ≠ 0 := hz0
@@ -1357,12 +1622,12 @@ theorem quotient_entire {f G : ℂ → ℂ}
         (hf z0).div (hG z0) hG0
       -- `H` agrees with the quotient in a neighbourhood of `z0` (by continuity of `G`).
       have hG_near : ∀ᶠ z in 𝓝 z0, G z ≠ 0 :=
-        (hG.continuousAt z0).eventually_ne hG0
+        (hG z0).continuousAt.eventually_ne hG0
       have hEq : (fun z => H z) =ᶠ[𝓝 z0] (fun z => f z / G z) := by
         filter_upwards [hG_near] with z hz
         simp [H, q, hz]
       -- Conclude.
-      exact (hdiff.congr_of_eventuallyEq hEq).differentiableAt
+      exact hdiff.congr_of_eventuallyEq hEq
   · intro z hz
     simp [H, q, hz]
 
