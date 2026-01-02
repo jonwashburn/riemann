@@ -737,7 +737,7 @@ lemma norm_weierstrassFactor_le_exp_pow (m : ℕ) :
 
 /-! ## Part 3: Zero Data and Counting Functions -/
 
-/--
+/-
 Abstract zero data for an entire function. This packages the zeros
 as a sequence with multiplicities, plus the multiplicity at `0`, and
 assumes a local finiteness condition.
@@ -745,26 +745,40 @@ assumes a local finiteness condition.
 For applications like L-functions, this will be constructed from an
 explicit zero set with known multiplicities.
 -/
+/-!
+### Zero data (nontrivial version)
+
+The earlier `Multiset`-based formulation would force the nonzero zero set to be finite (a
+`Multiset` is by definition finite), which trivializes the Hadamard factorization statement.
+
+We instead package **countably many** nonzero zeros as a sequence `zeros : ℕ → ℂ`.
+
+We intentionally keep the spec lightweight:
+- it records the set of nonzero zeros (multiplicities are represented by repetition in the
+  sequence, if desired);
+- it records the order at `0` separately.
+-/
 structure ZeroData (f : ℂ → ℂ) where
-  /-- The multiset of nonzero zeros (with multiplicity). -/
-  zeros : Multiset ℂ
-  /-- Local finiteness: only finitely many zeros in each closed ball. -/
-  zeros_finite_in_ball :
-    ∀ R : ℝ, ∃ n : ℕ, (zeros.filter (fun z => ‖z‖ ≤ R)).card ≤ n
+  /-- A sequence enumerating the nonzero zeros (optionally with repetition for multiplicity). -/
+  zeros : ℕ → ℂ
+  /-- The sequence lists only nonzero points. -/
+  zeros_ne_zero : ∀ n, zeros n ≠ 0
+  /-- Local finiteness: only finitely many indices land in any closed ball. -/
+  finite_in_ball : ∀ R : ℝ, ({n : ℕ | ‖zeros n‖ ≤ R} : Set ℕ).Finite
   /-- Order of vanishing at `0`. -/
   ord0 : ℕ
-  /-- Specification of the zero set (up to multiplicity) of `f`. -/
+  /-- Specification of the zero set of `f`. -/
   zero_spec : ∀ z : ℂ, f z = 0 ↔
-    (z = 0 ∧ 0 < ord0) ∨ (z ≠ 0 ∧ 0 < Multiset.count z zeros)
+    (z = 0 ∧ 0 < ord0) ∨ (z ≠ 0 ∧ ∃ n, zeros n = z)
 
 /-- The counting function n(r) counts zeros with |z| ≤ r, weighted by multiplicity. -/
 def ZeroData.countingFunction {f : ℂ → ℂ} (zd : ZeroData f) (r : ℝ) : ℕ :=
-  (zd.zeros.filter (fun z => ‖z‖ ≤ r)).card + if zd.ord0 > 0 ∧ 0 ≤ r then 1 else 0
+  (Nat.card {n : ℕ | ‖zd.zeros n‖ ≤ r}) + if zd.ord0 > 0 ∧ 0 ≤ r then 1 else 0
 
 /-- The exponent of convergence of the zeros. -/
 def ZeroData.convergenceExponent {f : ℂ → ℂ} (zd : ZeroData f) : ℝ :=
   sInf {σ : ℝ | σ ≥ 0 ∧ ∀ (seq : ℕ → ℂ),
-    (∀ n, seq n ∈ zd.zeros ∨ seq n = 0) →
+    (∀ n, (∃ k, seq n = zd.zeros k) ∨ seq n = 0) →
     Summable (fun n => if seq n = 0 then 0 else ‖seq n‖⁻¹ ^ σ)}
 
 /-- The genus p is the smallest integer such that ∑ |ρ|^{-(p+1)} converges. -/
@@ -2768,7 +2782,7 @@ theorem zero_free_polynomial_growth_is_exp_poly {H : ℂ → ℂ} {n : ℕ}
           have hident :
               (fun R : ℝ => R ^ n / (R / 2) ^ m) = fun R : ℝ => (2 : ℝ) ^ m * (R ^ n / R ^ m) := by
             funext R
-            simp [div_eq_mul_inv, mul_pow, mul_assoc, mul_comm, mul_left_comm]
+            simp [div_eq_mul_inv, mul_pow, mul_assoc, mul_comm]
           have hmain : Tendsto (fun R : ℝ => R ^ n / R ^ m) atTop (𝓝 0) := by
             have hp : m - n ≠ 0 := (Nat.pos_iff_ne_zero.1 (Nat.sub_pos_of_lt hm))
             have hmain' : Tendsto (fun R : ℝ => (R ^ (m - n))⁻¹) atTop (𝓝 0) := by
@@ -2780,9 +2794,9 @@ theorem zero_free_polynomial_growth_is_exp_poly {H : ℂ → ℂ} {n : ℕ}
                 have hm_eq : n + (m - n) = m := Nat.add_sub_of_le hle
                 have hn0 : R ^ n ≠ 0 := pow_ne_zero n hR
                 calc
-                  R ^ n / R ^ m = R ^ n / R ^ (n + (m - n)) := by simpa [hm_eq]
+                  R ^ n / R ^ m = R ^ n / R ^ (n + (m - n)) := by simp [hm_eq]
                   _ = R ^ n * ((R ^ (m - n))⁻¹ * (R ^ n)⁻¹) := by
-                        simp [pow_add, div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm]
+                        simp [pow_add, div_eq_mul_inv, mul_comm]
                   _ = (R ^ (m - n))⁻¹ := by
                         ring_nf
                         simp [hn0]
@@ -2810,7 +2824,7 @@ theorem zero_free_polynomial_growth_is_exp_poly {H : ℂ → ℂ} {n : ℕ}
             (fun R : ℝ => (C * R ^ n + K) / (R / 2) ^ m)
               = fun R : ℝ => C * (R ^ n / (R / 2) ^ m) + K * ((R / 2) ^ m)⁻¹ := by
           funext R
-          simp [div_eq_mul_inv, mul_add, add_mul, mul_assoc, mul_left_comm, mul_comm]
+          simp [div_eq_mul_inv, mul_add, mul_assoc, mul_comm]
         have hbase : Tendsto (fun R : ℝ => (C * R ^ n + K) / (R / 2) ^ m) atTop (𝓝 0) := by
           simpa [hrew] using hsum
 
@@ -2916,7 +2930,7 @@ theorem zero_free_polynomial_growth_is_exp_poly {H : ℂ → ℂ} {n : ℕ}
       let φ : Polynomial ℂ →+* ℂ := Polynomial.eval₂RingHom (RingHom.id ℂ) z
       change φ P = _
       -- `eval₂` of a monomial is `coeff * z^m`; commute to `z^m * coeff`.
-      simpa [P, φ, Polynomial.eval₂_monomial, mul_comm, mul_left_comm, mul_assoc]
+      simp [P, φ, Polynomial.eval₂_monomial, mul_comm]
     have hfinite' :
         k z = ∑ m ∈ Finset.range (n + 1), z ^ m * ((m.factorial : ℂ)⁻¹ * iteratedDeriv m k 0) := by
       simpa [mul_comm, mul_left_comm, mul_assoc] using hfinite
@@ -2924,9 +2938,9 @@ theorem zero_free_polynomial_growth_is_exp_poly {H : ℂ → ℂ} {n : ℕ}
 
   refine ⟨P, hPdeg, ?_⟩
   intro z
-  have : H z = Complex.exp (k z) := by simpa [hk_exp z]
+  have : H z = Complex.exp (k z) := by simp [hk_exp z]
   -- `k = P.eval` gives `H = exp(P.eval)`
-  simpa [this, hk_poly z]
+  simp [this, hk_poly z]
 
 /-! ## Part 6: The Hadamard Factorization Theorem -/
 
@@ -2952,7 +2966,7 @@ theorem hadamard_factorization
       ∀ z : ℂ,
         f z = exp (Polynomial.eval z P) *
           z ^ hz.ord0 *
-          (hz.zeros.map fun ρ => weierstrassFactor m (z / ρ)).prod := by
+          ∏' n : ℕ, weierstrassFactor m (z / hz.zeros n) := by
   -- **Hadamard Factorization Proof Outline:**
   --
   -- 1. **Lindelöf's theorem**: Since f has order ρ, for any σ > ρ,
@@ -2995,7 +3009,7 @@ theorem ComplexAnalysis.hadamard_factorization_main
       ∀ z : ℂ,
         f z = Complex.exp (Polynomial.eval z P) *
           z ^ hz.ord0 *
-          (hz.zeros.map fun ρ => (ComplexAnalysis.Hadamard.weierstrassFactor m (z / ρ))).prod :=
+          ∏' n : ℕ, (ComplexAnalysis.Hadamard.weierstrassFactor m (z / hz.zeros n)) :=
   ComplexAnalysis.Hadamard.hadamard_factorization hf hz
 
 end
