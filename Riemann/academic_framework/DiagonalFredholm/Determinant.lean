@@ -775,14 +775,14 @@ private lemma boundary_lambda_norm (p : Prime) (t : ℝ) :
   have : (boundaryPoint t).re = 1 / 2 := boundaryPoint_re t
   have hrpow :
       (p.1 : ℝ) ^ (-(boundaryPoint t).re) = (p.1 : ℝ) ^ (-(1 / 2 : ℝ)) := by
-    simp [this]
+    simp
   have := Complex.norm_cpow_eq_rpow_re_of_pos hp_pos (-(boundaryPoint t))
   simpa [Complex.norm_eq_sqrt_sq_add_sq, hrpow]
     using this
 
 private lemma neg_boundaryPoint_eq_expanded_two_inv (t : ℝ) :
     -(boundaryPoint t) = -(Complex.I * (t : ℂ)) + -((2 : ℂ)⁻¹) := by
-  simp [boundaryPoint, add_comm, add_assoc, neg_two_inv_complex]
+  simp [boundaryPoint, add_comm, neg_two_inv_complex]
 
 private lemma abs_cpow_boundary_expanded (p : Prime) (t : ℝ) :
     norm ((p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -((2 : ℂ)⁻¹)))
@@ -998,7 +998,7 @@ lemma det2_AF_boundary_logSummand_norm_bound (p : Prime) (t : ℝ) :
     have hbase :
         norm ((p.1 : ℂ) ^ (-(Complex.I * (t : ℂ)) + -((2 : ℂ)⁻¹)))
           = norm lam := by
-      simp [lam, neg_boundaryPoint_eq_expanded_two_inv t]
+      simp [lam]
     simpa [hbase] using hpow
   have hbound :
       ‖det2_AF_boundary_logSummand p t‖
@@ -1096,7 +1096,7 @@ lemma det2_AF_twoInv_eq_exp_tsum (t : ℝ) :
   calc
     det2_AF ((2 : ℂ)⁻¹ + Complex.I * (t : ℂ))
         = det2_AF (boundaryPoint t) := by
-          simp [boundaryPoint_eq_two_inv]
+          simp
     _ = Complex.exp (∑' (p : Prime), det2_AF_boundary_logSummand p t) :=
           det2_AF_boundary_eq_exp_tsum t
 
@@ -1118,7 +1118,7 @@ lemma det2_AF_boundary_continuous :
   have hrewrite :
       (fun t : ℝ => det2_AF (boundaryPoint t)) =
         fun t : ℝ => det2_AF ((2 : ℂ)⁻¹ + Complex.I * (t : ℂ)) := by
-    funext t; simpa [boundaryPoint_eq_two_inv]
+    funext t; simp [boundaryPoint_eq_two_inv]
   have hfunexp :
       (fun t : ℝ => det2_AF ((2 : ℂ)⁻¹ + Complex.I * (t : ℂ))) =
         fun t =>

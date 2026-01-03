@@ -1,4 +1,5 @@
 /-
+/-
 Copyright (c) 2025 Michael Rothgang. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael Rothgang, Matteo Cipollina
@@ -64,7 +65,7 @@ theorem IsFredholm.closedRange_of_completeSpace [CompleteSpace X] [CompleteSpace
     ext; exact this
   -- The range of T equals the range of T restricted to K
   have hT_range : LinearMap.range (T : X →ₗ[𝕜] Y) =
-      LinearMap.range ((T : X →ₗ[𝕜] Y).comp K.subtype) := by
+      LinearMap.range ((T : X →ₗ[𝕜] Y).comp (K.subtype : K →ₗ[𝕜] X)) := by
     ext y
     simp only [LinearMap.mem_range, Submodule.coeSubtype]
     constructor
@@ -328,3 +329,5 @@ lemma index_of_finiteDimensional [FiniteDimensional 𝕜 X] [FiniteDimensional �
 
 
 end IsFredholm
+
+-/

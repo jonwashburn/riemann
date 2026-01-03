@@ -1,8 +1,9 @@
+import Mathlib.Algebra.Lie.OfAssociative
+import Mathlib.Algebra.Order.Ring.Star
 import Mathlib.Analysis.SpecialFunctions.Gamma.BohrMollerup
+import Mathlib.Analysis.SpecialFunctions.Stirling
 import Mathlib.NumberTheory.BernoulliPolynomials
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetKernel
-import Mathlib.Tactic
-import Mathlib
 
 /-!
 # Binet's Formula for log Γ and Stirling Series with Error Bounds

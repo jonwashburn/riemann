@@ -1,7 +1,10 @@
-
-import Riemann.Mathlib.Analysis.Complex.HardySpace.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+import Mathlib.Algebra.Lie.OfAssociative
+import Mathlib.Analysis.CStarAlgebra.Classes
+import Mathlib.Analysis.Complex.HasPrimitives
+import Mathlib.Analysis.Complex.UnitDisc.Basic
+import Mathlib.Data.Real.StarOrdered
+import Mathlib.MeasureTheory.Integral.IntervalIntegral.Periodic
+import Mathlib.RingTheory.SimpleRing.Principal
 
 /-!
 # Poisson Kernel for the Unit Disc
@@ -168,45 +171,16 @@ lemma poissonKernel_continuous {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r < 1) :
   · intro p
     exact (poissonKernel_denom_pos hr0 hr1 p.1 p.2).ne'
 
-/-- Auxiliary: the standard integral ∫₀^{2π} 1/(a - b cos φ) dφ = 2π/√(a² - b²) for a > |b|.
+/-!
+### A note on the Poisson kernel integral
 
-This is the Weierstrass substitution formula. The proof uses the tangent half-angle substitution
-t = tan(φ/2), which transforms cos φ = (1 - t²)/(1 + t²) and dφ = 2/(1 + t²) dt.
+In classical analysis one can compute integrals of the form
+`\(\int_0^{2\pi} \frac{d\varphi}{a - b\cos\varphi}\)` explicitly via the Weierstrass substitution.
 
-The integral becomes 2∫_{-∞}^{∞} 1/((a-b) + (a+b)t²) dt, which evaluates to
-2π/√((a-b)(a+b)) = 2π/√(a²-b²) using the arctangent integral formula.
-
-This is a classical result in analysis (see e.g., Gradshteyn-Ryzhik 2.553). -/
-lemma integral_inv_sub_cos {a b : ℝ} (ha : |b| < a) :
-    ∫ φ in (0 : ℝ)..2 * π, 1 / (a - b * Real.cos φ) =
-      2 * π / Real.sqrt (a ^ 2 - b ^ 2) := by
-  -- The proof requires Weierstrass substitution infrastructure.
-  -- See Riemann/Mathlib/Analysis/Complex/HardySpace.lean for documentation.
-  have ha_pos : 0 < a := by
-    have : |b| ≥ 0 := abs_nonneg b
-    linarith
-  have h_sq_pos : 0 < a ^ 2 - b ^ 2 := by
-    have h1 : b ^ 2 = |b| ^ 2 := (sq_abs b).symm
-    have h2 : |b| < a := ha
-    have h3 : -a < |b| := by
-      have : 0 ≤ |b| := abs_nonneg b
-      linarith
-    have h4 : |b| ^ 2 < a ^ 2 := sq_lt_sq' h3 h2
-    linarith
-  have h_denom_pos : ∀ φ, 0 < a - b * Real.cos φ := by
-    intro φ
-    have hcos : |Real.cos φ| ≤ 1 := Real.abs_cos_le_one φ
-    have h1 : |b * Real.cos φ| ≤ |b| := by
-      calc |b * Real.cos φ| = |b| * |Real.cos φ| := abs_mul b (Real.cos φ)
-        _ ≤ |b| * 1 := by apply mul_le_mul_of_nonneg_left hcos (abs_nonneg b)
-        _ = |b| := mul_one |b|
-    have h2 : b * Real.cos φ ≤ |b * Real.cos φ| := le_abs_self _
-    have h3 : -|b * Real.cos φ| ≤ b * Real.cos φ := neg_abs_le _
-    linarith
-  -- The Weierstrass substitution t = tan(φ/2) gives a rational integral that can be
-  -- evaluated using arctangent. The full proof requires calculus infrastructure
-  -- for improper integrals that is not yet available in Mathlib.
-  sorry
+For the purposes of Hardy space theory we only need the special case that the Poisson kernel has
+total mass `2π`.  We prove that directly below using complex contour integration on the unit circle,
+avoiding improper integrals.
+-/
 
 /-- The integral of the Poisson kernel over the boundary does not depend on the angular shift. -/
 lemma poissonKernel_integral_eq_base {r : ℝ} (θ : ℝ) :
@@ -250,35 +224,373 @@ lemma poissonKernel_integral_eq_two_pi {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r < 1) :
   · -- At r = 0, the kernel is identically 1
     simp only [hr, poissonKernel, pow_two, mul_zero, sub_zero, zero_mul, add_zero, div_one]
     simp
-  · -- For 0 < r < 1, apply the integral formula
+  ·
+    -- For `0 < r < 1`, compute the integral by converting to a contour integral on the unit circle.
     have hr_pos : 0 < r := hr0.lt_of_ne' hr
-    have h1mr_pos : 0 < 1 - r := sub_pos.mpr hr1
-    have h1pr_pos : 0 < 1 + r := by linarith
-    -- The Poisson kernel is (1-r²)/(1 - 2r cos φ + r²)
-    -- This is (1-r²) * 1/(a - b cos φ) where a = 1 + r², b = 2r
-    -- We have a² - b² = (1+r²)² - 4r² = (1-r²)²
-    have h_denom : ∀ φ, 1 - 2 * r * Real.cos φ + r ^ 2 = (1 + r ^ 2) - 2 * r * Real.cos φ := by
-      intro φ; ring
-    have ha : |2 * r| < 1 + r ^ 2 := by
-      rw [abs_of_pos (by linarith : 0 < 2 * r)]
-      have : (1 - r) ^ 2 > 0 := sq_pos_of_pos h1mr_pos
-      nlinarith [sq_nonneg r]
-    have h_sq : (1 + r ^ 2) ^ 2 - (2 * r) ^ 2 = (1 - r ^ 2) ^ 2 := by ring
-    have h_sqrt : Real.sqrt ((1 + r ^ 2) ^ 2 - (2 * r) ^ 2) = 1 - r ^ 2 := by
-      rw [h_sq, Real.sqrt_sq (by nlinarith [sq_nonneg r] : 0 ≤ 1 - r ^ 2)]
-    have h_num_pos : 0 < 1 - r ^ 2 := by nlinarith [sq_nonneg r]
-    -- Rewrite the integral
-    calc ∫ φ in (0 : ℝ)..2 * π, poissonKernel r 0 φ
-        = ∫ φ in (0 : ℝ)..2 * π, (1 - r ^ 2) / (1 - 2 * r * Real.cos φ + r ^ 2) := by
-          congr 1; ext φ; simp [poissonKernel]
-      _ = ∫ φ in (0 : ℝ)..2 * π, (1 - r ^ 2) * (1 / ((1 + r ^ 2) - 2 * r * Real.cos φ)) := by
-          congr 1; ext φ; rw [h_denom φ]; ring
-      _ = (1 - r ^ 2) * ∫ φ in (0 : ℝ)..2 * π, 1 / ((1 + r ^ 2) - 2 * r * Real.cos φ) := by
-          rw [← intervalIntegral.integral_const_mul]
-      _ = (1 - r ^ 2) * (2 * π / Real.sqrt ((1 + r ^ 2) ^ 2 - (2 * r) ^ 2)) := by
-          rw [integral_inv_sub_cos ha]
-      _ = (1 - r ^ 2) * (2 * π / (1 - r ^ 2)) := by rw [h_sqrt]
-      _ = 2 * π := by field_simp
+    have hr_lt_one : r < 1 := hr1
+
+    -- Let `z = exp(θ i)` be the unit-circle parametrization.
+    -- We use the identity
+    -- `poissonKernel r 0 θ = (1 - r^2) / ‖exp(θ i) - r‖^2`
+    -- and the change of variables `z = exp(θ i)` to rewrite the integral as a circle integral.
+    have hden (θ : ℝ) :
+        (1 - 2 * r * Real.cos θ + r ^ 2)
+          = ‖Complex.exp (θ * Complex.I) - (r : ℂ)‖ ^ 2 := by
+      -- Rewrite `exp(θ i) - r` as `(cos θ - r) + (sin θ) i` and compute the squared norm.
+      have hw :
+          Complex.exp (θ * Complex.I) - (r : ℂ)
+            = ((Real.cos θ - r : ℝ) : ℂ) + (Real.sin θ : ℝ) * Complex.I := by
+        -- Use `exp_mul_I` and then rewrite complex `cos`/`sin` at real inputs back to `Real.cos`/`Real.sin`.
+        calc
+          Complex.exp (θ * Complex.I) - (r : ℂ)
+              = (Complex.cos (θ : ℂ) + Complex.sin (θ : ℂ) * Complex.I) - (r : ℂ) := by
+                  simp [Complex.exp_mul_I]
+          _ = ((Real.cos θ : ℂ) + (Real.sin θ : ℂ) * Complex.I) - (r : ℂ) := by
+                  -- `cos (θ:ℂ) = (Real.cos θ : ℂ)`, similarly for `sin`
+                  rw [← Complex.ofReal_cos θ, ← Complex.ofReal_sin θ]
+          _ = ((Real.cos θ - r : ℝ) : ℂ) + (Real.sin θ : ℝ) * Complex.I := by
+                  push_cast
+                  ring
+      -- Use `‖x + y i‖ = √(x^2 + y^2)` and square both sides.
+      have hsq :
+          ‖Complex.exp (θ * Complex.I) - (r : ℂ)‖ ^ 2
+            = (Real.cos θ - r) ^ 2 + (Real.sin θ) ^ 2 := by
+        have hnonneg : 0 ≤ (Real.cos θ - r) ^ 2 + (Real.sin θ) ^ 2 := by nlinarith
+        -- `simp` needs the nonneg proof to rewrite `((√a)^2)`.
+        rw [hw, Complex.norm_add_mul_I]
+        simp only [pow_two]
+        ring_nf; grind
+      -- Finish using `sin^2 + cos^2 = 1`.
+      have htrig : (Real.sin θ) ^ 2 + (Real.cos θ) ^ 2 = 1 := Real.sin_sq_add_cos_sq θ
+      -- Now `nlinarith` closes the algebra.
+      nlinarith [hsq, htrig]
+    -- Define the holomorphic integrand whose circle integral equals the real integral.
+    let g : ℂ → ℂ :=
+      fun z => ((1 - r ^ 2 : ℝ) : ℂ) / (Complex.I * (z - (r : ℂ)) * (1 - (r : ℂ) * z))
+
+    have h_circle :
+        (∫ θ in (0 : ℝ)..2 * π, (poissonKernel r 0 θ : ℂ)) =
+          circleIntegral g 0 1 := by
+      -- Unfold `circleIntegral` and show equality of integrands pointwise on `[0, 2π]`.
+      simp [circleIntegral]
+      refine intervalIntegral.integral_congr ?_
+      intro θ hθ
+      -- Put `z = exp(θ i)` on the unit circle.
+      set z : ℂ := Complex.exp (θ * Complex.I)
+      have hz0 : z ≠ 0 := by simp [z]
+      have hz_norm : ‖z‖ = 1 := by simp [z]
+
+      -- Key algebra on the unit circle: `z / ((z-r) * (1-rz)) = 1 / ‖z-r‖^2`.
+      have hmul :
+          (z - (r : ℂ)) * (1 - (r : ℂ) * z) = z * (‖z - (r : ℂ)‖ ^ 2 : ℂ) := by
+        have hstar : star z = z⁻¹ := (Complex.inv_eq_conj hz_norm).symm
+        have hz_mul_star : z * star z = (1 : ℂ) := by
+          simp [hstar, hz0]
+        have hz_mul_star' : z * (starRingEnd ℂ) z = (1 : ℂ) := by
+          simpa using hz_mul_star
+        have h1 : 1 - (r : ℂ) * z = z * (star z - (r : ℂ)) := by
+          -- Prove the reverse direction (starting from the RHS) and then `symm`.
+          have : z * (star z - (r : ℂ)) = 1 - (r : ℂ) * z := by
+            simp [mul_sub, hz_mul_star', mul_comm]
+          exact this.symm
+        have hnorm :
+            (z - (r : ℂ)) * (star z - (r : ℂ)) = (‖z - (r : ℂ)‖ ^ 2 : ℂ) := by
+          -- `star (z - r) = star z - r` since `r` is real.
+          simpa [star_sub, conj_ofReal] using (Complex.mul_conj' (z - (r : ℂ)))
+        calc
+          (z - (r : ℂ)) * (1 - (r : ℂ) * z)
+              = (z - (r : ℂ)) * (z * (star z - (r : ℂ))) := by simp [h1]
+          _ = z * ((z - (r : ℂ)) * (star z - (r : ℂ))) := by
+              simp [mul_left_comm]
+          _ = z * (‖z - (r : ℂ)‖ ^ 2 : ℂ) := by
+              -- Avoid `simp` turning `z * a = z * b` into a disjunction; use `congrArg` instead.
+              simpa using congrArg (fun t : ℂ => z * t) hnorm
+
+      have hfrac :
+          z / ((z - (r : ℂ)) * (1 - (r : ℂ) * z)) = (1 : ℂ) / (‖z - (r : ℂ)‖ ^ 2) := by
+        calc
+          z / ((z - (r : ℂ)) * (1 - (r : ℂ) * z))
+              = z / (z * (‖z - (r : ℂ)‖ ^ 2 : ℂ)) := by simp [hmul]
+          _ = z / z / (‖z - (r : ℂ)‖ ^ 2) := by simp [div_mul_eq_div_div]
+          _ = (1 : ℂ) / (‖z - (r : ℂ)‖ ^ 2) := by simp [hz0]
+
+      have hden' : (1 - 2 * r * Real.cos θ + r ^ 2) = ‖z - (r : ℂ)‖ ^ 2 := by
+        simpa [z] using hden θ
+
+      -- Now the desired integrand identity.
+      have hLHS :
+          (poissonKernel r 0 θ : ℂ) = ((1 - r ^ 2 : ℝ) : ℂ) / (‖z - (r : ℂ)‖ ^ 2) := by
+        -- `poissonKernel r 0 θ = (1 - r²)/(1 - 2r cos θ + r²)`.
+        simp only [poissonKernel]
+        simp [hden']
+
+      have hRHS :
+          deriv (circleMap 0 1) θ • g (circleMap 0 1 θ)
+            = ((1 - r ^ 2 : ℝ) : ℂ) / (‖z - (r : ℂ)‖ ^ 2) := by
+        -- Use `circleMap 0 1 θ = exp(θ i) = z`.
+        have hz : circleMap 0 1 θ = z := by simp [z, circleMap_zero]
+        -- Cancel the `I` from `deriv circleMap` against the `I` in `g`,
+        -- then use `hfrac` to turn the rational expression into `1/‖z-r‖²`.
+        have hderiv : deriv (circleMap 0 1) θ = z * Complex.I := by
+          simp [z, circleMap]
+        calc
+          deriv (circleMap 0 1) θ • g (circleMap 0 1 θ)
+              = (z * Complex.I) * g z := by simp [smul_eq_mul, hz, hderiv]
+          _ = ((1 - r ^ 2 : ℝ) : ℂ) * (z / ((z - (r : ℂ)) * (1 - (r : ℂ) * z))) := by
+              -- unfold `g` and cancel the factor `I`
+              simp only [g, div_eq_mul_inv]
+              field_simp
+          _ = ((1 - r ^ 2 : ℝ) : ℂ) * ((1 : ℂ) / (‖z - (r : ℂ)‖ ^ 2)) := by
+              simp [hfrac]
+          _ = ((1 - r ^ 2 : ℝ) : ℂ) / (‖z - (r : ℂ)‖ ^ 2) := by
+              ring
+      -- `simp [circleIntegral]` rewrites the integrand using `deriv_circleMap`,
+      -- so we finish by translating `deriv (circleMap …) θ • …` to `circleMap … θ * I * …`.
+      have hderiv :
+          deriv (circleMap 0 1) θ • g (circleMap 0 1 θ)
+            = (circleMap 0 1 θ) * I * g (circleMap 0 1 θ) := by
+        simp [deriv_circleMap, smul_eq_mul, mul_assoc]
+      exact (hLHS.trans hRHS.symm).trans hderiv
+
+    -- Compute the circle integral of `g` by splitting into a principal part at `z = r`
+    -- and a holomorphic part. The algebraic decomposition is valid on the unit circle
+    -- (where the denominators are nonzero).
+    have hg_decomp_sphere :
+        EqOn g
+          (fun z =>
+            (-Complex.I) * ((z - (r : ℂ))⁻¹ + (r : ℂ) * (1 - (r : ℂ) * z)⁻¹))
+          (Metric.sphere (0 : ℂ) (1 : ℝ)) := by
+      intro z hz
+      have hz_norm : ‖z‖ = 1 := by
+        simpa [Metric.mem_sphere, dist_zero_right] using hz
+      have hr_abs : |r| < (1 : ℝ) := by
+        simpa [abs_of_nonneg hr0] using hr_lt_one
+      have hr_norm_lt : ‖(r : ℂ)‖ < 1 := by
+        simpa [Complex.norm_real] using hr_abs
+      have hz_sub_ne : z - (r : ℂ) ≠ 0 := by
+        intro hzr
+        have : ‖z‖ = ‖(r : ℂ)‖ := by
+          simp [sub_eq_zero.mp hzr]
+        have : (1 : ℝ) < 1 := by
+          have : ‖z‖ < 1 := by simpa [this] using hr_norm_lt
+          simp [hz_norm] at this
+        exact lt_irrefl _ this
+      have hz_one_sub_ne : (1 - (r : ℂ) * z) ≠ 0 := by
+        intro hz0'
+        have hz1 : (r : ℂ) * z = 1 := (sub_eq_zero.mp hz0').symm
+        have hnorm1 : ‖(r : ℂ) * z‖ = 1 := by simp [hz1]
+        have hnormlt : ‖(r : ℂ) * z‖ < 1 := by
+          -- `‖r*z‖ = ‖r‖ * ‖z‖ = ‖r‖ < 1`
+          simpa [norm_mul, hz_norm] using hr_norm_lt
+        exact lt_irrefl _ (hnorm1 ▸ hnormlt)
+      -- Now the algebraic identity holds (no `grind` needed since denominators are nonzero).
+      dsimp [g]
+      -- Clear denominators.
+      field_simp [hz_sub_ne, hz_one_sub_ne, Complex.I_ne_zero]
+      -- Reduce powers of `I` and close by normalization.
+      simp [Complex.I_sq]
+      -- There can still be a residual `(1 - r*z)⁻¹`; clear it using the non-vanishing proof on the sphere.
+      field_simp [hz_one_sub_ne]
+      ring_nf
+
+    have hI : circleIntegral g 0 1 = (2 * π : ℂ) := by
+      -- Use the decomposition and compute the two terms separately.
+      have hcongr :
+          circleIntegral g 0 1 =
+            circleIntegral
+              (fun z =>
+                (-Complex.I) * ((z - (r : ℂ))⁻¹ + (r : ℂ) * (1 - (r : ℂ) * z)⁻¹))
+              0 1 := by
+        -- We can replace the integrand by an equal one on the circle.
+        refine circleIntegral.integral_congr (c := (0 : ℂ)) (R := (1 : ℝ)) (hR := by norm_num) ?_
+        -- unfold `g` so the left side matches the expected explicit integrand
+        simpa [g, sub_eq_add_neg, pow_two] using hg_decomp_sphere
+      -- Work with the decomposed integrand.
+      rw [hcongr]
+      have hr_mem : (r : ℂ) ∈ Metric.ball (0 : ℂ) (1 : ℝ) := by
+        have : |r| < (1 : ℝ) := by simpa [abs_of_nonneg hr0] using hr_lt_one
+        simpa [Metric.mem_ball, dist_zero_right, Complex.norm_real] using this
+      -- First term: integral of `(z - r)⁻¹` is `2π i`.
+      have h_main :
+          circleIntegral (fun z => (-Complex.I) * (z - (r : ℂ))⁻¹) 0 1 = (2 * π : ℂ) := by
+        -- Pull out the constant `-I` and use `∮ (z-r)⁻¹ = 2π i`.
+        calc
+          circleIntegral (fun z => (-Complex.I) * (z - (r : ℂ))⁻¹) 0 1
+              = (-Complex.I) * circleIntegral (fun z => (z - (r : ℂ))⁻¹) 0 1 := by
+                  simpa [circleIntegral] using
+                    (circleIntegral.integral_const_mul (-Complex.I) (fun z => (z - (r : ℂ))⁻¹) 0 1)
+          _ = (-Complex.I) * (2 * π * Complex.I : ℂ) := by
+                  simp [circleIntegral.integral_sub_inv_of_mem_ball hr_mem]
+          _ = (2 * π : ℂ) := by
+                  ring_nf; aesop
+      -- Second term: the integrand is holomorphic on a neighborhood of the closed unit disk, so its circle integral is zero.
+      have h_aux :
+          circleIntegral (fun z => (-Complex.I) * ((r : ℂ) * (1 - (r : ℂ) * z)⁻¹)) 0 1 = 0 := by
+        -- We show this integrand is a derivative on the circle, hence integrates to zero.
+        have hR : (0 : ℝ) ≤ (1 : ℝ) := by norm_num
+        -- Choose a radius `R > 1` with `R < 1 / r` so that `1 - r z ≠ 0` on `ball 0 R`.
+        let R : ℝ := (1 + (1 / r)) / 2
+        have hR1 : 1 < R := by
+          have h1div : (1 : ℝ) < 1 / r := one_lt_one_div hr_pos hr_lt_one
+          dsimp [R]; linarith
+        have hRlt : R < 1 / r := by
+          have h1div : (1 : ℝ) < 1 / r := one_lt_one_div hr_pos hr_lt_one
+          dsimp [R]; linarith
+        have hne : ∀ z : ℂ, z ∈ Metric.ball (0 : ℂ) R → (1 - (r : ℂ) * z) ≠ 0 := by
+          intro z hz
+          have hz' : ‖z‖ < R := by
+            simpa [Metric.mem_ball, dist_zero_right] using hz
+          have hnorm_lt : ‖(r : ℂ) * z‖ < 1 := by
+            -- `‖r*z‖ = ‖r‖ * ‖z‖ < r * R < 1`
+            have hrR : r * R < 1 := by
+              have : r * R < r * (1 / r) := mul_lt_mul_of_pos_left hRlt hr_pos
+              -- `r * (1 / r) = 1` since `r ≠ 0`
+              simpa [one_div, hr_pos.ne'] using this
+            have hrnorm : ‖(r : ℂ)‖ = r := by
+              simp [Complex.norm_real, abs_of_nonneg hr0]
+            have h1 : ‖(r : ℂ)‖ * ‖z‖ < ‖(r : ℂ)‖ * R := mul_lt_mul_of_pos_left hz' (by
+              -- `‖(r:ℂ)‖ = r > 0`
+              simp only [hrnorm]
+              exact hr_pos)
+            have h2 : ‖(r : ℂ)‖ * ‖z‖ < r * R := by rw [hrnorm] at h1; exact lt_of_eq_of_lt (congrFun (congrArg HMul.hMul hrnorm) ‖z‖) h1
+            -- convert to `‖(r:ℂ) * z‖ < 1`
+            have h3 : ‖(r : ℂ) * z‖ < r * R := by rw [norm_mul]; exact h2
+            exact h3.trans hrR
+          -- If `1 - r*z = 0` then `‖r*z‖ = 1`, contradiction.
+          intro hzero
+          have hz1 : (r : ℂ) * z = 1 := (sub_eq_zero.mp hzero).symm
+          have hEq : ‖(r : ℂ) * z‖ = 1 := by simp [hz1]
+          linarith [hEq, hnorm_lt]
+        -- The function is differentiable on `ball 0 R`.
+        have hdiff :
+            DifferentiableOn ℂ (fun z : ℂ => (-Complex.I) * ((r : ℂ) * (1 - (r : ℂ) * z)⁻¹))
+              (Metric.ball (0 : ℂ) R) := by
+          intro z hz
+          have hz_ne : (1 - (r : ℂ) * z) ≠ 0 := hne z hz
+          -- Prove differentiability explicitly (so we can feed `hz_ne` to the inversion lemma).
+          have haff : DifferentiableAt ℂ (fun w : ℂ => 1 - (r : ℂ) * w) z := by
+            fun_prop
+          have hinv : DifferentiableAt ℂ (fun w : ℂ => (1 - (r : ℂ) * w)⁻¹) z :=
+            (haff.inv hz_ne)
+          have hmul : DifferentiableAt ℂ (fun w : ℂ => (r : ℂ) * (1 - (r : ℂ) * w)⁻¹) z :=
+            hinv.const_mul (r : ℂ)
+          have hfinal :
+              DifferentiableAt ℂ (fun w : ℂ => (-Complex.I) * ((r : ℂ) * (1 - (r : ℂ) * w)⁻¹)) z :=
+            hmul.const_mul (-Complex.I)
+          exact hfinal.differentiableWithinAt
+        -- Obtain a primitive on the ball.
+        have hexact : Complex.IsExactOn (fun z : ℂ => (-Complex.I) * ((r : ℂ) * (1 - (r : ℂ) * z)⁻¹))
+            (Metric.ball (0 : ℂ) R) :=
+          (hdiff.isExactOn_ball)
+        rcases hexact with ⟨F, hF⟩
+        -- Restrict to the unit circle (which is contained in the ball since `1 < R`).
+        have hF_circle : ∀ z ∈ Metric.sphere (0 : ℂ) (1 : ℝ),
+            HasDerivWithinAt F ((-Complex.I) * ((r : ℂ) * (1 - (r : ℂ) * z)⁻¹)) (Metric.sphere (0 : ℂ) (1 : ℝ)) z := by
+          intro z hz
+          have hz_ball : z ∈ Metric.ball (0 : ℂ) R := by
+            have : ‖z‖ = 1 := by simpa [Metric.mem_sphere, dist_zero_right] using hz
+            have : ‖z‖ < R := by simpa [this] using hR1
+            simpa [Metric.mem_ball, dist_zero_right] using this
+          exact (hF z hz_ball).hasDerivWithinAt
+        -- Apply the circle integral lemma for derivatives.
+        simpa [circleIntegral, mul_assoc, mul_left_comm, mul_comm] using
+          (circleIntegral.integral_eq_zero_of_hasDerivWithinAt (E := ℂ) (f := F)
+            (f' := fun z => (-Complex.I) * ((r : ℂ) * (1 - (r : ℂ) * z)⁻¹))
+            (c := (0 : ℂ)) (R := (1 : ℝ)) hR hF_circle)
+      -- Combine the two parts.
+      -- Use linearity of the circle integral (no `linarith`: these are complex-valued integrals).
+      have hf :
+          CircleIntegrable (fun z => (-Complex.I) * (z - (r : ℂ))⁻¹) (0 : ℂ) (1 : ℝ) := by
+        -- `(z - r)⁻¹` is integrable on the circle since `r` is in the open unit ball.
+        have hr_not_sphere : (r : ℂ) ∉ Metric.sphere (0 : ℂ) (1 : ℝ) := by
+          intro hr_s
+          have hr_eq : ‖(r : ℂ)‖ = 1 := by
+            simpa [Metric.mem_sphere, dist_zero_right] using hr_s
+          have hr_lt : ‖(r : ℂ)‖ < 1 := by
+            simpa [Metric.mem_ball, dist_zero_right] using hr_mem
+          exact (lt_irrefl (1 : ℝ)) (hr_eq ▸ hr_lt)
+        have hbase :
+            CircleIntegrable (fun z : ℂ => (z - (r : ℂ))⁻¹) (0 : ℂ) (1 : ℝ) := by
+          -- use the characterization lemma
+          simpa using (circleIntegrable_sub_inv_iff (c := (0 : ℂ)) (w := (r : ℂ)) (R := (1 : ℝ))).2
+            (Or.inr (by simpa using hr_not_sphere))
+        -- multiply by the constant `-I`
+        simpa [smul_eq_mul] using (CircleIntegrable.const_smul (a := (-Complex.I)) hbase)
+
+      have hg :
+          CircleIntegrable (fun z => (-Complex.I) * ((r : ℂ) * (1 - (r : ℂ) * z)⁻¹)) (0 : ℂ) (1 : ℝ) := by
+        -- This function is continuous on the unit circle (denominator never vanishes as `‖r‖ < 1`).
+        have hcont :
+            ContinuousOn (fun z : ℂ => (-Complex.I) * ((r : ℂ) * (1 - (r : ℂ) * z)⁻¹))
+              (Metric.sphere (0 : ℂ) (1 : ℝ)) := by
+          have hden0 :
+              ∀ z ∈ Metric.sphere (0 : ℂ) (1 : ℝ), (1 - (r : ℂ) * z) ≠ 0 := by
+            intro z hz
+            -- If `1 - r*z = 0`, then `‖r*z‖ = 1` but also `‖r*z‖ = ‖r‖ < 1`.
+            have hz_norm : ‖z‖ = 1 := by simpa [Metric.mem_sphere, dist_zero_right] using hz
+            have hr_lt : ‖(r : ℂ)‖ < 1 := by
+              simpa [Metric.mem_ball, dist_zero_right] using hr_mem
+            intro hzero
+            have hz1 : (r : ℂ) * z = 1 := (sub_eq_zero.mp hzero).symm
+            have hnorm1 : ‖(r : ℂ) * z‖ = 1 := by simp [hz1]
+            have hnormlt : ‖(r : ℂ) * z‖ < 1 := by simpa [norm_mul, hz_norm] using hr_lt
+            exact (lt_irrefl (1 : ℝ)) (hnorm1 ▸ hnormlt)
+          -- build continuity using `inv₀`
+          have hinner :
+              ContinuousOn (fun z : ℂ => (1 - (r : ℂ) * z)⁻¹) (Metric.sphere (0 : ℂ) (1 : ℝ)) := by
+            exact (continuousOn_const.sub (continuousOn_const.mul continuousOn_id)).inv₀ hden0
+          -- Build continuity without relying on `simpa` guessing the right normal form.
+          have : ContinuousOn (fun z : ℂ => (r : ℂ) * (1 - (r : ℂ) * z)⁻¹) (Metric.sphere (0 : ℂ) (1 : ℝ)) :=
+            continuousOn_const.mul hinner
+          have : ContinuousOn (fun z : ℂ => (-Complex.I) * ((r : ℂ) * (1 - (r : ℂ) * z)⁻¹))
+              (Metric.sphere (0 : ℂ) (1 : ℝ)) :=
+            continuousOn_const.mul this
+          simpa [mul_assoc] using this
+        exact hcont.circleIntegrable (by norm_num)
+
+      have hsplit :
+          (fun z =>
+              (-Complex.I) * ((z - (r : ℂ))⁻¹ + (r : ℂ) * (1 - (r : ℂ) * z)⁻¹))
+            =
+          (fun z =>
+              (-Complex.I) * (z - (r : ℂ))⁻¹ + (-Complex.I) * ((r : ℂ) * (1 - (r : ℂ) * z)⁻¹)) := by
+        funext z; ring
+
+      -- Now add the two known integrals.
+      have hsplit_int :
+          circleIntegral
+              (fun z => (-Complex.I) * ((z - (r : ℂ))⁻¹ + (r : ℂ) * (1 - (r : ℂ) * z)⁻¹))
+              0 1
+            =
+          circleIntegral
+              (fun z =>
+                (-Complex.I) * (z - (r : ℂ))⁻¹ + (-Complex.I) * ((r : ℂ) * (1 - (r : ℂ) * z)⁻¹))
+              0 1 := by
+        simpa using congrArg (fun f : (ℂ → ℂ) => circleIntegral f 0 1) hsplit
+      calc
+        circleIntegral (fun z => (-Complex.I) * ((z - (r : ℂ))⁻¹ + (r : ℂ) * (1 - (r : ℂ) * z)⁻¹)) 0 1
+            = circleIntegral
+                (fun z =>
+                  (-Complex.I) * (z - (r : ℂ))⁻¹ + (-Complex.I) * ((r : ℂ) * (1 - (r : ℂ) * z)⁻¹))
+                0 1 := hsplit_int
+        _ = circleIntegral (fun z => (-Complex.I) * (z - (r : ℂ))⁻¹) 0 1
+              + circleIntegral (fun z => (-Complex.I) * ((r : ℂ) * (1 - (r : ℂ) * z)⁻¹)) 0 1 := by
+                simpa using (circleIntegral.integral_add (c := (0 : ℂ)) (R := (1 : ℝ)) hf hg)
+        _ = (2 * π : ℂ) := by
+              -- rewrite by the two computed integrals and simplify
+              rw [h_main, h_aux]
+              simp
+
+    -- Finish: translate back to the real integral.
+    have hC : (∫ θ in (0 : ℝ)..2 * π, (poissonKernel r 0 θ : ℂ)) = (2 * π : ℂ) :=
+      h_circle.trans hI
+    -- Convert the complex statement to a real one.
+    -- First rewrite the LHS as `↑(∫ ... poissonKernel ...)`.
+    rw [intervalIntegral.integral_ofReal] at hC
+    -- Now take real parts: `re (↑a) = a`.
+    have hre : (∫ θ in (0 : ℝ)..2 * π, poissonKernel r 0 θ) = 2 * π := by
+      simpa using congrArg Complex.re hC
+    exact hre
 
 /-- The Poisson integral of a constant is that constant. -/
 lemma poissonIntegral_const {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r < 1) (c : ℝ) (θ : ℝ) :
@@ -372,11 +684,9 @@ lemma hasDiskPoissonRepresentation_of_data
 /-- Convert between the normalized and unnormalized Poisson kernels. -/
 lemma poissonKernelNormalized_eq_poissonKernel_div (z : 𝔻) (θ : ℝ) :
     poissonKernelNormalized z θ =
-      Complex.poissonKernel ‖(z : ℂ)‖ 0 θ / (2 * Real.pi) := by
-  unfold poissonKernelNormalized Complex.poissonKernel
-  -- The relationship between the two kernels involves the identity
-  -- ‖exp(θI) - z‖² = 1 - 2‖z‖cos(arg z - θ) + ‖z‖² for z ∈ 𝔻
-  -- This requires showing that the two denominator expressions match.
-  sorry
+      (1 / (2 * Real.pi)) * ((1 - ‖(z : ℂ)‖ ^ 2) / ‖Complex.exp (θ * Complex.I) - (z : ℂ)‖ ^ 2) := by
+  -- This is just rewriting the definition to factor out the `1/(2π)` normalization.
+  unfold poissonKernelNormalized
+  ring
 
 end Complex.UnitDisc

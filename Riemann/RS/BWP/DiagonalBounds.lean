@@ -589,7 +589,7 @@ lemma cauchy_shell_sum_bound
       have hx : (x - γ)^2 ≥ (2 * s * (m (x - γ) : ℝ))^2 := by simpa using hsq
       have hx' : (x - γ)^2 + (2 * s)^2 ≥ (2 * s)^2 + (2 * s)^2 * (m (x - γ) : ℝ)^2 := by
         have : (2 * s)^2 + (2 * s * (m (x - γ) : ℝ))^2 ≤ (2 * s)^2 + (x - γ)^2 := by
-          exact add_le_add_left hx ((2 * s)^2)
+          exact add_le_add_right hx ((2 * s)^2)
         calc (2 * s)^2 + (2 * s)^2 * (m (x - γ) : ℝ)^2
             = (2 * s)^2 + (2 * s * (m (x - γ) : ℝ))^2 := by ring
           _ ≤ (2 * s)^2 + (x - γ)^2 := this
@@ -2110,23 +2110,28 @@ definitionally the same underlying type as `ℝ × ℝ`, but it carries the inne
 product and norm induced by the `L²` structure, which is convenient for the
 Laplacian API. -/
 noncomputable def U_flat (G : ℂ → ℂ) (q : WithLp 2 (ℝ × ℝ)) : ℝ :=
-  (G (q.1 + q.2 * Complex.I)).re
+  let p := WithLp.equiv 2 (ℝ × ℝ) q
+  (G (p.1 + p.2 * Complex.I)).re
 
 /-- First partial derivative of `U_flat G` in the `x`-direction. -/
 noncomputable def U_flat_x (G : ℂ → ℂ) (q : WithLp 2 (ℝ × ℝ)) : ℝ :=
-  deriv (fun x : ℝ => U_flat G (x, q.2)) q.1
+  let p := WithLp.equiv 2 (ℝ × ℝ) q
+  deriv (fun x : ℝ => U_flat G ((WithLp.equiv 2 (ℝ × ℝ)).symm (x, p.2))) p.1
 
 /-- First partial derivative of `U_flat G` in the `y`-direction. -/
 noncomputable def U_flat_y (G : ℂ → ℂ) (q : WithLp 2 (ℝ × ℝ)) : ℝ :=
-  deriv (fun y : ℝ => U_flat G (q.1, y)) q.2
+  let p := WithLp.equiv 2 (ℝ × ℝ) q
+  deriv (fun y : ℝ => U_flat G ((WithLp.equiv 2 (ℝ × ℝ)).symm (p.1, y))) p.2
 
 /-- Second partial derivative of `U_flat G` in the `x`-direction. -/
 noncomputable def U_flat_xx (G : ℂ → ℂ) (q : WithLp 2 (ℝ × ℝ)) : ℝ :=
-  deriv (fun x : ℝ => U_flat_x G (x, q.2)) q.1
+  let p := WithLp.equiv 2 (ℝ × ℝ) q
+  deriv (fun x : ℝ => U_flat_x G ((WithLp.equiv 2 (ℝ × ℝ)).symm (x, p.2))) p.1
 
 /-- Second partial derivative of `U_flat G` in the `y`-direction. -/
 noncomputable def U_flat_yy (G : ℂ → ℂ) (q : WithLp 2 (ℝ × ℝ)) : ℝ :=
-  deriv (fun y : ℝ => U_flat_y G (q.1, y)) q.2
+  let p := WithLp.equiv 2 (ℝ × ℝ) q
+  deriv (fun y : ℝ => U_flat_y G ((WithLp.equiv 2 (ℝ × ℝ)).symm (p.1, y))) p.2
 
 
 /-- Any linear functional on `ℝ × ℝ` is determined by its values on `(1,0)` and `(0,1)`. -/
@@ -2348,14 +2353,14 @@ lemma U_halfplane_eq_U_of :
 `(t, σ) ↦ (x, y) := (1/2 + σ, t)`. This is the value-level identification
 used to transport harmonicity from `U_flat G_U` to `U_halfplane`. -/
 lemma U_halfplane_eq_U_flat (p : ℝ × ℝ) :
-  U_halfplane p = U_flat G_U (((1 / 2 : ℝ) + p.2), p.1) := by
+  U_halfplane p = U_flat G_U ((WithLp.equiv 2 (ℝ × ℝ)).symm (((1 / 2 : ℝ) + p.2), p.1)) := by
   -- First rewrite `U_halfplane` through `U_of G_U`.
   have hU : U_halfplane p = U_of G_U p := by
     have h := U_halfplane_eq_U_of
     simpa using congrArg (fun f => f p) h
   -- Then identify `U_of G_U` with the flat field at `(1/2 + σ, t)`.
   have h_flat :
-      U_of G_U p = U_flat G_U (((1 / 2 : ℝ) + p.2), p.1) := by
+      U_of G_U p = U_flat G_U ((WithLp.equiv 2 (ℝ × ℝ)).symm (((1 / 2 : ℝ) + p.2), p.1)) := by
     dsimp [U_of, U_flat, G_U]
     -- both sides apply `G_U` to the same complex argument
     simp [halfPlaneCoord_apply, add_comm, add_left_comm, mul_comm]
@@ -3801,8 +3806,8 @@ lemma laplacian_U_flat_eq
 partial derivatives in the `x`- and `y`-directions. -/
 lemma laplacian_U_flat_eq_flat
     (G : ℂ → ℂ) (q : WithLp 2 (ℝ × ℝ))
-    (h : ContDiff ℝ 2 (fun p : WithLp 2 (ℝ × ℝ) => U_flat G (p.1, p.2))) :
-    Analysis.laplacian (fun p : WithLp 2 (ℝ × ℝ) => U_flat G (p.1, p.2)) q
+    (h : ContDiff ℝ 2 (fun p : WithLp 2 (ℝ × ℝ) => U_flat G p)) :
+    Analysis.laplacian (fun p : WithLp 2 (ℝ × ℝ) => U_flat G p) q
       = U_flat_xx G q + U_flat_yy G q := by
   classical
   -- this is just a restatement of `laplacian_U_flat_eq`
@@ -5884,3 +5889,5 @@ theorem carleson_energy_bound_from_split_schur_and_counts_default
     product_constant_calibration KD.nonneg (by simp [VD]) hCdecay_le hCν_le hAB
   -- Apply bridge
   exact carleson_energy_bound_from_decay_density_succ I KD VD hConst
+
+#min_imports

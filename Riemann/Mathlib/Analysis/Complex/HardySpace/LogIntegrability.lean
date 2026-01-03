@@ -121,7 +121,7 @@ lemma IsInHInfty.jensen_inequality {f : ℂ → ℂ} (hf : IsInHInfty f)
           apply Real.log_nonneg
           calc 1 = r * r⁻¹ := by field_simp
             _ ≤ r * ‖u‖⁻¹ := mul_le_mul_of_nonneg_left (inv_anti₀ hu_norm hu_in) hr0.le
-      exact mul_nonneg (Int.cast_nonneg.mpr h_div_u_nonneg) h_log_nonneg
+      exact mul_nonneg (Int.cast_nonneg h_div_u_nonneg) h_log_nonneg
     · simp only [MeromorphicOn.divisor_def, hf_an_ball.meromorphicOn, hu, and_false, ite_false,
         Int.cast_zero, zero_mul, le_refl]
   linarith [h_div_0_term, h_finsum_nonneg]

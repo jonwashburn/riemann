@@ -1,5 +1,4 @@
 /-
-  rh/RS/PoissonPlateau.lean
 
   Poisson plateau: a concrete even window ψ with a uniform positive lower bound
   for its Poisson smoothing on the unit Carleson box (|x| ≤ 1, 0 < b ≤ 1).
@@ -10,7 +9,6 @@
   Mathlib-only; no axioms.
 -/
 
--- NOTE: Demonstration marker edit. Safe to keep or remove; has no effect on proofs.
 
 import Mathlib.Algebra.Group.EvenFunction
 import Mathlib.Data.Real.StarOrdered
