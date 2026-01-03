@@ -1,3 +1,12 @@
+import Notes.Papers.CW.ApproxIBP
+import Notes.Papers.CW.GIBP
+import Notes.Papers.CW.Lindenberg
+import Notes.Papers.CW.LindebergStep
+import Notes.Papers.CW.LindebergBlockwise
+import Notes.Papers.CW.RandomPhaseMoments
+import Notes.Papers.CW.RandomPhaseModelMoments
+import Notes.Papers.CW.ZetaSpinGlassDefs
+
 import Riemann.Aux
 import Riemann.Cert.FactorsWitness
 import Riemann.Cert.K0PPlus
@@ -115,14 +124,6 @@ import Riemann.academic_framework.GammaBounds
 import Riemann.academic_framework.GammaFunctionalEquation
 import Riemann.academic_framework.GammaStirlingAux
 
-import Notes.Papers.CW.ApproxIBP
-import Notes.Papers.CW.GIBP
-import Notes.Papers.CW.Lindenberg
-import Notes.Papers.CW.LindebergStep
-import Notes.Papers.CW.LindebergBlockwise
-import Notes.Papers.CW.RandomPhaseMoments
-import Notes.Papers.CW.RandomPhaseModelMoments
-import Notes.Papers.CW.ZetaSpinGlassDefs
 /-
 
 
