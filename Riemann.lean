@@ -42,6 +42,10 @@ import Riemann.Mathlib.Analysis.Complex.HardySpace.NevanlinnaConnection
 import Riemann.Mathlib.Analysis.Complex.HardySpace.PoissonKernel
 import Riemann.Mathlib.Analysis.Complex.HardySpace.PowerSeriesBounds
 --import Riemann.Mathlib.Analysis.Complex.HardySpace.WeierstrassProduct
+
+
+/-
+
 --import Riemann.Mathlib.Analysis.Complex.HardySpace.ZeroEnumeration
 --import Riemann.Mathlib.Analysis.Complex.Herglotz
 --import Riemann.Mathlib.Analysis.Complex.Herglotz'
@@ -65,6 +69,13 @@ import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.StirlingRobbins
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.StripBounds
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
 import Riemann.Mathlib.ArctanTwoGtOnePointOne
+
+
+
+
+
+
+
 --import Riemann.Mathlib.LinearAlgebra.Matrix.Toeplitz
 --import Riemann.Mathlib.LinearAlgebra.Matrix.ToeplitzPosDef
 --import Riemann.Mathlib.LinearAlgebra.Matrix.ToeplitzPosDef'
@@ -96,7 +107,7 @@ import Riemann.Mathlib.MeasureTheory.Integral.Carleson
 import Riemann.PhysLean.SpinGlass.Defs
 import Riemann.PhysLean.SpinGlass.GibbsBridge
 import Riemann.PhysLean.SpinGlass.GuerraBound
-import Riemann.PhysLean.SpinGlass.Kernel
+--import Riemann.PhysLean.SpinGlass.Kernel
 import Riemann.PhysLean.SpinGlass.Replicas
 import Riemann.PhysLean.SpinGlass.SKModel
 
@@ -106,57 +117,6 @@ import Riemann.RS.BWP.Constants
 import Riemann.RS.BWP.Definitions
 --import Riemann.RS.BWP.DiagonalBounds
 import Riemann.RS.BWP.Laplacian
-
-import Riemann.RS.BoundaryAi
-import Riemann.RS.CRGreenOuter
-import Riemann.RS.CRGreenWhitneyB
-import Riemann.RS.Cayley
-import Riemann.RS.Det2Outer
-import Riemann.RS.GField
-import Riemann.RS.HalfPlaneOuterV2
-import Riemann.RS.OffZerosBridge
-import Riemann.RS.PaperWindow
-import Riemann.RS.PoissonKernelAnalysis
-import Riemann.RS.PoissonKernelDyadic
-import Riemann.RS.PoissonPlateau
-import Riemann.RS.SchurGlobalization
-import Riemann.RS.VKStandalone
-import Riemann.RS.WedgeBasics
-import Riemann.RS.WhitneyAeCore
-import Riemann.RS.WhitneyGeometryDefs
-
-import Riemann.academic_framework.Compat
-import Riemann.academic_framework.CompletedXi
-import Riemann.academic_framework.CompletedXiSymmetry
-import Riemann.academic_framework.DiagonalFredholm.AnalyticInfrastructure
-import Riemann.academic_framework.DiagonalFredholm.Determinant
-import Riemann.academic_framework.DiagonalFredholm.WeierstrassProduct
---import Riemann.academic_framework.DiagonalFredholm.«Determinant-old»
-import Riemann.academic_framework.DiskHardy
-import Riemann.academic_framework.Domain
-import Riemann.academic_framework.EulerProduct.K0Bound
-import Riemann.academic_framework.EulerProduct.PrimeSeries
---import Riemann.academic_framework.FiniteOrder
-import Riemann.academic_framework.GammaBounds
-import Riemann.academic_framework.GammaFunctionalEquation
-import Riemann.academic_framework.GammaStirlingAux
---import Riemann.academic_framework.HadamardFactorization
-import Riemann.academic_framework.MeasureHelpers
-----import Riemann.academic_framework.StirlingB
-import Riemann.academic_framework.StirlingBounds
-import Riemann.academic_framework.Theta
-import Riemann.academic_framework.WeierstrassFactorBound
---import Riemann.academic_framework.ZetaFiniteOrder
-import Riemann.academic_framework.ZetaFunctionalEquation
-
-/-
-
-
-
-
-
-
-
 
 
 
@@ -205,6 +165,28 @@ import Riemann.Weil.ResidueSum
 import Riemann.Weil.SelbergClass
 import Riemann.Weil.SelbergClass'
 -/
-
+import Riemann.academic_framework.Compat
+import Riemann.academic_framework.CompletedXi
+import Riemann.academic_framework.CompletedXiSymmetry
+import Riemann.academic_framework.DiagonalFredholm.AnalyticInfrastructure
+import Riemann.academic_framework.DiagonalFredholm.Determinant
+import Riemann.academic_framework.DiagonalFredholm.WeierstrassProduct
+--import Riemann.academic_framework.DiagonalFredholm.«Determinant-old»
+import Riemann.academic_framework.DiskHardy
+import Riemann.academic_framework.Domain
+import Riemann.academic_framework.EulerProduct.K0Bound
+import Riemann.academic_framework.EulerProduct.PrimeSeries
+--import Riemann.academic_framework.FiniteOrder
+import Riemann.academic_framework.GammaBounds
+import Riemann.academic_framework.GammaFunctionalEquation
+import Riemann.academic_framework.GammaStirlingAux
+--import Riemann.academic_framework.HadamardFactorization
+import Riemann.academic_framework.MeasureHelpers
+----import Riemann.academic_framework.StirlingB
+import Riemann.academic_framework.StirlingBounds
+import Riemann.academic_framework.Theta
+import Riemann.academic_framework.WeierstrassFactorBound
+--import Riemann.academic_framework.ZetaFiniteOrder
+import Riemann.academic_framework.ZetaFunctionalEquation
 
 -/
