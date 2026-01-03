@@ -14,6 +14,8 @@ import Mathlib.Topology.Algebra.InfiniteSum.UniformOn
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.HarmonicBounds
 import Riemann.Mathlib.Analysis.Complex.HardySpace.PoissonKernel
 import Riemann.Mathlib.Analysis.Complex.Cartan
+import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.CircleAverageLemmas
+
 /-!
 # Hadamard Factorization for Entire Functions of Finite Order
 
@@ -406,7 +408,7 @@ lemma analyticOrderAt_one_sub :
     analyticOrderAt (fun z : ℂ => (1 : ℂ) - z) (1 : ℂ)
         = analyticOrderAt (fun z : ℂ => -(z - (1 : ℂ))) (1 : ℂ) := by
             -- Avoid `simp` recursion depth issues by rewriting directly.
-            simpa using congrArg (fun f : ℂ → ℂ => analyticOrderAt f (1 : ℂ)) hrewrite
+            simp
     _ = analyticOrderAt (fun z : ℂ => z - (1 : ℂ)) (1 : ℂ) := by
           -- `analyticOrderAt` is invariant under multiplication by a nonzero constant.
           have hconst_an : AnalyticAt ℂ (fun _ : ℂ => (-1 : ℂ)) (1 : ℂ) := analyticAt_const
@@ -428,14 +430,14 @@ lemma analyticOrderAt_one_sub :
           calc
             analyticOrderAt (fun z : ℂ => -(z - (1 : ℂ))) (1 : ℂ)
                 = analyticOrderAt (fun z : ℂ => (-1 : ℂ) * (z - (1 : ℂ))) (1 : ℂ) := by
-                    simpa [hrewrite]
+                    simp
             _ = analyticOrderAt (fun z : ℂ => z - (1 : ℂ)) (1 : ℂ) := by
                   calc
                     analyticOrderAt (fun z : ℂ => (-1 : ℂ) * (z - (1 : ℂ))) (1 : ℂ)
                         = analyticOrderAt (fun _ : ℂ => (-1 : ℂ)) (1 : ℂ)
                           + analyticOrderAt (fun z : ℂ => z - (1 : ℂ)) (1 : ℂ) := hmul
                     _ = analyticOrderAt (fun z : ℂ => z - (1 : ℂ)) (1 : ℂ) := by
-                          simpa [hconst_order]
+                          simp [hconst_order]
     _ = (1 : ℕ∞) := hsub
 
 /-- The Weierstrass factor has a simple zero at `z = 1`. -/
@@ -457,7 +459,7 @@ lemma analyticOrderAt_weierstrassFactor_one (m : ℕ) :
     (differentiable_exp.comp hsum_diff).analyticAt 1
   have hexp_ne : (exp (partialLogSum m (1 : ℂ))) ≠ 0 := Complex.exp_ne_zero _
   have hexp_order : analyticOrderAt (fun z : ℂ => exp (partialLogSum m z)) (1 : ℂ) = 0 :=
-    (hexp_an.analyticOrderAt_eq_zero).2 (by simpa using hexp_ne)
+    (hexp_an.analyticOrderAt_eq_zero).2 (by simp)
   -- Combine with multiplicativity of `analyticOrderAt`.
   have hmul :
       analyticOrderAt (fun z : ℂ => ((1 : ℂ) - z) * exp (partialLogSum m z)) (1 : ℂ)
@@ -495,7 +497,7 @@ lemma analyticOrderAt_weierstrassFactor_div_self {m : ℕ} {a : ℂ} (ha : a ≠
   have hexp_an : AnalyticAt ℂ (fun z : ℂ => exp (partialLogSum m (z / a))) a :=
     (differentiable_exp.comp hsum_diff).analyticAt a
   have hexp_order : analyticOrderAt (fun z : ℂ => exp (partialLogSum m (z / a))) a = 0 :=
-    (hexp_an.analyticOrderAt_eq_zero).2 (by simpa using (Complex.exp_ne_zero _))
+    (hexp_an.analyticOrderAt_eq_zero).2 (by simp)
 
   -- Linear factor: `(1 - z/a) = (-a⁻¹) * (z - a)`.
   have hlin_order : analyticOrderAt (fun z : ℂ => (1 : ℂ) - (z / a)) a = (1 : ℕ∞) := by
@@ -522,7 +524,7 @@ lemma analyticOrderAt_weierstrassFactor_div_self {m : ℕ} {a : ℂ} (ha : a ≠
     calc
       analyticOrderAt (fun z : ℂ => (1 : ℂ) - (z / a)) a
           = analyticOrderAt (fun z : ℂ => (-(a⁻¹ : ℂ)) * (z - a)) a := by
-              simpa [hrewrite]
+              simp [hrewrite]
       _ = analyticOrderAt (fun _ : ℂ => (-(a⁻¹ : ℂ))) a + analyticOrderAt (fun z : ℂ => z - a) a := hmul
       _ = (1 : ℕ∞) := by simp [hconst_order, hsub_order]
 
@@ -1376,7 +1378,7 @@ lemma summable_of_eq_on_compl_finset {f g : ℕ → ℂ} (s : Finset ℕ)
   -- `g = f + h`.
   have hg : g = fun n => f n + h n := by
     funext n
-    simp [h, sub_eq_add_neg, add_assoc, add_left_comm, add_comm]
+    simp [h, sub_eq_add_neg]
   -- Close under addition.
   simpa [hg] using hf.add hs
 
@@ -4825,16 +4827,15 @@ theorem hadamard_factorization
         calc
           analyticOrderAt (fun w : ℂ => ∏ n ∈ s, fac n w) z
               = analyticOrderAt (fun w : ℂ => (weierstrassFactor m (w / z)) ^ s.card) z := by
-                  simpa [hfin_eq]
-          _ = s.card • (1 : ℕ∞) := by simpa [hpow, hbase_order]
+                  simp [hfin_eq]
+          _ = s.card • (1 : ℕ∞) := by simp [hpow, hbase_order]
           _ = (s.card : ℕ∞) := by simp
 
       -- Now combine: `G = finprod * Tail` and Tail contributes order 0.
       have hG_order : analyticOrderAt G z = (s.card : ℕ∞) := by
         have hcongr : analyticOrderAt G z =
             analyticOrderAt (fun w : ℂ => (∏ n ∈ s, fac n w) * Tail w) z := by
-          simpa [hG_func] using (analyticOrderAt_congr (z₀ := z) (Filter.eventually_of_forall (fun w => by
-            simpa [hG_func])))
+          simp [hG_func]
         have hmul :
             analyticOrderAt (fun w : ℂ => (∏ n ∈ s, fac n w) * Tail w) z
               = analyticOrderAt (fun w : ℂ => ∏ n ∈ s, fac n w) z + analyticOrderAt Tail z := by
@@ -4845,24 +4846,28 @@ theorem hadamard_factorization
               intro n hn
               simpa [fac] using
                 ((differentiable_weierstrassFactor m).comp (differentiable_id.div_const (hz.zeros n))).analyticAt z
-            -- use differentiability lemma for finite products
-            have hdiff : Differentiable ℂ (fun w : ℂ => ∏ n ∈ s, fac n w) := by
-              refine Differentiable.finset_prod (u := s) (f := fun n w => fac n w) ?_
-              intro n hn
-              exact (differentiable_weierstrassFactor m).comp (differentiable_id.div_const (hz.zeros n))
-            exact hdiff.analyticAt z
+            -- use analyticity lemma for finite products
+            have hprod_eq : (fun w => ∏ n ∈ s, fac n w) = ∏ n ∈ s, (fun w => fac n w) := by
+              ext w
+              simp only [Finset.prod_apply]
+            rw [hprod_eq]
+            exact Finset.analyticAt_prod s (fun n hn => hdf n hn)
           have hTail_an : AnalyticAt ℂ Tail z := hTail_entire.analyticAt z
+          have hfin_an'' : AnalyticAt ℂ (∏ n ∈ s, fun w => fac n w) z := by
+            rw [← hprod_eq]; exact hfin_an'
           simpa using (analyticOrderAt_mul (𝕜 := ℂ)
-            (f := fun w : ℂ => ∏ n ∈ s, fac n w) (g := Tail) (z₀ := z) hfin_an' hTail_an)
+            (f := ∏ n ∈ s, fun w => fac n w) (g := Tail) (z₀ := z) hfin_an'' hTail_an)
+          simpa using (analyticOrderAt_mul (𝕜 := ℂ)
+            (f := ∏ n ∈ s, fun w => fac n w) (g := Tail) (z₀ := z) hfin_an'' hTail_an)
         simpa [hcongr, hmul, hfin_order, hTail_order0]
 
       -- Compare to `analyticOrderAt f z`, using `hz.zeros_mult_spec`.
       have hf_order_nat : analyticOrderNatAt f z = Nat.card {n : ℕ // hz.zeros n = z} :=
         hz.zeros_mult_spec z hz_ne0
       have hf_order : analyticOrderAt f z = (Nat.card {n : ℕ // hz.zeros n = z} : ℕ∞) := by
-        have hcast : (analyticOrderNatAt f z : ℕ∞) = analyticOrderAt f z :=
-          (Nat.cast_analyticOrderNatAt (f := f) (z₀ := z) hf_ne_top).symm
-        simpa [hcast, hf_order_nat]
+        have hcast : analyticOrderAt f z = (analyticOrderNatAt f z : ℕ∞) :=
+          (Nat.cast_analyticOrderNatAt (f := f) (z₀ := z) hf_ne_top)
+        simp only [hcast, hf_order_nat]
 
       -- `s.card` is the same cardinality as `Nat.card` of the fiber subtype.
       have hs_card :
@@ -4871,7 +4876,7 @@ theorem hadamard_factorization
         classical
         haveI : Fintype {n : ℕ // hz.zeros n = z} := Fintype.ofFinite _
         -- `Nat.card` agrees with `Fintype.card`.
-        simp [Nat.card_eq_fintype_card, s, fiber, hs_mem]
+        simp [Nat.card_eq_fintype_card, s, fiber]
 
       -- Finally: `ord(F,z) = ord(G,z) = ord(f,z)`.
       have hFz : analyticOrderAt F z = (Nat.card {n : ℕ // hz.zeros n = z} : ℕ∞) := by
@@ -4880,7 +4885,7 @@ theorem hadamard_factorization
           simpa [hs_card] using hG_order
         simpa [hF_eq_G] using this
       -- Conclude the desired inequality.
-      simpa [hFz, hf_order]
+      simp [hFz, hf_order]
 
   rcases quotient_entire (f := f) (G := F) hf.entire hF_entire hF_nontrivial h_ord with
     ⟨H, hH_entire, hH_eq⟩
@@ -4901,7 +4906,7 @@ theorem hadamard_factorization
             by_contra h0
             have : hz.ord0 = 0 := Nat.eq_zero_of_not_pos h0
             -- then `F 0 = 1`, contradiction
-            simp [F, G, this, weierstrassFactor_zero]
+            aesop --simp [F, G, this, weierstrassFactor_zero]
           exact Or.inl ⟨rfl, hpos⟩
         · -- `z ≠ 0` implies `G z = 0`, hence `z = hz.zeros n`.
           have hzpow_ne : z ^ hz.ord0 ≠ 0 := pow_ne_zero hz.ord0 hz0
