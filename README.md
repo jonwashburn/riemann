@@ -1,103 +1,203 @@
-## Riemann: Lean 4 developments around the Riemann Hypothesis
+# Artifact Verification Guide: Unconditional Far-Field Zero-Freeness (\(\Re s\ge 0.6\))
 
-This repository is a **monorepo of Lean 4 libraries** dedicated to the formalization of analytic number theory and the exploration of approaches to the Riemann Hypothesis (RH). The core library, `Riemann/` (umbrella import `Riemann.lean`), provides the initial infrastructure for several potential proof strategies:
-*   **Classical Analytic Number Theory**: Euler products, functional equations, and Hadamard factorization.
-*   **Complex Analysis & Operator Theory**: Hardy spaces, Nevanlinna theory, and de Branges spaces of entire functions.
-*   **Harmonic Analysis**: Carleson measures, Whitney decompositions, and Poisson integrals on the half-plane.
-*   **Statistical Mechanics**: Spin Glass theory, Guerra's interpolation, and applications to the Fyodorov-Hiary-Keating conjecture for the Riemann zeta function.
-*   **Explicit Formulae**: The Weil explicit formula and the Selberg class (WIP).
+This repository contains the **machine-checkable verification artifacts** associated with **Paper 1** of the three-paper split:
 
-This project is built on the Lean Project Template by Pietro Monticone (https://github.com/pitmonticone/LeanProject)
+> **“A certified zero-free region for the Riemann zeta function in the half-plane \(\Re s \ge 0.6\)”**  
+> Jonathan Washburn (2026)
 
-### Getting started
+The goal of this guide is to make it easy for a skeptical referee to **audit the unconditional far-field claim** (the \(\Re s\ge 0.6\) zero-free region) by running a single, rigorous verifier based on **ARB ball arithmetic** (via `python-flint`).
 
-1. Install Lean 4 (version pinned by `lean-toolchain`)
-2. Run `lake build Riemann` (build just the `Riemann` library)
-3. Optionally run `lake build` (build all libraries in this monorepo)
+## Papers in this repository (three-paper split)
 
-### Top-level Lean libraries (root files)
+- **Paper 1 (Unconditional)**: `paper1_farfield.tex` / `paper1_farfield.pdf`  
+  *A certified zero-free region for the Riemann zeta function in the half-plane \(\Re s \ge 0.6\)*
+- **Paper 2 (Effective / height-limited)**: `paper2_energy_barrier.tex` / `paper2_energy_barrier.pdf`  
+  *Energy barriers and Carleson budgets for off-critical zeros of the Riemann zeta function*
+- **Paper 3 (Conditional / hypothesis-driven)**: `paper3_cutoff_conditional.tex` / `paper3_cutoff_conditional.pdf`  
+  *A cutoff principle and conditional closure of the Riemann Hypothesis*
 
-- **`Riemann`** (`Riemann/`, `Riemann.lean`): The main library containing the RH-facing developments (detailed below).
-- **`PrimeNumberTheoremAnd`** (`PrimeNumberTheoremAnd/`, `PrimeNumberTheoremAnd.lean`): A toolkit for the Prime Number Theorem.
-- **`StrongPNT`** (`StrongPNT/`, `StrongPNT.lean`): A pipeline for a stronger form of the Prime Number Theorem.
-- **`VD`** (`VD/`, `VD.lean`): Fragments of Value Distribution theory (Nevanlinna theory) being PRd to Mathlib.
-- **`Carleson`** (`Carleson/`, `Carleson.lean`): Carleson’s theorem development.
-- **`PhysLean`** (`PhysLean/`, `PhysLean.lean`): physics-oriented math library (independent of RH work).
-- **`DeRhamCohomology`** (`DeRhamCohomology/`, `DeRhamCohomology.lean`): de Rham cohomology.
-- **`GibbsMeasure`** (`GibbsMeasure/`, `GibbsMeasure.lean`): A general library for Gibbs measures and specification theory on infinite graphs, featuring **extensive novel development**.
-- **`Notes/Papers`** (`Notes/`): research papers (by Connes-Consani, Tao, Radziwill-Bourdain, Arguin-Tai, etc) and ongoing research formalizations (see CW for some sorry-free research formalizations work including prerequisite theorems from other authors).
+To compile (run twice for references):
 
-### The `Riemann/` library (main RH-facing code)
+```bash
+pdflatex -interaction=nonstopmode paper1_farfield.tex
+pdflatex -interaction=nonstopmode paper2_energy_barrier.tex
+pdflatex -interaction=nonstopmode paper3_cutoff_conditional.tex
+```
 
-The `Riemann` library is structured into several layers, ranging from foundational analysis to high-level proof strategies.
+Or, using the included `Makefile`:
 
-#### 1. Academic Framework (`Riemann/academic_framework/`)
-This layer establishes the analytic properties of the Riemann zeta function $\zeta(s)$ and the completed xi function $\xi(s)$.
-*   **`CompletedXi.lean` & `ZetaFunctionalEquation.lean`**: Defines $\xi(s) = s(s-1)\pi^{-s/2}\Gamma(s/2)\zeta(s)$ and proves the functional equation $\xi(s) = \xi(1-s)$.
-*   **`HadamardFactorization.lean`**: A complete formalization of the Hadamard factorization theorem for entire functions of finite order, applied to $\xi(s)$ to relate its zeros to its growth.
-*   **`GammaBounds.lean` & `StirlingBounds.lean`**: Precise estimates for the Gamma function in vertical strips, crucial for controlling the "archimedean factor" of L-functions.
-*   **`EulerProduct/`**: Convergence of Euler products and prime series (`PrimeSeries.lean`), and bounds on the logarithmic derivative of zeta (`K0Bound.lean`).
+```bash
+make all
+```
 
-#### 2. Certificates (`Riemann/Cert/`)
-This layer bridges the gap between analytic estimates and formal verification, packaging bounds as "certificates" for use in the (RS) exploratory strategy.
-*   **`K0PPlus.lean` & `KxiPPlus.lean`**: Prop-level interfaces for constants related to the distribution of zeros ($K_0, K_\xi$).
-*   **`FactorsWitness.lean`**: Data structures witnessing the existence of factors in Hadamard products, facilitating explicit computations.
+## Overview: what is being discharged?
 
-#### 3. Local Mathlib Extensions (`Riemann/Mathlib/`)
-A comprehensive collection of general-purpose mathematical results developed for this project, filling gaps in Mathlib.
-*   **Complex Analysis (`Analysis/Complex/`)**:
-    *   **Hardy Spaces (`HardySpace.lean`)**: Theory of $H^p$ spaces on the unit disc, including boundary limits (Fatou's theorem TODO), inner-outer factorization, and the Poisson integral formula.
-    *   **de Branges Spaces (`DeBranges/`)**: Hilbert spaces of entire functions, reproducing kernels, and their connection to Nevanlinna theory.
-    *   **Nevanlinna Theory**: Cartan, characteristic functions, and proximity functions (`Cartan.lean`, `Nevanlinna.lean`).
-    *   **Herglotz Representation**: (WIP) Representation of holomorphic functions with positive real part (`Herglotz.lean`).
-*   **Harmonic Analysis (`Analysis/Harmonic/`)**:
-    *   **BMO**: Bounded Mean Oscillation spaces and the John-Nirenberg inequality (`BMO/`).
-    *   **Carleson Measures**: Definition and properties of Carleson measures (`Measure/Carleson/`), essential for embedding theorems.
-*   **Special Functions**: Further development of the Gamma function and Gaussian integrals.
-*   **Operator Theory**: Fredholm operators and determinants (`Analysis/Normed/Operator/Fredholm/`).
+Paper 1’s unconditional far-field step is the hybrid certification summarized in:
 
-#### 4. RS Layer (`Riemann/RS/`)
-This layer implements the "Boundary Wedge" strategy (or "pinch route"), a harmonic-analytic exploration to RH. It focuses on controlling the zeta function on the critical strip using boundary values and geometry.
-*   **`Det2Outer.lean` & `HalfPlaneOuterV2.lean`**: Construction of outer functions on the half-plane to normalize the growth of zeta.
-*   **`WhitneyGeometryDefs.lean`**: Whitney decomposition of the half-plane, used to discretize estimates.
-*   **`PoissonKernelDyadic.lean`**: Dyadic estimates for the Poisson kernel.
-*   **`CRGreenOuter.lean`**: Application of Green's theorem (Cauchy-Riemann identities) to relate bulk integrals to boundary terms.
-*   **`BWP/` (Boundary Wedge Proof)**: Infrastructure for the "boundary wedge" argument, including Laplacian calculations (`Laplacian.lean`) and CR calculus (`CRCalculus.lean`).
+- Theorem **“Certified far-field zero-freeness”** (`paper1_farfield.tex`, Theorem `thm:farfield`)
+- Table **“Certified far-field artifact data”** (`paper1_farfield.tex`, Table `tab:artifact-data`)
+- Remark **“Artifact reproducibility and verification”** (`paper1_farfield.tex`, Remark `rem:artifact-repro`)
+- Appendix **“Audit manifest (verifier commands and expected fields)”** (`paper1_farfield.tex`, Appendix `app:audit`)
 
-#### 5. Semiclassical Analysis (`Riemann/Semiclassical/`)
-*(Experimental)* Formalization of semiclassical symbol calculus, targeting spectral interpretations of the Riemann zeros.
-*   **`Defs.lean`**: Definition of $\lambda$-dependent symbol classes $S^m_\lambda$.
-*   **`TwoChart_Weyl*.lean`**: Weyl quantization and operator composition in a two-chart setting.
-*   **`TwoChart_Parametrix*.lean`**: Construction of parametrices (approximate inverses) for semiclassical operators, including remainder bounds.
+It establishes:
 
-#### 6. Weil Explicit Formula (`Riemann/Weil/`)
-*(Experimental)*
-*   **`SelbergClass.lean`**: Definition of the Selberg class of L-functions (Dirichlet coefficients, analytic continuation, functional equation, Euler product).
-*   **`ExplicitFormula.lean`**: The Weil explicit formula relating sums over zeros of an L-function to sums over primes, via a test function.
+> **Unconditional far-field statement.** The Riemann zeta function has **no zeros** in the region \(\{\Re s\ge 0.6\}\).
 
-#### 7. Spin Glass Bridge (`Riemann/PhysLean/SpinGlass/`)
-Formalization of the Sherrington-Kirkpatrick (SK) model and tools for analyzing disordered systems.
-*   **`SKModel.lean`**: The Sherrington-Kirkpatrick model from statistical physics.
-*   **`GuerraBound.lean`**: Formalization of Guerra's interpolation technique, a key tool for bounding the free energy of spin glasses.
-*   **`ComplexIBP.lean`**: Gaussian Integration by Parts (Stein's Lemma) for complex variables.
+The verification uses **rigorous interval arithmetic** throughout. A printed `PASS` is intended to mean:  
+**within the logic of ball arithmetic, the relevant inequality is certified and cannot be violated.**
 
-#### 8. Research Formalizations (`Notes/Papers/`)
-Formalization of results from recent research papers, including the connection between the Riemann zeta function and spin glass models (Fyodorov-Keating-Hiary conjectures).
-*   **`CW/`** : Formalizations of the **Random Phase Model** for $\zeta(s)$.
-    *   **`RandomPhaseModelMoments.lean`**: Analysis of the moments of the random phase model, establishing the connection to log-correlated fields.
-    *   **`Lindeberg*.lean`**: Implementation of the Lindeberg exchange method to compare the statistics of the zeta function with the random model.
-    *   **`ZetaSpinGlassDefs.lean`**: Definitions bridging number theoretic quantities with spin glass terminology.
+## Prerequisites
 
-### Build configuration
+- Python 3.9+
+- `python-flint` (bindings to FLINT/ARB)
 
-- **Lean version**: pinned by `lean-toolchain`
-- **Build system**: Lake (`lakefile.toml`, `lake-manifest.json`)
+Install:
 
-### Contributing
+```bash
+pip install python-flint
+```
 
-You can contribute to this project by opening a PR or messaging us on Zulip at this link https://leanprover.zulipchat.com/#narrow/channel/116395-maths/topic/Repository.20for.20formalizations.20related.20.20to.20RH.2Fzeta/with/566242760.
+## Files you should look at
+
+- `verify_attachment_arb.py` — the main verifier (ARB / ball arithmetic).
+- `theta_certify_sigma06_07_t0_20_outer_zeta_proj.json` — rectangle certification artifact for \([0.6,0.7]\times[0,20]\) (this matches Table `tab:artifact-data`).
+- `pick_sigma07_raw_zeta_N16.json` — Pick certificate artifact at \(\sigma_0=0.7\) with \(N=16\) (this matches Table `tab:artifact-data`).
+
+## Quick Start (recommended)
+
+There are two sensible audit modes:
+
+1. **Fast audit (recommended for referees):** verify the shipped JSON artifacts match the manuscript tables.
+2. **Full regeneration:** rerun the certificate computations to reproduce the JSON artifacts from scratch.
+
+### Fast audit (verify shipped artifacts)
+
+- **Rectangle artifact:** open `theta_certify_sigma06_07_t0_20_outer_zeta_proj.json` and check:
+  - `results.ok` is `true`
+  - `results.theta_hi < 1`
+  - `results.processed_boxes = 380764`
+
+- **Pick artifact:** open `pick_sigma07_raw_zeta_N16.json` and check:
+  - `pick.delta_cert` matches Table `tab:artifact-data`
+  - `pick.P_spd_at_0` is `true`
+
+### Full regeneration (optional)
+
+Run the verifier in the repository root:
+
+```bash
+cd /path/to/this/repository
+python verify_attachment_arb.py --help
+```
+
+The two key audit modes corresponding to Table `tab:artifact-data` are:
+
+1. **Rectangle audit** (`theta_certify`) for \([0.6,0.7]\times[0,20]\) in the far-field.
+2. **Pick certificate audit** (`pick_certify`) at \(\sigma_0=0.7\), \(N=16\), plus the tail bound check.
+
+## Verification Manifest (how Table `tab:artifact-data` is produced)
+
+### 1) Rectangle Check (interval arithmetic subdivision)
+
+**Goal:** certify \(|\\Theta(s)|<1\) on the finite rectangle
+\[
+[\sigma_{\min},\sigma_{\max}]\times[t_{\min},t_{\max}] = [0.6,0.7]\times[0,20].
+\]
+
+**Artifact file (included):** `theta_certify_sigma06_07_t0_20_outer_zeta_proj.json`
+
+Key fields in that JSON (expected):
+
+- `results.ok = true`
+- `results.theta_hi = 0.9999928763...`
+- `results.processed_boxes = 380764`
+- `results.margin_1_minus_theta_hi ≈ 7.12e-6`
+
+**Optional regeneration command (writes a new artifact):**
+
+```bash
+python verify_attachment_arb.py \
+  --theta-certify \
+  --arith-gauge outer_zeta_proj \
+  --arith-P-cut 2000 \
+  --rect-sigma-min 0.6 --rect-sigma-max 0.7 \
+  --rect-t-min 0.0 --rect-t-max 20.0 \
+  --outer-mode midpoint \
+  --outer-P-cut 2000 \
+  --outer-T 50.0 --outer-n 2001 \
+  --theta-init-n-sigma 10 --theta-init-n-t 50 \
+  --theta-min-sigma-width 0.0001 --theta-min-t-width 0.001 \
+  --theta-max-boxes 500000 \
+  --prec 260 \
+  --theta-out theta_certify_sigma06_07_t0_20_outer_zeta_proj.json \
+  --progress
+```
+
+### 2) Pick Matrix Certificate (Schur on \(\{\Re s>0.7\}\))
+
+**Goal:** certify a strict Pick gap at \(\sigma_0=0.7\) for the \(16\times 16\) arithmetic Pick minor \(P_{16}(\sigma_0)\):
+\[
+P_{16}(0.7) \succeq \delta I,\qquad \delta>0.
+\]
+
+**Artifact file (included):** `pick_sigma07_raw_zeta_N16.json`
+
+Key fields in that JSON (expected):
+
+- `pick.delta_cert = 0.6273368611...`
+- `pick.P_spd_at_0 = true`
+- `pick.tail_weighted_l2_partial_hi = 0.01272011...`
+
+**Optional regeneration command (writes a new artifact):**
+
+```bash
+python verify_attachment_arb.py \
+  --pick-certify \
+  --pick-sigma0 0.7 \
+  --pick-N 16 \
+  --pick-coeff-count 32 \
+  --pick-K 256 \
+  --pick-rho 0.1 \
+  --pick-rho-bound 0.2 \
+  --arith-gauge raw_zeta \
+  --arith-P-cut 2000 \
+  --outer-mode rigorous \
+  --outer-P-cut 20000 \
+  --outer-T 10 --outer-n 200 \
+  --prec 260 \
+  --pick-out pick_sigma07_raw_zeta_N16.json
+```
+
+### 3) Tail Bound Audit (stability of the infinite Pick matrix)
+
+**Goal:** ensure truncating to \(N=16\) does not invalidate the infinite-dimensional Schur conclusion.
+
+This is the paper’s “tail perturbation” check: if \(\varepsilon_N\) is the coefficient tail bound and \(C\) is the perturbation constant, verify \(C\varepsilon_N<\delta\).
+
+In Paper 1 (`paper1_farfield.tex`), it is summarized in Proposition `prop:pick-gap` and Table `tab:artifact-data` (see also Appendix `app:audit`).
+
+## Why this is rigorous (and not just numerics)
+
+The verifier uses **ball arithmetic**:
+
+- Every number is stored as an interval (midpoint + radius).
+- Every arithmetic operation propagates errors automatically.
+- Certification is done by **boolean checks** like “upper bound < 1” or “Cholesky succeeds with positive pivots”.
+
+So a `PASS` indicates there is no mathematical possibility (within the verified enclosures) that the inequality fails.
+
+## Troubleshooting
+
+- **ImportError: No module named flint**  
+  Install `python-flint` and ensure you’re using the right Python (`python --version`).
+
+- **Runtime**  
+  The rectangle subdivision is compute-heavy. If you only want to audit the shipped result, inspect `theta_certify_sigma06_07_t0_20_outer_zeta_proj.json` and check `results.ok` / `results.theta_hi`.
+
+## Citation
+
+If using these artifacts, cite the manuscript:
+
+> Washburn, J. (2026). *A certified zero-free region for the Riemann zeta function in the half-plane \(\Re s \ge 0.6\)*. Preprint.
 
 
-### License
-
-See `LICENSE`.
