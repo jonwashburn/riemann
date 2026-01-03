@@ -1,8 +1,4 @@
-/-
-Copyright (c) 2024 The Riemann Project. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: The Riemann Project Contributors
--/
+
 
 -- Core Mathlib imports
 import Mathlib.Analysis.Complex.Basic
@@ -23,7 +19,7 @@ import Mathlib
 -- Project-specific imports
 import Riemann.Mathlib.Analysis.Complex.Cartan
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.CircleAverageLemmas
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.PosLogLemmas
+import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.PosLoglemmas
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.MinimumModulus
 
 -- Modular Hardy space components

@@ -4,7 +4,7 @@ import Riemann.academic_framework.DiskHardy
 /-
 # Cayley transport between the upper half-plane and the unit disc
 
-This file records the basic analytic geometry needed to shuttle statements
+This file records the basic analytic geometry needed to bridge statements
 between the classical upper half-plane `UpperHalfPlane` and the unit disc `𝔻`.  The Cayley
 transform
 \[
@@ -293,7 +293,7 @@ lemma HasDiskPoissonRepresentation.cayleyPullback_re_eq
     (cayleyPullback F z).re =
       ∫ θ in Set.Icc 0 (2 * Real.pi),
         (F (Circle.exp θ)).re *
-          Complex.poissonKernel (UpperHalfPlane.toUnitDisc z) θ ∂(volume) := by
+          Complex.poissonKernel' (UpperHalfPlane.toUnitDisc z) θ ∂(volume) := by
   -- By definition, `cayleyPullback F z = F (toUnitDisc z)`, so this is just
   -- the disk Poisson formula specialized to the point `toUnitDisc z : 𝔻`.
   simpa [cayleyPullback] using hF.re_eq (UpperHalfPlane.toUnitDisc z)

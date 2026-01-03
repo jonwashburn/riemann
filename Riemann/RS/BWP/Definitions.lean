@@ -1,4 +1,4 @@
-import Mathlib.Analysis.NormedSpace.Connected
+import Mathlib.Analysis.Normed.Module.Connected
 import Mathlib.NumberTheory.Harmonic.ZetaAsymp
 import Riemann.RS.BWP.Constants
 -- Consolidated Mathlib-style imports (general lemmas now available from these):
@@ -786,7 +786,10 @@ lemma zeroSetXi_inter_compact_finite_on_U
     rw [this]
     exact hVopen.preimage continuous_subtype_val
 
-  exact IsCompact.finite hSCompact this
+  have hSDiscrete : IsDiscrete (zeroSetXi ∩ K) := by
+    rw [isDiscrete_iff_discreteTopology]
+    exact this
+  exact IsCompact.finite hSCompact hSDiscrete
 
 /-
 /-- Zeros of a nontrivial analytic function are isolated: on any compact set they are finite.

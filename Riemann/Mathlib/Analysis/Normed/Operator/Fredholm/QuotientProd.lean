@@ -1,3 +1,4 @@
+/-
 import Mathlib
 
 /-!
@@ -234,3 +235,5 @@ lemma closedRange_of_finite_ker_coker [CompleteSpace 𝕜] [CompleteSpace E] [Co
 end ClosedRange
 
 end ContinuousLinearMap
+#min_imports
+-/

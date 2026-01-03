@@ -1,9 +1,4 @@
-import Mathlib.Analysis.Analytic.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.Complex.Circle
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Mathlib.MeasureTheory.Measure.Haar.OfBasis
-import Mathlib.Analysis.Complex.UnitDisc.Basic
+import Riemann.Mathlib.Analysis.Complex.HardySpace.PoissonKernel
 
 /-!
 # Disk-level Poisson/Smirnov interface for the Cayley route
@@ -48,14 +43,14 @@ This kernel appears in the Poisson integral formula for harmonic functions on th
 --def poissonKernel' (z : 𝔻) (θ : ℝ) : ℝ :=
 --  (1 - ‖(z : ℂ)‖ ^ 2) / ((2 * Real.pi) * ‖Complex.exp (θ * Complex.I) - z‖ ^ 2)
 
-def poissonKernel (z : 𝔻) (θ : ℝ) : ℝ :=
+def poissonKernel' (z : 𝔻) (θ : ℝ) : ℝ :=
   (1 - ‖(z : ℂ)‖ ^ 2) / ((2 * Real.pi) * ‖Complex.exp (θ * Complex.I) - (z : ℂ)‖ ^ 2)
 
 @[simp]
-theorem poissonKernel_zero (θ : ℝ) : poissonKernel 0 θ = 1 / (2 * Real.pi) := by
-  simp [poissonKernel, UnitDisc.coe_zero]
+theorem poissonKernel_zero' (θ : ℝ) : poissonKernel' 0 θ = 1 / (2 * Real.pi) := by
+  simp [poissonKernel', UnitDisc.coe_zero]
 
-theorem poissonKernel_nonneg (z : 𝔻) (θ : ℝ) : 0 ≤ poissonKernel z θ := by
+theorem poissonKernel_nonneg' (z : 𝔻) (θ : ℝ) : 0 ≤ poissonKernel' z θ := by
   apply div_nonneg
   · have h : ‖(z : ℂ)‖ < 1 := z.norm_lt_one
     have : ‖(z : ℂ)‖ ^ 2 < 1 := by aesop
@@ -73,14 +68,14 @@ structure HasDiskPoissonRepresentation (F : ℂ → ℂ) : Prop where
   analytic : AnalyticOn ℂ F {z : ℂ | ‖z‖ < 1}
   /-- The Poisson integrand is integrable for each point in the disk -/
   integrable (z : 𝔻) :
-    IntegrableOn (fun θ : ℝ => (F (Circle.exp θ)).re * poissonKernel z θ)
+    IntegrableOn (fun θ : ℝ => (F (Circle.exp θ)).re * poissonKernel' z θ)
                  (Set.Icc 0 (2 * Real.pi))
                  volume
   /-- The real part satisfies the Poisson integral formula -/
   re_eq (z : 𝔻) :
     (F z).re =
       ∫ θ in Set.Icc 0 (2 * Real.pi),
-        (F (Circle.exp θ)).re * poissonKernel z θ ∂volume
+        (F (Circle.exp θ)).re * poissonKernel' z θ ∂volume
 
 /-- Constructor for `HasDiskPoissonRepresentation` from explicit data.
 
@@ -90,13 +85,13 @@ lemma hasDiskPoissonRepresentation_of_data
     {F : ℂ → ℂ}
     (hA : AnalyticOn ℂ F {z : ℂ | ‖z‖ < 1})
     (hI : ∀ z : 𝔻,
-            IntegrableOn (fun θ : ℝ => (F (Circle.exp θ)).re * poissonKernel z θ)
+            IntegrableOn (fun θ : ℝ => (F (Circle.exp θ)).re * poissonKernel' z θ)
                          (Set.Icc 0 (2 * Real.pi))
                          volume)
     (hEq : ∀ z : 𝔻,
             (F z).re =
               ∫ θ in Set.Icc 0 (2 * Real.pi),
-                (F (Circle.exp θ)).re * poissonKernel z θ ∂volume) :
+                (F (Circle.exp θ)).re * poissonKernel' z θ ∂volume) :
     HasDiskPoissonRepresentation F :=
   ⟨hA, hI, hEq⟩
 

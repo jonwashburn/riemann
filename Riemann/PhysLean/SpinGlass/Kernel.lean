@@ -1,3 +1,4 @@
+/-
 import Mathlib
 import Riemann.PhysLean.SpinGlass.Replicas
 
@@ -70,3 +71,4 @@ def HasGhirlandaGuerraIdentities (N : ℕ) (β : ℝ) (energy_map : @Config N Sp
 end GhirlandaGuerra
 
 end PhysLean.SpinGlass
+#min_imports-/

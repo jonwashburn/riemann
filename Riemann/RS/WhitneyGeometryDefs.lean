@@ -929,7 +929,7 @@ lemma sigma_over_sigma2_add_sq_core_lower
     have habs : |x| ≤ |σ / 2| := by simpa [abs_of_nonneg hσ2_nonneg] using hcore
     simpa [sq_abs] using (sq_le_sq.mpr habs)
   have hden_le : σ ^ 2 + x ^ 2 ≤ σ ^ 2 + (σ / 2) ^ 2 := by
-    exact add_le_add_left hx2_le _
+    exact add_le_add_right hx2_le _
   have hden_pos : 0 < σ ^ 2 + x ^ 2 := by
     have hσ2pos : 0 < σ ^ 2 := by simpa using pow_pos hσ 2
     have hx2nn : 0 ≤ x ^ 2 := sq_nonneg _

@@ -1,15 +1,12 @@
-import Mathlib.Algebra.Lie.OfAssociative
 import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.Calculus.Gradient.Basic
 import Mathlib.Analysis.InnerProductSpace.Calculus
 import Mathlib.Analysis.InnerProductSpace.Harmonic.Constructions
+import Mathlib.Analysis.InnerProductSpace.ProdL2
 import Mathlib.Data.Real.CompleteField
 import Mathlib.LinearAlgebra.Complex.FiniteDimensional
-import Mathlib.Order.CompletePartialOrder
-import Riemann.RS.PoissonKernelAnalysis
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.ProdL2
+import Mathlib.Order.BourbakiWitt
+import Mathlib.RingTheory.Finiteness.Prod
 /-
 
 # Laplacian and harmonic functions on finite‑dimensional real inner product spaces
@@ -38,7 +35,7 @@ Future extensions include:
 
 noncomputable section
 
-open scoped BigOperators
+open scoped BigOperators ENNReal
 
 namespace Analysis
 
@@ -150,60 +147,75 @@ lemma laplacian_withLp_prod
 ### Bridge to coordinate derivatives
 -/
 
+/-- The coordinate unit vectors in `WithLp 2 (ℝ × ℝ)`. -/
+private def e₁ : WithLp 2 (ℝ × ℝ) :=
+  WithLp.toLp (p := (2 : ℝ≥0∞)) ((1 : ℝ), (0 : ℝ))
+
+private def e₂ : WithLp 2 (ℝ × ℝ) :=
+  WithLp.toLp (p := (2 : ℝ≥0∞)) ((0 : ℝ), (1 : ℝ))
+
 /-- The Laplacian on `WithLp 2 (ℝ × ℝ)` expands to the sum of second derivatives along
     the coordinate axes `(1,0)` and `(0,1)`. -/
 lemma laplacian_withLp_prod_coords
     (f : WithLp 2 (ℝ × ℝ) → ℝ) (x : WithLp 2 (ℝ × ℝ)) :
     laplacian f x =
-      hessian f x (1, 0) (1, 0) + hessian f x (0, 1) (0, 1) := by
+      hessian f x e₁ e₁ + hessian f x e₂ e₂ := by
   let bR := OrthonormalBasis.singleton (Fin 1) ℝ
   let B := bR.prod bR
   rw [laplacian_eq_sum_orthonormal B]
   rw [Fintype.sum_sum_type]
   simp only [Finset.univ_unique, Fin.default_eq_zero, Finset.sum_singleton]
-  have h1 : B (Sum.inl 0) = (1, 0) := by
+  have h1 : B (Sum.inl 0) = e₁ := by
     rw [OrthonormalBasis.prod_apply, Sum.elim_inl]
-    simp [bR]
-  have h2 : B (Sum.inr 0) = (0, 1) := by
+    simp [bR, e₁]
+  have h2 : B (Sum.inr 0) = e₂ := by
     rw [OrthonormalBasis.prod_apply, Sum.elim_inr]
-    simp [bR]
+    simp [bR, e₂]
   rw [h1, h2]
 
 /-- Derivative of `x ↦ f(x, y)` matches `fderiv f (x, y) (1, 0)`. -/
 lemma deriv_slice_fst_eq_fderiv {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
     {f : WithLp 2 (ℝ × ℝ) → F} {p : WithLp 2 (ℝ × ℝ)}
     (h : DifferentiableAt ℝ f p) :
-    deriv (fun x => f (x, p.2)) p.1 = fderiv ℝ f p (1, 0) := by
-  let v : WithLp 2 (ℝ × ℝ) := (1, 0)
-  let c : WithLp 2 (ℝ × ℝ) := (0, p.2)
-  have h_curve : HasDerivAt (fun x : ℝ => x • v + c) v p.1 := by
+    deriv (fun x => f (WithLp.toLp (p := (2 : ℝ≥0∞)) (x, p.ofLp.2))) p.ofLp.1 =
+      fderiv ℝ f p e₁ := by
+  let v : WithLp 2 (ℝ × ℝ) := e₁
+  let c : WithLp 2 (ℝ × ℝ) := WithLp.toLp (p := (2 : ℝ≥0∞)) ((0 : ℝ), p.ofLp.2)
+  have h_curve : HasDerivAt (fun x : ℝ => x • v + c) v p.ofLp.1 := by
     apply HasDerivAt.add_const
-    convert HasDerivAt.smul_const (hasDerivAt_id p.1) v using 1
+    convert HasDerivAt.smul_const (hasDerivAt_id p.ofLp.1) v using 1
     simp
-  have h_eq : (fun x => x • v + c) = (fun x => (x, p.2)) := by
+  have h_eq :
+      (fun x : ℝ => x • v + c) =
+        (fun x : ℝ => WithLp.toLp (p := (2 : ℝ≥0∞)) (x, p.ofLp.2)) := by
     funext x
-    change (x • (1 : ℝ), x • (0 : ℝ)) + (0, p.2) = (x, p.2)
-    simp
+    -- `WithLp` doesn't have an `[ext]` lemma; reduce to the underlying `ℝ × ℝ` via `ofLp`.
+    apply (WithLp.ofLp_injective (p := (2 : ℝ≥0∞)) (V := (ℝ × ℝ)))
+    ext <;> simp [v, c, e₁]
   rw [h_eq] at h_curve
-  exact (h.hasFDerivAt.comp_hasDerivAt p.1 h_curve).deriv
+  exact (h.hasFDerivAt.comp_hasDerivAt p.ofLp.1 h_curve).deriv
 
 /-- Derivative of `y ↦ f(x, y)` matches `fderiv f (x, y) (0, 1)`. -/
 lemma deriv_slice_snd_eq_fderiv {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
     {f : WithLp 2 (ℝ × ℝ) → F} {p : WithLp 2 (ℝ × ℝ)}
     (h : DifferentiableAt ℝ f p) :
-    deriv (fun y => f (p.1, y)) p.2 = fderiv ℝ f p (0, 1) := by
-  let v : WithLp 2 (ℝ × ℝ) := (0, 1)
-  let c : WithLp 2 (ℝ × ℝ) := (p.1, 0)
-  have h_curve : HasDerivAt (fun y : ℝ => y • v + c) v p.2 := by
+    deriv (fun y => f (WithLp.toLp (p := (2 : ℝ≥0∞)) (p.ofLp.1, y))) p.ofLp.2 =
+      fderiv ℝ f p e₂ := by
+  let v : WithLp 2 (ℝ × ℝ) := e₂
+  let c : WithLp 2 (ℝ × ℝ) := WithLp.toLp (p := (2 : ℝ≥0∞)) (p.ofLp.1, (0 : ℝ))
+  have h_curve : HasDerivAt (fun y : ℝ => y • v + c) v p.ofLp.2 := by
     apply HasDerivAt.add_const
-    convert HasDerivAt.smul_const (hasDerivAt_id p.2) v using 1
+    convert HasDerivAt.smul_const (hasDerivAt_id p.ofLp.2) v using 1
     simp
-  have h_eq : (fun y => y • v + c) = (fun y => (p.1, y)) := by
+  have h_eq :
+      (fun y : ℝ => y • v + c) =
+        (fun y : ℝ => WithLp.toLp (p := (2 : ℝ≥0∞)) (p.ofLp.1, y)) := by
     funext y
-    change (y • (0 : ℝ), y • (1 : ℝ)) + (p.1, 0) = (p.1, y)
-    simp
+    -- `WithLp` doesn't have an `[ext]` lemma; reduce to the underlying `ℝ × ℝ` via `ofLp`.
+    apply (WithLp.ofLp_injective (p := (2 : ℝ≥0∞)) (V := (ℝ × ℝ)))
+    ext <;> simp [v, c, e₂]
   rw [h_eq] at h_curve
-  exact (h.hasFDerivAt.comp_hasDerivAt p.2 h_curve).deriv
+  exact (h.hasFDerivAt.comp_hasDerivAt p.ofLp.2 h_curve).deriv
 
 /-- The Hessian entry `hessian f q (1,0) (1,0)` corresponds to the iterated x-derivative.
 
@@ -213,10 +225,12 @@ lemma hessian_fst_fst_slice
     (f : WithLp 2 (ℝ × ℝ) → ℝ) (q : WithLp 2 (ℝ × ℝ))
     (h : ContDiff ℝ 2 f)
     (h_fderiv_diff : DifferentiableAt ℝ (fun p : WithLp 2 (ℝ × ℝ) => fderiv ℝ f p) q) :
-    hessian f q (1, 0) (1, 0) =
-      deriv (fun x => deriv (fun x' => f (x', q.2)) x) q.1 := by
+    hessian f q e₁ e₁ =
+      deriv
+        (fun x => deriv (fun x' => f (WithLp.toLp (p := (2 : ℝ≥0∞)) (x', q.ofLp.2))) x)
+        q.ofLp.1 := by
   classical
-  let v : WithLp 2 (ℝ × ℝ) := (1, 0)
+  let v : WithLp 2 (ℝ × ℝ) := e₁
   -- By definition, the Hessian is the Fréchet derivative of the Fréchet derivative.
   have hdef :
       hessian f q v v =
@@ -230,10 +244,10 @@ lemma hessian_fst_fst_slice
   -- First, identify the Hessian entry as the x-slice derivative of `g`.
   have hg_slice :
       hessian f q v v =
-      deriv (fun x => g (x, q.2)) q.1 := by
+      deriv (fun x => g (WithLp.toLp (p := (2 : ℝ≥0∞)) (x, q.ofLp.2))) q.ofLp.1 := by
     -- Apply the slice lemma to the CLM-valued map `p ↦ fderiv f p`.
     have h_clm :
-        deriv (fun x => fderiv ℝ f (x, q.2)) q.1 =
+        deriv (fun x => fderiv ℝ f (WithLp.toLp (p := (2 : ℝ≥0∞)) (x, q.ofLp.2))) q.ofLp.1 =
           fderiv ℝ (fun p : WithLp 2 (ℝ × ℝ) => fderiv ℝ f p) q v := by
       -- `deriv_slice_fst_eq_fderiv` specialized to CLM-valued functions
       have := deriv_slice_fst_eq_fderiv
@@ -247,37 +261,49 @@ lemma hessian_fst_fst_slice
     -- So applying `v` to both sides gives:
     have h₁ :
         hessian f q v v =
-          (deriv (fun x => fderiv ℝ f (x, q.2)) q.1) v := by
+          (deriv (fun x => fderiv ℝ f (WithLp.toLp (p := (2 : ℝ≥0∞)) (x, q.ofLp.2))) q.ofLp.1) v := by
       have := congrArg (fun L => L v) h_clm
       simpa [hdef] using this.symm
 
     -- Now commute evaluation at `v` past `deriv` using the CLM chain rule.
     have h_comm :
-        (deriv (fun x => fderiv ℝ f (x, q.2)) q.1) v =
-        deriv (fun x => fderiv ℝ f (x, q.2) v) q.1 := by
+        (deriv (fun x => fderiv ℝ f (WithLp.toLp (p := (2 : ℝ≥0∞)) (x, q.ofLp.2))) q.ofLp.1) v =
+        deriv (fun x => fderiv ℝ f (WithLp.toLp (p := (2 : ℝ≥0∞)) (x, q.ofLp.2)) v) q.ofLp.1 := by
       classical
       -- View `x ↦ fderiv f (x, q.2) v` as the composition of
       -- `c x := fderiv f (x, q.2)` with the constant vector `u x := v`,
       -- and apply the chain rule for evaluation of continuous linear maps.
       let c : ℝ → WithLp 2 (ℝ × ℝ) →L[ℝ] ℝ :=
-        fun x => fderiv ℝ f (x, q.2)
+        fun x => fderiv ℝ f (WithLp.toLp (p := (2 : ℝ≥0∞)) (x, q.ofLp.2))
       let u : ℝ → WithLp 2 (ℝ × ℝ) := fun _ => v
       -- differentiability of `c` comes from `h_fderiv_diff` and the slice `x ↦ (x, q.2)`
       have h_slice :
           DifferentiableAt ℝ
-            (fun x : ℝ => ((x, q.2) : WithLp 2 (ℝ × ℝ))) q.1 := by
-        have hx : DifferentiableAt ℝ (fun x : ℝ => x) q.1 := differentiableAt_id
-        have hy : DifferentiableAt ℝ (fun _ : ℝ => q.2) q.1 := differentiableAt_const _
-        simp
-      have hc : DifferentiableAt ℝ c q.1 :=
-        h_fderiv_diff.comp q.1 h_slice
-      have hu : DifferentiableAt ℝ u q.1 := differentiableAt_const _
+            (fun x : ℝ => WithLp.toLp (p := (2 : ℝ≥0∞)) (x, q.ofLp.2)) q.ofLp.1 := by
+        have hx : DifferentiableAt ℝ (fun x : ℝ => x) q.ofLp.1 := differentiableAt_id
+        have hy : DifferentiableAt ℝ (fun _ : ℝ => q.ofLp.2) q.ofLp.1 := differentiableAt_const _
+        have hxy : DifferentiableAt ℝ (fun x : ℝ => (x, q.ofLp.2)) q.ofLp.1 :=
+          DifferentiableAt.prodMk hx hy
+        -- `WithLp.toLp` is smooth, so composing preserves differentiability.
+        have h_toLp :
+            DifferentiableAt ℝ (@WithLp.toLp (2 : ℝ≥0∞) (ℝ × ℝ)) (q.ofLp.1, q.ofLp.2) := by
+          -- `toLp` is the inverse of a continuous linear equivalence, hence differentiable.
+          simpa [WithLp.prodContinuousLinearEquiv_symm_apply] using
+            (WithLp.prodContinuousLinearEquiv (p := (2 : ℝ≥0∞)) (𝕜 := ℝ) (α := ℝ) (β := ℝ)).symm.differentiableAt
+        simpa using h_toLp.comp q.ofLp.1 hxy
+      have h_fderiv_diff' :
+          DifferentiableAt ℝ (fun p : WithLp 2 (ℝ × ℝ) => fderiv ℝ f p)
+            (WithLp.toLp (p := (2 : ℝ≥0∞)) (q.ofLp.1, q.ofLp.2)) := by
+        simpa using h_fderiv_diff
+      have hc : DifferentiableAt ℝ c q.ofLp.1 :=
+        h_fderiv_diff'.comp q.ofLp.1 h_slice
+      have hu : DifferentiableAt ℝ u q.ofLp.1 := differentiableAt_const _
       -- Apply CLM chain rule to `x ↦ c x (u x)`.
       have h' := deriv_clm_apply (𝕜 := ℝ) (c := c) (u := u) hc hu
       -- Since `u` is constant, its derivative vanishes and we obtain the desired commutation.
       have h'' :
-          deriv (fun x => c x (u x)) q.1 =
-            deriv c q.1 (u q.1) := by
+          deriv (fun x => c x (u x)) q.ofLp.1 =
+            deriv c q.ofLp.1 (u q.ofLp.1) := by
         simpa [u, deriv_const, add_comm] using h'
       -- Rewrite in terms of the original functions.
       simpa [c, u] using h''.symm
@@ -288,24 +314,26 @@ lemma hessian_fst_fst_slice
 
   -- Now identify `g (x, q.2)` with the scalar derivative in the `x`-direction.
   have h_eq_fun :
-      (fun x => g (x, q.2)) =
-        fun x => deriv (fun x' => f (x', q.2)) x := by
+      (fun x => g (WithLp.toLp (p := (2 : ℝ≥0∞)) (x, q.ofLp.2))) =
+        fun x => deriv (fun x' => f (WithLp.toLp (p := (2 : ℝ≥0∞)) (x', q.ofLp.2))) x := by
     funext x
-    change fderiv ℝ f (x, q.2) v =
-      deriv (fun x' => f (x', q.2)) x
-    have h_f_diff : DifferentiableAt ℝ f (x, q.2) :=
+    change fderiv ℝ f (WithLp.toLp (p := (2 : ℝ≥0∞)) (x, q.ofLp.2)) v =
+      deriv (fun x' => f (WithLp.toLp (p := (2 : ℝ≥0∞)) (x', q.ofLp.2))) x
+    have h_f_diff : DifferentiableAt ℝ f (WithLp.toLp (p := (2 : ℝ≥0∞)) (x, q.ofLp.2)) :=
       h.differentiable (by norm_num) _
     have hx :=
-      (deriv_slice_fst_eq_fderiv (F := ℝ) (f := f) (p := (x, q.2)) h_f_diff)
-    -- `hx` says `deriv (fun x' => f (x', q.2)) x = fderiv ℝ f (x, q.2) (1, 0)`.
+      (deriv_slice_fst_eq_fderiv (F := ℝ) (f := f)
+        (p := WithLp.toLp (p := (2 : ℝ≥0∞)) (x, q.ofLp.2)) h_f_diff)
     -- Rewrite to match our goal.
     simpa [v] using hx.symm
 
   -- Therefore the outer derivatives agree at `q.1`.
   have h_eq_deriv :
-      deriv (fun x => g (x, q.2)) q.1 =
-        deriv (fun x => deriv (fun x' => f (x', q.2)) x) q.1 := by
-    simp [h_eq_fun]
+      deriv (fun x => g (WithLp.toLp (p := (2 : ℝ≥0∞)) (x, q.ofLp.2))) q.ofLp.1 =
+        deriv
+          (fun x => deriv (fun x' => f (WithLp.toLp (p := (2 : ℝ≥0∞)) (x', q.ofLp.2))) x)
+          q.ofLp.1 := by
+    simp; aesop
 
   -- Finally combine `hg_slice` with `h_eq_deriv` and unfold `v`.
   have := hg_slice.trans h_eq_deriv
@@ -315,8 +343,11 @@ lemma hessian_fst_fst_slice
 lemma hessian_snd_snd_slice
     (f : WithLp 2 (ℝ × ℝ) → ℝ) (q : WithLp 2 (ℝ × ℝ))
     (h : ContDiff ℝ 2 f) :
-    hessian f q (0, 1) (0, 1) = deriv (fun y => deriv (fun y' => f (q.1, y')) y) q.2 := by
-  let v : WithLp 2 (ℝ × ℝ) := (0, 1)
+    hessian f q e₂ e₂ =
+      deriv
+        (fun y => deriv (fun y' => f (WithLp.toLp (p := (2 : ℝ≥0∞)) (q.ofLp.1, y'))) y)
+        q.ofLp.2 := by
+  let v : WithLp 2 (ℝ × ℝ) := e₂
   rw [hessian_def]
   let g := fderiv ℝ f
   -- From `C^2` regularity of `f`, the map `p ↦ fderiv f p` is `C^1`, hence differentiable.
@@ -331,40 +362,49 @@ lemma hessian_snd_snd_slice
     exact (h_fderiv_CD.differentiable (by norm_num) q)
   have step1 := deriv_slice_snd_eq_fderiv (F := WithLp 2 (ℝ × ℝ) →L[ℝ] ℝ) h_g_diff
   rw [← step1]
-  have h_comm : deriv (fun y => g (q.1, y)) q.2 v =
-                deriv (fun y => g (q.1, y) v) q.2 := by
+  have h_comm :
+      deriv (fun y => g (WithLp.toLp (p := (2 : ℝ≥0∞)) (q.ofLp.1, y))) q.ofLp.2 v =
+        deriv (fun y => g (WithLp.toLp (p := (2 : ℝ≥0∞)) (q.ofLp.1, y)) v) q.ofLp.2 := by
     classical
     -- As in the `x`‑direction case, commute evaluation at `v` past `deriv`
     -- using the chain rule for CLM evaluation.
     let c : ℝ → WithLp 2 (ℝ × ℝ) →L[ℝ] ℝ :=
-      fun y => g (q.1, y)
+      fun y => g (WithLp.toLp (p := (2 : ℝ≥0∞)) (q.ofLp.1, y))
     let u : ℝ → WithLp 2 (ℝ × ℝ) := fun _ => v
     -- The slice `y ↦ (q.1, y)` is differentiable.
     have h_slice :
         DifferentiableAt ℝ
-          (fun y : ℝ => ((q.1, y) : WithLp 2 (ℝ × ℝ))) q.2 := by
-      have hx : DifferentiableAt ℝ (fun _ : ℝ => q.1) q.2 := differentiableAt_const _
-      have hy : DifferentiableAt ℝ (fun y : ℝ => y) q.2 := differentiableAt_id
-      have hxy : DifferentiableAt ℝ (fun y : ℝ => (q.1, y)) q.2 :=
-        (DifferentiableAt.prodMk hx hy)
-      simpa using hxy
-    -- Differentiability of `c` at `q.2` comes from that of `g` at `q`.
-    have hc : DifferentiableAt ℝ c q.2 :=
-      h_g_diff.comp q.2 h_slice
-    have hu : DifferentiableAt ℝ u q.2 := differentiableAt_const _
+          (fun y : ℝ => WithLp.toLp (p := (2 : ℝ≥0∞)) (q.ofLp.1, y)) q.ofLp.2 := by
+      have hx : DifferentiableAt ℝ (fun _ : ℝ => q.ofLp.1) q.ofLp.2 := differentiableAt_const _
+      have hy : DifferentiableAt ℝ (fun y : ℝ => y) q.ofLp.2 := differentiableAt_id
+      have hxy : DifferentiableAt ℝ (fun y : ℝ => (q.ofLp.1, y)) q.ofLp.2 :=
+        DifferentiableAt.prodMk hx hy
+      have h_toLp :
+          DifferentiableAt ℝ (@WithLp.toLp (2 : ℝ≥0∞) (ℝ × ℝ)) (q.ofLp.1, q.ofLp.2) := by
+        -- `toLp` is the inverse of a continuous linear equivalence, hence differentiable.
+        simpa [WithLp.prodContinuousLinearEquiv_symm_apply] using
+          (WithLp.prodContinuousLinearEquiv (p := (2 : ℝ≥0∞)) (𝕜 := ℝ) (α := ℝ) (β := ℝ)).symm.differentiableAt
+      simpa using h_toLp.comp q.ofLp.2 hxy
+    -- Differentiability of `c` at `q.ofLp.2` comes from that of `g` at `q`.
+    have h_g_diff' : DifferentiableAt ℝ g (WithLp.toLp (p := (2 : ℝ≥0∞)) (q.ofLp.1, q.ofLp.2)) := by
+      simpa using h_g_diff
+    have hc : DifferentiableAt ℝ c q.ofLp.2 :=
+      h_g_diff'.comp q.ofLp.2 h_slice
+    have hu : DifferentiableAt ℝ u q.ofLp.2 := differentiableAt_const _
     -- Apply CLM chain rule to `y ↦ c y (u y)`.
     have h' := deriv_clm_apply (𝕜 := ℝ) (c := c) (u := u) hc hu
     -- Since `u` is constant, its derivative vanishes and we obtain the commutation.
     have h'' :
-        deriv (fun y => c y (u y)) q.2 =
-          deriv c q.2 (u q.2) := by
+        deriv (fun y => c y (u y)) q.ofLp.2 =
+          deriv c q.ofLp.2 (u q.ofLp.2) := by
       simpa [u, deriv_const, add_comm] using h'
     -- Rewrite in terms of the original functions.
     simpa [c, u] using h''.symm
   rw [h_comm]
   congr; ext y
-  change fderiv ℝ f (q.1, y) v = _
-  have h_f_diff : DifferentiableAt ℝ f (q.1, y) := h.differentiable (by norm_num) _
+  change fderiv ℝ f (WithLp.toLp (p := (2 : ℝ≥0∞)) (q.ofLp.1, y)) v = _
+  have h_f_diff : DifferentiableAt ℝ f (WithLp.toLp (p := (2 : ℝ≥0∞)) (q.ofLp.1, y)) :=
+    h.differentiable (by norm_num) _
   rw [deriv_slice_snd_eq_fderiv h_f_diff]
 
 /-- Laplacian of a constant function is zero. -/

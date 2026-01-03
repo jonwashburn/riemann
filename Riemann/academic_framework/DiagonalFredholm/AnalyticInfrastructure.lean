@@ -1,6 +1,6 @@
+import Mathlib.Algebra.Order.Ring.Star
+import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.Complex.LocallyUniformLimit
-import Mathlib.Analysis.Complex.CauchyIntegral
-import Mathlib
 
 variable {F : Type*} [NormedAddCommGroup F]
 open Set Finset Filter Topology Real Metric

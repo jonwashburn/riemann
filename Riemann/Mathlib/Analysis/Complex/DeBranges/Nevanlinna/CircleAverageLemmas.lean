@@ -30,7 +30,7 @@ variable {f g : ℂ → ℂ} {r : ℝ}
 /-! ### Subadditivity of log⁺ -/
 
 /-- Pointwise inequality: log⁺ ‖f/g‖ ≤ log⁺ ‖f‖ + log⁺ ‖g⁻¹‖ -/
-lemma posLog_norm_div_le' (a b : ℂ) (hb : b ≠ 0) :
+lemma posLog_norm_div_le' (a b : ℂ) (_ : b ≠ 0) :
     log⁺ ‖a / b‖ ≤ log⁺ ‖a‖ + log⁺ ‖b⁻¹‖ := by
   have h1 : ‖a / b‖ = ‖a‖ / ‖b‖ := norm_div a b
   have h2 : ‖a‖ / ‖b‖ = ‖a‖ * ‖b‖⁻¹ := div_eq_mul_inv ‖a‖ ‖b‖
@@ -94,7 +94,7 @@ lemma circleAverage_posLog_norm_div_le
 /-- Circle average of log⁺ ‖G‖ for bounded G is bounded by log⁺ C.
     This is the key estimate for the proximity function of bounded functions. -/
 lemma circleAverage_posLog_norm_le_of_bounded
-    {G : ℂ → ℂ} {C : ℝ} (hC : 0 < C) (hr : 0 < r)
+    {G : ℂ → ℂ} {C : ℝ} (_ : 0 < C) (hr : 0 < r)
     (hG_int : CircleIntegrable (fun z => log⁺ ‖G z‖) 0 r)
     (hbound : ∀ θ : ℝ, ‖G (circleMap 0 r θ)‖ ≤ C) :
     circleAverage (fun z => log⁺ ‖G z‖) 0 r ≤ log⁺ C := by
@@ -126,7 +126,7 @@ lemma circleAverage_posLog_norm_le_of_bounded
   -- With |x| = ‖x‖ = r, we get x = r * exp(i * arg x) = circleMap 0 r (arg x)
   have h_eq : x = circleMap 0 r (arg x) := by
     rw [circleMap]
-    simp only [ofReal_zero, zero_add]
+    simp only [zero_add]
     -- x = ‖x‖ * exp (arg x * I) by the polar decomposition (norm_mul_exp_arg_mul_I)
     conv_lhs => rw [← Complex.norm_mul_exp_arg_mul_I x]
     rw [hx]
@@ -138,7 +138,7 @@ lemma circleAverage_posLog_norm_le_of_bounded
 /-- The circle average of a nonnegative function is nonnegative.
 This is a consequence of the integral of a nonnegative function being nonnegative. -/
 lemma circleAverage_nonneg {f : ℂ → ℝ} {c : ℂ} {R : ℝ}
-    (hf : CircleIntegrable f c R)
+    (_ : CircleIntegrable f c R)
     (hf_nonneg : ∀ z ∈ sphere c |R|, 0 ≤ f z) :
     0 ≤ circleAverage f c R := by
   -- circleAverage f c R = (2π)⁻¹ * ∫ θ in 0..2π, f(circleMap c R θ) dθ
@@ -155,7 +155,7 @@ lemma circleAverage_nonneg {f : ℂ → ℝ} {c : ℂ} {R : ℝ}
     -- circleMap c R θ is on the sphere of radius |R|
     simp only [mem_sphere, dist_eq_norm]
     rw [circleMap_sub_center]
-    simp [Complex.norm_exp_ofReal_mul_I, abs_of_nonneg (abs_nonneg R)]
+    simp
 
 /-- Monotonicity: if f ≤ g pointwise on the sphere, then circleAverage f ≤ circleAverage g. -/
 lemma circleAverage_mono {f g : ℂ → ℝ} {c : ℂ} {R : ℝ}

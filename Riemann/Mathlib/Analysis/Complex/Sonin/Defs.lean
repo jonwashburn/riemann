@@ -50,17 +50,17 @@ We use Mathlib's existing Fourier transform infrastructure. The main properties 
 
 /-- The Fourier transform of 0 is 0. -/
 @[simp]
-theorem fourierIntegral_zero : Real.fourierIntegral (0 : ℝ → ℂ) = 0 := by
+theorem fourierIntegral_zero : FourierTransform.fourier (0 : ℝ → ℂ) = 0 := by
   ext ξ
-  simp only [Real.fourierIntegral, VectorFourier.fourierIntegral, Pi.zero_apply,
+  simp only [FourierTransform.fourier, VectorFourier.fourierIntegral, Pi.zero_apply,
              smul_zero, integral_zero]
 
 /-- Scalar multiplication commutes with Fourier transform. -/
 @[simp]
 theorem fourierIntegral_smul (c : ℂ) (f : ℝ → ℂ) :
-    Real.fourierIntegral (c • f) = c • Real.fourierIntegral f := by
+    FourierTransform.fourier (c • f) = c • FourierTransform.fourier f := by
   ext ξ
-  simp only [Pi.smul_apply, Real.fourierIntegral, VectorFourier.fourierIntegral, ← integral_smul]
+  simp only [Pi.smul_apply, FourierTransform.fourier, VectorFourier.fourierIntegral, ← integral_smul]
   congr 1; ext x; rw [smul_comm]
 
 /-! ## Section 2: Vanishing Predicates -/
@@ -123,7 +123,7 @@ A function `f : ℝ → ℂ` belongs to `𝐒_Λ` if:
 structure MemSoninSpace (Λ : ℝ) (f : ℝ → ℂ) : Prop where
   memL2 : MemLp f 2 volume
   vanishesTime : VanishesOnBall Λ f
-  vanishesFreq : VanishesOnBall Λ (Real.fourierIntegral f)
+  vanishesFreq : VanishesOnBall Λ (FourierTransform.fourier f)
 
 namespace MemSoninSpace
 
@@ -137,7 +137,7 @@ protected theorem zero : MemSoninSpace Λ (0 : ℝ → ℂ) where
 
 protected theorem add {f g : ℝ → ℂ}
     (hf : MemSoninSpace Λ f) (hg : MemSoninSpace Λ g)
-    (hfourier_add : Real.fourierIntegral (f + g) = Real.fourierIntegral f + Real.fourierIntegral g) :
+    (hfourier_add : FourierTransform.fourier (f + g) = FourierTransform.fourier f + FourierTransform.fourier g) :
     MemSoninSpace Λ (f + g) where
   memL2 := hf.memL2.add hg.memL2
   vanishesTime := hf.vanishesTime.add hg.vanishesTime
@@ -158,9 +158,9 @@ protected theorem neg {f : ℝ → ℂ} (hf : MemSoninSpace Λ f) :
 /-- **Fourier invariance** (Proposition 5.2 [CCM24]): `ℱ(𝐒_Λ) ⊆ 𝐒_Λ`. -/
 protected theorem fourierIntegral {f : ℝ → ℂ}
     (hf : MemSoninSpace Λ f)
-    (hf_L2_fourier : MemLp (Real.fourierIntegral f) 2 volume)
-    (hf_double_vanish : VanishesOnBall Λ (Real.fourierIntegral (Real.fourierIntegral f))) :
-    MemSoninSpace Λ (Real.fourierIntegral f) where
+    (hf_L2_fourier : MemLp (FourierTransform.fourier f) 2 volume)
+    (hf_double_vanish : VanishesOnBall Λ (FourierTransform.fourier (FourierTransform.fourier f))) :
+    MemSoninSpace Λ (FourierTransform.fourier f) where
   memL2 := hf_L2_fourier
   vanishesTime := hf.vanishesFreq
   vanishesFreq := hf_double_vanish
@@ -320,7 +320,7 @@ structure ProlateOperatorData (Λ : ℝ) where
     ∀ n, eigenvalue n < 0 → VanishesOnBall Λ (eigenfunction n)
   /-- Fourier transforms of such eigenfunctions also vanish on `(-Λ, Λ)`. -/
   negative_eigenfunction_vanishes_freq :
-    ∀ n, eigenvalue n < 0 → VanishesOnBall Λ (Real.fourierIntegral (eigenfunction n))
+    ∀ n, eigenvalue n < 0 → VanishesOnBall Λ (FourierTransform.fourier (eigenfunction n))
   /-- Eigenfunctions are non-zero. -/
   eigenfunction_ne_zero : ∀ n, eigenfunction n ≠ 0
 
