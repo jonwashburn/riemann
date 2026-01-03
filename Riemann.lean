@@ -47,15 +47,10 @@ import Riemann.Mathlib.Analysis.Complex.HardySpace.PowerSeriesBounds
 --import Riemann.Mathlib.Analysis.Complex.Herglotz
 --import Riemann.Mathlib.Analysis.Complex.Herglotz'
 import Riemann.Mathlib.Analysis.Complex.HolomorphicLog
---import Riemann.Mathlib.Analysis.Complex.Nevanlinna.BGold
---import Riemann.Mathlib.Analysis.Complex.Nevanlinna.BombieriGubler
 import Riemann.Mathlib.Analysis.Complex.SchurFunction
 import Riemann.Mathlib.Analysis.Complex.Sonin.Defs
 import Riemann.Mathlib.Analysis.Complex.TaxicabPrimitive
 import Riemann.Mathlib.Analysis.Harmonic.AtomicDecomposition
-/-
-
-
 --import Riemann.Mathlib.Analysis.Harmonic.BMO
 --import Riemann.Mathlib.Analysis.Harmonic.BMO.Backup
 import Riemann.Mathlib.Analysis.Harmonic.BMO.Defs
@@ -69,22 +64,15 @@ import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.StirlingRobbins
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.StripBounds
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
 import Riemann.Mathlib.ArctanTwoGtOnePointOne
-
-
-
-
-
-
-
 --import Riemann.Mathlib.LinearAlgebra.Matrix.Toeplitz
 --import Riemann.Mathlib.LinearAlgebra.Matrix.ToeplitzPosDef
 --import Riemann.Mathlib.LinearAlgebra.Matrix.ToeplitzPosDef'
 --import Riemann.Mathlib.MeasureTheory.CoordFormBox
---import Riemann.Mathlib.MeasureTheory.Covering.CalderonZygmund !BUILDS LOCALLY BUT CLASHES MATHLIB ENORM GLOBALLY DUE TO CARLSON
---import Riemann.Mathlib.MeasureTheory.Covering.JohnNirenberg -- !BUILDS LOCALLY BUT CLASHES MATHLIB ENORM GLOBALLY DUE TO CARLSON
+import Riemann.Mathlib.MeasureTheory.Covering.CalderonZygmund -- !BUILDS LOCALLY BUT CLASHES MATHLIB ENORM GLOBALLY DUE TO CARLSON
+import Riemann.Mathlib.MeasureTheory.Covering.JohnNirenberg -- !BUILDS LOCALLY BUT CLASHES MATHLIB ENORM GLOBALLY DUE TO CARLSON
 
---import Riemann.Mathlib.Analysis.Normed.Operator.Fredholm.Compact
---import Riemann.Mathlib.Analysis.Normed.Operator.Fredholm.Defs
+--import Riemann.Mathlib.Analysis.Normed.Operator.Fredholm.Compact -- from MRothgang PR
+--import Riemann.Mathlib.Analysis.Normed.Operator.Fredholm.Defs -- from MRothgang PR
 --import Riemann.Mathlib.Analysis.Normed.Operator.Fredholm.QuotientProd
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetFormula
 --import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetIntegralFormula
@@ -96,7 +84,7 @@ import Riemann.Mathlib.Analysis.Harmonic.BMO.Lemmas
 import Riemann.Mathlib.Analysis.Harmonic.BMO.Lp
 import Riemann.Mathlib.Analysis.Harmonic.BMO.WeakType
 import Riemann.Mathlib.Analysis.Harmonic.BMOAux
---import Riemann.Mathlib.Analysis.Harmonic.GoodLambda -- !BUILDS LOCALLY BUT CLASHES MATHLIB ENORM GLOBALLY DUE TO CARLSON
+import Riemann.Mathlib.Analysis.Harmonic.GoodLambda -- !BUILDS LOCALLY BUT CLASHES MATHLIB ENORM GLOBALLY DUE TO CARLSON
 import Riemann.Mathlib.MeasureTheory.Function.BoundedSupport
 import Riemann.Mathlib.MeasureTheory.Function.LpMono
 import Riemann.Mathlib.MeasureTheory.Function.MaximalFunction
@@ -118,22 +106,30 @@ import Riemann.RS.BWP.Definitions
 --import Riemann.RS.BWP.DiagonalBounds
 import Riemann.RS.BWP.Laplacian
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import Riemann.academic_framework.Compat
+import Riemann.academic_framework.CompletedXi
+import Riemann.academic_framework.CompletedXiSymmetry
+import Riemann.academic_framework.DiagonalFredholm.AnalyticInfrastructure
+import Riemann.academic_framework.DiagonalFredholm.Determinant
+import Riemann.academic_framework.DiagonalFredholm.WeierstrassProduct
+--import Riemann.academic_framework.DiagonalFredholm.«Determinant-old»
+import Riemann.academic_framework.DiskHardy
+import Riemann.academic_framework.Domain
+import Riemann.academic_framework.EulerProduct.K0Bound
+import Riemann.academic_framework.EulerProduct.PrimeSeries
+--import Riemann.academic_framework.FiniteOrder
+import Riemann.academic_framework.GammaBounds
+import Riemann.academic_framework.GammaFunctionalEquation
+import Riemann.academic_framework.GammaStirlingAux
+--import Riemann.academic_framework.HadamardFactorization
+import Riemann.academic_framework.MeasureHelpers
+----import Riemann.academic_framework.StirlingB
+import Riemann.academic_framework.StirlingBounds
+import Riemann.academic_framework.Theta
+import Riemann.academic_framework.WeierstrassFactorBound
+--import Riemann.academic_framework.ZetaFiniteOrder
+import Riemann.academic_framework.ZetaFunctionalEquation
+/-
 
 import Riemann.Semiclassical.Defs
 /-
@@ -165,28 +161,6 @@ import Riemann.Weil.ResidueSum
 import Riemann.Weil.SelbergClass
 import Riemann.Weil.SelbergClass'
 -/
-import Riemann.academic_framework.Compat
-import Riemann.academic_framework.CompletedXi
-import Riemann.academic_framework.CompletedXiSymmetry
-import Riemann.academic_framework.DiagonalFredholm.AnalyticInfrastructure
-import Riemann.academic_framework.DiagonalFredholm.Determinant
-import Riemann.academic_framework.DiagonalFredholm.WeierstrassProduct
---import Riemann.academic_framework.DiagonalFredholm.«Determinant-old»
-import Riemann.academic_framework.DiskHardy
-import Riemann.academic_framework.Domain
-import Riemann.academic_framework.EulerProduct.K0Bound
-import Riemann.academic_framework.EulerProduct.PrimeSeries
---import Riemann.academic_framework.FiniteOrder
-import Riemann.academic_framework.GammaBounds
-import Riemann.academic_framework.GammaFunctionalEquation
-import Riemann.academic_framework.GammaStirlingAux
---import Riemann.academic_framework.HadamardFactorization
-import Riemann.academic_framework.MeasureHelpers
-----import Riemann.academic_framework.StirlingB
-import Riemann.academic_framework.StirlingBounds
-import Riemann.academic_framework.Theta
-import Riemann.academic_framework.WeierstrassFactorBound
---import Riemann.academic_framework.ZetaFiniteOrder
-import Riemann.academic_framework.ZetaFunctionalEquation
+
 
 -/

@@ -1,8 +1,4 @@
-
-import Mathlib
-import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetKernel
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetFormula
---import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetIntegralFormula
 
 
 /-!
