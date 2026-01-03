@@ -19,7 +19,7 @@ import Mathlib
 -- Project-specific imports
 import Riemann.Mathlib.Analysis.Complex.Cartan
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.CircleAverageLemmas
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.PosLogLemmas
+import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.PosLoglemmas
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.MinimumModulus
 
 -- Modular Hardy space components

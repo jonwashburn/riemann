@@ -81,20 +81,11 @@ import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetKernel
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.GammaLogDeriv
 --import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.GammaProductBound
 --import Riemann.Mathlib.MeasureTheory.DiffForm
-
-/-
 import Riemann.Mathlib.Analysis.Harmonic.BMO.Lemmas
 import Riemann.Mathlib.Analysis.Harmonic.BMO.Lp
 import Riemann.Mathlib.Analysis.Harmonic.BMO.WeakType
 import Riemann.Mathlib.Analysis.Harmonic.BMOAux
-import Riemann.Mathlib.Analysis.Harmonic.GoodLambda
-import Riemann.Mathlib.Analysis.Harmonic.BMO.Lemmas
-import Riemann.Mathlib.Analysis.Harmonic.BMO.Lp
-import Riemann.Mathlib.Analysis.Harmonic.BMO.WeakType
-import Riemann.Mathlib.Analysis.Harmonic.BMOAux
-import Riemann.Mathlib.Analysis.Harmonic.GoodLambda
-
-
+--import Riemann.Mathlib.Analysis.Harmonic.GoodLambda -- !BUILDS LOCALLY BUT CLASHES MATHLIB ENORM GLOBALLY DUE TO CARLSON
 import Riemann.Mathlib.MeasureTheory.Function.BoundedSupport
 import Riemann.Mathlib.MeasureTheory.Function.LpMono
 import Riemann.Mathlib.MeasureTheory.Function.MaximalFunction
@@ -102,32 +93,20 @@ import Riemann.Mathlib.MeasureTheory.Integral.Auxiliary
 import Riemann.Mathlib.MeasureTheory.Integral.AverageAux
 import Riemann.Mathlib.MeasureTheory.Integral.Carleson
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import Riemann.PhysLean.SpinGlass.Defs
 import Riemann.PhysLean.SpinGlass.GibbsBridge
 import Riemann.PhysLean.SpinGlass.GuerraBound
 import Riemann.PhysLean.SpinGlass.Kernel
 import Riemann.PhysLean.SpinGlass.Replicas
 import Riemann.PhysLean.SpinGlass.SKModel
+
 import Riemann.RS.AdmissibleWindows
 import Riemann.RS.BWP.CRCalculus
 import Riemann.RS.BWP.Constants
 import Riemann.RS.BWP.Definitions
 --import Riemann.RS.BWP.DiagonalBounds
 import Riemann.RS.BWP.Laplacian
+
 import Riemann.RS.BoundaryAi
 import Riemann.RS.CRGreenOuter
 import Riemann.RS.CRGreenWhitneyB
@@ -145,6 +124,57 @@ import Riemann.RS.VKStandalone
 import Riemann.RS.WedgeBasics
 import Riemann.RS.WhitneyAeCore
 import Riemann.RS.WhitneyGeometryDefs
+
+import Riemann.academic_framework.Compat
+import Riemann.academic_framework.CompletedXi
+import Riemann.academic_framework.CompletedXiSymmetry
+import Riemann.academic_framework.DiagonalFredholm.AnalyticInfrastructure
+import Riemann.academic_framework.DiagonalFredholm.Determinant
+import Riemann.academic_framework.DiagonalFredholm.WeierstrassProduct
+--import Riemann.academic_framework.DiagonalFredholm.«Determinant-old»
+import Riemann.academic_framework.DiskHardy
+import Riemann.academic_framework.Domain
+import Riemann.academic_framework.EulerProduct.K0Bound
+import Riemann.academic_framework.EulerProduct.PrimeSeries
+--import Riemann.academic_framework.FiniteOrder
+import Riemann.academic_framework.GammaBounds
+import Riemann.academic_framework.GammaFunctionalEquation
+import Riemann.academic_framework.GammaStirlingAux
+--import Riemann.academic_framework.HadamardFactorization
+import Riemann.academic_framework.MeasureHelpers
+----import Riemann.academic_framework.StirlingB
+import Riemann.academic_framework.StirlingBounds
+import Riemann.academic_framework.Theta
+import Riemann.academic_framework.WeierstrassFactorBound
+--import Riemann.academic_framework.ZetaFiniteOrder
+import Riemann.academic_framework.ZetaFunctionalEquation
+
+/-
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import Riemann.Semiclassical.Defs
 /-
 import Riemann.Semiclassical.TwoChart_NeumannSeries
@@ -175,28 +205,6 @@ import Riemann.Weil.ResidueSum
 import Riemann.Weil.SelbergClass
 import Riemann.Weil.SelbergClass'
 -/
-import Riemann.academic_framework.Compat
-import Riemann.academic_framework.CompletedXi
-import Riemann.academic_framework.CompletedXiSymmetry
-import Riemann.academic_framework.DiagonalFredholm.AnalyticInfrastructure
-import Riemann.academic_framework.DiagonalFredholm.Determinant
-import Riemann.academic_framework.DiagonalFredholm.WeierstrassProduct
---import Riemann.academic_framework.DiagonalFredholm.«Determinant-old»
-import Riemann.academic_framework.DiskHardy
-import Riemann.academic_framework.Domain
-import Riemann.academic_framework.EulerProduct.K0Bound
-import Riemann.academic_framework.EulerProduct.PrimeSeries
---import Riemann.academic_framework.FiniteOrder
-import Riemann.academic_framework.GammaBounds
-import Riemann.academic_framework.GammaFunctionalEquation
-import Riemann.academic_framework.GammaStirlingAux
---import Riemann.academic_framework.HadamardFactorization
-import Riemann.academic_framework.MeasureHelpers
-----import Riemann.academic_framework.StirlingB
-import Riemann.academic_framework.StirlingBounds
-import Riemann.academic_framework.Theta
-import Riemann.academic_framework.WeierstrassFactorBound
---import Riemann.academic_framework.ZetaFiniteOrder
-import Riemann.academic_framework.ZetaFunctionalEquation
+
 
 -/
