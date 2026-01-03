@@ -161,7 +161,7 @@ lemma poissonKernel_bound (z : ℂ) (hz : z ∈ Ω) :
             simpa [pow_two, one_mul] using mul_le_mul_of_nonneg_right h1_le_a ha_nonneg
           exact h1_le_a.trans h_a_le_a2
         have hstep : a * (1 + X) ≤ a * (a ^ 2 + X) := by
-          have hx : 1 + X ≤ a ^ 2 + X := add_le_add_right h1_le_a2 X
+          have hx : 1 + X ≤ a ^ 2 + X := add_le_add_left h1_le_a2 X
           exact mul_le_mul_of_nonneg_left hx ha.le
         have hC0_ge : a ≤ C0 := by dsimp [C0]; exact le_max_left _ _
         have hnonneg : 0 ≤ (a ^ 2 + X) := le_of_lt hposA

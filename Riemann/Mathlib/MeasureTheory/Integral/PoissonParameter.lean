@@ -1,5 +1,6 @@
-import Mathlib
-import Riemann.Mathlib.MeasureTheory.Integral.RationalIntegrals
+import Mathlib.Data.Real.StarOrdered
+import Mathlib.MeasureTheory.Integral.Bochner.Basic
+import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 
 /-!
 # Parameter-Dependent Poisson Kernel Integrals
@@ -136,7 +137,6 @@ lemma continuousOn_in_sigma_on_Icc
     hsum.pow 2
   simpa only [Φ] using this
 
-open RH
 
 /-- **Uniform L¹ domination on `[ε, σ_max]`** over a bounded measurable set `I`.
 

@@ -1,4 +1,4 @@
-import Mathlib
+import Mathlib.Analysis.SpecialFunctions.Gamma.Beta
 import Riemann.Mathlib.Analysis.Complex.HolomorphicLog
 
 /-!
@@ -9,8 +9,6 @@ This file constructs the holomorphic logarithm of the Gamma function on the righ
 The Gamma function is non-vanishing on the right half-plane {z | 0 < z.re}.
 Since this domain is simply connected (it is convex), a holomorphic logarithm exists.
 
-This replaces the previous incorrect attempt to show that Gamma maps the right half-plane
-to the slit plane (which is false, as Gamma takes negative real values in the right half-plane).
 
 ## Main Results
 

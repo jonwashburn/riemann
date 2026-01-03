@@ -7,7 +7,7 @@ import Mathlib.MeasureTheory.Integral.Bochner.Set
 import Mathlib.MeasureTheory.Integral.DominatedConvergence
 import Mathlib.Probability.Kernel.Proper
 import Riemann.MeasureTheory.ParametricDominatedConvergence
-import Mathlib
+--import Mathlib
 
 /-!
 # Proper kernels

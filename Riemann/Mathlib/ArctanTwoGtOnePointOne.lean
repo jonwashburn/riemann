@@ -293,7 +293,7 @@ lemma one_point_one_lt_pi_over_two_sub_arctan_half :
   -- hence π/2 > 1.1 + arctan(1/2).
   have h_sum :
       (1.1 : ℝ) + Real.arctan ((1 : ℝ) / 2) < (1.1 : ℝ) + (464 : ℝ) / 1000 :=
-    add_lt_add_left h_arctan _
+    add_lt_add_right h_arctan _
   have := lt_trans h_sum h_target
   -- Rearrange: a < b - c ↔ a + c < b.
   have : (1.1 : ℝ) < Real.pi / 2 - Real.arctan ((1 : ℝ) / 2) :=

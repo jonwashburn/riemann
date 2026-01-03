@@ -407,7 +407,7 @@ lemma sep_between_annuli_gap_ge_two
     have hk2le : k + 2 ≤ j := by
       have := Nat.add_le_add_left hd2 k
       simpa [Nat.add_sub_of_le hkj] using this
-    have hk1_lt_j : k + 1 < j := Nat.succ_le.mp hk2le
+    have hk1_lt_j : k + 1 < j := Nat.succ_le_iff.mp hk2le
     have hk1_le_jpred : k + 1 ≤ j - 1 := Nat.le_pred_of_lt hk1_lt_j
     have hpow_mono : (2 : ℝ) ^ (k + 1) ≤ (2 : ℝ) ^ (j - 1) :=
       two_pow_le_two_pow hk1_le_jpred
@@ -466,7 +466,7 @@ lemma sep_between_annuli_gap_ge_two
     have hj2le : j + 2 ≤ k := by
       have := Nat.add_le_add_left hd2 j
       simpa [Nat.add_sub_of_le hjk] using this
-    have hj1_lt_k : j + 1 < k := Nat.succ_le.mp hj2le
+    have hj1_lt_k : j + 1 < k := Nat.succ_le_iff.mp hj2le
     have hj1_le_kpred : j + 1 ≤ k - 1 := Nat.le_pred_of_lt hj1_lt_k
     have hpow_mono : (2 : ℝ) ^ (j + 1) ≤ (2 : ℝ) ^ (k - 1) :=
       two_pow_le_two_pow hj1_le_kpred

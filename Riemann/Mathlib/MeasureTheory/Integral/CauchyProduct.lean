@@ -1,4 +1,4 @@
-import Mathlib
+import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
 import Riemann.Mathlib.MeasureTheory.Integral.RationalIntegrals
 
 /-!

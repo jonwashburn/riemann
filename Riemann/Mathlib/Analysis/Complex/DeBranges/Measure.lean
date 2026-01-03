@@ -109,7 +109,7 @@ This section just repackages the continuity/positivity of the real-valued densit
 -/
 
 open Complex Set Topology MeasureTheory
-open scoped UpperHalfPlane ENNReal
+open scoped ENNReal
 
 
 variable (E : HermiteBiehlerFunction)

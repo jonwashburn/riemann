@@ -50,7 +50,9 @@ variable {f : ℂ → ℂ} {s : Set ℂ} {r : ℝ}
 
 /-- The inverse of an inequality: if a ≤ b and a > 0, then b⁻¹ ≤ a⁻¹. -/
 lemma inv_anti_of_pos {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) : b⁻¹ ≤ a⁻¹ :=
-  inv_inequality ha hab
+  -- `inv_anti₀` states antitonicity of inversion on positive reals.
+  -- We apply it with the variables swapped.
+  inv_anti₀ (a := b) (b := a) ha hab
 
 /-! ### Minimum modulus principle -/
 

@@ -3,7 +3,7 @@ import Mathlib.Analysis.Complex.AbsMax
 import Mathlib.Analysis.Complex.Harmonic.Analytic
 import Mathlib.Analysis.InnerProductSpace.Harmonic.Constructions
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.CircleAverageLemmas
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.PosLoglemmas
+import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.PosLogLemmas
 
 /-!
 # Harnack-type Bounds for Harmonic Functions
