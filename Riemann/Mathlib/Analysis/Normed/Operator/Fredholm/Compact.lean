@@ -1,3 +1,4 @@
+/-
 import Mathlib
 import Riemann.Mathlib.Analysis.Normed.Operator.Fredholm.Defs
 
@@ -68,3 +69,6 @@ lemma index_add_compact_eq [CompleteSpace E] [CompleteSpace F]
         -- The index is constant on connected components of Fredholm operators
 
 end IsCompactOperator
+
+#min_imports
+-/
