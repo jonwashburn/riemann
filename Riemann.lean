@@ -69,13 +69,9 @@ import Riemann.Mathlib.ArctanTwoGtOnePointOne
 --import Riemann.Mathlib.LinearAlgebra.Matrix.ToeplitzPosDef
 --import Riemann.Mathlib.LinearAlgebra.Matrix.ToeplitzPosDef'
 --import Riemann.Mathlib.MeasureTheory.CoordFormBox
---import Riemann.Mathlib.MeasureTheory.Covering.CalderonZygmund !BUILDS LOCALLY BUT CLASHES MATHLIB ENORM GLOBALLY
-import Riemann.Mathlib.MeasureTheory.Covering.JohnNirenberg -- !BUILDS LOCALLY BUT CLASHES MATHLIB ENORM GLOBALLY
-import Riemann.Mathlib.Analysis.Harmonic.BMO.Lemmas
-import Riemann.Mathlib.Analysis.Harmonic.BMO.Lp
-import Riemann.Mathlib.Analysis.Harmonic.BMO.WeakType
-import Riemann.Mathlib.Analysis.Harmonic.BMOAux
-import Riemann.Mathlib.Analysis.Harmonic.GoodLambda
+--import Riemann.Mathlib.MeasureTheory.Covering.CalderonZygmund !BUILDS LOCALLY BUT CLASHES MATHLIB ENORM GLOBALLY DUE TO CARLSON
+--import Riemann.Mathlib.MeasureTheory.Covering.JohnNirenberg -- !BUILDS LOCALLY BUT CLASHES MATHLIB ENORM GLOBALLY DUE TO CARLSON
+
 --import Riemann.Mathlib.Analysis.Normed.Operator.Fredholm.Compact
 --import Riemann.Mathlib.Analysis.Normed.Operator.Fredholm.Defs
 --import Riemann.Mathlib.Analysis.Normed.Operator.Fredholm.QuotientProd
@@ -87,8 +83,16 @@ import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.GammaLogDeriv
 --import Riemann.Mathlib.MeasureTheory.DiffForm
 
 /-
-
-
+import Riemann.Mathlib.Analysis.Harmonic.BMO.Lemmas
+import Riemann.Mathlib.Analysis.Harmonic.BMO.Lp
+import Riemann.Mathlib.Analysis.Harmonic.BMO.WeakType
+import Riemann.Mathlib.Analysis.Harmonic.BMOAux
+import Riemann.Mathlib.Analysis.Harmonic.GoodLambda
+import Riemann.Mathlib.Analysis.Harmonic.BMO.Lemmas
+import Riemann.Mathlib.Analysis.Harmonic.BMO.Lp
+import Riemann.Mathlib.Analysis.Harmonic.BMO.WeakType
+import Riemann.Mathlib.Analysis.Harmonic.BMOAux
+import Riemann.Mathlib.Analysis.Harmonic.GoodLambda
 
 
 import Riemann.Mathlib.MeasureTheory.Function.BoundedSupport
