@@ -1524,7 +1524,7 @@ theorem canonical_product_entire_off_finset {a : ℕ → ℂ} {m : ℕ} (s : Fin
             (fun z => ∏ n ∈ range N, (if n ∈ s then (1 : ℂ) else weierstrassFactor m (z / a n))) K :=
       Filter.Eventually.of_forall (fun N z hz => by
         classical
-        simp [f, sub_eq_add_neg, add_assoc, add_left_comm, add_comm])
+        simp [f, sub_eq_add_neg, add_comm])
 
     have htendK' :
         TendstoUniformlyOn
@@ -1537,8 +1537,8 @@ theorem canonical_product_entire_off_finset {a : ℕ → ℂ} {m : ℕ} (s : Fin
     -- `∏' (1 + f n z)` is exactly `Gs z`.
     have : (∏' n : ℕ, (1 + f n z)) = Gs z := by
       -- Expand `f`.
-      simp [Gs, f, add_comm, add_left_comm, add_assoc, sub_eq_add_neg]
-    simpa [this]
+      simp [Gs, f, add_comm, sub_eq_add_neg]
+    simp [this]
 
   -- Each partial product is entire.
   have hFdiff :
@@ -4708,10 +4708,10 @@ theorem hadamard_factorization
           have hsupp : Function.support (fun n : ℕ => fseq n w - 1) ⊆ (s : Set ℕ) := by
             intro n hn
             by_contra hnmem
-            have : fseq n w - 1 = 0 := by simp [fseq, hnmem]
+            have : fseq n w - 1 = 0 := by simp [fseq]; aesop
             have : fseq n w - 1 ≠ 0 := by
               simpa [Function.mem_support] using hn
-            exact this this
+            grind
           have hfinite : (Function.support (fun n : ℕ => fseq n w - 1)).Finite :=
             (s.finite_toSet).subset hsupp
           exact summable_of_finite_support hfinite
@@ -4722,7 +4722,7 @@ theorem hadamard_factorization
           simpa [add_sub_cancel] using
             (Complex.multipliable_one_add_of_summable (f := fun n : ℕ => gseq n w - 1) htail_g)
         have := Multipliable.tprod_mul (f := fun n : ℕ => fseq n w) (g := fun n : ℕ => gseq n w) hmult_f hmult_g
-        simpa [hfac_mul] using this.symm
+        simpa [hfac_mul] using this
 
       -- Identify the `fseq` product as a finite product, hence analytic at `z`.
       have hfseq_eq_finprod : ∀ w : ℂ, (∏' n : ℕ, fseq n w) = ∏ n ∈ s, fac n w := by
@@ -4745,7 +4745,7 @@ theorem hadamard_factorization
         have hsplit := hG_split w
         -- rewrite `fseq` and `gseq` products
         have hf := hfseq_eq_finprod w
-        simp [G, Tail, hsplit, hf]
+        simp [G, Tail]; grind
 
       -- `Tail z ≠ 0` since all its factors at `z` are nonzero.
       have hTail_z_ne : Tail z ≠ 0 := by
@@ -4774,6 +4774,7 @@ theorem hadamard_factorization
               have : n ∈ s := (hs_mem n).2 hEq
               exact hn this
             intro h0
+            simp only [gseq, hn, ↓reduceIte] at h0
             have : z / hz.zeros n = (1 : ℂ) :=
               (weierstrassFactor_eq_zero_iff (m := m) (z := z / hz.zeros n)).1 h0
             have hn0 : hz.zeros n ≠ 0 := hz.zeros_ne_zero n
@@ -4800,7 +4801,7 @@ theorem hadamard_factorization
           intro n hn
           have hn' : hz.zeros n = z := (hs_mem n).1 hn
           simp [fac, hn']
-        simpa [this, Finset.prod_const, Finset.card_attach]
+        simp [this, Finset.prod_const, Finset.card_attach]
 
       have hfin_an : AnalyticAt ℂ (fun w : ℂ => (weierstrassFactor m (w / z)) ^ s.card) z := by
         have hbase : AnalyticAt ℂ (fun w : ℂ => weierstrassFactor m (w / z)) z :=

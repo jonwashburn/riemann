@@ -52,7 +52,7 @@ theorem fderiv_gibbs_pmf (H : EnergySpace M) (σ : Config M) :
   -- Now simplify the RHS linear-map expression when applied to `h`.
   -- `evalCLM τ h = h τ` by definition, and sums/subtractions act pointwise.
   simp [hderiv, SpinGlass.evalCLM, ContinuousLinearMap.smul_apply, ContinuousLinearMap.sub_apply,
-    ContinuousLinearMap.sum_apply, smul_eq_mul, mul_comm]
+    ContinuousLinearMap.sum_apply, smul_eq_mul]
 
 set_option maxHeartbeats 0
 /--
@@ -62,7 +62,7 @@ noncomputable def phi (H_arith : EnergySpace M) (G : Ω → EnergySpace M) (t : 
   ∫ ω, SpinGlass.free_energy_density (N := M) ((-β) • (H_arith + (Real.sqrt t) • G ω)) ∂ℙ
 
 /--
-**Theorem 1.1 (Cipollina-Washburne): Exact Asymmetric Derivative.**
+**Theorem 1.1 (Cipollina-Washburne?): Exact Asymmetric Derivative.**
 
 The derivative of the interpolated free energy for an arithmetic Hamiltonian
 with matching Gaussian background.
@@ -1295,7 +1295,7 @@ theorem asymmetric_guerra_derivative
                   have hsub' :
                       |Cov σ σ - ∑ τ : Config M, (μt ω τ) * (Cov σ τ)|
                         ≤ |Cov σ σ| + ∑ τ : Config M, |Cov σ τ| := by
-                    exact le_trans hsub (add_le_add_left hsum_abs _)
+                    exact le_trans hsub (add_le_add_right hsum_abs _)
                   have hmul :
                       |(μt ω σ) * (Cov σ σ - ∑ τ : Config M, (μt ω τ) * (Cov σ τ))|
                         = |μt ω σ| * |Cov σ σ - ∑ τ : Config M, (μt ω τ) * (Cov σ τ)| := by
