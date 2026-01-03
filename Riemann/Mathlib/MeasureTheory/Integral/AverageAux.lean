@@ -1,8 +1,5 @@
-import Mathlib.MeasureTheory.Integral.Average
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Mathlib
-import Mathlib.MeasureTheory.Measure.Doubling
-import Mathlib.Topology.MetricSpace.Basic
+import Mathlib.Analysis.InnerProductSpace.Basic
+import Mathlib.MeasureTheory.Covering.DensityTheorem
 
 /-!
 # Auxiliary Lemmas for Averages and Lower Semicontinuity

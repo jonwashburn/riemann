@@ -321,7 +321,7 @@ lemma measure_closedBall_le_mul_measure_ball (x : α) {r : ℝ} (hr : 0 < r)
   calc μ (closedBall x (2 * (r / 2)))
       ≤ IsUnifLocDoublingMeasure.scalingConstantOf μ 2 * μ (closedBall x (r / 2)) := hdoubling
     _ ≤ IsUnifLocDoublingMeasure.scalingConstantOf μ 2 * μ (ball x r) := by
-        apply mul_le_mul_left'
+        apply mul_le_mul_right
         apply measure_mono
         apply closedBall_subset_ball
         linarith
@@ -958,7 +958,7 @@ theorem measure_subball_abs_sub_setAverage_gt_add_le {f : α → ℝ} (hf_int : 
       simpa [sub_eq_add_neg, add_assoc, add_left_comm, add_comm] using
         (abs_add_le (f y - fB) (fB - fB₀))
     have hle : |f y - fB₀| ≤ |f y - fB| + C * M := by
-      exact htri.trans (add_le_add_left htel _)
+      exact htri.trans (add_le_add_right htel _)
     have : t + C * M < |f y - fB| + C * M := lt_of_lt_of_le hy.2 hle
     -- cancel `C*M`
     have : t < |f y - fB| := by linarith
@@ -1203,7 +1203,7 @@ theorem measure_subball_abs_sub_setAverage_gt_add_le_isDoubling
       simpa [sub_eq_add_neg, add_assoc, add_left_comm, add_comm] using
         (abs_add_le (f y - fB) (fB - fB₀))
     have hle : |f y - fB₀| ≤ |f y - fB| + C * M := by
-      exact htri.trans (add_le_add_left htel _)
+      exact htri.trans (add_le_add_right htel _)
     have : t + C * M < |f y - fB| + C * M := lt_of_lt_of_le hy.2 hle
     have : t < |f y - fB| := by linarith
     simpa [gt_iff_lt] using this

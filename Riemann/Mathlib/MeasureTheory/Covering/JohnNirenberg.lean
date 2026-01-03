@@ -539,7 +539,7 @@ theorem exists_countable_disjoint_ball_covering_three_of_isOpen
       have hrx_le' : r x ≤ (7 / 5) * r y := le_of_lt hrx_le
       have hxy2 : dist x y < (7 / 5) * r y + r y := by
         refine lt_of_lt_of_le hxy ?_
-        exact add_le_add_right hrx_le' (r y)
+        exact add_le_add_left hrx_le' (r y)
       have hry_nonneg : 0 ≤ r y := by
         have hd : 0 ≤ d y := Metric.infDist_nonneg (x := y) (s := Oᶜ)
         have : 0 ≤ d y / 6 := div_nonneg hd (by norm_num)

@@ -34,8 +34,8 @@ variable {a b : ℝ}
 /-! ### Properties of log⁺ for inverses -/
 
 /-- **log⁺ of inverse**: For `a > 0`, `log⁺ (a⁻¹) = max 0 (-log a)`. -/
-lemma posLog_inv_eq (ha : 0 < a) : log⁺ a⁻¹ = max 0 (-log a) := by
-  simp only [posLog_def, log_inv, max_comm]
+lemma posLog_inv_eq (_ : 0 < a) : log⁺ a⁻¹ = max 0 (-log a) := by
+  simp only [posLog_def, log_inv]
 
 /-- For `a ≥ 1`, `log⁺ (a⁻¹) = 0`. -/
 lemma posLog_inv_of_one_le (ha : 1 ≤ a) : log⁺ a⁻¹ = 0 := by
@@ -57,7 +57,7 @@ lemma posLog_inv_of_lt_one (ha_pos : 0 < a) (ha : a < 1) : log⁺ a⁻¹ = -log 
     `log⁺ (a / b) ≤ log⁺ a + log⁺ (b⁻¹)`.
 
 This follows from `posLog_mul` since `a / b = a * b⁻¹`. -/
-lemma posLog_div_le (ha : 0 ≤ a) (hb : 0 < b) :
+lemma posLog_div_le (_ : 0 ≤ a) (_ : 0 < b) :
     log⁺ (a / b) ≤ log⁺ a + log⁺ b⁻¹ := by
   rw [div_eq_mul_inv]
   exact posLog_mul
@@ -89,7 +89,7 @@ lemma posLog_norm_ratio_le {G H : ℂ} (hH : H ≠ 0) :
 
 /-- If `f` is bounded pointwise by `C` on a set, then `log⁺ ‖f‖` is bounded by `log⁺ C`. -/
 lemma posLog_norm_le_of_norm_le {E : Type*} [SeminormedAddCommGroup E] {α : Type*}
-    {f : α → E} {C : ℝ} (hC : 0 ≤ C) (hf : ∀ x, ‖f x‖ ≤ C) :
+    {f : α → E} {C : ℝ} (_ : 0 ≤ C) (hf : ∀ x, ‖f x‖ ≤ C) :
     ∀ x, log⁺ ‖f x‖ ≤ log⁺ C := by
   intro x
   exact posLog_le_posLog (norm_nonneg _) (hf x)

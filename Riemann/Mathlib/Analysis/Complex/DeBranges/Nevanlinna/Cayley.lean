@@ -4,7 +4,7 @@ import Riemann.academic_framework.DiskHardy
 /-
 # Cayley transport between the upper half-plane and the unit disc
 
-This file records the basic analytic geometry needed to shuttle statements
+This file records the basic analytic geometry needed to bridge statements
 between the classical upper half-plane `UpperHalfPlane` and the unit disc `𝔻`.  The Cayley
 transform
 \[

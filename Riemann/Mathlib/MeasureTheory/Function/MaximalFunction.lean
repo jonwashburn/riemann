@@ -72,7 +72,7 @@ theorem globalMaximalFunction_mono [IsFiniteMeasureOnCompacts μ] [μ.IsOpenPosM
   unfold globalMaximalFunction maximalFunction
   simp only [ENNReal.rpow_one, inv_one]
   -- A^2 * (sup of f-averages) ≤ A^2 * (sup of g-averages)
-  apply mul_le_mul_left'
+  apply mul_le_mul_right
   apply iSup₂_mono
   intro i _
   -- Indicator is monotone pointwise: either both are the laverage or both are 0
