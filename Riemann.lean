@@ -78,12 +78,6 @@ import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetKernel
 --import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.GammaLogDeriv
 --import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.GammaProductBound
 --import Riemann.Mathlib.MeasureTheory.DiffForm
-
-
-
-
-/-
-
 import Riemann.Mathlib.Analysis.Harmonic.BMO.Lemmas
 import Riemann.Mathlib.Analysis.Harmonic.BMO.Lp
 import Riemann.Mathlib.Analysis.Harmonic.BMO.WeakType
@@ -101,42 +95,36 @@ import Riemann.PhysLean.SpinGlass.GuerraBound
 --import Riemann.PhysLean.SpinGlass.Kernel
 import Riemann.PhysLean.SpinGlass.Replicas
 import Riemann.PhysLean.SpinGlass.SKModel
-import Riemann.RS.AdmissibleWindows
-import Riemann.RS.BWP.CRCalculus
-import Riemann.RS.BWP.Constants
-import Riemann.RS.BWP.Definitions
-
 
 --import Riemann.RS.BWP.DiagonalBounds
+import Riemann.RS.BWP.CRCalculus
 import Riemann.RS.BWP.Laplacian
 import Riemann.academic_framework.Compat
 import Riemann.academic_framework.CompletedXi
 import Riemann.academic_framework.CompletedXiSymmetry
 import Riemann.academic_framework.DiagonalFredholm.AnalyticInfrastructure
 import Riemann.academic_framework.DiagonalFredholm.Determinant
+
 import Riemann.academic_framework.DiagonalFredholm.WeierstrassProduct
 --import Riemann.academic_framework.DiagonalFredholm.«Determinant-old»
 import Riemann.academic_framework.DiskHardy
 import Riemann.academic_framework.Domain
 import Riemann.academic_framework.EulerProduct.K0Bound
 import Riemann.academic_framework.EulerProduct.PrimeSeries
---import Riemann.academic_framework.FiniteOrder
 import Riemann.academic_framework.GammaBounds
 import Riemann.academic_framework.GammaFunctionalEquation
 import Riemann.academic_framework.GammaStirlingAux
 
-
-
+/-
 
 
 import Riemann.Semiclassical.Defs
-/-
+
 import Riemann.Semiclassical.TwoChart_NeumannSeries
 import Riemann.Semiclassical.TwoChart_ParametrixCancellation
 import Riemann.Semiclassical.TwoChart_ParametrixInvertibility
 import Riemann.Semiclassical.TwoChart_ParametrixRecursion
-import Riemann.Semiclassical.TwoChart_ParametrixRemainderSymbol-/
-/-
+import Riemann.Semiclassical.TwoChart_ParametrixRemainderSymbol
 import Riemann.Semiclassical.TwoChart_ParametrixSmallness
 import Riemann.Semiclassical.TwoChart_ParametrixSmooth
 import Riemann.Semiclassical.TwoChart_ParametrixTotalDegree_v4
