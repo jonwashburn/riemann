@@ -42,7 +42,6 @@ import Riemann.Mathlib.Analysis.Complex.HardySpace.NevanlinnaConnection
 import Riemann.Mathlib.Analysis.Complex.HardySpace.PoissonKernel
 import Riemann.Mathlib.Analysis.Complex.HardySpace.PowerSeriesBounds
 --import Riemann.Mathlib.Analysis.Complex.HardySpace.WeierstrassProduct
-
 --import Riemann.Mathlib.Analysis.Complex.HardySpace.ZeroEnumeration
 --import Riemann.Mathlib.Analysis.Complex.Herglotz
 --import Riemann.Mathlib.Analysis.Complex.Herglotz'
@@ -70,7 +69,6 @@ import Riemann.Mathlib.ArctanTwoGtOnePointOne
 --import Riemann.Mathlib.MeasureTheory.CoordFormBox
 import Riemann.Mathlib.MeasureTheory.Covering.CalderonZygmund -- !BUILDS LOCALLY BUT CLASHES MATHLIB ENORM GLOBALLY DUE TO CARLSON
 import Riemann.Mathlib.MeasureTheory.Covering.JohnNirenberg -- !BUILDS LOCALLY BUT CLASHES MATHLIB ENORM GLOBALLY DUE TO CARLSON
-
 --import Riemann.Mathlib.Analysis.Normed.Operator.Fredholm.Compact -- from MRothgang PR
 --import Riemann.Mathlib.Analysis.Normed.Operator.Fredholm.Defs -- from MRothgang PR
 --import Riemann.Mathlib.Analysis.Normed.Operator.Fredholm.QuotientProd
@@ -91,21 +89,18 @@ import Riemann.Mathlib.MeasureTheory.Function.MaximalFunction
 import Riemann.Mathlib.MeasureTheory.Integral.Auxiliary
 import Riemann.Mathlib.MeasureTheory.Integral.AverageAux
 import Riemann.Mathlib.MeasureTheory.Integral.Carleson
-
 import Riemann.PhysLean.SpinGlass.Defs
 import Riemann.PhysLean.SpinGlass.GibbsBridge
 import Riemann.PhysLean.SpinGlass.GuerraBound
 --import Riemann.PhysLean.SpinGlass.Kernel
 import Riemann.PhysLean.SpinGlass.Replicas
 import Riemann.PhysLean.SpinGlass.SKModel
-
 import Riemann.RS.AdmissibleWindows
 import Riemann.RS.BWP.CRCalculus
 import Riemann.RS.BWP.Constants
 import Riemann.RS.BWP.Definitions
 --import Riemann.RS.BWP.DiagonalBounds
 import Riemann.RS.BWP.Laplacian
-
 import Riemann.academic_framework.Compat
 import Riemann.academic_framework.CompletedXi
 import Riemann.academic_framework.CompletedXiSymmetry
