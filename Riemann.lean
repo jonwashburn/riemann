@@ -75,9 +75,15 @@ import Riemann.Mathlib.MeasureTheory.Covering.JohnNirenberg -- !BUILDS LOCALLY B
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetFormula
 --import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetIntegralFormula
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetKernel
-import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.GammaLogDeriv
+--import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.GammaLogDeriv
 --import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.GammaProductBound
 --import Riemann.Mathlib.MeasureTheory.DiffForm
+
+
+
+
+/-
+
 import Riemann.Mathlib.Analysis.Harmonic.BMO.Lemmas
 import Riemann.Mathlib.Analysis.Harmonic.BMO.Lp
 import Riemann.Mathlib.Analysis.Harmonic.BMO.WeakType
@@ -90,7 +96,7 @@ import Riemann.Mathlib.MeasureTheory.Integral.Auxiliary
 import Riemann.Mathlib.MeasureTheory.Integral.AverageAux
 import Riemann.Mathlib.MeasureTheory.Integral.Carleson
 import Riemann.PhysLean.SpinGlass.Defs
-import Riemann.PhysLean.SpinGlass.GibbsBridge
+--import Riemann.PhysLean.SpinGlass.GibbsBridge
 import Riemann.PhysLean.SpinGlass.GuerraBound
 --import Riemann.PhysLean.SpinGlass.Kernel
 import Riemann.PhysLean.SpinGlass.Replicas
@@ -99,6 +105,8 @@ import Riemann.RS.AdmissibleWindows
 import Riemann.RS.BWP.CRCalculus
 import Riemann.RS.BWP.Constants
 import Riemann.RS.BWP.Definitions
+
+
 --import Riemann.RS.BWP.DiagonalBounds
 import Riemann.RS.BWP.Laplacian
 import Riemann.academic_framework.Compat
@@ -116,15 +124,10 @@ import Riemann.academic_framework.EulerProduct.PrimeSeries
 import Riemann.academic_framework.GammaBounds
 import Riemann.academic_framework.GammaFunctionalEquation
 import Riemann.academic_framework.GammaStirlingAux
---import Riemann.academic_framework.HadamardFactorization
-import Riemann.academic_framework.MeasureHelpers
-----import Riemann.academic_framework.StirlingB
-import Riemann.academic_framework.StirlingBounds
-import Riemann.academic_framework.Theta
-import Riemann.academic_framework.WeierstrassFactorBound
---import Riemann.academic_framework.ZetaFiniteOrder
-import Riemann.academic_framework.ZetaFunctionalEquation
-/-
+
+
+
+
 
 import Riemann.Semiclassical.Defs
 /-

@@ -1,15 +1,6 @@
-import Mathlib.MeasureTheory.Measure.Doubling
-import Mathlib.MeasureTheory.Integral.Average
-import Mathlib.MeasureTheory.Integral.IntegrableOn
-import Mathlib.MeasureTheory.Covering.Besicovitch
-import Mathlib.MeasureTheory.Covering.Vitali
-import Mathlib.MeasureTheory.Covering.DensityTheorem
-import Mathlib.Topology.MetricSpace.ProperSpace
-import Carleson.ToMathlib.HardyLittlewood
+import Carleson.ToMathlib.MeasureTheory.Function.LocallyIntegrable
 import Carleson.TwoSidedCarleson.WeakCalderonZygmund
-import Riemann.Mathlib.MeasureTheory.Function.MaximalFunction
 import Riemann.Mathlib.MeasureTheory.Integral.AverageAux
-import Riemann.Mathlib.Analysis.Harmonic.BMO.Defs
 
 set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false

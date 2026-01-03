@@ -6,8 +6,8 @@ import GibbsMeasure.Prereqs.Kernel.CondExp
 import PhysLean.SpinGlass.Defs
 
 /-!
-  SOTA BRIDGE:
-  Wrapping your 'gibbs_pmf' (Vol 1 Calculus)
+  BRIDGE:
+  Wrapping our 'gibbs_pmf' (Vol 1 Calculus)
   into a Georgii 'ProperKernel' (Vol 2 Structure).
 -/
 

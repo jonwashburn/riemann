@@ -1,6 +1,6 @@
-import Mathlib
-import Riemann.academic_framework.GammaBounds
+import Mathlib.Tactic.NormNum.RealSqrt
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.StirlingRobbins
+import Riemann.Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
 
 /-!
 # Auxiliary Stirling lemmas for Gamma bounds
@@ -220,4 +220,3 @@ theorem norm_Gamma_polynomial_bound {s : ℂ} (hs_re : 1 ≤ s.re) (hs_norm : 2 
         apply Real.exp_le_exp.mpr; linarith [mul_pos (by linarith : (0:ℝ) < 3) h_norm_pos]
 
 end Stirling.GammaAux
-#min_imports
