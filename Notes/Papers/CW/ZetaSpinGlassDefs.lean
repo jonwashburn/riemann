@@ -6,8 +6,7 @@ open scoped BigOperators
 namespace ZetaSpinGlass
 
 /-!
-# Section 2: Framework - Arithmetic and Random Models (Revised)
-"Solid Definitions" resulting from the Native MetaM Protocol.
+# Section 2: Framework - Arithmetic and Random Models
 -/
 
 structure ModelParams where
@@ -79,7 +78,6 @@ end ProbabilityTheory
 /--
 **Random Phases Structure**:
 Bundles the random variables `θ_p` and their properties.
-This passes **Proof Survival** because it carries the independence proofs needed for `aesop`.
 -/
 structure RandomPhases (Ω : Type*) [MeasureSpace Ω] where
   theta : ℕ → Ω → ℝ
@@ -121,7 +119,6 @@ noncomputable def Sigma_k (k : ℕ) : Matrix (Fin (m + 1)) (Fin (m + 1)) ℝ :=
 /--
 **Gaussian Surrogate Field**:
 Defined on the *same* `Ω` as the random phases, or a coupled space.
-Crucial for **Proof Survival** of the global IBP theorem.
 -/
 structure GaussianSurrogateField (params : ModelParams) {m : ℕ} (pts : ConfigPoints m)
     (Ω : Type*) [MeasureSpace Ω] [IsProbabilityMeasure (ℙ : Measure Ω)] where
