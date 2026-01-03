@@ -357,7 +357,7 @@ noncomputable def hasModerateGrowth_free_energy_density :
           refine Finset.sum_congr rfl ?_
           intro σ _hσ
           have hg : 0 ≤ gibbs_pmf N H σ := gibbs_pmf_nonneg (N := N) (H := H) σ
-          simp [abs_mul, abs_of_nonneg hg, mul_comm]
+          simp [abs_mul, abs_of_nonneg hg]
         have hsum_le :
             (∑ σ : Config N, (gibbs_pmf N H σ) * |h σ|)
               ≤ (∑ σ : Config N, gibbs_pmf N H σ) * ‖h‖ := by
