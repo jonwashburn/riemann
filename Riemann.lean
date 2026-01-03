@@ -1,12 +1,3 @@
-import Notes.Papers.CW.ApproxIBP
-import Notes.Papers.CW.GIBP
-import Notes.Papers.CW.Lindenberg
-import Notes.Papers.CW.LindebergStep
-import Notes.Papers.CW.LindebergBlockwise
-import Notes.Papers.CW.RandomPhaseMoments
-import Notes.Papers.CW.RandomPhaseModelMoments
-import Notes.Papers.CW.ZetaSpinGlassDefs
-
 import Riemann.Aux
 import Riemann.Cert.FactorsWitness
 import Riemann.Cert.K0PPlus
@@ -98,12 +89,6 @@ import Riemann.Mathlib.MeasureTheory.Function.MaximalFunction
 import Riemann.Mathlib.MeasureTheory.Integral.Auxiliary
 import Riemann.Mathlib.MeasureTheory.Integral.AverageAux
 import Riemann.Mathlib.MeasureTheory.Integral.Carleson
-import Riemann.PhysLean.SpinGlass.Defs
---import Riemann.PhysLean.SpinGlass.GibbsBridge
-import Riemann.PhysLean.SpinGlass.GuerraBound
---import Riemann.PhysLean.SpinGlass.Kernel
-import Riemann.PhysLean.SpinGlass.Replicas
-import Riemann.PhysLean.SpinGlass.SKModel
 
 --import Riemann.RS.BWP.DiagonalBounds
 import Riemann.RS.BWP.CRCalculus
@@ -123,6 +108,46 @@ import Riemann.academic_framework.EulerProduct.PrimeSeries
 import Riemann.academic_framework.GammaBounds
 import Riemann.academic_framework.GammaFunctionalEquation
 import Riemann.academic_framework.GammaStirlingAux
+
+import Riemann.PhysLean.SpinGlass.Defs
+import Riemann.PhysLean.SpinGlass.Algebra
+import Riemann.PhysLean.SpinGlass.ArguinTaiFp
+import Riemann.PhysLean.SpinGlass.ComplexIBP
+import Riemann.PhysLean.SpinGlass.Calculus
+import Riemann.PhysLean.SpinGlass.ComplexIBP
+--import Riemann.PhysLean.SpinGlass.GibbsBridge
+import Riemann.PhysLean.SpinGlass.GuerraBound
+--import Riemann.PhysLean.SpinGlass.Kernel
+import Riemann.PhysLean.SpinGlass.Replicas
+import Riemann.PhysLean.SpinGlass.SKModel
+
+import Notes.Papers.CW.ApproxIBP
+import Notes.Papers.CW.GIBP
+import Notes.Papers.CW.Lindenberg
+import Notes.Papers.CW.LindebergStep
+import Notes.Papers.CW.LindebergBlockwise
+import Notes.Papers.CW.RandomPhaseMoments
+import Notes.Papers.CW.RandomPhaseModelMoments
+import Notes.Papers.CW.ZetaSpinGlassDefs
+
+import GibbsMeasure.Prereqs.Filtration.Consistent
+import GibbsMeasure.Prereqs.Juxt
+import GibbsMeasure.Prereqs.Kernel.CondExp
+import GibbsMeasure.Prereqs.Kernel.Feller
+import GibbsMeasure.Prereqs.Kernel.Proper
+import GibbsMeasure.Prereqs.CylinderEvents
+import GibbsMeasure.Prereqs.LebesgueCondExp
+import GibbsMeasure.Specification -- from Yael Dillies & others initial sorried framework
+import GibbsMeasure.Potential
+import GibbsMeasure.Specification.Quasilocal
+import GibbsMeasure.Specification.QuasilocalSpecification
+import GibbsMeasure.Specification.Structure
+import GibbsMeasure.Specification.Existence
+import GibbsMeasure.Specification.Extremal
+import GibbsMeasure.Specification.ErgodicDecomposition
+import GibbsMeasure.Topology.ConfigurationSpace
+import GibbsMeasure.Topology.LocalConvergence
+
 
 /-
 
