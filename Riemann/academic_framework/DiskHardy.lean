@@ -50,7 +50,7 @@ def poissonKernel' (z : 𝔻) (θ : ℝ) : ℝ :=
 theorem poissonKernel_zero' (θ : ℝ) : poissonKernel' 0 θ = 1 / (2 * Real.pi) := by
   simp [poissonKernel', UnitDisc.coe_zero]
 
-theorem poissonKernel_nonneg (z : 𝔻) (θ : ℝ) : 0 ≤ poissonKernel' z θ := by
+theorem poissonKernel_nonneg' (z : 𝔻) (θ : ℝ) : 0 ≤ poissonKernel' z θ := by
   apply div_nonneg
   · have h : ‖(z : ℂ)‖ < 1 := z.norm_lt_one
     have : ‖(z : ℂ)‖ ^ 2 < 1 := by aesop
