@@ -3,7 +3,7 @@
 This repository is a **monorepo of Lean 4 libraries** dedicated to the formalization of analytic number theory and the exploration of approaches to the Riemann Hypothesis (RH). The core library, `Riemann/` (umbrella import `Riemann.lean`), provides the initial infrastructure for several potential proof strategies:
 *   **Classical Analytic Number Theory**: Euler products, functional equations, and Hadamard factorization.
 *   **Complex Analysis & Operator Theory**: Hardy spaces, Nevanlinna theory, and de Branges spaces of entire functions.
-*   **Harmonic Analysis**: Carleson measures, Whitney decompositions, and Poisson integrals on the half-plane (the "Boundary Wedge" or "pinch" route).
+*   **Harmonic Analysis**: Carleson measures, Whitney decompositions, and Poisson integrals on the half-plane.
 *   **Statistical Mechanics**: Spin Glass theory, Guerra's interpolation, and applications to the Fyodorov-Hiary-Keating conjecture for the Riemann zeta function.
 *   **Explicit Formulae**: The Weil explicit formula and the Selberg class (WIP).
 
