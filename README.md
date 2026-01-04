@@ -44,9 +44,9 @@ This layer bridges the gap between analytic estimates and formal verification, p
 #### 3. Local Mathlib Extensions (`Riemann/Mathlib/`)
 A comprehensive collection of general-purpose mathematical results developed for this project, filling gaps in Mathlib.
 *   **Complex Analysis (`Analysis/Complex/`)**:
-    *   **Hardy Spaces (`HardySpace.lean`)**: Theory of $H^p$ spaces on the unit disc, including boundary limits (Fatou's theorem), inner-outer factorization, and the Poisson integral formula.
+    *   **Hardy Spaces (`HardySpace.lean`)**: Theory of $H^p$ spaces on the unit disc, including boundary limits (Fatou's theorem TODO), inner-outer factorization, and the Poisson integral formula.
     *   **de Branges Spaces (`DeBranges/`)**: Hilbert spaces of entire functions, reproducing kernels, and their connection to Nevanlinna theory.
-    *   **Nevanlinna Theory**: The First Main Theorem, characteristic functions, and proximity functions (`Cartan.lean`, `Nevanlinna.lean`).
+    *   **Nevanlinna Theory**: Cartan, characteristic functions, and proximity functions (`Cartan.lean`, `Nevanlinna.lean`).
     *   **Herglotz Representation**: (WIP) Representation of holomorphic functions with positive real part (`Herglotz.lean`).
 *   **Harmonic Analysis (`Analysis/Harmonic/`)**:
     *   **BMO**: Bounded Mean Oscillation spaces and the John-Nirenberg inequality (`BMO/`).
@@ -55,7 +55,7 @@ A comprehensive collection of general-purpose mathematical results developed for
 *   **Operator Theory**: Fredholm operators and determinants (`Analysis/Normed/Operator/Fredholm/`).
 
 #### 4. RS Layer (`Riemann/RS/`)
-This layer implements the "Boundary Wedge" strategy (or "pinch route"), a harmonic-analytic approach to RH. It focuses on controlling the zeta function on the critical strip using boundary values and geometry.
+This layer implements the "Boundary Wedge" strategy (or "pinch route"), a harmonic-analytic exploration to RH. It focuses on controlling the zeta function on the critical strip using boundary values and geometry.
 *   **`Det2Outer.lean` & `HalfPlaneOuterV2.lean`**: Construction of outer functions on the half-plane to normalize the growth of zeta.
 *   **`WhitneyGeometryDefs.lean`**: Whitney decomposition of the half-plane, used to discretize estimates.
 *   **`PoissonKernelDyadic.lean`**: Dyadic estimates for the Poisson kernel.
