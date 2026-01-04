@@ -4,8 +4,8 @@ This repository is a **monorepo of Lean 4 libraries** dedicated to the formaliza
 *   **Classical Analytic Number Theory**: Euler products, functional equations, and Hadamard factorization.
 *   **Complex Analysis & Operator Theory**: Hardy spaces, Nevanlinna theory, and de Branges spaces of entire functions.
 *   **Harmonic Analysis**: Carleson measures, Whitney decompositions, and Poisson integrals on the half-plane (the "Boundary Wedge" or "pinch" route).
-*   **Semiclassical Analysis**: Symbol calculus and Weyl quantization.
-*   **Explicit Formulae**: The Weil explicit formula and the Selberg class.
+*   **Statistical Mechanics**: SpinGlass theory and applications to zeta literature
+*   **Explicit Formulae**: The Weil explicit formula and the Selberg class (WIP).
 
 ### Getting started
 
@@ -47,7 +47,7 @@ A comprehensive collection of general-purpose mathematical results developed for
     *   **Hardy Spaces (`HardySpace.lean`)**: Theory of $H^p$ spaces on the unit disc, including boundary limits (Fatou's theorem), inner-outer factorization, and the Poisson integral formula.
     *   **de Branges Spaces (`DeBranges/`)**: Hilbert spaces of entire functions, reproducing kernels, and their connection to Nevanlinna theory.
     *   **Nevanlinna Theory**: The First Main Theorem, characteristic functions, and proximity functions (`Cartan.lean`, `Nevanlinna.lean`).
-    *   **Herglotz Representation**: Representation of holomorphic functions with positive real part (`Herglotz.lean`).
+    *   **Herglotz Representation**: (WIP) Representation of holomorphic functions with positive real part (`Herglotz.lean`).
 *   **Harmonic Analysis (`Analysis/Harmonic/`)**:
     *   **BMO**: Bounded Mean Oscillation spaces and the John-Nirenberg inequality (`BMO/`).
     *   **Carleson Measures**: Definition and properties of Carleson measures (`Measure/Carleson/`), essential for embedding theorems.
@@ -79,7 +79,7 @@ This layer implements the "Boundary Wedge" strategy (or "pinch route"), a harmon
 
 #### 8. Research Formalizations (`Notes/Papers/`)
 Formalization of results from recent research papers, including the connection between the Riemann zeta function and spin glass models (Fyodorov-Keating-Hiary conjectures).
-*   **`CW/`**: Formalizations related to the Clay Workshop, linking `GibbsMeasure` theory with number theoretic moments.
+*   **`CW/`**: Formalizations linking `GibbsMeasure` theory with number theoretic moments.
 
 ### Build configuration
 
