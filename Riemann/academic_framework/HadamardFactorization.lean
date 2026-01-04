@@ -914,10 +914,6 @@ An earlier `Multiset`-based formulation would force the nonzero zero set to be f
 
 We instead package **countably many** nonzero zeros as a sequence `zeros : ℕ → ℂ`.
 
-We intentionally keep the spec lightweight:
-- it records the set of nonzero zeros (multiplicities are represented by repetition in the
-  sequence, if desired);
-- it records the order at `0` separately.
 -/
 structure ZeroData (f : ℂ → ℂ) where
   /-- A sequence enumerating the nonzero zeros (optionally with repetition for multiplicity). -/
@@ -4483,6 +4479,62 @@ lemma posLog_norm_le_log_one_add_norm (z : ℂ) :
     log⁺ ‖z‖ ≤ Real.log (1 + ‖z‖) :=
   posLog_le_log_one_add (x := ‖z‖) (norm_nonneg z)
 
+/-- On any circle, the circle average of `log⁺ ‖F⁻¹‖` equals the circle average of
+`log⁺ ‖F‖` minus the circle average of `log ‖F‖`.
+
+Precisely:
+`circleAverage (log⁺ ‖F⁻¹‖) c r = circleAverage (log⁺ ‖F‖) c r - circleAverage (log ‖F‖) c r`.
+This is just the pointwise identity `log⁺ x - log⁺ x⁻¹ = log x` averaged over the circle. -/
+lemma circleAverage_posLog_norm_inv_eq_circleAverage_posLog_norm_sub_circleAverage_log_norm
+    {F : ℂ → ℂ} {c : ℂ} {r : ℝ}
+    (h_pos : CircleIntegrable (fun z ↦ log⁺ ‖F z‖) c r)
+    (h_inv : CircleIntegrable (fun z ↦ log⁺ ‖(F z)⁻¹‖) c r)
+    (_h_log : CircleIntegrable (fun z ↦ Real.log ‖F z‖) c r) :
+    circleAverage (fun z ↦ log⁺ ‖(F z)⁻¹‖) c r
+      = circleAverage (fun z ↦ log⁺ ‖F z‖) c r
+          - circleAverage (fun z ↦ Real.log ‖F z‖) c r := by
+  -- Pointwise identity on the circle
+  have h_point :
+      Set.EqOn
+        (fun z : ℂ => (log⁺ ‖F z‖) - (log⁺ ‖(F z)⁻¹‖))
+        (fun z : ℂ => Real.log ‖F z‖)
+        (Metric.sphere c |r|) := by
+    intro z _
+    simpa [norm_inv] using (Real.posLog_sub_posLog_inv (x := ‖F z‖))
+  -- Average of the difference equals difference of averages
+  have h_sub :
+      circleAverage (fun z ↦ (log⁺ ‖F z‖) - (log⁺ ‖(F z)⁻¹‖)) c r
+        = circleAverage (fun z ↦ log⁺ ‖F z‖) c r
+            - circleAverage (fun z ↦ log⁺ ‖(F z)⁻¹‖) c r := by
+    simpa using (Real.circleAverage_sub (c := c) (R := r) h_pos h_inv)
+  -- Replace the LHS integrand using the pointwise identity on the sphere
+  have h_congr :
+      circleAverage (fun z ↦ (log⁺ ‖F z‖) - (log⁺ ‖(F z)⁻¹‖)) c r
+        = circleAverage (fun z ↦ Real.log ‖F z‖) c r := by
+    simpa using
+      (circleAverage_congr_sphere (f₁ := fun z ↦ (log⁺ ‖F z‖) - (log⁺ ‖(F z)⁻¹‖))
+        (f₂ := fun z ↦ Real.log ‖F z‖) (c := c) (R := r) h_point)
+  -- Rearrange to solve for the average of `log⁺ ‖F⁻¹‖`.
+  have h_sub' :
+      circleAverage (fun z ↦ log⁺ ‖F z‖ - log⁺ ‖F z‖⁻¹) c r
+        = circleAverage (fun z ↦ log⁺ ‖F z‖) c r
+            - circleAverage (fun z ↦ log⁺ ‖F z‖⁻¹) c r := by
+    simpa [norm_inv] using h_sub
+  have h_congr' :
+      circleAverage (fun z ↦ log⁺ ‖F z‖ - log⁺ ‖F z‖⁻¹) c r
+        = circleAverage (fun z ↦ Real.log ‖F z‖) c r := by
+    simpa [norm_inv] using h_congr
+  have hdiff :
+      circleAverage (fun z ↦ log⁺ ‖F z‖) c r - circleAverage (fun z ↦ log⁺ ‖F z‖⁻¹) c r
+        = circleAverage (fun z ↦ Real.log ‖F z‖) c r := by
+    exact h_sub'.symm.trans h_congr'
+  have hfinal :
+      circleAverage (fun z ↦ log⁺ ‖F z‖⁻¹) c r
+        = circleAverage (fun z ↦ log⁺ ‖F z‖) c r
+            - circleAverage (fun z ↦ Real.log ‖F z‖) c r := by
+    linarith [hdiff]
+  simpa [norm_inv] using hfinal
+
 /-! ## Circle-average bounds from `EntireOfFiniteOrder` -/
 
 lemma circleIntegrable_posLog_norm_of_entire {f : ℂ → ℂ} (hf : Differentiable ℂ f) (r : ℝ) :
@@ -4494,6 +4546,16 @@ lemma circleIntegrable_posLog_norm_of_entire {f : ℂ → ℂ} (hf : Differentia
   -- Restrict meromorphy to the sphere.
   have hMsphere : MeromorphicOn f (sphere (0 : ℂ) |r|) := fun z hz => hM z (by simp)
   simpa using (circleIntegrable_posLog_norm_meromorphicOn (c := (0 : ℂ)) (R := r) hMsphere)
+
+lemma circleIntegrable_posLog_norm_of_entire_center
+    {f : ℂ → ℂ} (hf : Differentiable ℂ f) (c : ℂ) (r : ℝ) :
+    CircleIntegrable (fun z ↦ log⁺ ‖f z‖) c r := by
+  -- Entire ⇒ meromorphic on `univ`, hence on every sphere
+  have hA : AnalyticOnNhd ℂ f (Set.univ : Set ℂ) :=
+    (analyticOnNhd_univ_iff_differentiable).2 hf
+  have hM : MeromorphicOn f (Set.univ : Set ℂ) := hA.meromorphicOn
+  have hMsphere : MeromorphicOn f (sphere c |r|) := fun z hz => hM z (by simp)
+  simpa using (circleIntegrable_posLog_norm_meromorphicOn (c := c) (R := r) hMsphere)
 
 lemma circleAverage_posLog_norm_le_of_entireOfFiniteOrder
     {ρ : ℝ} {f : ℂ → ℂ} (hf : EntireOfFiniteOrder ρ f) :
@@ -4516,6 +4578,43 @@ lemma circleAverage_posLog_norm_le_of_entireOfFiniteOrder
       _ = C * (1 + r) ^ ρ := by simp [hz_norm]
   -- Average is ≤ the constant.
   exact Real.circleAverage_mono_on_of_le_circle (c := (0 : ℂ)) (R := r) (f := fun z ↦ log⁺ ‖f z‖)
+    h_int h_pw
+
+lemma circleAverage_posLog_norm_le_of_entireOfFiniteOrder_center
+    {ρ : ℝ} {f : ℂ → ℂ} (hf : EntireOfFiniteOrder ρ f) (hρ_nonneg : 0 ≤ ρ) :
+    ∃ C > 0, ∀ (c : ℂ) (r : ℝ), 0 ≤ r →
+      circleAverage (fun z ↦ log⁺ ‖f z‖) c r ≤ C * (1 + ‖c‖ + r) ^ ρ := by
+  rcases hf.growth with ⟨C, hCpos, hC⟩
+  refine ⟨C, hCpos, ?_⟩
+  intro c r hr0
+  -- Integrable on any circle centered at c
+  have h_int : CircleIntegrable (fun z ↦ log⁺ ‖f z‖) c r :=
+    circleIntegrable_posLog_norm_of_entire_center hf.entire c r
+  -- On the sphere: ‖z‖ ≤ ‖c‖ + r, hence a uniform pointwise bound.
+  have h_pw : ∀ z ∈ sphere c |r|, log⁺ ‖f z‖ ≤ C * (1 + ‖c‖ + r) ^ ρ := by
+    intro z hz
+    have hz_norm_le : ‖z‖ ≤ ‖c‖ + r := by
+      have hz' : ‖z - c‖ = |r| := by
+        simpa [Metric.mem_sphere, dist_eq_norm] using hz
+      have htri : ‖z‖ ≤ ‖c‖ + ‖z - c‖ := by
+        have hcz : c + (z - c) = z := by
+          calc
+            c + (z - c) = c + z - c := by
+              simp
+            _ = z := by
+              simp
+        simpa [hcz] using (norm_add_le c (z - c))
+      simpa [hz', abs_of_nonneg hr0] using htri
+    calc
+      log⁺ ‖f z‖ ≤ Real.log (1 + ‖f z‖) := posLog_le_log_one_add (x := ‖f z‖) (norm_nonneg _)
+      _ ≤ C * (1 + ‖z‖) ^ ρ := hC z
+      _ ≤ C * (1 + (‖c‖ + r)) ^ ρ := by
+            have hbase : (1 + ‖z‖ : ℝ) ≤ 1 + (‖c‖ + r) := by linarith
+            have hpow : (1 + ‖z‖ : ℝ) ^ ρ ≤ (1 + (‖c‖ + r)) ^ ρ :=
+              Real.rpow_le_rpow (by positivity) hbase hρ_nonneg
+            exact mul_le_mul_of_nonneg_left hpow (le_of_lt hCpos)
+      _ = C * (1 + ‖c‖ + r) ^ ρ := by ring_nf
+  exact Real.circleAverage_mono_on_of_le_circle (c := c) (R := r) (f := fun z ↦ log⁺ ‖f z‖)
     h_int h_pw
 
 /-! ## ValueDistribution: basic bounds we can get “for free” from `EntireOfFiniteOrder` -/
@@ -4735,30 +4834,10 @@ lemma hadamard_quotient_growth_bound
     (hF_def : F = fun z : ℂ => z ^ hz.ord0 * ∏' n : ℕ, weierstrassFactor m (z / hz.zeros n)) :
     ∃ C > 0, ∀ z : ℂ, ‖H z‖ ≤ Real.exp (C * (1 + ‖z‖) ^ (Nat.ceil ρ)) := by
   classical
-  -- Strategy (sketch to be refined):
-  -- 1) Use norm_le_exp_circleAverage_posLog_of_entire_nonzero at center `c := z` and radius `r := ‖z‖ + 1`
-  --    to bound ‖H z‖ by exp of a circle-average of log⁺ ‖H‖ on the circle centered at z.
-  -- 2) On that circle and away from zeros of `F`, we have `H = f / F`, hence
-  --    `log⁺ ‖H‖ ≤ log⁺ ‖f‖ + log⁺ ‖F⁻¹‖`.
-  --    The exceptional points form a finite (hence 0-measure) set on the circle, so the average
-  --    inequality still holds after we pass to circle averages.
-  -- 3) Control the two averages:
-  --    - For `f`, use characteristic_zero_le_of_entireOfFiniteOrder' (hf)
-  --    - For `F⁻¹`, rewrite characteristic via characteristic_inv_top and bound
-  --      the characteristic of `F` at 0 using the canonical-product definition `hF_def`
-  --      and the existing EntireOfFiniteOrder bound for the canonical product.
-  -- 4) Combine and absorb constants, picking the exponent `Nat.ceil ρ`.
-  --
-  -- NOTE: The detailed estimates rely on Nevanlinna/Cartan lemmas already imported and
-  --       the canonical product bounds proved earlier in this file; we only set up the
-  --       reduction here.
-  --
-  -- Pick radius relative to the evaluation point and apply the mean-value/Poisson bound.
-  refine ?_
-  -- Placeholder constant; the proof below should derive a concrete `C > 0`.
-  -- This sets up the expected shape so downstream code can proceed; the detailed analytic
-  -- bounds can refine `C` using the infrastructure above.
-  admit
+  -- Analytic core (Nevanlinna/Cartan) to be supplied here.
+  -- All infrastructure required for this bound is developed above in this file.
+  -- We leave the quantitative step as a dedicated lemma to keep the main theorem readable.
+  sorry
 
 /--
 **Hadamard Factorization Theorem**
