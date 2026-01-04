@@ -7,6 +7,8 @@ This repository is a **monorepo of Lean 4 libraries** dedicated to the formaliza
 *   **Statistical Mechanics**: Spin Glass theory, Guerra's interpolation, and applications to the Fyodorov-Hiary-Keating conjecture for the Riemann zeta function.
 *   **Explicit Formulae**: The Weil explicit formula and the Selberg class (WIP).
 
+This project is built on the Lean Project Template by Pietro Monticone (https://github.com/pitmonticone/LeanProject)
+
 ### Getting started
 
 1. Install Lean 4 (version pinned by `lean-toolchain`)
