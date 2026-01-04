@@ -81,7 +81,7 @@ Formalization of the Sherrington-Kirkpatrick (SK) model and tools for analyzing 
 
 #### 8. Research Formalizations (`Notes/Papers/`)
 Formalization of results from recent research papers, including the connection between the Riemann zeta function and spin glass models (Fyodorov-Keating-Hiary conjectures).
-*   **`CW/`** (Clay Workshop): Formalizations of the **Random Phase Model** for $\zeta(s)$.
+*   **`CW/`** : Formalizations of the **Random Phase Model** for $\zeta(s)$.
     *   **`RandomPhaseModelMoments.lean`**: Analysis of the moments of the random phase model, establishing the connection to log-correlated fields.
     *   **`Lindeberg*.lean`**: Implementation of the Lindeberg exchange method to compare the statistics of the zeta function with the random model.
     *   **`ZetaSpinGlassDefs.lean`**: Definitions bridging number theoretic quantities with spin glass terminology.
