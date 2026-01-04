@@ -6,7 +6,7 @@ import Mathlib.Data.Set.Finite.Lattice
 /-!
 # Potentials and Gibbs specifications (finitary, interacting case)
 
-This file starts *Part 2* of `GibbsMeasure/GeminiDT1.md`: it introduces **interaction potentials**
+This file introduces **interaction potentials**
 and (an approximation to) the **Gibbs specification** obtained by modifying the independent
 specification (`Specification.isssd`) by Boltzmann weights.
 
