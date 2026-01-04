@@ -16,10 +16,10 @@ This repository is a **monorepo of Lean 4 libraries** dedicated to the formaliza
 ### Top-level Lean libraries (root files)
 
 - **`Riemann`** (`Riemann/`, `Riemann.lean`): The main library containing the RH-facing developments (detailed below).
-- **`PrimeNumberTheoremAnd`** (`PrimeNumberTheoremAnd/`, `PrimeNumberTheoremAnd.lean`): A toolkit for the Prime Number Theorem, including Hadamard factorization and complex analysis basics.
+- **`PrimeNumberTheoremAnd`** (`PrimeNumberTheoremAnd/`, `PrimeNumberTheoremAnd.lean`): A toolkit for the Prime Number Theorem.
 - **`StrongPNT`** (`StrongPNT/`, `StrongPNT.lean`): A pipeline for a stronger form of the Prime Number Theorem.
-- **`VD`** (`VD/`, `VD.lean`): Fragments of Value Distribution theory (Nevanlinna theory).
-- **`Carleson`** (`Carleson/`, `Carleson.lean`): Carleson’s theorem development (includes many “ToMathlib” lemmas).
+- **`VD`** (`VD/`, `VD.lean`): Fragments of Value Distribution theory (Nevanlinna theory) being PRd to Mathlib.
+- **`Carleson`** (`Carleson/`, `Carleson.lean`): Carleson’s theorem development.
 - **`PhysLean`** (`PhysLean/`, `PhysLean.lean`): physics-oriented math library (independent of RH work).
 - **`DeRhamCohomology`** (`DeRhamCohomology/`, `DeRhamCohomology.lean`): de Rham cohomology.
 - **`GibbsMeasure`** (`GibbsMeasure/`, `GibbsMeasure.lean`): A general library for Gibbs measures and specification theory on infinite graphs, featuring **extensive novel development**.
