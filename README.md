@@ -1,10 +1,10 @@
 ## Riemann: Lean 4 developments around the Riemann Hypothesis
 
-This repository is a **monorepo of Lean 4 libraries** dedicated to the formalization of analytic number theory and the exploration of approaches to the Riemann Hypothesis (RH). The core library, `Riemann/` (umbrella import `Riemann.lean`), orchestrates the necessary infrastructure for several proof strategies:
+This repository is a **monorepo of Lean 4 libraries** dedicated to the formalization of analytic number theory and the exploration of approaches to the Riemann Hypothesis (RH). The core library, `Riemann/` (umbrella import `Riemann.lean`), provides the initial infrastructure for several potential proof strategies:
 *   **Classical Analytic Number Theory**: Euler products, functional equations, and Hadamard factorization.
 *   **Complex Analysis & Operator Theory**: Hardy spaces, Nevanlinna theory, and de Branges spaces of entire functions.
 *   **Harmonic Analysis**: Carleson measures, Whitney decompositions, and Poisson integrals on the half-plane (the "Boundary Wedge" or "pinch" route).
-*   **Statistical Mechanics**: SpinGlass theory and applications to zeta literature
+*   **Statistical Mechanics**: Spin Glass theory, Guerra's interpolation, and applications to the Fyodorov-Hiary-Keating conjecture for the Riemann zeta function.
 *   **Explicit Formulae**: The Weil explicit formula and the Selberg class (WIP).
 
 ### Getting started
@@ -22,7 +22,7 @@ This repository is a **monorepo of Lean 4 libraries** dedicated to the formaliza
 - **`Carleson`** (`Carleson/`, `Carleson.lean`): Carleson’s theorem development (includes many “ToMathlib” lemmas).
 - **`PhysLean`** (`PhysLean/`, `PhysLean.lean`): physics-oriented math library (independent of RH work).
 - **`DeRhamCohomology`** (`DeRhamCohomology/`, `DeRhamCohomology.lean`): de Rham cohomology.
-- **`GibbsMeasure`** (`GibbsMeasure/`, `GibbsMeasure.lean`): Gibbs measures / specification theory with **extensive novel development**
+- **`GibbsMeasure`** (`GibbsMeasure/`, `GibbsMeasure.lean`): A general library for Gibbs measures and specification theory on infinite graphs, featuring **extensive novel development**.
 - **`Notes/Papers`** (`Notes/`): research papers (by Connes-Consani, Tao, Radziwill-Bourdain, Arguin-Tai, etc) and ongoing research formalizations (see CW for some sorry-free research formalizations work including prerequisite theorems from other authors).
 
 ### The `Riemann/` library (main RH-facing code)
@@ -74,12 +74,17 @@ This layer implements the "Boundary Wedge" strategy (or "pinch route"), a harmon
 *   **`ExplicitFormula.lean`**: The Weil explicit formula relating sums over zeros of an L-function to sums over primes, via a test function.
 
 #### 7. Spin Glass Bridge (`Riemann/PhysLean/SpinGlass/`)
+Formalization of the Sherrington-Kirkpatrick (SK) model and tools for analyzing disordered systems.
 *   **`SKModel.lean`**: The Sherrington-Kirkpatrick model from statistical physics.
-*   **`GaussianIntegrationByParts.lean`**: Gaussian integration by parts (Stein's lemma) in finite-dimensional Hilbert spaces.
+*   **`GuerraBound.lean`**: Formalization of Guerra's interpolation technique, a key tool for bounding the free energy of spin glasses.
+*   **`ComplexIBP.lean`**: Gaussian Integration by Parts (Stein's Lemma) for complex variables.
 
 #### 8. Research Formalizations (`Notes/Papers/`)
 Formalization of results from recent research papers, including the connection between the Riemann zeta function and spin glass models (Fyodorov-Keating-Hiary conjectures).
-*   **`CW/`**: Formalizations linking `GibbsMeasure` theory with number theoretic moments.
+*   **`CW/`** (Clay Workshop): Formalizations of the **Random Phase Model** for $\zeta(s)$.
+    *   **`RandomPhaseModelMoments.lean`**: Analysis of the moments of the random phase model, establishing the connection to log-correlated fields.
+    *   **`Lindeberg*.lean`**: Implementation of the Lindeberg exchange method to compare the statistics of the zeta function with the random model.
+    *   **`ZetaSpinGlassDefs.lean`**: Definitions bridging number theoretic quantities with spin glass terminology.
 
 ### Build configuration
 

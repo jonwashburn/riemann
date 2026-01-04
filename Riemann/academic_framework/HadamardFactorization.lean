@@ -4449,7 +4449,7 @@ theorem zero_free_polynomial_growth_is_exp_poly {H : ℂ → ℂ} {n : ℕ}
 
 /-! ## Part 6: The Hadamard Factorization Theorem -/
 
-/--
+/-
 `hadamard_quotient_growth_bound` is the **main analytic input** needed to finish Hadamard’s
 factorization theorem in this file.
 
@@ -4460,6 +4460,273 @@ It should prove a global growth estimate for the zero-free quotient
 using the Nevanlinna/Cartan/Poisson infrastructure imported above.
 
 -/
+
+/-! ## Helper inequalities: `log⁺` vs `log (1 + ·)` -/
+
+lemma posLog_le_log_one_add {x : ℝ} (hx : 0 ≤ x) :
+    log⁺ x ≤ Real.log (1 + x) := by
+  by_cases hx0 : x = 0
+  · subst hx0
+    simp
+  · have hx_pos : 0 < x := lt_of_le_of_ne hx (Ne.symm hx0)
+    -- `log⁺ x = max 0 (log x)` and `0 ≤ log (1 + x)` and `log x ≤ log (1 + x)`
+    have h0 : 0 ≤ Real.log (1 + x) := by
+      have : (1 : ℝ) ≤ 1 + x := by linarith
+      exact Real.log_nonneg this
+    have hlog : Real.log x ≤ Real.log (1 + x) := by
+      have hx1 : x ≤ 1 + x := by linarith
+      exact Real.log_le_log hx_pos hx1
+    -- `max 0 (log x) ≤ log (1 + x)`
+    simpa [Real.posLog, max_le_iff] using And.intro h0 hlog
+
+lemma posLog_norm_le_log_one_add_norm (z : ℂ) :
+    log⁺ ‖z‖ ≤ Real.log (1 + ‖z‖) :=
+  posLog_le_log_one_add (x := ‖z‖) (norm_nonneg z)
+
+/-! ## Circle-average bounds from `EntireOfFiniteOrder` -/
+
+lemma circleIntegrable_posLog_norm_of_entire {f : ℂ → ℂ} (hf : Differentiable ℂ f) (r : ℝ) :
+    CircleIntegrable (fun z ↦ log⁺ ‖f z‖) 0 r := by
+  -- Use the standard meromorphic integrability lemma (entire ⇒ meromorphic).
+  have hA : AnalyticOnNhd ℂ f (Set.univ : Set ℂ) :=
+    (analyticOnNhd_univ_iff_differentiable).2 hf
+  have hM : MeromorphicOn f (Set.univ : Set ℂ) := hA.meromorphicOn
+  -- Restrict meromorphy to the sphere.
+  have hMsphere : MeromorphicOn f (sphere (0 : ℂ) |r|) := fun z hz => hM z (by simp)
+  simpa using (circleIntegrable_posLog_norm_meromorphicOn (c := (0 : ℂ)) (R := r) hMsphere)
+
+lemma circleAverage_posLog_norm_le_of_entireOfFiniteOrder
+    {ρ : ℝ} {f : ℂ → ℂ} (hf : EntireOfFiniteOrder ρ f) :
+    ∃ C > 0, ∀ r : ℝ, 0 ≤ r →
+      circleAverage (fun z ↦ log⁺ ‖f z‖) 0 r ≤ C * (1 + r) ^ ρ := by
+  rcases hf.growth with ⟨C, hCpos, hC⟩
+  refine ⟨C, hCpos, ?_⟩
+  intro r hr0
+  have h_int : CircleIntegrable (fun z ↦ log⁺ ‖f z‖) 0 r :=
+    circleIntegrable_posLog_norm_of_entire (f := f) hf.entire r
+  -- Pointwise bound on the circle: `log⁺ ‖f z‖ ≤ log (1 + ‖f z‖) ≤ C * (1 + r)^ρ`.
+  have h_pw : ∀ z ∈ sphere (0 : ℂ) |r|, log⁺ ‖f z‖ ≤ C * (1 + r) ^ ρ := by
+    intro z hz
+    have hz_norm : ‖z‖ = r := by
+      have : ‖z‖ = |r| := by simpa [Metric.mem_sphere, dist_zero_right] using hz
+      simpa [abs_of_nonneg hr0] using this
+    calc
+      log⁺ ‖f z‖ ≤ Real.log (1 + ‖f z‖) := posLog_le_log_one_add (x := ‖f z‖) (norm_nonneg _)
+      _ ≤ C * (1 + ‖z‖) ^ ρ := hC z
+      _ = C * (1 + r) ^ ρ := by simp [hz_norm]
+  -- Average is ≤ the constant.
+  exact Real.circleAverage_mono_on_of_le_circle (c := (0 : ℂ)) (R := r) (f := fun z ↦ log⁺ ‖f z‖)
+    h_int h_pw
+
+/-! ## ValueDistribution: basic bounds we can get “for free” from `EntireOfFiniteOrder` -/
+
+open ValueDistribution
+
+lemma characteristic_top_le_of_entireOfFiniteOrder
+    {ρ : ℝ} {f : ℂ → ℂ} (hf : EntireOfFiniteOrder ρ f) :
+    ∃ C > 0, ∀ r : ℝ, 0 ≤ r →
+      characteristic f ⊤ r ≤ C * (1 + r) ^ ρ + (logCounting f ⊤ r) := by
+  rcases circleAverage_posLog_norm_le_of_entireOfFiniteOrder (hf := hf) with ⟨C, hCpos, hC⟩
+  refine ⟨C, hCpos, ?_⟩
+  intro r hr0
+  -- `characteristic = proximity + logCounting`, and `proximity_top = circleAverage log⁺`.
+  have hprox : proximity f ⊤ r ≤ C * (1 + r) ^ ρ := by
+    -- Rewrite `proximity` and apply the circle-average bound from `EntireOfFiniteOrder`.
+    simpa [ValueDistribution.proximity_top] using hC r hr0
+  -- Add `logCounting f ⊤ r` on both sides.
+  have := add_le_add_right hprox (logCounting f ⊤ r)
+  -- Unfold `characteristic`.
+  simpa [ValueDistribution.characteristic, add_assoc, add_comm, add_left_comm] using this
+
+/-! ## Entire functions have no poles: `logCounting f ⊤ = 0` -/
+
+lemma logCounting_top_eq_zero_of_entire {f : ℂ → ℂ} (hf : Differentiable ℂ f) :
+    logCounting f ⊤ = 0 := by
+  -- Entire ⇒ analytic on a neighbourhood of `univ`
+  have hf_an : AnalyticOnNhd ℂ f (Set.univ : Set ℂ) :=
+    (analyticOnNhd_univ_iff_differentiable).2 hf
+  -- Hence the divisor is nonnegative, so the negative part (pole divisor) is zero.
+  have hDnonneg : 0 ≤ MeromorphicOn.divisor f (Set.univ : Set ℂ) :=
+    MeromorphicOn.AnalyticOnNhd.divisor_nonneg hf_an
+  have hneg : (MeromorphicOn.divisor f (Set.univ : Set ℂ))⁻ = 0 := by
+    ext z
+    have hz : (0 : ℤ) ≤ MeromorphicOn.divisor f (Set.univ : Set ℂ) z := hDnonneg z
+    -- `z ↦ divisor f univ z` is pointwise ≥ 0, hence its negative part vanishes.
+    simp [negPart_eq_zero.2 hz]
+  -- Rewrite `logCounting f ⊤` as the logCounting of the pole divisor.
+  simp [ValueDistribution.logCounting_top, hneg]
+
+/-! ## Characteristic bounds for entire functions of finite order -/
+
+lemma characteristic_top_le_of_entireOfFiniteOrder'
+    {ρ : ℝ} {f : ℂ → ℂ} (hf : EntireOfFiniteOrder ρ f) :
+    ∃ C > 0, ∀ r : ℝ, 0 ≤ r → characteristic f ⊤ r ≤ C * (1 + r) ^ ρ := by
+  rcases circleAverage_posLog_norm_le_of_entireOfFiniteOrder (hf := hf) with ⟨C, hCpos, hC⟩
+  refine ⟨C, hCpos, ?_⟩
+  intro r hr0
+  -- For entire `f`, the pole-counting term vanishes.
+  have hlog0 : logCounting f ⊤ r = 0 := by
+    have hfun : logCounting f ⊤ = 0 := logCounting_top_eq_zero_of_entire (f := f) hf.entire
+    simpa using congrArg (fun g : ℝ → ℝ => g r) hfun
+  -- Unfold the characteristic and use the proximity bound.
+  have hprox : proximity f ⊤ r ≤ C * (1 + r) ^ ρ := by
+    simpa [ValueDistribution.proximity_top] using hC r hr0
+  simpa [ValueDistribution.characteristic, hlog0] using (add_le_add_right hprox 0)
+
+lemma characteristic_inv_top (f : ℂ → ℂ) :
+    characteristic (f⁻¹) ⊤ = characteristic f 0 := by
+  ext r
+  simp [ValueDistribution.characteristic, ValueDistribution.proximity_inv, ValueDistribution.logCounting_inv]
+
+lemma characteristic_zero_le_of_entireOfFiniteOrder'
+    {ρ : ℝ} {f : ℂ → ℂ} (hf : EntireOfFiniteOrder ρ f) :
+    ∃ C > 0, ∀ r : ℝ, 0 ≤ r →
+      characteristic f 0 r ≤ C * (1 + r) ^ ρ +
+        max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| := by
+  -- Bound `characteristic f 0` by `characteristic f ⊤` plus an absolute constant,
+  -- using the first part of the First Main Theorem.
+  rcases characteristic_top_le_of_entireOfFiniteOrder' (hf := hf) with ⟨C, hCpos, hC⟩
+  refine ⟨C, hCpos, ?_⟩
+  intro r hr0
+  -- Meromorphy on `univ`
+  have hf_mer : MeromorphicOn f (Set.univ : Set ℂ) :=
+    (analyticOnNhd_univ_iff_differentiable.2 hf.entire).meromorphicOn
+  -- Quantitative First Main Theorem bound:
+  have hdiff :
+      |characteristic f ⊤ r - characteristic (f⁻¹) ⊤ r|
+        ≤ max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| :=
+    ValueDistribution.characteristic_sub_characteristic_inv_le (f := f) (hf := hf_mer) (R := r)
+
+  -- From `|A - B| ≤ K` we get `B ≤ A + K`.
+  have hdiff' :
+      |characteristic (f⁻¹) ⊤ r - characteristic f ⊤ r|
+        ≤ max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| := by
+    simpa [abs_sub_comm] using hdiff
+  have hsub :
+      characteristic (f⁻¹) ⊤ r - characteristic f ⊤ r
+        ≤ max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| :=
+    (le_abs_self _).trans hdiff'
+  have hle_inv :
+      characteristic (f⁻¹) ⊤ r ≤ characteristic f ⊤ r +
+        max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| :=
+    by
+      -- Rearrange `B = (B - A) + A` and use `B - A ≤ K`.
+      have hrew :
+          characteristic (f⁻¹) ⊤ r =
+            (characteristic (f⁻¹) ⊤ r - characteristic f ⊤ r) + characteristic f ⊤ r := by
+        ring
+      calc
+        characteristic (f⁻¹) ⊤ r
+            = (characteristic (f⁻¹) ⊤ r - characteristic f ⊤ r) + characteristic f ⊤ r := hrew
+        _ ≤ max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| + characteristic f ⊤ r := by
+              -- Add `characteristic f ⊤ r` on the right of `hsub`.
+              have h := add_le_add_right hsub (characteristic f ⊤ r)
+              simpa [add_assoc, add_comm, add_left_comm] using h
+        _ = characteristic f ⊤ r + max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| := by
+              ac_rfl
+  have hle0 :
+      characteristic f 0 r ≤ characteristic f ⊤ r +
+        max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| := by
+    -- rewrite `characteristic (f⁻¹) ⊤` as `characteristic f 0`
+    simpa [characteristic_inv_top] using hle_inv
+
+  -- Now use the growth bound for `characteristic f ⊤ r`.
+  have htop : characteristic f ⊤ r ≤ C * (1 + r) ^ ρ := hC r hr0
+  have htop' :
+      characteristic f ⊤ r + max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖|
+        ≤ C * (1 + r) ^ ρ +
+          max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| :=
+    by
+      -- `A ≤ B` implies `A + K ≤ B + K`.
+      simpa [add_assoc, add_comm, add_left_comm] using add_le_add_right htop
+        (max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖|)
+  exact hle0.trans htop'
+
+/-! ## Mean-value bounds: circle averages to pointwise bounds for harmonic functions -/
+
+lemma harmonicOnNhd_le_circleAverage_pos
+    {u : ℂ → ℝ} {c : ℂ} {r : ℝ}
+    (hu : InnerProductSpace.HarmonicOnNhd u (Metric.closedBall c |r|)) :
+    u c ≤ circleAverage (fun z ↦ max (u z) 0) c r := by
+  -- Mean value property: `circleAverage u c r = u c`.
+  have hmean : circleAverage u c r = u c :=
+    HarmonicOnNhd.circleAverage_eq (f := u) (c := c) (R := r) hu
+  -- Pointwise: `u ≤ max u 0`, so the average is monotone.
+  have hci_u : CircleIntegrable u c r := by
+    -- Harmonicity implies `C²` and hence continuity on the sphere.
+    have hcont_sphere : ContinuousOn u (Metric.sphere c |r|) := by
+      intro z hz
+      have hz_cb : z ∈ Metric.closedBall c |r| := sphere_subset_closedBall hz
+      have hz_harm : InnerProductSpace.HarmonicAt u z := hu z hz_cb
+      exact hz_harm.1.continuousAt.continuousWithinAt
+    exact hcont_sphere.circleIntegrable'
+  have hci_pos : CircleIntegrable (fun z ↦ max (u z) 0) c r := by
+    have hcont_sphere_u : ContinuousOn u (Metric.sphere c |r|) := by
+      intro z hz
+      have hz_cb : z ∈ Metric.closedBall c |r| := sphere_subset_closedBall hz
+      have hz_harm : InnerProductSpace.HarmonicAt u z := hu z hz_cb
+      exact hz_harm.1.continuousAt.continuousWithinAt
+    have hpair : ContinuousOn (fun z : ℂ => (u z, (0 : ℝ))) (Metric.sphere c |r|) :=
+      hcont_sphere_u.prodMk (continuousOn_const : ContinuousOn (fun _ : ℂ => (0 : ℝ)) (Metric.sphere c |r|))
+    have hmax : ContinuousOn (fun p : ℝ × ℝ => max p.1 p.2) (Set.univ : Set (ℝ × ℝ)) :=
+      continuous_max.continuousOn
+    have hcont_pos : ContinuousOn (fun z : ℂ => max (u z) 0) (Metric.sphere c |r|) := by
+      -- compose `max` with the continuous pair map `(u,0)`.
+      simpa [Function.comp, Set.MapsTo] using
+        (hmax.comp hpair (by intro z hz; simp))
+    exact hcont_pos.circleIntegrable'
+  have hmono : circleAverage u c r ≤ circleAverage (fun z ↦ max (u z) 0) c r := by
+    apply Real.circleAverage_mono hci_u hci_pos
+    intro z hz
+    exact le_max_left _ _
+  -- Rewrite with the mean value property.
+  simpa [hmean] using hmono
+
+lemma norm_le_exp_circleAverage_posLog_of_entire_nonzero
+    {H : ℂ → ℂ} {c : ℂ} {r : ℝ}
+    (hH_entire : Differentiable ℂ H) (hH_nonzero : ∀ z, H z ≠ 0) :
+    ‖H c‖ ≤ Real.exp (circleAverage (fun z ↦ log⁺ ‖H z‖) c r) := by
+  -- Apply the previous lemma to `u(z) = log ‖H z‖`.
+  let u : ℂ → ℝ := fun z => Real.log ‖H z‖
+  have hu : InnerProductSpace.HarmonicOnNhd u (Metric.closedBall c |r|) := by
+    intro z hz
+    have hAn : AnalyticAt ℂ H z := (hH_entire.analyticAt z)
+    have hHz : H z ≠ 0 := hH_nonzero z
+    -- `log ‖H‖` is harmonic at each point where `H ≠ 0`.
+    exact (hAn.harmonicAt_log_norm hHz)
+  have hle : u c ≤ circleAverage (fun z ↦ max (u z) 0) c r :=
+    harmonicOnNhd_le_circleAverage_pos (u := u) (c := c) (r := r) hu
+  -- Rewrite `max (log‖H‖) 0` as `log⁺ ‖H‖`.
+  have hmax : (fun z ↦ max (u z) 0) = fun z ↦ log⁺ ‖H z‖ := by
+    funext z
+    simp [u, Real.posLog, max_comm]
+  have hle' : Real.log ‖H c‖ ≤ circleAverage (fun z ↦ log⁺ ‖H z‖) c r := by
+    simpa [u, hmax] using hle
+  -- Exponentiate.
+  have hpos : 0 < ‖H c‖ := norm_pos_iff.mpr (hH_nonzero c)
+  exact (Real.log_le_iff_le_exp hpos).1 hle'
+
+/-! ## ZeroData implies nontriviality (used to rule out `order = ⊤` cases) -/
+
+lemma zeroData_not_all_zero {f : ℂ → ℂ} (hz : ZeroData f) : ¬ (∀ z : ℂ, f z = 0) := by
+  intro hzero
+  have hsubset : ({0}ᶜ : Set ℂ) ⊆ Set.range hz.zeros := by
+    intro z hz0
+    have hz' : f z = 0 := hzero z
+    have hzspec := (hz.zero_spec z).1 hz'
+    rcases hzspec with h0 | hnon0
+    · exact False.elim (hz0 h0.1)
+    · exact hnon0.2
+  have hcount_range : (Set.range hz.zeros).Countable := Set.countable_range hz.zeros
+  have hcount_compl : ({0}ᶜ : Set ℂ).Countable := hcount_range.mono hsubset
+  have hcount_univ : (Set.univ : Set ℂ).Countable := by
+    have h0c : ({0} : Set ℂ).Countable := Set.countable_singleton 0
+    have : ({0} ∪ ({0}ᶜ) : Set ℂ).Countable := h0c.union hcount_compl
+    simpa [Set.union_compl_self] using this
+  exact not_countable_complex hcount_univ
+
+-- *Note*: if kept as separate lemma this statement should be strengthened, otherwise filled within
+-- the hadamard factorization proof
 lemma hadamard_quotient_growth_bound
     {ρ : ℝ} {f : ℂ → ℂ} (hf : EntireOfFiniteOrder ρ f) (hz : ZeroData f)
     (m : ℕ) (G F H : ℂ → ℂ)
