@@ -3,9 +3,10 @@ import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.Complex.HasPrimitives
 import Mathlib.Analysis.Complex.UnitDisc.Basic
 import Mathlib.Data.Real.StarOrdered
+import Mathlib.MeasureTheory.Integral.CircleAverage
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.Periodic
 import Mathlib.RingTheory.SimpleRing.Principal
-
+import Riemann.Mathlib.Analysis.Complex.Cartan
 /-!
 # Poisson Kernel for the Unit Disc
 
@@ -36,6 +37,8 @@ open scoped UnitDisc ENNReal NNReal Real
 namespace Complex
 
 /-! ### Poisson kernel infrastructure -/
+
+
 
 /-- The Poisson kernel for the unit disc: P_r(θ) = (1 - r²) / (1 - 2r cos θ + r²).
 This is the fundamental kernel for harmonic function theory on the disc. -/
@@ -605,6 +608,119 @@ lemma poissonIntegral_const {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r < 1) (c : ℝ) (�
   rw [poissonKernel_integral_eq_base θ, poissonKernel_integral_eq_two_pi hr0 hr1]
   -- Now we have (2π)⁻¹ * (c * 2π) = c
   field_simp [Real.pi_ne_zero]
+
+/-- A coarse bound on the Poisson integral in terms of the \(L^1\) norm of the boundary data.
+
+This is the inequality
+\[
+  |P_r u(\theta)| \le \frac{1+r}{1-r}\cdot \frac{1}{2\pi}\int_0^{2\pi} |u(\varphi)|\,d\varphi,
+\]
+using the pointwise bound `poissonKernel_max`.
+
+We state it under a global continuity assumption on `u` to avoid integrability bookkeeping; this is
+exactly what we need when `u` is built from continuous boundary data like `log ‖f‖`.
+-/
+lemma abs_poissonIntegral_le_poissonKernel_max_mul_intervalIntegral_abs
+    {u : ℝ → ℝ} (hu : Continuous u) {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r < 1) (θ : ℝ) :
+    |poissonIntegral u r θ|
+      ≤ ((1 + r) / (1 - r)) * ((2 * π)⁻¹ * ∫ φ in (0 : ℝ)..2 * π, |u φ|) := by
+  -- Pull out the nonnegative scalar `(2π)⁻¹`.
+  have h0 : (0 : ℝ) ≤ 2 * π := by
+    simpa [two_mul, mul_assoc] using (Real.two_pi_pos.le)
+  have hInv : 0 ≤ (2 * π : ℝ)⁻¹ := inv_nonneg.mpr h0
+
+  -- Interval integrability of the relevant integrands follows from continuity.
+  have hInt_uabs : IntervalIntegrable (fun φ : ℝ => |u φ|) volume (0 : ℝ) (2 * π) :=
+    (continuous_abs.comp hu).intervalIntegrable 0 (2 * π)
+  have hInt_pk_uabs :
+      IntervalIntegrable (fun φ : ℝ => poissonKernel r θ φ * |u φ|) volume (0 : ℝ) (2 * π) := by
+    have hcont_pk : Continuous fun φ : ℝ => poissonKernel r θ φ := by
+      -- `poissonKernel` is smooth on `[0, 2π]` for fixed `r,θ` (no singularities for `r < 1`).
+      -- We use the explicit continuity lemma already in this file.
+      have h2 : Continuous (fun p : ℝ × ℝ => poissonKernel r p.1 p.2) :=
+        poissonKernel_continuous (r := r) hr0 hr1
+      -- specialize the continuous function to the slice `(θ, φ)`
+      simpa [Function.uncurry] using (h2.comp (continuous_const.prodMk continuous_id))
+    have hcont : Continuous fun φ : ℝ => poissonKernel r θ φ * |u φ| :=
+      hcont_pk.mul (continuous_abs.comp hu)
+    exact hcont.intervalIntegrable 0 (2 * π)
+  have hInt_pk_u :
+      IntervalIntegrable (fun φ : ℝ => poissonKernel r θ φ * u φ) volume (0 : ℝ) (2 * π) := by
+    have hcont_pk : Continuous fun φ : ℝ => poissonKernel r θ φ := by
+      have h2 : Continuous (fun p : ℝ × ℝ => poissonKernel r p.1 p.2) :=
+        poissonKernel_continuous (r := r) hr0 hr1
+      simpa [Function.uncurry] using (h2.comp (continuous_const.prodMk continuous_id))
+    have hcont : Continuous fun φ : ℝ => poissonKernel r θ φ * u φ := hcont_pk.mul hu
+    exact hcont.intervalIntegrable 0 (2 * π)
+
+  -- Start from the definition and use `|∫ f| ≤ ∫ |f|`.
+  unfold poissonIntegral
+  have h_abs_int :
+      |∫ φ in (0 : ℝ)..2 * π, poissonKernel r θ φ * u φ|
+        ≤ ∫ φ in (0 : ℝ)..2 * π, |poissonKernel r θ φ * u φ| :=
+    intervalIntegral.abs_integral_le_integral_abs (a := (0 : ℝ)) (b := 2 * π) h0
+
+  -- Pointwise: `|P*u| = P*|u|` since `P ≥ 0`.
+  have h_abs_point :
+      (fun φ : ℝ => |poissonKernel r θ φ * u φ|)
+        = fun φ : ℝ => poissonKernel r θ φ * |u φ| := by
+    funext φ
+    have hPk_nonneg : 0 ≤ poissonKernel r θ φ := poissonKernel_nonneg (r := r) hr0 hr1 θ φ
+    simp [abs_mul, abs_of_nonneg hPk_nonneg]
+
+  -- Bound the integral of `P*|u|` by pulling out the sup bound on `P`.
+  have h_pk_le :
+      ∀ φ ∈ Set.Icc (0 : ℝ) (2 * π),
+        poissonKernel r θ φ * |u φ| ≤ ((1 + r) / (1 - r)) * |u φ| := by
+    intro φ hφ
+    have hk : poissonKernel r θ φ ≤ (1 + r) / (1 - r) :=
+      poissonKernel_max (r := r) hr0 hr1 θ φ
+    exact mul_le_mul_of_nonneg_right hk (abs_nonneg _)
+
+  have h_int_le :
+      (∫ φ in (0 : ℝ)..2 * π, poissonKernel r θ φ * |u φ|)
+        ≤ ∫ φ in (0 : ℝ)..2 * π, ((1 + r) / (1 - r)) * |u φ| := by
+    refine intervalIntegral.integral_mono_on h0 hInt_pk_uabs ?_ ?_
+    · -- RHS integrable
+      have hcont : Continuous fun φ : ℝ => ((1 + r) / (1 - r)) * |u φ| :=
+        continuous_const.mul (continuous_abs.comp hu)
+      exact hcont.intervalIntegrable 0 (2 * π)
+    · intro φ hφ
+      exact h_pk_le φ hφ
+
+  -- Put everything together and simplify constants.
+  have h_main :
+      |(2 * π)⁻¹ * ∫ φ in (0 : ℝ)..2 * π, poissonKernel r θ φ * u φ|
+        ≤ (2 * π)⁻¹ * ∫ φ in (0 : ℝ)..2 * π, ((1 + r) / (1 - r)) * |u φ| := by
+    -- multiply the `|∫|` inequality by the nonnegative scalar `(2π)⁻¹`
+    have h_abs_point' : ∀ φ, |poissonKernel r θ φ| * |u φ| = poissonKernel r θ φ * |u φ| := by
+      intro φ
+      have hPk_nonneg : 0 ≤ poissonKernel r θ φ := poissonKernel_nonneg (r := r) hr0 hr1 θ φ
+      simp [abs_of_nonneg hPk_nonneg]
+    have h_abs_int' : |∫ φ in (0 : ℝ)..2 * π, poissonKernel r θ φ * u φ|
+        ≤ ∫ φ in (0 : ℝ)..2 * π, poissonKernel r θ φ * |u φ| := by
+      calc |∫ φ in (0 : ℝ)..2 * π, poissonKernel r θ φ * u φ|
+          ≤ ∫ φ in (0 : ℝ)..2 * π, |poissonKernel r θ φ * u φ| := h_abs_int
+        _ = ∫ φ in (0 : ℝ)..2 * π, |poissonKernel r θ φ| * |u φ| := by simp [abs_mul]
+        _ = ∫ φ in (0 : ℝ)..2 * π, poissonKernel r θ φ * |u φ| := by simp [h_abs_point']
+    have :=
+      mul_le_mul_of_nonneg_left
+        (h_abs_int'.trans h_int_le)
+        hInv
+    -- and rewrite `|a*b|` with `a ≥ 0`
+    have hPi_pos : (0 : ℝ) < π := Real.pi_pos
+    simpa [abs_mul, abs_of_nonneg hInv, abs_of_pos hPi_pos, mul_assoc] using this
+
+  -- Factor the constant `((1+r)/(1-r))` out of the RHS integral.
+  have h_const :
+      (2 * π)⁻¹ * ∫ φ in (0 : ℝ)..2 * π, ((1 + r) / (1 - r)) * |u φ|
+        = ((1 + r) / (1 - r)) * ((2 * π)⁻¹ * ∫ φ in (0 : ℝ)..2 * π, |u φ|) := by
+    -- pull the constant out of the interval integral, then commute scalars
+    rw [intervalIntegral.integral_const_mul]
+    ring
+
+  -- Finish.
+  simpa [h_const, mul_assoc, mul_left_comm, mul_comm] using h_main
 
 end Complex
 

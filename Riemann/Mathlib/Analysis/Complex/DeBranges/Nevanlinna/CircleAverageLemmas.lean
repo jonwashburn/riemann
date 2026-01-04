@@ -37,6 +37,19 @@ lemma posLog_norm_div_le' (a b : ℂ) (_ : b ≠ 0) :
   rw [h1, h2, norm_inv]
   exact posLog_mul
 
+/-- Pointwise inequality without any nonvanishing assumption:
+`log⁺ ‖a / b‖ ≤ log⁺ ‖a‖ + log⁺ ‖b⁻¹‖`.
+
+This extends `posLog_norm_div_le'` by handling the degenerate case `b = 0`
+separately (where the left-hand side is `0`). -/
+lemma posLog_norm_div_le (a b : ℂ) :
+    log⁺ ‖a / b‖ ≤ log⁺ ‖a‖ + log⁺ ‖b⁻¹‖ := by
+  by_cases hb : b = 0
+  · subst hb
+    -- `a / 0 = 0` and `0⁻¹ = 0`, so both `log⁺` terms are nonnegative and LHS is `0`.
+    simp [Real.posLog_nonneg]
+  · exact posLog_norm_div_le' a b hb
+
 /-- For bounded-type functions g = G/H, the circle average of log⁺ ‖g‖
     is bounded by the sum of the averages for G and H⁻¹.
 
@@ -45,8 +58,7 @@ and the fact that circle averages preserve inequalities. -/
 lemma circleAverage_posLog_norm_div_le
     (hf : CircleIntegrable (fun z => log⁺ ‖f z‖) 0 r)
     (hg : CircleIntegrable (fun z => log⁺ ‖(g z)⁻¹‖) 0 r)
-    (hfg : CircleIntegrable (fun z => log⁺ ‖f z / g z‖) 0 r)
-    (hg_ne : ∀ z ∈ sphere (0 : ℂ) |r|, g z ≠ 0) :
+    (hfg : CircleIntegrable (fun z => log⁺ ‖f z / g z‖) 0 r) :
     circleAverage (fun z => log⁺ ‖f z / g z‖) 0 r ≤
       circleAverage (fun z => log⁺ ‖f z‖) 0 r +
       circleAverage (fun z => log⁺ ‖(g z)⁻¹‖) 0 r := by
@@ -71,9 +83,8 @@ lemma circleAverage_posLog_norm_div_le
       log⁺ ‖f (circleMap 0 r θ) / g (circleMap 0 r θ)‖ ≤
       log⁺ ‖f (circleMap 0 r θ)‖ + log⁺ ‖(g (circleMap 0 r θ))⁻¹‖ := by
     intro θ _
-    have h_mem : circleMap 0 r θ ∈ sphere (0 : ℂ) |r| := circleMap_mem_sphere' 0 r θ
-    have hgx : g (circleMap 0 r θ) ≠ 0 := hg_ne _ h_mem
-    exact posLog_norm_div_le' (f (circleMap 0 r θ)) (g (circleMap 0 r θ)) hgx
+    -- Use the pointwise inequality without any nonvanishing hypothesis.
+    exact posLog_norm_div_le (f (circleMap 0 r θ)) (g (circleMap 0 r θ))
   -- Use interval integral monotonicity
   have h_int_mono := intervalIntegral.integral_mono_on_of_le_Ioo
     (by positivity : 0 ≤ 2 * π) hfg (hf.add hg) h_pw

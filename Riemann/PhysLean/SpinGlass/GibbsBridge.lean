@@ -1,9 +1,9 @@
-import GibbsMeasure.Mathlib.MeasureTheory.Measure.GiryMonad
+/-import GibbsMeasure.Mathlib.MeasureTheory.Measure.GiryMonad
 import GibbsMeasure.KolmogorovExtension4.ProductMeasure
 import GibbsMeasure.Prereqs.Filtration.Consistent
 import GibbsMeasure.Prereqs.Juxt
 import GibbsMeasure.Prereqs.Kernel.CondExp
-import PhysLean.SpinGlass.Defs
+import Riemann.PhysLean.SpinGlass.SKModel
 
 /-!
   BRIDGE:
@@ -16,7 +16,7 @@ import PhysLean.SpinGlass.Defs
 noncomputable def skKernel (N : ℕ) (β : ℝ) (energy_map : Config N → EnergySpace N) :
     Kernel (EnergySpace N) (Config N) :=
   Kernel.mk (fun h ↦
-    -- Use your 'gibbs_pmf' logic here to define the measure
+    -- Use our 'gibbs_pmf' logic here to define the measure
     Measure.from_gibbs_pmf (SpinGlass.gibbs_pmf N h)
   ) (sorry)
 
@@ -24,3 +24,5 @@ noncomputable def skKernel (N : ℕ) (β : ℝ) (energy_map : Config N → Energ
     In Vol 2, this is a monadic composition of Kernels. -/
 noncomputable def replicaExpectation (n : ℕ) : Kernel (EnergySpace N) (Fin n → Config N) :=
   (skKernel N β energy_map).prod_n n
+
+-/
