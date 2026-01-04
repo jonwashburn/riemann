@@ -1,9 +1,11 @@
 ## Riemann: Lean 4 developments around the Riemann Hypothesis
 
-This repository is a **monorepo of Lean 4 libraries**. The main RH-facing library is `Riemann/`
-(umbrella import `Riemann.lean`), which develops analytic-number-theory infrastructure
-supporting several proof “routes” (Euler products, Hardy/Nevanlinna/de Branges theory,
-Carleson/Whitney/Poisson machinery, semiclassical symbol calculus, and an explicit-formula track).
+This repository is a **monorepo of Lean 4 libraries** dedicated to the formalization of analytic number theory and the exploration of approaches to the Riemann Hypothesis (RH). The core library, `Riemann/` (umbrella import `Riemann.lean`), orchestrates the necessary infrastructure for several proof strategies:
+*   **Classical Analytic Number Theory**: Euler products, functional equations, and Hadamard factorization.
+*   **Complex Analysis & Operator Theory**: Hardy spaces, Nevanlinna theory, and de Branges spaces of entire functions.
+*   **Harmonic Analysis**: Carleson measures, Whitney decompositions, and Poisson integrals on the half-plane (the "Boundary Wedge" or "pinch" route).
+*   **Semiclassical Analysis**: Symbol calculus and Weyl quantization.
+*   **Explicit Formulae**: The Weil explicit formula and the Selberg class.
 
 ### Getting started
 
@@ -13,10 +15,10 @@ Carleson/Whitney/Poisson machinery, semiclassical symbol calculus, and an explic
 
 ### Top-level Lean libraries (root files)
 
-- **`Riemann`** (`Riemann/`, `Riemann.lean`): main RH development (see below).
-- **`PrimeNumberTheoremAnd`** (`PrimeNumberTheoremAnd/`, `PrimeNumberTheoremAnd.lean`): PNT/Hadamard/complex-analysis toolkit used by some RH routes.
-- **`StrongPNT`** (`StrongPNT/`, `StrongPNT.lean`): Strong PNT pipeline (umbrella imports are partially gated/commented).
-- **`VD`** (`VD/`, `VD.lean`): value-distribution/Nevanlinna fragments.
+- **`Riemann`** (`Riemann/`, `Riemann.lean`): The main library containing the RH-facing developments (detailed below).
+- **`PrimeNumberTheoremAnd`** (`PrimeNumberTheoremAnd/`, `PrimeNumberTheoremAnd.lean`): A toolkit for the Prime Number Theorem, including Hadamard factorization and complex analysis basics.
+- **`StrongPNT`** (`StrongPNT/`, `StrongPNT.lean`): A pipeline for a stronger form of the Prime Number Theorem.
+- **`VD`** (`VD/`, `VD.lean`): Fragments of Value Distribution theory (Nevanlinna theory).
 - **`Carleson`** (`Carleson/`, `Carleson.lean`): Carleson’s theorem development (includes many “ToMathlib” lemmas).
 - **`PhysLean`** (`PhysLean/`, `PhysLean.lean`): physics-oriented math library (independent of RH work).
 - **`DeRhamCohomology`** (`DeRhamCohomology/`, `DeRhamCohomology.lean`): de Rham cohomology.
@@ -25,147 +27,59 @@ Carleson/Whitney/Poisson machinery, semiclassical symbol calculus, and an explic
 
 ### The `Riemann/` library (main RH-facing code)
 
-- **Entry points**
-  - **`Riemann.lean`**: umbrella import for the *maintained* `Riemann.*` modules (it intentionally avoids obvious backups/duplicates).
-  - **`Riemann/Aux.lean`**: small shared lemmas/glue used across the library.
+The `Riemann` library is structured into several layers, ranging from foundational analysis to high-level proof strategies.
 
-- **Academic framework (`Riemann/academic_framework/`)**: “AF” layer (Euler products, functional equations, determinant/outer scaffolding).
-  - **`Compat.lean`**: compatibility/shims for integrating with Mathlib conventions used in this repo.
-  - **`Domain.lean`**: standard domains (notably the half-plane `Re > 1/2`) and helper lemmas.
-  - **`CompletedXi.lean`**: the completed xi function `riemannXi_ext` and its basic analytic interface.
-  - **`CompletedXiSymmetry.lean`**: symmetry/functional-equation packaging for `xi`.
-  - **`ZetaFunctionalEquation.lean`**: functional equation for zeta / completed zeta.
-  - **`ZetaFiniteOrder.lean`**: finite-order statements needed for Hadamard-style arguments.
-  - **`HadamardFactorization.lean`**: Hadamard factorization theorem
-  - **`Theta.lean`**: theta-function infrastructure used in completion/functional equations.
-  - **`DiskHardy.lean`**: Hardy-space-on-the-disc utilities used in analytic factorization.
-  - **`MeasureHelpers.lean`**: small measure-theory helpers used by RS/AF glue.
-  - **`StirlingBounds.lean`** / **`StirlingB.lean`** / **`GammaStirlingAux.lean`**: Stirling/Gamma auxiliary bounds used in archimedean estimates (actual proofs in `Riemann/Mathlib/Analysis/SpecialFunctions/Gamma/StirlingRobbins.lean`).
-  - **`GammaBounds.lean`**: archimedean `Γ_ℝ` bounds (Deligne normalization) and strip-level derivative interfaces.
-  - **`WeierstrassFactorBound.lean`**: quantitative bounds for Weierstrass factors/products.
-  - **Euler products (`Riemann/academic_framework/EulerProduct/`)**
-    - **`PrimeSeries.lean`**: prime-indexed series and convergence tools.
-    - **`K0Bound.lean`**: the `K0` arithmetic-tail bound on strips (as a Prop-level interface).
-  - **Diagonal/Fredholm (`Riemann/academic_framework/DiagonalFredholm/`)**
-    - **`WeierstrassProduct.lean`**: infinite-product / Weierstrass-product helpers (Euler-factor expansions).
-    - **`Determinant.lean`**: the det₂ Euler product (2-modified determinant) and its basic interface.
-    - **`AnalyticInfrastructure.lean`**: analytic lemmas used by the determinant/outer pipeline.
+#### 1. Academic Framework (`Riemann/academic_framework/`)
+This layer establishes the rigorous analytic properties of the Riemann zeta function $\zeta(s)$ and the completed xi function $\xi(s)$.
+*   **`CompletedXi.lean` & `ZetaFunctionalEquation.lean`**: Defines $\xi(s) = s(s-1)\pi^{-s/2}\Gamma(s/2)\zeta(s)$ and proves the functional equation $\xi(s) = \xi(1-s)$.
+*   **`HadamardFactorization.lean`**: A complete formalization of the Hadamard factorization theorem for entire functions of finite order, applied to $\xi(s)$ to relate its zeros to its growth.
+*   **`GammaBounds.lean` & `StirlingBounds.lean`**: Precise estimates for the Gamma function (Stirling's formula) in vertical strips, crucial for controlling the "archimedean factor" of L-functions.
+*   **`EulerProduct/`**: Convergence of Euler products and prime series (`PrimeSeries.lean`), and bounds on the logarithmic derivative of zeta (`K0Bound.lean`).
 
-- **Local Mathlib extensions (`Riemann/Mathlib/`)**: project-local additions organised in a Mathlib-like directory tree (many are intended for eventual upstreaming to Mathlib).
-  - **Top-level files**
-    - **`Riemann/Mathlib/ArctanTwoGtOnePointOne.lean`**: a concrete numerical inequality `(1.1 : ℝ) < Real.arctan 2`.
-  - **Analysis (`Riemann/Mathlib/Analysis/`)**
-    - **Analytic**: `Analytic/PowerSeriesCoefficients.lean` — Taylor coefficient/iterated-derivative lemmas and identity-principle helpers.
-    - **Calculus**: `Calculus/TaylorIntegral.lean` — Taylor’s theorem with an integral remainder (multivariate).
-    - **Complex analysis (`Analysis/Complex/`)**
-      - **`SchurFunction.lean`**: `IsSchurOn`, Cayley transform, and “pinching to 1” via maximum modulus.
-      - **`ConjugateReflection.lean`**: conjugate reflection `F#(z) = star (F (star z))` and its algebra/topology/analytic API.
-      - **`Herglotz.lean`**: Herglotz/Poisson kernels on the unit disc and the associated integral transform.
-      - **`TaxicabPrimitive.lean`**: primitives on open sets via “taxicab” (axis-aligned) integrals (ported from `StrongPNT`).
-      - **`HolomorphicLog.lean`**: holomorphic logarithms on convex/rectangularly convex domains (built on `TaxicabPrimitive`).
-      - **Hardy spaces (`HardySpace.lean` and `HardySpace/…`)**: Hᵖ on the disc + boundary/radial limits and factorization tooling.
-        - `HardySpace/Basic.lean`: definitions (Hᵖ norms via circle averages/sups).
-        - `HardySpace/PoissonKernel.lean`: Poisson kernel on the disc and integral theorem.
-        - `HardySpace/JensenFormula.lean`, `HardySpace/JensenDivisor.lean`: Jensen formula/divisor bookkeeping.
-        - `HardySpace/ZeroEnumeration.lean`, `HardySpace/BlaschkeProduct.lean`: zero sets and Blaschke products.
-        - `HardySpace/FatouTheorem.lean`, `HardySpace/LogIntegrability.lean`: boundary limits and log-integrability.
-        - `HardySpace/CanonicalFactorization.lean`, `HardySpace/WeierstrassProduct.lean`: factorization/product layer.
-        - `HardySpace/ExpLogBounds.lean`, `HardySpace/PowerSeriesBounds.lean`, `HardySpace/Infrastructure.lean`, `HardySpace/NevanlinnaConnection.lean`: supporting estimates and bridges.
-        - `HardySpace'.lean` is a snapshot/variant; prefer `HardySpace.lean`.
-      - **de Branges + Nevanlinna (`DeBranges/…`)**: de Branges spaces and the associated Nevanlinna interface layer.
-        - `DeBranges/Basic.lean`, `DeBranges/Space.lean`, `DeBranges/Zeros.lean`, `DeBranges/Measure.lean`.
-        - `DeBranges/Nevanlinna.lean`, `DeBranges/NevanlinnaClosure.lean`, `DeBranges/NevanlinnaGrowth.lean`, plus sublemmas in `DeBranges/Nevanlinna/*`.
-        - `DeBranges/ReproducingKernel/Defs.lean`, `DeBranges/ReproducingKernel/Basic.lean` .
-      - **Value distribution**: `Cartan.lean` proves Cartan’s formula for meromorphic functions (circle averages / counting functions).
-      - **Other**: `Sonin/Defs.lean` (Sonin space definitions), `Herglotz'.lean` (Connes-Van Suilejkon).
-    - **Harmonic analysis (`Analysis/Harmonic/`)**
-      - `AtomicDecomposition.lean`: H¹ atoms + Whitney-adapted atoms (used for Carleson/BMO bridges).
-      - `BMO/Defs.lean`, `BMO/JohnNirenberg.lean`, `BMO/Lp.lean`, `BMO/WeakType.lean`, `BMO/Lemmas.lean` (+ umbrella `BMO.lean`, helper `BMOAux.lean`, and snapshot `BMO/Backup.lean`).
-      - `GoodLambda.lean`: import hub for good-λ / CZ / Carleson-measure tooling (no new definitions).
-    - **Special functions (`Analysis/SpecialFunctions/`)**
-      - **Gaussian**: `Gaussian/GaussianIntegral.lean` — Gaussian integral computations used in archimedean estimates.
-      - **Gamma** (`Gamma/…`): Binet/Stirling infrastructure and quantitative bounds for Γ and Γ-related transforms.
-        - `BinetKernel.lean`, `BinetFormula.lean`, `BinetIntegralFormula.lean`: Binet kernel + Binet formula for `log Γ`.
-        - `StirlingRobbins.lean`, `StirlingAsymptotic.lean`: Robbins/Stirling asymptotics with explicit errors.
-        - `GammaUniformBounds.lean`: uniform convergence bounds for Euler’s `GammaSeq` on right half-planes.
-        - `StripBounds.lean`, `LargeImaginaryBound.lean`, `LargeImaginaryBoundStirling.lean`, `GammaLogDeriv.lean`, `GammaProductBound.lean`: region-specific bounds and log-derivative/product tools.
-        - `GammaSlitPlaneAux.lean`: constructs a holomorphic logarithm of Γ on the right half-plane (and corrects older “slit plane image” misconceptions).
-  - **Linear algebra (`Riemann/Mathlib/LinearAlgebra/Matrix/`)**
-    - `Toeplitz.lean`: Toeplitz matrices (diagonal-offset definition) and basic closure properties.
-    - `ToeplitzPosDef.lean`: Hermitian/PosSemidef/PosDef API for Toeplitz matrices.
-  - **Measure theory (`Riemann/Mathlib/MeasureTheory/`)**
-    - **Carleson measures (core)**: `Measure/Carleson/Defs.lean` defines Carleson families/tents and the Carleson norm.
-    - **Carleson measures (hub)**: `Integral/Carleson.lean` is the entry point; older monolithic work lives in `Integral/Carleson/Backup.lean`.
-    - **Covering/CZ**: `Covering/CalderonZygmund.lean` and `Covering/JohnNirenberg.lean` collect CZ/BMO auxiliary lemmas (building on the `Carleson` library).
-    - **Maximal function**: `Function/MaximalFunction.lean` defines the Hardy–Littlewood maximal function and weak/strong type bounds on doubling spaces.
-    - **Bounded support & Lᵖ utilities**: `Function/BoundedSupport.lean`, `Function/LpMono.lean`.
-    - **Explicit integrals**: `Integral/RationalIntegrals.lean` and `Integral/CauchyProduct.lean` compute key rational/Cauchy-type integrals; `Integral/PoissonParameter.lean` packages parameter-dependent Poisson integrals.
-    - **Auxiliary integral lemmas**: `Integral/Auxiliary.lean`, `Integral/AverageAux.lean`.
-    - **Parametric dominated convergence**: `ParametricDominatedConvergence.lean`.
-    - **Forms/Stokes wrappers**: `DiffForm.lean`, `Stokes.lean`, `CoordFormBox.lean` (thin wrappers around Mathlib’s divergence theorem); `SingularChain.lean` currently just re-exports Mathlib machinery.
-  - **Number theory (`Riemann/Mathlib/NumberTheory/`)**
-    - `LSeries/RiemannZeta.lean`: local wrapper intended to bridge Mathlib’s `riemannZeta` to this repo’s RH-facing analytic infrastructure (currently evolving).
-  - **Probability (`Riemann/Mathlib/Probability/Distributions/`)**
-    - `GaussianIntegrationByParts.lean`: Stein’s lemma / Gaussian integration by parts via exponential tilt (1D, covariant).
-    - `Gaussian_IBP_Hilbert.lean`: finite-dimensional Hilbert-space Gaussian IBP (covariant form) built on the 1D version.
-  - **Topology (`Riemann/Mathlib/Topology/FilterNhdsWithin.lean`)**
-    - `eventually_nhdsWithin` lemmas and a discrete-topology characterization for subtypes.
+#### 2. Certificates (`Riemann/Cert/`)
+This layer bridges the gap between analytic estimates and formal verification, packaging bounds as "certificates" for use in the Riemann-Siegel (RS) strategy.
+*   **`K0PPlus.lean` & `KxiPPlus.lean`**: Prop-level interfaces for constants related to the distribution of zeros ($K_0, K_\xi$).
+*   **`FactorsWitness.lean`**: Data structures witnessing the existence of factors in Hadamard products, facilitating explicit computations.
 
-- **Certificates (`Riemann/Cert/`)**: “data + bounds” packaged as propositions for the RS layer.
-  - **`K0PPlus.lean`**: exposes availability of the `K0` bound from the AF layer.
-  - **`KxiPPlus.lean`**: Prop-level interface for a `Kξ` Carleson-box constant.
-  - **`KxiWhitney.lean`**: basic Whitney interval/type infrastructure used throughout RS.
-  - **`KxiWhitney_RvM.lean`**: statement-level route from short-interval zero counts (RvM/VK shape) to a `Kξ` bound.
-  - **`FactorsWitness.lean`**: witness data used by factorization-style theorems.
+#### 3. Local Mathlib Extensions (`Riemann/Mathlib/`)
+A comprehensive collection of general-purpose mathematical results developed for this project, filling gaps in Mathlib.
+*   **Complex Analysis (`Analysis/Complex/`)**:
+    *   **Hardy Spaces (`HardySpace.lean`)**: Theory of $H^p$ spaces on the unit disc, including boundary limits (Fatou's theorem), inner-outer factorization, and the Poisson integral formula.
+    *   **de Branges Spaces (`DeBranges/`)**: Hilbert spaces of entire functions, reproducing kernels, and their connection to Nevanlinna theory.
+    *   **Nevanlinna Theory**: The First Main Theorem, characteristic functions, and proximity functions (`Cartan.lean`, `Nevanlinna.lean`).
+    *   **Herglotz Representation**: Representation of holomorphic functions with positive real part (`Herglotz.lean`).
+*   **Harmonic Analysis (`Analysis/Harmonic/`)**:
+    *   **BMO**: Bounded Mean Oscillation spaces and the John-Nirenberg inequality (`BMO/`).
+    *   **Carleson Measures**: Definition and properties of Carleson measures (`Measure/Carleson/`), essential for embedding theorems.
+*   **Special Functions**: Further development of the Gamma function and Gaussian integrals.
+*   **Operator Theory**: Fredholm operators and determinants (`Analysis/Normed/Operator/Fredholm/`).
 
-- **RS layer (`Riemann/RS/`)**: half-plane Poisson/Whitney/Carleson machinery and glue for the “pinch route”.
-  - **`SchurGlobalization.lean`**: RS-specialized Schur-function interface (with notes pointing to consolidated Mathlib-style lemmas).
-  - **`Det2Outer.lean`**: RS alias `det2` and Prop-level “outer normalizer” interface on `Ω = {Re > 1/2}`.
-  - **`HalfPlaneOuterV2.lean`**: outer-function interface on the half-plane (boundary parametrization, modulus matching, Poisson transport).
-  - **`Cayley.lean`**: Cayley transform wrapper building a Schur function `Θ` from a field `J`.
-  - **`PoissonKernelAnalysis.lean`**: minimal Poisson-kernel helper lemmas used by dyadic bounds.
-  - **`PoissonKernelDyadic.lean`**: dyadic separation lemmas and Schur-type bounds for Poisson kernels.
-  - **`PoissonPlateau.lean`**: a concrete plateau/window with a uniform Poisson-smoothing lower bound.
-  - **`WhitneyGeometryDefs.lean`**: Whitney boxes/tents definitions in the half-plane and associated “box energy”.
-  - **`WhitneyAeCore.lean`**: `(P+)` predicate and an a.e. boundary-positivity façade shared across RS modules.
-  - **`CRGreenWhitneyB.lean`**: Prop-level CR–Green pairing interface (numeric Poisson–gradient hypothesis → pairing control).
-  - **`CRGreenOuter.lean`**: CR–Green outer “exports” and the analytic steps used to turn identities into bounds.
-  - **`GField.lean`**: defines the reciprocal field `G := (O·ξ_ext)/det₂` and its off-zero domain on `Ω`.
-  - **`WedgeBasics.lean`**: WhitneyInterval-flavoured wrappers around dyadic separation lemmas.
-  - **`PaperWindow.lean`**: a lightweight, axiom-free definition of the “paper window” `ψ`.
-  - **`AdmissibleWindows.lean`**: Prop-level definition of admissible windows (with “holes”) used in RS bookkeeping.
-  - **`BoundaryAi.lean`**: RS-level wrappers around the AF boundary Poisson approximate-identity (AI) interface.
-  - **`OffZerosBridge.lean`**: non-circular “off-zeros” bridge wiring `Θ/N` style identities without assuming zeta nonvanishing on `Ω`.
-  - **`VKStandalone.lean`**: algebraic scaffolding for VK-style zero-density hypotheses and locked constants.
-  - **`Audit.lean`**: running audit/status note of unresolved analytic placeholders in the boundary-wedge pipeline.
-  - **BWP submodule (`Riemann/RS/BWP/`)**: boundary-wedge “proof infrastructure”.
-    - **`Constants.lean`**: paper constants and the arithmetic verification `Υ < 1/2`.
-    - **`Definitions.lean`**: basic definitions used throughout the boundary-wedge development.
-    - **`Laplacian.lean`**: Laplacian/Hessian/harmonic-function API on finite-dimensional real inner product spaces.
-    - **`CRCalculus.lean`**: CR-calculus lemmas (mixed partials, Fréchet-derivative form of CR identities).
-    - **`DiagonalBounds.lean`**: diagonal/Schur-row control Green Identity theorem.
+#### 4. RS Layer (`Riemann/RS/`)
+This layer implements the "Boundary Wedge" strategy (or "pinch route"), a harmonic-analytic approach to RH. It focuses on controlling the zeta function on the critical strip using boundary values and geometry.
+*   **`Det2Outer.lean` & `HalfPlaneOuterV2.lean`**: Construction of outer functions on the half-plane to normalize the growth of zeta.
+*   **`WhitneyGeometryDefs.lean`**: Whitney decomposition of the half-plane, used to discretize estimates.
+*   **`PoissonKernelDyadic.lean`**: Dyadic estimates for the Poisson kernel.
+*   **`CRGreenOuter.lean`**: Application of Green's theorem (Cauchy-Riemann identities) to relate bulk integrals to boundary terms.
+*   **`BWP/` (Boundary Wedge Proof)**: Infrastructure for the "boundary wedge" argument, including Laplacian calculations (`Laplacian.lean`) and CR calculus (`CRCalculus.lean`).
 
-- **Semiclassical (`Riemann/Semiclassical/`)**: semiclassical symbol calculus (partial formalization of a research paper).
-  - **`Defs.lean`**: defines the λ-dependent symbol class `SmLambda` (Japanese bracket, mixed derivatives, closure under multiplication).
-  - **`TwoChart_Sm.lean`**: additional symbol-class API and bookkeeping layers.
-  - **`TwoChart_SmLambda.md`**: documentation for the `SmLambda` layer and how the paper’s hypotheses are encoded.
-  - **`TwoChart_Pn.lean`**: Weyl/Moyal bidifferential coefficients `Pₙ` and closure `Pₙ : S^{m₁}×S^{m₂} → S^{m₁+m₂−n}`.
-  - **`TwoChart_Parametrix*.lean`**: parametrix recursion, truncation, cancellation, remainder-symbol bounds, and smoothness upgrades.
-  - **`TwoChart_NeumannSeries.lean`**: Neumann-series packaging used in invertibility steps.
-  - **`TwoChart_Weyl*.lean`**: semiclassical Weyl kernel/operator wrappers and kernel estimates (Schur-test-friendly setup).
+#### 5. Semiclassical Analysis (`Riemann/Semiclassical/`)
+*(Experimental)* Formalization of semiclassical symbol calculus, targeting spectral interpretations of the Riemann zeros.
+*   **`Defs.lean`**: Definition of $\lambda$-dependent symbol classes $S^m_\lambda$.
+*   **`TwoChart_Weyl*.lean`**: Weyl quantization and operator composition in a two-chart setting.
+*   **`TwoChart_Parametrix*.lean`**: Construction of parametrices (approximate inverses) for semiclassical operators, including remainder bounds.
 
-- **Weil explicit-formula track (`Riemann/Weil/`)**: Selberg-class scaffolding and explicit-formula definitions.
-  - **`SelbergClass.lean`**: definition of the Selberg class (Dirichlet coefficients, continuation, FE, Euler product).
-  - **`ExplicitFormula.lean`**: definitions for a Weil test function and the “spectral vs geometric side” structure.
-  - **`ResidueSum.lean`**: residue-theorem/rectangle-integral infrastructure for summing over zeros.
-  - **Notes**: `ExplicitFormula_new.lean` and `SelbergClass'.lean` are **experimental variants**.
+#### 6. Weil Explicit Formula (`Riemann/Weil/`)
+*(Experimental)*
+*   **`SelbergClass.lean`**: Definition of the Selberg class of L-functions (Dirichlet coefficients, analytic continuation, functional equation, Euler product).
+*   **`ExplicitFormula.lean`**: The Weil explicit formula relating sums over zeros of an L-function to sums over primes, via a test function.
 
-- **Spin-glass bridge (`Riemann/PhysLean/SpinGlass/`)**: SK model and Gaussian IBP infrastructure (used for probabilistic/physics-flavoured routes), following Talagrand ref book.
-  - **`Defs.lean`**: core SK configuration/energy space and thermodynamic quantities (`Z`, free energy, overlaps).
-  - **`SKModel.lean`**: random Hamiltonians/disorder structures compatible with Hilbert-space Gaussian IBP.
-  - (Other files in this folder are documentation (`*.md`) and additional lemmas; see the directory.)
+#### 7. Spin Glass Bridge (`Riemann/PhysLean/SpinGlass/`)
+*   **`SKModel.lean`**: The Sherrington-Kirkpatrick model from statistical physics.
+*   **`GaussianIntegrationByParts.lean`**: Gaussian integration by parts (Stein's lemma) in finite-dimensional Hilbert spaces.
 
-
+#### 8. Research Formalizations (`Notes/Papers/`)
+Formalization of results from recent research papers, including the connection between the Riemann zeta function and spin glass models (Fyodorov-Keating-Hiary conjectures).
+*   **`CW/`**: Formalizations related to the Clay Workshop, linking `GibbsMeasure` theory with number theoretic moments.
 
 ### Build configuration
 
