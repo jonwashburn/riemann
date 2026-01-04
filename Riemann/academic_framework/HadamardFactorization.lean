@@ -4725,8 +4725,7 @@ lemma zeroData_not_all_zero {f : ℂ → ℂ} (hz : ZeroData f) : ¬ (∀ z : �
     simpa [Set.union_compl_self] using this
   exact not_countable_complex hcount_univ
 
--- *Note*: if kept as separate lemma this statement should be strengthened, otherwise filled within
--- the hadamard factorization proof
+
 lemma hadamard_quotient_growth_bound
     {ρ : ℝ} {f : ℂ → ℂ} (hf : EntireOfFiniteOrder ρ f) (hz : ZeroData f)
     (m : ℕ) (G F H : ℂ → ℂ)
@@ -5268,7 +5267,7 @@ theorem hadamard_factorization
     --
     -- TODO (next): replace `hadamard_quotient_growth_bound` by an actual Nevanlinna/Cartan proof.
     exact hadamard_quotient_growth_bound (hf := hf) (hz := hz) (m := m) (G := G) (F := F)
-      (H := H) hH_entire hH_nonzero hH_eq
+      (H := H) hH_entire hH_nonzero hH_eq (by rfl)
 
   -- 7) Conclude `H = exp(P)` for a polynomial `P` of degree ≤ ⌈ρ⌉.
   rcases zero_free_polynomial_growth_is_exp_poly (H := H) (n := Nat.ceil ρ)
