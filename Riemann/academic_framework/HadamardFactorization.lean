@@ -4827,7 +4827,7 @@ lemma zeroData_not_all_zero {f : ℂ → ℂ} (hz : ZeroData f) : ¬ (∀ z : �
 
 lemma hadamard_quotient_growth_bound
     {ρ : ℝ} {f : ℂ → ℂ} (hf : EntireOfFiniteOrder ρ f) (hz : ZeroData f)
-    (m : ℕ) (G F H : ℂ → ℂ)
+    (m : ℕ) (hσ : ρ < (m + 1 : ℝ)) (G F H : ℂ → ℂ)
     (hH_entire : Differentiable ℂ H)
     (hH_nonzero : ∀ z : ℂ, H z ≠ 0)
     (hH_eq : ∀ z : ℂ, F z ≠ 0 → H z = f z / F z)
@@ -5345,7 +5345,7 @@ theorem hadamard_factorization
     -- remainder of the factorization proof (the algebraic assembly) stays executable.
     --
     -- TODO (next): replace `hadamard_quotient_growth_bound` by an actual Nevanlinna/Cartan proof.
-    exact hadamard_quotient_growth_bound (hf := hf) (hz := hz) (m := m) (G := G) (F := F)
+    exact hadamard_quotient_growth_bound (hf := hf) (hz := hz) (m := m) (hσ := hσ) (G := G) (F := F)
       (H := H) hH_entire hH_nonzero hH_eq (by rfl)
 
   -- 7) Conclude `H = exp(P)` for a polynomial `P` of degree ≤ ⌈ρ⌉.
