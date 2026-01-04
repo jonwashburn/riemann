@@ -30,14 +30,14 @@ This repository is a **monorepo of Lean 4 libraries** dedicated to the formaliza
 The `Riemann` library is structured into several layers, ranging from foundational analysis to high-level proof strategies.
 
 #### 1. Academic Framework (`Riemann/academic_framework/`)
-This layer establishes the rigorous analytic properties of the Riemann zeta function $\zeta(s)$ and the completed xi function $\xi(s)$.
+This layer establishes the analytic properties of the Riemann zeta function $\zeta(s)$ and the completed xi function $\xi(s)$.
 *   **`CompletedXi.lean` & `ZetaFunctionalEquation.lean`**: Defines $\xi(s) = s(s-1)\pi^{-s/2}\Gamma(s/2)\zeta(s)$ and proves the functional equation $\xi(s) = \xi(1-s)$.
 *   **`HadamardFactorization.lean`**: A complete formalization of the Hadamard factorization theorem for entire functions of finite order, applied to $\xi(s)$ to relate its zeros to its growth.
-*   **`GammaBounds.lean` & `StirlingBounds.lean`**: Precise estimates for the Gamma function (Stirling's formula) in vertical strips, crucial for controlling the "archimedean factor" of L-functions.
+*   **`GammaBounds.lean` & `StirlingBounds.lean`**: Precise estimates for the Gamma function in vertical strips, crucial for controlling the "archimedean factor" of L-functions.
 *   **`EulerProduct/`**: Convergence of Euler products and prime series (`PrimeSeries.lean`), and bounds on the logarithmic derivative of zeta (`K0Bound.lean`).
 
 #### 2. Certificates (`Riemann/Cert/`)
-This layer bridges the gap between analytic estimates and formal verification, packaging bounds as "certificates" for use in the Riemann-Siegel (RS) strategy.
+This layer bridges the gap between analytic estimates and formal verification, packaging bounds as "certificates" for use in the (RS) exploratory strategy.
 *   **`K0PPlus.lean` & `KxiPPlus.lean`**: Prop-level interfaces for constants related to the distribution of zeros ($K_0, K_\xi$).
 *   **`FactorsWitness.lean`**: Data structures witnessing the existence of factors in Hadamard products, facilitating explicit computations.
 
