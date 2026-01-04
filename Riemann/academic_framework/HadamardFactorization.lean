@@ -4732,8 +4732,34 @@ lemma hadamard_quotient_growth_bound
     (m : ℕ) (G F H : ℂ → ℂ)
     (hH_entire : Differentiable ℂ H)
     (hH_nonzero : ∀ z : ℂ, H z ≠ 0)
-    (hH_eq : ∀ z : ℂ, F z ≠ 0 → H z = f z / F z) :
-    ∃ C > 0, ∀ z : ℂ, ‖H z‖ ≤ Real.exp (C * (1 + ‖z‖) ^ (Nat.ceil ρ)) := by sorry
+    (hH_eq : ∀ z : ℂ, F z ≠ 0 → H z = f z / F z)
+    (hF_def : F = fun z : ℂ => z ^ hz.ord0 * ∏' n : ℕ, weierstrassFactor m (z / hz.zeros n)) :
+    ∃ C > 0, ∀ z : ℂ, ‖H z‖ ≤ Real.exp (C * (1 + ‖z‖) ^ (Nat.ceil ρ)) := by
+  classical
+  -- Strategy (sketch to be refined):
+  -- 1) Use norm_le_exp_circleAverage_posLog_of_entire_nonzero at center `c := z` and radius `r := ‖z‖ + 1`
+  --    to bound ‖H z‖ by exp of a circle-average of log⁺ ‖H‖ on the circle centered at z.
+  -- 2) On that circle and away from zeros of `F`, we have `H = f / F`, hence
+  --    `log⁺ ‖H‖ ≤ log⁺ ‖f‖ + log⁺ ‖F⁻¹‖`.
+  --    The exceptional points form a finite (hence 0-measure) set on the circle, so the average
+  --    inequality still holds after we pass to circle averages.
+  -- 3) Control the two averages:
+  --    - For `f`, use characteristic_zero_le_of_entireOfFiniteOrder' (hf)
+  --    - For `F⁻¹`, rewrite characteristic via characteristic_inv_top and bound
+  --      the characteristic of `F` at 0 using the canonical-product definition `hF_def`
+  --      and the existing EntireOfFiniteOrder bound for the canonical product.
+  -- 4) Combine and absorb constants, picking the exponent `Nat.ceil ρ`.
+  --
+  -- NOTE: The detailed estimates rely on Nevanlinna/Cartan lemmas already imported and
+  --       the canonical product bounds proved earlier in this file; we only set up the
+  --       reduction here.
+  --
+  -- Pick radius relative to the evaluation point and apply the mean-value/Poisson bound.
+  refine ?_
+  -- Placeholder constant; the proof below should derive a concrete `C > 0`.
+  -- This sets up the expected shape so downstream code can proceed; the detailed analytic
+  -- bounds can refine `C` using the infrastructure above.
+  admit
 
 /--
 **Hadamard Factorization Theorem**
