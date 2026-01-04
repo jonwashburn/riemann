@@ -14,6 +14,8 @@ import Mathlib.Topology.Algebra.InfiniteSum.UniformOn
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.HarmonicBounds
 import Riemann.Mathlib.Analysis.Complex.HardySpace.PoissonKernel
 import Riemann.Mathlib.Analysis.Complex.Cartan
+import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.CircleAverageLemmas
+
 /-!
 # Hadamard Factorization for Entire Functions of Finite Order
 
@@ -406,7 +408,7 @@ lemma analyticOrderAt_one_sub :
     analyticOrderAt (fun z : ℂ => (1 : ℂ) - z) (1 : ℂ)
         = analyticOrderAt (fun z : ℂ => -(z - (1 : ℂ))) (1 : ℂ) := by
             -- Avoid `simp` recursion depth issues by rewriting directly.
-            simpa using congrArg (fun f : ℂ → ℂ => analyticOrderAt f (1 : ℂ)) hrewrite
+            simp
     _ = analyticOrderAt (fun z : ℂ => z - (1 : ℂ)) (1 : ℂ) := by
           -- `analyticOrderAt` is invariant under multiplication by a nonzero constant.
           have hconst_an : AnalyticAt ℂ (fun _ : ℂ => (-1 : ℂ)) (1 : ℂ) := analyticAt_const
@@ -428,14 +430,14 @@ lemma analyticOrderAt_one_sub :
           calc
             analyticOrderAt (fun z : ℂ => -(z - (1 : ℂ))) (1 : ℂ)
                 = analyticOrderAt (fun z : ℂ => (-1 : ℂ) * (z - (1 : ℂ))) (1 : ℂ) := by
-                    simpa [hrewrite]
+                    simp
             _ = analyticOrderAt (fun z : ℂ => z - (1 : ℂ)) (1 : ℂ) := by
                   calc
                     analyticOrderAt (fun z : ℂ => (-1 : ℂ) * (z - (1 : ℂ))) (1 : ℂ)
                         = analyticOrderAt (fun _ : ℂ => (-1 : ℂ)) (1 : ℂ)
                           + analyticOrderAt (fun z : ℂ => z - (1 : ℂ)) (1 : ℂ) := hmul
                     _ = analyticOrderAt (fun z : ℂ => z - (1 : ℂ)) (1 : ℂ) := by
-                          simpa [hconst_order]
+                          simp [hconst_order]
     _ = (1 : ℕ∞) := hsub
 
 /-- The Weierstrass factor has a simple zero at `z = 1`. -/
@@ -457,7 +459,7 @@ lemma analyticOrderAt_weierstrassFactor_one (m : ℕ) :
     (differentiable_exp.comp hsum_diff).analyticAt 1
   have hexp_ne : (exp (partialLogSum m (1 : ℂ))) ≠ 0 := Complex.exp_ne_zero _
   have hexp_order : analyticOrderAt (fun z : ℂ => exp (partialLogSum m z)) (1 : ℂ) = 0 :=
-    (hexp_an.analyticOrderAt_eq_zero).2 (by simpa using hexp_ne)
+    (hexp_an.analyticOrderAt_eq_zero).2 (by simp)
   -- Combine with multiplicativity of `analyticOrderAt`.
   have hmul :
       analyticOrderAt (fun z : ℂ => ((1 : ℂ) - z) * exp (partialLogSum m z)) (1 : ℂ)
@@ -495,7 +497,7 @@ lemma analyticOrderAt_weierstrassFactor_div_self {m : ℕ} {a : ℂ} (ha : a ≠
   have hexp_an : AnalyticAt ℂ (fun z : ℂ => exp (partialLogSum m (z / a))) a :=
     (differentiable_exp.comp hsum_diff).analyticAt a
   have hexp_order : analyticOrderAt (fun z : ℂ => exp (partialLogSum m (z / a))) a = 0 :=
-    (hexp_an.analyticOrderAt_eq_zero).2 (by simpa using (Complex.exp_ne_zero _))
+    (hexp_an.analyticOrderAt_eq_zero).2 (by simp)
 
   -- Linear factor: `(1 - z/a) = (-a⁻¹) * (z - a)`.
   have hlin_order : analyticOrderAt (fun z : ℂ => (1 : ℂ) - (z / a)) a = (1 : ℕ∞) := by
@@ -522,7 +524,7 @@ lemma analyticOrderAt_weierstrassFactor_div_self {m : ℕ} {a : ℂ} (ha : a ≠
     calc
       analyticOrderAt (fun z : ℂ => (1 : ℂ) - (z / a)) a
           = analyticOrderAt (fun z : ℂ => (-(a⁻¹ : ℂ)) * (z - a)) a := by
-              simpa [hrewrite]
+              simp [hrewrite]
       _ = analyticOrderAt (fun _ : ℂ => (-(a⁻¹ : ℂ))) a + analyticOrderAt (fun z : ℂ => z - a) a := hmul
       _ = (1 : ℕ∞) := by simp [hconst_order, hsub_order]
 
@@ -1376,7 +1378,7 @@ lemma summable_of_eq_on_compl_finset {f g : ℕ → ℂ} (s : Finset ℕ)
   -- `g = f + h`.
   have hg : g = fun n => f n + h n := by
     funext n
-    simp [h, sub_eq_add_neg, add_assoc, add_left_comm, add_comm]
+    simp [h, sub_eq_add_neg]
   -- Close under addition.
   simpa [hg] using hf.add hs
 
@@ -4447,7 +4449,7 @@ theorem zero_free_polynomial_growth_is_exp_poly {H : ℂ → ℂ} {n : ℕ}
 
 /-! ## Part 6: The Hadamard Factorization Theorem -/
 
-/--
+/-
 `hadamard_quotient_growth_bound` is the **main analytic input** needed to finish Hadamard’s
 factorization theorem in this file.
 
@@ -4457,16 +4459,281 @@ It should prove a global growth estimate for the zero-free quotient
 
 using the Nevanlinna/Cartan/Poisson infrastructure imported above.
 
-At the moment we record it as an axiom so the remainder of the algebraic assembly of the
-factorization stays executable; the next step is to replace this axiom by an actual proof.
 -/
-axiom hadamard_quotient_growth_bound
+
+/-! ## Helper inequalities: `log⁺` vs `log (1 + ·)` -/
+
+lemma posLog_le_log_one_add {x : ℝ} (hx : 0 ≤ x) :
+    log⁺ x ≤ Real.log (1 + x) := by
+  by_cases hx0 : x = 0
+  · subst hx0
+    simp
+  · have hx_pos : 0 < x := lt_of_le_of_ne hx (Ne.symm hx0)
+    -- `log⁺ x = max 0 (log x)` and `0 ≤ log (1 + x)` and `log x ≤ log (1 + x)`
+    have h0 : 0 ≤ Real.log (1 + x) := by
+      have : (1 : ℝ) ≤ 1 + x := by linarith
+      exact Real.log_nonneg this
+    have hlog : Real.log x ≤ Real.log (1 + x) := by
+      have hx1 : x ≤ 1 + x := by linarith
+      exact Real.log_le_log hx_pos hx1
+    -- `max 0 (log x) ≤ log (1 + x)`
+    simpa [Real.posLog, max_le_iff] using And.intro h0 hlog
+
+lemma posLog_norm_le_log_one_add_norm (z : ℂ) :
+    log⁺ ‖z‖ ≤ Real.log (1 + ‖z‖) :=
+  posLog_le_log_one_add (x := ‖z‖) (norm_nonneg z)
+
+/-! ## Circle-average bounds from `EntireOfFiniteOrder` -/
+
+lemma circleIntegrable_posLog_norm_of_entire {f : ℂ → ℂ} (hf : Differentiable ℂ f) (r : ℝ) :
+    CircleIntegrable (fun z ↦ log⁺ ‖f z‖) 0 r := by
+  -- Use the standard meromorphic integrability lemma (entire ⇒ meromorphic).
+  have hA : AnalyticOnNhd ℂ f (Set.univ : Set ℂ) :=
+    (analyticOnNhd_univ_iff_differentiable).2 hf
+  have hM : MeromorphicOn f (Set.univ : Set ℂ) := hA.meromorphicOn
+  -- Restrict meromorphy to the sphere.
+  have hMsphere : MeromorphicOn f (sphere (0 : ℂ) |r|) := fun z hz => hM z (by simp)
+  simpa using (circleIntegrable_posLog_norm_meromorphicOn (c := (0 : ℂ)) (R := r) hMsphere)
+
+lemma circleAverage_posLog_norm_le_of_entireOfFiniteOrder
+    {ρ : ℝ} {f : ℂ → ℂ} (hf : EntireOfFiniteOrder ρ f) :
+    ∃ C > 0, ∀ r : ℝ, 0 ≤ r →
+      circleAverage (fun z ↦ log⁺ ‖f z‖) 0 r ≤ C * (1 + r) ^ ρ := by
+  rcases hf.growth with ⟨C, hCpos, hC⟩
+  refine ⟨C, hCpos, ?_⟩
+  intro r hr0
+  have h_int : CircleIntegrable (fun z ↦ log⁺ ‖f z‖) 0 r :=
+    circleIntegrable_posLog_norm_of_entire (f := f) hf.entire r
+  -- Pointwise bound on the circle: `log⁺ ‖f z‖ ≤ log (1 + ‖f z‖) ≤ C * (1 + r)^ρ`.
+  have h_pw : ∀ z ∈ sphere (0 : ℂ) |r|, log⁺ ‖f z‖ ≤ C * (1 + r) ^ ρ := by
+    intro z hz
+    have hz_norm : ‖z‖ = r := by
+      have : ‖z‖ = |r| := by simpa [Metric.mem_sphere, dist_zero_right] using hz
+      simpa [abs_of_nonneg hr0] using this
+    calc
+      log⁺ ‖f z‖ ≤ Real.log (1 + ‖f z‖) := posLog_le_log_one_add (x := ‖f z‖) (norm_nonneg _)
+      _ ≤ C * (1 + ‖z‖) ^ ρ := hC z
+      _ = C * (1 + r) ^ ρ := by simp [hz_norm]
+  -- Average is ≤ the constant.
+  exact Real.circleAverage_mono_on_of_le_circle (c := (0 : ℂ)) (R := r) (f := fun z ↦ log⁺ ‖f z‖)
+    h_int h_pw
+
+/-! ## ValueDistribution: basic bounds we can get “for free” from `EntireOfFiniteOrder` -/
+
+open ValueDistribution
+
+lemma characteristic_top_le_of_entireOfFiniteOrder
+    {ρ : ℝ} {f : ℂ → ℂ} (hf : EntireOfFiniteOrder ρ f) :
+    ∃ C > 0, ∀ r : ℝ, 0 ≤ r →
+      characteristic f ⊤ r ≤ C * (1 + r) ^ ρ + (logCounting f ⊤ r) := by
+  rcases circleAverage_posLog_norm_le_of_entireOfFiniteOrder (hf := hf) with ⟨C, hCpos, hC⟩
+  refine ⟨C, hCpos, ?_⟩
+  intro r hr0
+  -- `characteristic = proximity + logCounting`, and `proximity_top = circleAverage log⁺`.
+  have hprox : proximity f ⊤ r ≤ C * (1 + r) ^ ρ := by
+    -- Rewrite `proximity` and apply the circle-average bound from `EntireOfFiniteOrder`.
+    simpa [ValueDistribution.proximity_top] using hC r hr0
+  -- Add `logCounting f ⊤ r` on both sides.
+  have := add_le_add_right hprox (logCounting f ⊤ r)
+  -- Unfold `characteristic`.
+  simpa [ValueDistribution.characteristic, add_assoc, add_comm, add_left_comm] using this
+
+/-! ## Entire functions have no poles: `logCounting f ⊤ = 0` -/
+
+lemma logCounting_top_eq_zero_of_entire {f : ℂ → ℂ} (hf : Differentiable ℂ f) :
+    logCounting f ⊤ = 0 := by
+  -- Entire ⇒ analytic on a neighbourhood of `univ`
+  have hf_an : AnalyticOnNhd ℂ f (Set.univ : Set ℂ) :=
+    (analyticOnNhd_univ_iff_differentiable).2 hf
+  -- Hence the divisor is nonnegative, so the negative part (pole divisor) is zero.
+  have hDnonneg : 0 ≤ MeromorphicOn.divisor f (Set.univ : Set ℂ) :=
+    MeromorphicOn.AnalyticOnNhd.divisor_nonneg hf_an
+  have hneg : (MeromorphicOn.divisor f (Set.univ : Set ℂ))⁻ = 0 := by
+    ext z
+    have hz : (0 : ℤ) ≤ MeromorphicOn.divisor f (Set.univ : Set ℂ) z := hDnonneg z
+    -- `z ↦ divisor f univ z` is pointwise ≥ 0, hence its negative part vanishes.
+    simp [negPart_eq_zero.2 hz]
+  -- Rewrite `logCounting f ⊤` as the logCounting of the pole divisor.
+  simp [ValueDistribution.logCounting_top, hneg]
+
+/-! ## Characteristic bounds for entire functions of finite order -/
+
+lemma characteristic_top_le_of_entireOfFiniteOrder'
+    {ρ : ℝ} {f : ℂ → ℂ} (hf : EntireOfFiniteOrder ρ f) :
+    ∃ C > 0, ∀ r : ℝ, 0 ≤ r → characteristic f ⊤ r ≤ C * (1 + r) ^ ρ := by
+  rcases circleAverage_posLog_norm_le_of_entireOfFiniteOrder (hf := hf) with ⟨C, hCpos, hC⟩
+  refine ⟨C, hCpos, ?_⟩
+  intro r hr0
+  -- For entire `f`, the pole-counting term vanishes.
+  have hlog0 : logCounting f ⊤ r = 0 := by
+    have hfun : logCounting f ⊤ = 0 := logCounting_top_eq_zero_of_entire (f := f) hf.entire
+    simpa using congrArg (fun g : ℝ → ℝ => g r) hfun
+  -- Unfold the characteristic and use the proximity bound.
+  have hprox : proximity f ⊤ r ≤ C * (1 + r) ^ ρ := by
+    simpa [ValueDistribution.proximity_top] using hC r hr0
+  simpa [ValueDistribution.characteristic, hlog0] using (add_le_add_right hprox 0)
+
+lemma characteristic_inv_top (f : ℂ → ℂ) :
+    characteristic (f⁻¹) ⊤ = characteristic f 0 := by
+  ext r
+  simp [ValueDistribution.characteristic, ValueDistribution.proximity_inv, ValueDistribution.logCounting_inv]
+
+lemma characteristic_zero_le_of_entireOfFiniteOrder'
+    {ρ : ℝ} {f : ℂ → ℂ} (hf : EntireOfFiniteOrder ρ f) :
+    ∃ C > 0, ∀ r : ℝ, 0 ≤ r →
+      characteristic f 0 r ≤ C * (1 + r) ^ ρ +
+        max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| := by
+  -- Bound `characteristic f 0` by `characteristic f ⊤` plus an absolute constant,
+  -- using the first part of the First Main Theorem.
+  rcases characteristic_top_le_of_entireOfFiniteOrder' (hf := hf) with ⟨C, hCpos, hC⟩
+  refine ⟨C, hCpos, ?_⟩
+  intro r hr0
+  -- Meromorphy on `univ`
+  have hf_mer : MeromorphicOn f (Set.univ : Set ℂ) :=
+    (analyticOnNhd_univ_iff_differentiable.2 hf.entire).meromorphicOn
+  -- Quantitative First Main Theorem bound:
+  have hdiff :
+      |characteristic f ⊤ r - characteristic (f⁻¹) ⊤ r|
+        ≤ max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| :=
+    ValueDistribution.characteristic_sub_characteristic_inv_le (f := f) (hf := hf_mer) (R := r)
+
+  -- From `|A - B| ≤ K` we get `B ≤ A + K`.
+  have hdiff' :
+      |characteristic (f⁻¹) ⊤ r - characteristic f ⊤ r|
+        ≤ max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| := by
+    simpa [abs_sub_comm] using hdiff
+  have hsub :
+      characteristic (f⁻¹) ⊤ r - characteristic f ⊤ r
+        ≤ max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| :=
+    (le_abs_self _).trans hdiff'
+  have hle_inv :
+      characteristic (f⁻¹) ⊤ r ≤ characteristic f ⊤ r +
+        max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| :=
+    by
+      -- Rearrange `B = (B - A) + A` and use `B - A ≤ K`.
+      have hrew :
+          characteristic (f⁻¹) ⊤ r =
+            (characteristic (f⁻¹) ⊤ r - characteristic f ⊤ r) + characteristic f ⊤ r := by
+        ring
+      calc
+        characteristic (f⁻¹) ⊤ r
+            = (characteristic (f⁻¹) ⊤ r - characteristic f ⊤ r) + characteristic f ⊤ r := hrew
+        _ ≤ max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| + characteristic f ⊤ r := by
+              -- Add `characteristic f ⊤ r` on the right of `hsub`.
+              have h := add_le_add_right hsub (characteristic f ⊤ r)
+              simpa [add_assoc, add_comm, add_left_comm] using h
+        _ = characteristic f ⊤ r + max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| := by
+              ac_rfl
+  have hle0 :
+      characteristic f 0 r ≤ characteristic f ⊤ r +
+        max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| := by
+    -- rewrite `characteristic (f⁻¹) ⊤` as `characteristic f 0`
+    simpa [characteristic_inv_top] using hle_inv
+
+  -- Now use the growth bound for `characteristic f ⊤ r`.
+  have htop : characteristic f ⊤ r ≤ C * (1 + r) ^ ρ := hC r hr0
+  have htop' :
+      characteristic f ⊤ r + max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖|
+        ≤ C * (1 + r) ^ ρ +
+          max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖| :=
+    by
+      -- `A ≤ B` implies `A + K ≤ B + K`.
+      simpa [add_assoc, add_comm, add_left_comm] using add_le_add_right htop
+        (max |Real.log ‖f 0‖| |Real.log ‖meromorphicTrailingCoeffAt f 0‖|)
+  exact hle0.trans htop'
+
+/-! ## Mean-value bounds: circle averages to pointwise bounds for harmonic functions -/
+
+lemma harmonicOnNhd_le_circleAverage_pos
+    {u : ℂ → ℝ} {c : ℂ} {r : ℝ}
+    (hu : InnerProductSpace.HarmonicOnNhd u (Metric.closedBall c |r|)) :
+    u c ≤ circleAverage (fun z ↦ max (u z) 0) c r := by
+  -- Mean value property: `circleAverage u c r = u c`.
+  have hmean : circleAverage u c r = u c :=
+    HarmonicOnNhd.circleAverage_eq (f := u) (c := c) (R := r) hu
+  -- Pointwise: `u ≤ max u 0`, so the average is monotone.
+  have hci_u : CircleIntegrable u c r := by
+    -- Harmonicity implies `C²` and hence continuity on the sphere.
+    have hcont_sphere : ContinuousOn u (Metric.sphere c |r|) := by
+      intro z hz
+      have hz_cb : z ∈ Metric.closedBall c |r| := sphere_subset_closedBall hz
+      have hz_harm : InnerProductSpace.HarmonicAt u z := hu z hz_cb
+      exact hz_harm.1.continuousAt.continuousWithinAt
+    exact hcont_sphere.circleIntegrable'
+  have hci_pos : CircleIntegrable (fun z ↦ max (u z) 0) c r := by
+    have hcont_sphere_u : ContinuousOn u (Metric.sphere c |r|) := by
+      intro z hz
+      have hz_cb : z ∈ Metric.closedBall c |r| := sphere_subset_closedBall hz
+      have hz_harm : InnerProductSpace.HarmonicAt u z := hu z hz_cb
+      exact hz_harm.1.continuousAt.continuousWithinAt
+    have hpair : ContinuousOn (fun z : ℂ => (u z, (0 : ℝ))) (Metric.sphere c |r|) :=
+      hcont_sphere_u.prodMk (continuousOn_const : ContinuousOn (fun _ : ℂ => (0 : ℝ)) (Metric.sphere c |r|))
+    have hmax : ContinuousOn (fun p : ℝ × ℝ => max p.1 p.2) (Set.univ : Set (ℝ × ℝ)) :=
+      continuous_max.continuousOn
+    have hcont_pos : ContinuousOn (fun z : ℂ => max (u z) 0) (Metric.sphere c |r|) := by
+      -- compose `max` with the continuous pair map `(u,0)`.
+      simpa [Function.comp, Set.MapsTo] using
+        (hmax.comp hpair (by intro z hz; simp))
+    exact hcont_pos.circleIntegrable'
+  have hmono : circleAverage u c r ≤ circleAverage (fun z ↦ max (u z) 0) c r := by
+    apply Real.circleAverage_mono hci_u hci_pos
+    intro z hz
+    exact le_max_left _ _
+  -- Rewrite with the mean value property.
+  simpa [hmean] using hmono
+
+lemma norm_le_exp_circleAverage_posLog_of_entire_nonzero
+    {H : ℂ → ℂ} {c : ℂ} {r : ℝ}
+    (hH_entire : Differentiable ℂ H) (hH_nonzero : ∀ z, H z ≠ 0) :
+    ‖H c‖ ≤ Real.exp (circleAverage (fun z ↦ log⁺ ‖H z‖) c r) := by
+  -- Apply the previous lemma to `u(z) = log ‖H z‖`.
+  let u : ℂ → ℝ := fun z => Real.log ‖H z‖
+  have hu : InnerProductSpace.HarmonicOnNhd u (Metric.closedBall c |r|) := by
+    intro z hz
+    have hAn : AnalyticAt ℂ H z := (hH_entire.analyticAt z)
+    have hHz : H z ≠ 0 := hH_nonzero z
+    -- `log ‖H‖` is harmonic at each point where `H ≠ 0`.
+    exact (hAn.harmonicAt_log_norm hHz)
+  have hle : u c ≤ circleAverage (fun z ↦ max (u z) 0) c r :=
+    harmonicOnNhd_le_circleAverage_pos (u := u) (c := c) (r := r) hu
+  -- Rewrite `max (log‖H‖) 0` as `log⁺ ‖H‖`.
+  have hmax : (fun z ↦ max (u z) 0) = fun z ↦ log⁺ ‖H z‖ := by
+    funext z
+    simp [u, Real.posLog, max_comm]
+  have hle' : Real.log ‖H c‖ ≤ circleAverage (fun z ↦ log⁺ ‖H z‖) c r := by
+    simpa [u, hmax] using hle
+  -- Exponentiate.
+  have hpos : 0 < ‖H c‖ := norm_pos_iff.mpr (hH_nonzero c)
+  exact (Real.log_le_iff_le_exp hpos).1 hle'
+
+/-! ## ZeroData implies nontriviality (used to rule out `order = ⊤` cases) -/
+
+lemma zeroData_not_all_zero {f : ℂ → ℂ} (hz : ZeroData f) : ¬ (∀ z : ℂ, f z = 0) := by
+  intro hzero
+  have hsubset : ({0}ᶜ : Set ℂ) ⊆ Set.range hz.zeros := by
+    intro z hz0
+    have hz' : f z = 0 := hzero z
+    have hzspec := (hz.zero_spec z).1 hz'
+    rcases hzspec with h0 | hnon0
+    · exact False.elim (hz0 h0.1)
+    · exact hnon0.2
+  have hcount_range : (Set.range hz.zeros).Countable := Set.countable_range hz.zeros
+  have hcount_compl : ({0}ᶜ : Set ℂ).Countable := hcount_range.mono hsubset
+  have hcount_univ : (Set.univ : Set ℂ).Countable := by
+    have h0c : ({0} : Set ℂ).Countable := Set.countable_singleton 0
+    have : ({0} ∪ ({0}ᶜ) : Set ℂ).Countable := h0c.union hcount_compl
+    simpa [Set.union_compl_self] using this
+  exact not_countable_complex hcount_univ
+
+-- *Note*: if kept as separate lemma this statement should be strengthened, otherwise filled within
+-- the hadamard factorization proof
+lemma hadamard_quotient_growth_bound
     {ρ : ℝ} {f : ℂ → ℂ} (hf : EntireOfFiniteOrder ρ f) (hz : ZeroData f)
     (m : ℕ) (G F H : ℂ → ℂ)
     (hH_entire : Differentiable ℂ H)
     (hH_nonzero : ∀ z : ℂ, H z ≠ 0)
     (hH_eq : ∀ z : ℂ, F z ≠ 0 → H z = f z / F z) :
-    ∃ C > 0, ∀ z : ℂ, ‖H z‖ ≤ Real.exp (C * (1 + ‖z‖) ^ (Nat.ceil ρ))
+    ∃ C > 0, ∀ z : ℂ, ‖H z‖ ≤ Real.exp (C * (1 + ‖z‖) ^ (Nat.ceil ρ)) := by sorry
 
 /--
 **Hadamard Factorization Theorem**
@@ -4591,8 +4858,8 @@ theorem hadamard_factorization
       refine ⟨z0, ?_⟩
       simp [F, hz0pow, hGz0]
 
-  -- 4) Entire quotient `H = f / F`, by removable singularities (requires order comparison).
-  have h_ord : ∀ z : ℂ, analyticOrderAt F z ≤ analyticOrderAt f z := by
+  -- 4) `F` has the same zeros as `f`, with multiplicity.
+  have h_ord_eq : ∀ z : ℂ, analyticOrderAt F z = analyticOrderAt f z := by
     classical
     intro z
     -- Helper: `analyticOrderAt f z` is never `⊤` (otherwise `f` is locally zero, hence globally zero).
@@ -4801,7 +5068,7 @@ theorem hadamard_factorization
           intro n hn
           have hn' : hz.zeros n = z := (hs_mem n).1 hn
           simp [fac, hn']
-        simp [this, Finset.prod_const, Finset.card_attach]
+        simp [this, Finset.prod_const]
 
       have hfin_an : AnalyticAt ℂ (fun w : ℂ => (weierstrassFactor m (w / z)) ^ s.card) z := by
         have hbase : AnalyticAt ℂ (fun w : ℂ => weierstrassFactor m (w / z)) z :=
@@ -4825,16 +5092,15 @@ theorem hadamard_factorization
         calc
           analyticOrderAt (fun w : ℂ => ∏ n ∈ s, fac n w) z
               = analyticOrderAt (fun w : ℂ => (weierstrassFactor m (w / z)) ^ s.card) z := by
-                  simpa [hfin_eq]
-          _ = s.card • (1 : ℕ∞) := by simpa [hpow, hbase_order]
+                  simp [hfin_eq]
+          _ = s.card • (1 : ℕ∞) := by simp [hpow, hbase_order]
           _ = (s.card : ℕ∞) := by simp
 
       -- Now combine: `G = finprod * Tail` and Tail contributes order 0.
       have hG_order : analyticOrderAt G z = (s.card : ℕ∞) := by
         have hcongr : analyticOrderAt G z =
             analyticOrderAt (fun w : ℂ => (∏ n ∈ s, fac n w) * Tail w) z := by
-          simpa [hG_func] using (analyticOrderAt_congr (z₀ := z) (Filter.eventually_of_forall (fun w => by
-            simpa [hG_func])))
+          simp [hG_func]
         have hmul :
             analyticOrderAt (fun w : ℂ => (∏ n ∈ s, fac n w) * Tail w) z
               = analyticOrderAt (fun w : ℂ => ∏ n ∈ s, fac n w) z + analyticOrderAt Tail z := by
@@ -4845,33 +5111,34 @@ theorem hadamard_factorization
               intro n hn
               simpa [fac] using
                 ((differentiable_weierstrassFactor m).comp (differentiable_id.div_const (hz.zeros n))).analyticAt z
-            -- use differentiability lemma for finite products
-            have hdiff : Differentiable ℂ (fun w : ℂ => ∏ n ∈ s, fac n w) := by
-              refine Differentiable.finset_prod (u := s) (f := fun n w => fac n w) ?_
-              intro n hn
-              exact (differentiable_weierstrassFactor m).comp (differentiable_id.div_const (hz.zeros n))
-            exact hdiff.analyticAt z
+            -- use analyticity lemma for finite products
+            have hprod_eq : (fun w => ∏ n ∈ s, fac n w) = ∏ n ∈ s, (fun w => fac n w) := by
+              ext w
+              simp only [Finset.prod_apply]
+            rw [hprod_eq]
+            exact Finset.analyticAt_prod s (fun n hn => hdf n hn)
           have hTail_an : AnalyticAt ℂ Tail z := hTail_entire.analyticAt z
           simpa using (analyticOrderAt_mul (𝕜 := ℂ)
             (f := fun w : ℂ => ∏ n ∈ s, fac n w) (g := Tail) (z₀ := z) hfin_an' hTail_an)
-        simpa [hcongr, hmul, hfin_order, hTail_order0]
+        simp [hcongr, hmul, hfin_order, hTail_order0]
 
       -- Compare to `analyticOrderAt f z`, using `hz.zeros_mult_spec`.
       have hf_order_nat : analyticOrderNatAt f z = Nat.card {n : ℕ // hz.zeros n = z} :=
         hz.zeros_mult_spec z hz_ne0
       have hf_order : analyticOrderAt f z = (Nat.card {n : ℕ // hz.zeros n = z} : ℕ∞) := by
-        have hcast : (analyticOrderNatAt f z : ℕ∞) = analyticOrderAt f z :=
+        have hcast : analyticOrderAt f z = (analyticOrderNatAt f z : ℕ∞) :=
           (Nat.cast_analyticOrderNatAt (f := f) (z₀ := z) hf_ne_top).symm
-        simpa [hcast, hf_order_nat]
+        simp only [hcast, hf_order_nat]
 
       -- `s.card` is the same cardinality as `Nat.card` of the fiber subtype.
       have hs_card :
           (s.card : ℕ∞) = (Nat.card {n : ℕ // hz.zeros n = z} : ℕ∞) := by
-        -- `s` enumerates exactly the indices with `hz.zeros n = z`.
         classical
-        haveI : Fintype {n : ℕ // hz.zeros n = z} := Fintype.ofFinite _
-        -- `Nat.card` agrees with `Fintype.card`.
-        simp [Nat.card_eq_fintype_card, s, fiber, hs_mem]
+        have hs_card_nat : s.card = Nat.card {n : ℕ // hz.zeros n = z} := by
+          -- `s` enumerates exactly the indices with `hz.zeros n = z`.
+          simpa using
+            (Nat.subtype_card (s := s) (p := fun n : ℕ => hz.zeros n = z) (H := hs_mem)).symm
+        simpa using congrArg (fun k : ℕ => (k : ℕ∞)) hs_card_nat
 
       -- Finally: `ord(F,z) = ord(G,z) = ord(f,z)`.
       have hFz : analyticOrderAt F z = (Nat.card {n : ℕ // hz.zeros n = z} : ℕ∞) := by
@@ -4879,64 +5146,86 @@ theorem hadamard_factorization
         have : analyticOrderAt G z = (Nat.card {n : ℕ // hz.zeros n = z} : ℕ∞) := by
           simpa [hs_card] using hG_order
         simpa [hF_eq_G] using this
-      -- Conclude the desired inequality.
-      simpa [hFz, hf_order]
+      -- Conclude: `ord(F,z) = ord(f,z)`.
+      simp [hFz, hf_order]
+
+  -- Inequality form needed for the removable singularity construction.
+  have h_ord : ∀ z : ℂ, analyticOrderAt F z ≤ analyticOrderAt f z := fun z =>
+    le_of_eq (h_ord_eq z)
 
   rcases quotient_entire (f := f) (G := F) hf.entire hF_entire hF_nontrivial h_ord with
     ⟨H, hH_entire, hH_eq⟩
 
   -- 5) Zero-freeness of `H` (requires matching multiplicities).
   have hH_nonzero : ∀ z : ℂ, H z ≠ 0 := by
-    -- Once `F` has the same zeros (with multiplicity) as `f`, the quotient is zero-free.
-    -- For now we derive it from `hz.zero_spec` and the fact that `H` is the entire extension of `f/F`.
+    -- First, show the global identity `f = H * F` by analytic continuation from a point where `F ≠ 0`.
+    rcases hF_nontrivial with ⟨z₀, hz₀⟩
+    have hF_near : ∀ᶠ z in 𝓝 z₀, F z ≠ 0 :=
+      (hF_entire z₀).continuousAt.eventually_ne hz₀
+    have hfg : f =ᶠ[𝓝 z₀] fun z : ℂ => H z * F z := by
+      filter_upwards [hF_near] with z hz
+      have hHz : H z = f z / F z := hH_eq z hz
+      -- rearrange: `(f/F) * F = f`
+      have : H z * F z = f z := by
+        calc
+          H z * F z = (f z / F z) * F z := by simp [hHz]
+          _ = f z := by field_simp [hz]
+      simp [this]
+    have hf_an : AnalyticOnNhd ℂ f (Set.univ : Set ℂ) :=
+      (analyticOnNhd_univ_iff_differentiable).2 hf.entire
+    have hHF_an : AnalyticOnNhd ℂ (fun z : ℂ => H z * F z) (Set.univ : Set ℂ) :=
+      (analyticOnNhd_univ_iff_differentiable).2 (hH_entire.mul hF_entire)
+    have hHF : f = fun z : ℂ => H z * F z :=
+      AnalyticOnNhd.eq_of_eventuallyEq (𝕜 := ℂ) (f := f) (g := fun z : ℂ => H z * F z)
+        hf_an hHF_an (z₀ := z₀) hfg
+
+    -- Now compare analytic orders: `ord(f,z) = ord(H,z) + ord(F,z)` and `ord(f,z) = ord(F,z)`,
+    -- hence `ord(H,z) = 0`, so `H z ≠ 0`.
     intro z
-    by_contra hHz
-    by_cases hFz : F z = 0
-    · -- If `F z = 0`, then `f z = 0`, so `H` cannot be defined as a nonzero quotient here.
-      have hfz : f z = 0 := (hz.zero_spec z).2 (by
-        -- `F z = 0` implies `z` is a zero in the `ZeroData` sense.
-        by_cases hz0 : z = 0
-        · subst hz0
-          have hpos : 0 < hz.ord0 := by
-            by_contra h0
-            have : hz.ord0 = 0 := Nat.eq_zero_of_not_pos h0
-            -- then `F 0 = 1`, contradiction
-            simp [F, G, this, weierstrassFactor_zero]
-          exact Or.inl ⟨rfl, hpos⟩
-        · -- `z ≠ 0` implies `G z = 0`, hence `z = hz.zeros n`.
-          have hzpow_ne : z ^ hz.ord0 ≠ 0 := pow_ne_zero hz.ord0 hz0
-          have hGz : G z = 0 := by
-            have hFz' : z ^ hz.ord0 * G z = 0 := by
-              have hFz' := hFz
-              dsimp [F] at hFz'
-              exact hFz'
-            rcases mul_eq_zero.mp hFz' with hpow | hGz
-            · exfalso; exact hzpow_ne hpow
-            · exact hGz
-          rcases (hG_zero z).1 hGz with ⟨n, rfl⟩
-          exact Or.inr ⟨hz.zeros_ne_zero n, ⟨n, rfl⟩⟩)
-      -- But then `H` has a removable singularity at `z`; contradiction with `H z = 0` by construction.
-      -- (This will be cleaned up once the multiplicity story for `H` is in place.)
-      have : H z = 0 := hHz
-      exact False.elim (hfz.ne' (by
-        -- On `F z ≠ 0`, we have `H z = f z / F z`, but here we just contradict nontriviality.
-        simpa using hfz))
-    · -- If `F z ≠ 0`, then `H z = f z / F z`, so `H z = 0` forces `f z = 0`.
-      have hHz' : H z = f z / F z := hH_eq z hFz
-      have hfz : f z = 0 := by
-        have : f z / F z = 0 := by simpa [hHz'] using hHz
-        exact (div_eq_zero_iff).1 this |>.1
-      -- But then `F z = 0` by the zero-set spec, contradiction.
-      have : (z = 0 ∧ 0 < hz.ord0) ∨ (z ≠ 0 ∧ ∃ n, hz.zeros n = z) :=
-        (hz.zero_spec z).1 hfz
-      have : F z = 0 := by
-        rcases this with h0 | hnon0
-        · rcases h0 with ⟨rfl, hpos⟩
-          simp [F, hpos]
-        · rcases hnon0 with ⟨hz0, ⟨n, hn⟩⟩
-          have : G z = 0 := (hG_zero z).2 ⟨n, hn.symm⟩
-          simp [F, this]
-      exact hFz this
+    have hF_ne_top : analyticOrderAt F z ≠ ⊤ := by
+      intro htop
+      have hloc : ∀ᶠ w in 𝓝 z, F w = 0 := (analyticOrderAt_eq_top.mp htop)
+      have hfreq : ∃ᶠ w in 𝓝[≠] z, F w = 0 :=
+        (hloc.filter_mono nhdsWithin_le_nhds).frequently
+      have hF_univ : AnalyticOnNhd ℂ F (Set.univ : Set ℂ) :=
+        (analyticOnNhd_univ_iff_differentiable).2 hF_entire
+      have hEq : Set.EqOn F 0 (Set.univ : Set ℂ) :=
+        AnalyticOnNhd.eqOn_zero_of_preconnected_of_frequently_eq_zero
+          (f := F) (U := (Set.univ : Set ℂ)) hF_univ (by simpa using isPreconnected_univ)
+          (by simp) hfreq
+      have hzero : ∀ w : ℂ, F w = 0 := by
+        intro w
+        simpa using hEq (by simp : w ∈ (Set.univ : Set ℂ))
+      exact hz₀ (by simpa using hzero z₀)
+
+    have hmul_order :
+        analyticOrderAt f z = analyticOrderAt H z + analyticOrderAt F z := by
+      have hH_an : AnalyticAt ℂ H z := hH_entire.analyticAt z
+      have hF_an' : AnalyticAt ℂ F z := hF_entire.analyticAt z
+      have hmul :
+          analyticOrderAt (fun w : ℂ => H w * F w) z =
+            analyticOrderAt H z + analyticOrderAt F z := by
+        simpa [Pi.mul_apply] using
+          (analyticOrderAt_mul (𝕜 := ℂ) (f := H) (g := F) (z₀ := z) hH_an hF_an')
+      -- rewrite using the global identity `f = H * F`
+      simpa [hHF] using hmul
+
+    have hsum_eq :
+        analyticOrderAt H z + analyticOrderAt F z = analyticOrderAt F z := by
+      -- combine `ord(f,z) = ord(H,z)+ord(F,z)` with `ord(F,z) = ord(f,z)`
+      calc
+        analyticOrderAt H z + analyticOrderAt F z
+            = analyticOrderAt f z := hmul_order.symm
+        _ = analyticOrderAt F z := (h_ord_eq z).symm
+
+    have hH_order : analyticOrderAt H z = 0 := by
+      have hsum_eq' : analyticOrderAt H z + analyticOrderAt F z = 0 + analyticOrderAt F z := by
+        simpa [zero_add] using hsum_eq
+      exact WithTop.add_right_cancel hF_ne_top hsum_eq'
+
+    -- For an analytic function, order 0 iff the value is nonzero.
+    have hH_an : AnalyticAt ℂ H z := hH_entire.analyticAt z
+    exact (hH_an.analyticOrderAt_eq_zero).1 hH_order
 
   -- 6) Growth bound for `H` (the main analytic input; to be supplied via Nevanlinna/Cartan).
   have hH_bound :
