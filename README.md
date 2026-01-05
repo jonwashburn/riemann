@@ -95,7 +95,7 @@ Formalization of results from recent research papers, including the connection b
 
 ### Contributing
 
-See `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`.
+You can contribute to this project by opening a PR or messaging us on Zulip at this link https://leanprover.zulipchat.com/#narrow/channel/116395-maths/topic/Repository.20for.20formalizations.20related.20.20to.20RH.2Fzeta/with/566242760.
 
 ### Repository tooling
 
