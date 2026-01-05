@@ -100,7 +100,6 @@ import Riemann.academic_framework.DiagonalFredholm.AnalyticInfrastructure
 import Riemann.academic_framework.DiagonalFredholm.Determinant
 
 import Riemann.academic_framework.DiagonalFredholm.WeierstrassProduct
---import Riemann.academic_framework.DiagonalFredholm.«Determinant-old»
 import Riemann.academic_framework.DiskHardy
 import Riemann.academic_framework.Domain
 import Riemann.academic_framework.EulerProduct.K0Bound
@@ -137,7 +136,7 @@ import GibbsMeasure.Prereqs.Kernel.Feller
 import GibbsMeasure.Prereqs.Kernel.Proper
 import GibbsMeasure.Prereqs.CylinderEvents
 import GibbsMeasure.Prereqs.LebesgueCondExp
-import GibbsMeasure.Specification -- from Yael Dillies & others initial sorried framework
+import GibbsMeasure.Specification -- from Yael Dillies & others set-up
 import GibbsMeasure.Potential
 import GibbsMeasure.Specification.Quasilocal
 import GibbsMeasure.Specification.QuasilocalSpecification
@@ -151,9 +150,7 @@ import GibbsMeasure.Topology.LocalConvergence
 
 /-
 
-
 import Riemann.Semiclassical.Defs
-
 import Riemann.Semiclassical.TwoChart_NeumannSeries
 import Riemann.Semiclassical.TwoChart_ParametrixCancellation
 import Riemann.Semiclassical.TwoChart_ParametrixInvertibility

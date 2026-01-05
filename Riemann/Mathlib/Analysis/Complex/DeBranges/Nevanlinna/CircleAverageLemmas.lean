@@ -100,6 +100,35 @@ lemma circleAverage_posLog_norm_div_le
     _ = circleAverage (fun z => log⁺ ‖f z‖) 0 r +
           circleAverage (fun z => log⁺ ‖(g z)⁻¹‖) 0 r := h_add
 
+/-- General-center version:
+For any center `c`, the circle average of `log⁺ ‖f/g‖` is bounded by the sum of the circle averages
+of `log⁺ ‖f‖` and `log⁺ ‖g⁻¹‖`. -/
+lemma circleAverage_posLog_norm_div_le_center
+    {f g : ℂ → ℂ} {c : ℂ} {r : ℝ}
+    (hf : CircleIntegrable (fun z => log⁺ ‖f z‖) c r)
+    (hg : CircleIntegrable (fun z => log⁺ ‖(g z)⁻¹‖) c r)
+    (hfg : CircleIntegrable (fun z => log⁺ ‖f z / g z‖) c r) :
+    circleAverage (fun z => log⁺ ‖f z / g z‖) c r ≤
+      circleAverage (fun z => log⁺ ‖f z‖) c r +
+      circleAverage (fun z => log⁺ ‖(g z)⁻¹‖) c r := by
+  -- The proof is identical to the center-0 case, replacing `circleMap 0 r θ` by `circleMap c r θ`.
+  have h_pw : ∀ θ ∈ Set.Ioo 0 (2 * π),
+      log⁺ ‖f (circleMap c r θ) / g (circleMap c r θ)‖ ≤
+      log⁺ ‖f (circleMap c r θ)‖ + log⁺ ‖(g (circleMap c r θ))⁻¹‖ := by
+    intro θ _
+    exact posLog_norm_div_le (f (circleMap c r θ)) (g (circleMap c r θ))
+  have h_int_mono := intervalIntegral.integral_mono_on_of_le_Ioo
+    (by positivity : 0 ≤ 2 * π) hfg (hf.add hg) h_pw
+  have h_add := Real.circleAverage_add hf hg
+  have h_scaled : circleAverage (fun z => log⁺ ‖f z / g z‖) c r ≤
+      circleAverage (fun z => log⁺ ‖f z‖ + log⁺ ‖(g z)⁻¹‖) c r := by
+    simp only [circleAverage_def, smul_eq_mul]
+    exact mul_le_mul_of_nonneg_left h_int_mono (by positivity)
+  calc circleAverage (fun z => log⁺ ‖f z / g z‖) c r
+      ≤ circleAverage (fun z => log⁺ ‖f z‖ + log⁺ ‖(g z)⁻¹‖) c r := h_scaled
+    _ = circleAverage (fun z => log⁺ ‖f z‖) c r +
+          circleAverage (fun z => log⁺ ‖(g z)⁻¹‖) c r := h_add
+
 /-! ### Circle average bounds for bounded functions -/
 
 /-- Circle average of log⁺ ‖G‖ for bounded G is bounded by log⁺ C.
