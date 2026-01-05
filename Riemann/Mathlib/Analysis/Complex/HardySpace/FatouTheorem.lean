@@ -1,17 +1,15 @@
-/-
-Copyright (c) 2024 The Riemann Project. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: The Riemann Project Contributors
--/
+
 import Riemann.Mathlib.Analysis.Complex.HardySpace.PoissonKernel
 import Mathlib.MeasureTheory.Function.AEMeasurableSequence
 import Mathlib.Topology.MetricSpace.Dilation
+import Riemann.Mathlib.Analysis.Complex.HardySpace.Basic
 
 /-!
 # Fatou's Theorem for Hardy Spaces
 
 This file develops Fatou's theorem on the existence of radial (non-tangential)
 limits for bounded analytic functions on the unit disc.
+See: https://en.wikipedia.org/wiki/Fatou%27s_theorem
 
 ## Main definitions
 
