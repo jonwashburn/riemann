@@ -1,50 +1,10 @@
-import Mathlib.Analysis.Complex.ValueDistribution.FirstMainTheorem
-import Mathlib.Analysis.Complex.JensenFormula
-import Mathlib.Analysis.Complex.UnitDisc.Basic
-import Mathlib.MeasureTheory.Integral.CircleAverage
 import Mathlib.Analysis.Calculus.ParametricIntegral
-import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
-import Mathlib.Analysis.Meromorphic.Order
-import Mathlib.Analysis.Meromorphic.NormalForm
-
--- Riemann project infrastructure
-import Riemann.academic_framework.DiskHardy
-import Riemann.Mathlib.Analysis.Complex.Cartan
-import Riemann.mathlib.Analysis.Complex.DeBranges.Nevanlinna
-import Riemann.mathlib.Analysis.Complex.DeBranges.Nevanlinna.MinimumModulus
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.HarmonicBounds
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.PosLogLemmas
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.FilterLemmas
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.MeasurabilityLemmas
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.CircleAverageLemmas
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.Cayley
-import Riemann.Mathlib.Analysis.Complex.HardySpace.PoissonKernel
 import Riemann.Mathlib.Analysis.Complex.HardySpace.Basic
-
-/-
-import Riemann.Mathlib.Analysis.Complex.HardySpace
-
--- Nevanlinna theory infrastructure
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.HarmonicBounds
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.PosLogLemmas
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.FilterLemmas
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.MeasurabilityLemmas
+import Riemann.academic_framework.DiskHardy
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.MinimumModulus
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.CircleAverageLemmas
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.Cayley
 
--- de Branges space infrastructure
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna
-import Riemann.Mathlib.Analysis.Complex.DeBranges.NevanlinnaClosure
-import Riemann.Mathlib.Analysis.Complex.DeBranges.NevanlinnaGrowth
 
-import Riemann.Aux
-import Mathlib
-
-import PrimeNumberTheoremAnd.BorelCaratheodory
-import StrongPNT
-import VD
--/
 
 /-!
 # Canonical Representation and Poisson–Jensen on the Unit Disc
