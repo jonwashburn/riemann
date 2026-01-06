@@ -24,11 +24,11 @@ import Riemann.Mathlib.Analysis.Complex.DeBranges.NevanlinnaClosure
 import Riemann.Mathlib.Analysis.Complex.DeBranges.NevanlinnaGrowth
 --import Riemann.Mathlib.Analysis.Complex.DeBranges.ReproducingKernel.Basic
 import Riemann.Mathlib.Analysis.Complex.DeBranges.ReproducingKernel.Defs
---import Riemann.Mathlib.Analysis.Complex.DeBranges.Space
+import Riemann.Mathlib.Analysis.Complex.DeBranges.Space
 --import Riemann.Mathlib.Analysis.Complex.DeBranges.Zeros
 --import Riemann.Mathlib.Analysis.Complex.HardySpace
 --import Riemann.Mathlib.Analysis.Complex.HardySpace'
---import Riemann.Mathlib.Analysis.Complex.HardySpace.Basic
+import Riemann.Mathlib.Analysis.Complex.HardySpace.Basic
 --import Riemann.Example
 import Riemann.Mathlib.Analysis.Complex.HardySpace.BlaschkeProduct
 --import Riemann.Mathlib.Analysis.Complex.HardySpace.CanonicalFactorization
