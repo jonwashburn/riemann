@@ -1,37 +1,10 @@
-import Mathlib.Analysis.Complex.ValueDistribution.FirstMainTheorem
-import Mathlib.Analysis.Complex.JensenFormula
-import Mathlib.Analysis.Complex.UnitDisc.Basic
-import Mathlib.MeasureTheory.Integral.CircleAverage
 import Mathlib.Analysis.Calculus.ParametricIntegral
-import Mathlib.Analysis.Complex.UpperHalfPlane.Basic
-import Mathlib.Analysis.Meromorphic.Order
-import Mathlib.Analysis.Meromorphic.NormalForm
-
--- Riemann project infrastructure
-import Riemann.academic_framework.DiskHardy
-import Riemann.Mathlib.Analysis.Complex.Cartan
-import Riemann.Mathlib.Analysis.Complex.HardySpace
-
--- Nevanlinna theory infrastructure
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.HarmonicBounds
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.PosLogLemmas
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.FilterLemmas
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.MeasurabilityLemmas
+import Riemann.Mathlib.Analysis.Complex.HardySpace.Basic
+import Riemann.academic_framework.DiskHardy
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.MinimumModulus
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.CircleAverageLemmas
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.Cayley
 
--- de Branges space infrastructure
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna
-import Riemann.Mathlib.Analysis.Complex.DeBranges.NevanlinnaClosure
-import Riemann.Mathlib.Analysis.Complex.DeBranges.NevanlinnaGrowth
 
-import Riemann.Aux
-import Mathlib
-
-import PrimeNumberTheoremAnd.BorelCaratheodory
-import StrongPNT
-import VD
 
 /-!
 # Canonical Representation and Poisson–Jensen on the Unit Disc
@@ -252,8 +225,8 @@ lemma circleAverage_log_norm_eq_logCounting_diff
    ValueDistribution.logCounting f 0 r - ValueDistribution.logCounting f ⊤ r +
     Real.log ‖meromorphicTrailingCoeffAt f 0‖ := by
  have h := ValueDistribution.logCounting_zero_sub_logCounting_top_eq_circleAverage_sub_const
-  (f := f) (hf := hf) (R := r) (hR := hr)
- linarith
+  (f := f) (R := r) (hR := hr)
+ aesop
 
 /-! ### Asymptotic analysis: extracting the linear term -/
 
@@ -470,7 +443,7 @@ lemma IsOfBoundedTypeUnitDisc.characteristic_growth
           circleAverage (fun z => log⁺ ‖(H z)⁻¹‖) 0 r :=
     Nevanlinna.circleAverage_posLog_norm_div_le
       (f := fun z => G z) (g := fun z => H z)
-      hG_int hHinv_int h_ratio_int hH_ne_sphere
+      hG_int hHinv_int h_ratio_int
   have h_subadd :
       circleAverage (fun z => log⁺ ‖g z‖) 0 r ≤
         circleAverage (fun z => log⁺ ‖G z‖) 0 r +
@@ -615,8 +588,8 @@ lemma schwarzKernel_series {z : ℂ} (hz : ‖z‖ < 1) (θ : ℝ) :
 /-- The real part of the Schwarz kernel equals 2π times the Poisson kernel.
 -/
 lemma schwarzKernel_re_eq_poissonKernel (z : 𝔻) (θ : ℝ) :
-    (schwarzKernel (z : ℂ) θ).re = (2 * Real.pi) * poissonKernel z θ := by
-  simp only [schwarzKernel, poissonKernel]
+    (schwarzKernel (z : ℂ) θ).re = (2 * Real.pi) * (poissonKernel' z θ) := by
+  simp only [schwarzKernel, poissonKernel']
   set ζ := Complex.exp (θ * Complex.I) with hζ_def
   set w : ℂ := (z : ℂ) with hw_def
   -- |ζ| = 1 and |ζ|² = 1
@@ -718,7 +691,7 @@ lemma schwarzKernel_bound {r : ℝ} (hr1 : r < 1) :
   have h_num_bound : ‖ζ + z‖ ≤ 1 + r :=
     calc ‖ζ + z‖ ≤ ‖ζ‖ + ‖z‖ := norm_add_le ζ z
       _ = 1 + ‖z‖ := by rw [hζ_norm]
-      _ ≤ 1 + r := add_le_add_left hz 1
+      _ ≤ 1 + r := add_le_add_right hz 1
 
   -- Denominator bound: |ζ-z| ≥ 1-r.
   have h_denom_bound : 1 - r ≤ ‖ζ - z‖ := by
@@ -1066,7 +1039,10 @@ lemma boundedType_interior_log_integrable {G H : ℂ → ℂ} {r : ℝ}
       Real.log ‖G ((r : ℂ) * Complex.exp (↑θ * I)) /
           H ((r : ℂ) * Complex.exp (↑θ * I))‖) (Set.Icc 0 (2 * Real.pi)) volume :=
     h_cont.integrableOn_compact isCompact_Icc
-  exact h_int.intervalIntegrable
+  have h_uIcc : Set.uIcc 0 (2 * Real.pi) = Set.Icc 0 (2 * Real.pi) := by
+    rw [Set.uIcc_of_le (by linarith [Real.pi_pos] : (0 : ℝ) ≤ 2 * Real.pi)]
+  rw [h_uIcc]
+  exact h_int.hasFiniteIntegral
 
 /-! ### Interior circle integrability (radius r < 1)
 
@@ -1214,7 +1190,7 @@ Hardy space theory. This lemma provides the interior version that is fully rigor
 lemma analyticPoissonPart_analyticOn_of_nonvanishing {g : ℂ → ℂ}
     (hg : IsOfBoundedTypeUnitDiscNonvanishing g) :
     ∀ r : ℝ, 0 < r → r < 1 → AnalyticOn ℂ (analyticPoissonPartInterior g r) unitDiscSet :=
-  fun r hr0 hr1 => analyticPoissonPartInterior_analyticOn hg hr0 hr1
+  fun _ hr0 hr1 => analyticPoissonPartInterior_analyticOn hg hr0 hr1
 
 /-! ### Connection to Upper Half-Plane Theory via Cayley Transform
 
@@ -1228,6 +1204,7 @@ noncomputable def cayleyTransform (z : ℂ) : ℂ := (z - Complex.I) / (z + Comp
 /-- The inverse Cayley transform from ℂ to ℂ. -/
 noncomputable def cayleyTransformInv (w : ℂ) : ℂ := Complex.I * (1 + w) / (1 - w)
 
+/-
 /-- Bounded-type on the disc corresponds to bounded-type on the half-plane via Cayley. -/
 lemma IsOfBoundedTypeUnitDisc.toUpperHalfPlane {f : ℂ → ℂ}
     (hf : IsOfBoundedTypeUnitDisc f) :
@@ -1417,7 +1394,7 @@ lemma analyticPoissonPart_hasDiskPoissonRepresentation
     -- = ∫ u(θ) • P(z, e^{iθ}) dθ
 
     -- Use the identity schwarzKernel_re_eq_poissonKernel
-    have h_re_eq : ∀ θ : ℝ, (schwarzKernel z θ).re = (2 * π) * poissonKernel ⟨z, hz⟩ θ := by
+    have h_re_eq : ∀ θ : ℝ, (schwarzKernel z θ).re = (2 * π) * (poissonKernel ⟨z, hz⟩ θ) := by
       intro θ
       exact schwarzKernel_re_eq_poissonKernel ⟨z, hz⟩ θ
 
@@ -1438,7 +1415,7 @@ lemma analyticPoissonPart_hasDiskPoissonRepresentation
         --     = ∫ u(θ) * P(z, e^{iθ}) dθ
         congr 1
         rw [show (2 * π : ℝ)⁻¹ * ∫ θ in (0 : ℝ)..2 * π, u θ * (schwarzKernel z θ).re =
-            ∫ θ in (0 : ℝ)..2 * π, u θ * poissonKernel ⟨z, hz⟩ θ by
+            ∫ θ in (0 : ℝ)..2 * π, u θ * (poissonKernel ⟨z, hz⟩ θ) by
           rw [← intervalIntegral.integral_const_mul]
           congr 1
           funext θ
@@ -1977,4 +1954,7 @@ end BlaschkeProductTests
 
 end Complex
 
+end
+-/
+end Complex
 end

@@ -5,7 +5,6 @@ import Mathlib.Analysis.Complex.UpperHalfPlane.FunctionsBoundedAtInfty
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Data.Real.StarOrdered
 
-
 /-!
 # Nevanlinna class and de Branges admissibility on the upper half-plane
 
