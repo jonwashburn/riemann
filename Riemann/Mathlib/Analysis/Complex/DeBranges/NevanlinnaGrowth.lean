@@ -263,6 +263,7 @@ lemma UpperHalfPlanePoissonRepresentation.limsup_atImInfty_le_meanType
     meanType f := by
     simpa [h.hAlpha] using h_G_limsup
   exact le_of_eq this
+/-
 
 /-- **Upper-half-plane Poisson–Jensen theorem (existence level).**
 
@@ -731,3 +732,5 @@ theorem IsOfBoundedTypeUpperHalfPlane.meanType_eq_atImInfty'
 
 
 end Complex
+
+-/

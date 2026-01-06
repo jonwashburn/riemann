@@ -45,6 +45,37 @@ This is the fundamental kernel for harmonic function theory on the disc. -/
 def poissonKernel (r : ℝ) (θ φ : ℝ) : ℝ :=
   (1 - r^2) / (1 - 2*r*Real.cos (θ - φ) + r^2)
 
+/-- Squared-norm identity for points on the unit circle:
+`‖exp(θ i) - r‖^2 = 1 - 2r cos θ + r^2`. -/
+lemma norm_exp_ofReal_mul_I_sub_ofReal_sq (r θ : ℝ) :
+    ‖Complex.exp (θ * Complex.I) - (r : ℂ)‖ ^ 2 = 1 - 2 * r * Real.cos θ + r ^ 2 := by
+  -- Rewrite `exp(θ i) - r` as `(cos θ - r) + (sin θ) i` and compute the squared norm.
+  have hw :
+      Complex.exp (θ * Complex.I) - (r : ℂ)
+        = ((Real.cos θ - r : ℝ) : ℂ) + (Real.sin θ : ℝ) * Complex.I := by
+    -- Use `exp_mul_I` and then rewrite complex `cos`/`sin` at real inputs back to `Real.cos`/`Real.sin`.
+    calc
+      Complex.exp (θ * Complex.I) - (r : ℂ)
+          = (Complex.cos (θ : ℂ) + Complex.sin (θ : ℂ) * Complex.I) - (r : ℂ) := by
+              simp [Complex.exp_mul_I]
+      _ = ((Real.cos θ : ℂ) + (Real.sin θ : ℂ) * Complex.I) - (r : ℂ) := by
+              -- `cos (θ:ℂ) = (Real.cos θ : ℂ)`, similarly for `sin`.
+              rw [← Complex.ofReal_cos θ, ← Complex.ofReal_sin θ]
+      _ = ((Real.cos θ - r : ℝ) : ℂ) + (Real.sin θ : ℝ) * Complex.I := by
+              push_cast
+              ring
+  have hsq :
+      ‖Complex.exp (θ * Complex.I) - (r : ℂ)‖ ^ 2
+        = (Real.cos θ - r) ^ 2 + (Real.sin θ) ^ 2 := by
+    have hnonneg : 0 ≤ (Real.cos θ - r) ^ 2 + (Real.sin θ) ^ 2 := by nlinarith
+    -- `simp` needs the nonneg proof to rewrite `((√a)^2)`.
+    rw [hw, Complex.norm_add_mul_I]
+    simp only [pow_two]
+    ring_nf; grind
+  have htrig : (Real.sin θ) ^ 2 + (Real.cos θ) ^ 2 = 1 := Real.sin_sq_add_cos_sq θ
+  -- Finish using `sin^2 + cos^2 = 1`.
+  nlinarith [hsq, htrig]
+
 /-- The denominator of the Poisson kernel is always positive for r < 1. -/
 lemma poissonKernel_denom_pos {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r < 1) (θ φ : ℝ) :
     0 < 1 - 2*r*Real.cos (θ - φ) + r^2 := by
