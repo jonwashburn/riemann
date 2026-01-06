@@ -38,10 +38,10 @@ This file tracks the execution of `THREE_PAPER_SPLIT_PLAN.md`.
 - **Title (working):** *A cutoff principle and conditional closure of the Riemann Hypothesis*  
 - **Status:** completed (first complete draft)
 - **Sections**
-  - `\section{Introduction}` — **completed** (Session 13)
-  - `\section{From Nyquist cutoff to a uniform arithmetic blocker}` — **completed** (Session 14; polished Session 39)
+  - `\section{Introduction}` — **completed** (Session 13; polished Session 51; polished Session 52)
+  - `\section{From Nyquist cutoff to a uniform arithmetic blocker}` — **completed** (Session 14; polished Session 39; polished Session 53)
   - `\section{From the arithmetic blocker to a uniform Carleson bound}` — **completed** (Session 15; polished Session 42)
-  - `\section{Barrier closure and conditional RH}` — **completed** (Session 16; polished Session 44)
+  - `\section{Barrier closure and conditional RH}` — **completed** (Session 16; polished Session 44; polished Session 50; polished Session 51)
   - `\section*{Conclusion and limitations (conditional status)}` — **completed** (Session 17; polished Session 45)
   - `\section*{Statements and Declarations}` — **completed** (Session 22; polished Session 46)
 
@@ -242,7 +242,47 @@ This file tracks the execution of `THREE_PAPER_SPLIT_PLAN.md`.
   - Next queued section: Paper 1 — (none; Paper 1 remains complete; only minor typos/formatting remain)
 
 - **Session 49 (2026-01-03):** completed
+  - Paper 1 polish: fixed a normalization ambiguity inside `\section{Hybrid certification: rectangle + Pick + asymptotics}` by renaming the rectangle artifact’s normalizer from $\mathcal O_{\mathrm{can}}$ to $\mathcal O_{\mathrm{proj}}$ (matching the \texttt{outer\_zeta\_proj} gauge) and tightening Remark~`rem:gauges` to state pole-set invariance only on regions where the normalizing factor is certified nonvanishing; recompiled `paper1_farfield.pdf`.
+  - Next queued section: Paper 1 — (none; Paper 1 remains complete; only minor typos/formatting remain)
+
+- **Session 49 (2026-01-03):** completed
   - Paper 3 polish: revised `\section{From the arithmetic blocker to a uniform Carleson bound}` to (i) clarify that the corollary’s $M_\Phi$ supremum ranges over the same $(L,t_0)$ parameter set as Hypothesis~`hyp:nyquist-cutoff`, and (ii) tighten wording to avoid any accidental over-identification of the cutoff prime-field estimate with the full zeta-ratio budget; recompiled `paper3_cutoff_conditional.pdf`.
   - Next queued section: Paper 3 — `\section{Barrier closure and conditional RH}`
+
+- **Session 50 (2026-01-03):** completed
+  - Paper 3 polish: revised `\section{Barrier closure and conditional RH}` to (i) further separate the cutoff prime-field Carleson estimate from the full zeta-ratio Carleson budget language (stating it explicitly as the prime-frequency input), and (ii) make the admissibility assumption in Remark~`rem:blockers` explicit in the conditional proofs; recompiled `paper3_cutoff_conditional.pdf`.
+  - Next queued section: Paper 3 — (none; Paper 3 remains complete; only minor typos/formatting remain)
+
+- **Session 51 (2026-01-03):** completed
+  - Paper 3 polish: revised `\section{Introduction}` to state the headline theorem/corollary assumptions directly (Hypothesis~`hyp:nyquist-cutoff` + admissibility from Remark~`rem:blockers` + $M_\Phi<\infty$) and to soften “removes height-growth” wording to a conservative conditional formulation; recompiled `paper3_cutoff_conditional.pdf`.
+  - Next queued section: Paper 3 — (none; Paper 3 remains complete; only minor typos/formatting remain)
+
+- **Session 52 (2026-01-03):** completed
+  - Paper 3 polish: revised `\section{Introduction}` to make the Nyquist-cutoff hypothesis fully explicit about the $(L,t_0)$ parameter range and regularity (treating $\Phi_{L,t_0}\in L^1(\R)$ so the Fourier transform is well-defined, and stating that the paper only invokes the hypothesis for the near-field range $0<L\le 0.2$); recompiled `paper3_cutoff_conditional.pdf`.
+  - Next queued section: Paper 3 — (none; Paper 3 remains complete; only minor typos/formatting remain)
+
+- **Session 51 (2026-01-03):** completed
+  - Paper 3 polish: revised `\section{Barrier closure and conditional RH}` to (i) explicitly flag the distributional interpretation of the windowed phase pairing in Proposition~`prop:barrier-ineq`, (ii) define the neutralized holomorphic/zero-free function $F$ used in the CR--Green summary line, and (iii) clarify the RH implication via zeros of the completed zeta function $\xi$ (stating that these coincide with the nontrivial zeros of $\zeta$); recompiled `paper3_cutoff_conditional.pdf`.
+  - Next queued section: Paper 3 — (none; Paper 3 remains complete; only minor typos/formatting remain)
+
+- **Session 52 (2026-01-03):** completed
+  - Paper 3 polish: revised `\section{From Nyquist cutoff to a uniform arithmetic blocker}` to make the $(L,t_0)$ quantifier regime fully explicit at the point where $M_\Phi$ is defined (recording the near-field closure range $0<L\le 0.2$ and $t_0\in\R$), eliminating any ambiguity about what “uniform in $(L,t_0)$” means; recompiled `paper3_cutoff_conditional.pdf`.
+  - Next queued section: Paper 3 — (none; Paper 3 remains complete; only minor typos/formatting remain)
+
+- **Session 53 (2026-01-03):** completed
+  - Paper 3 polish: revised `\section{From Nyquist cutoff to a uniform arithmetic blocker}` to fix a minor grammatical issue in Lemma~`lem:nyquist-implies-blocker` (removing the stray leading “and” before the $M_\Phi<\infty$ assumption), keeping the $(L,t_0)$ quantifier regime explicit; recompiled `paper3_cutoff_conditional.pdf`.
+  - Next queued section: Paper 3 — (none; Paper 3 remains complete; only minor typos/formatting remain)
+
+- **Session 54 (2026-01-03):** completed
+  - Paper 1 polish: revised `\section{Definitions and main objects}` to make the artifact/verification gauges consistent with the manuscript objects by (i) defining the arithmetic ratio \(\mathcal J\) and Cayley field \(\Theta\) in the raw \(\zeta\)-gauge \(\mathcal O\equiv 1\) by default, (ii) allowing auxiliary holomorphic nonvanishing normalizers on compact regions (with gauge declared per artifact), and (iii) updating \eqref{eq:J-def} and Remarks~`rem:Ocan-role`, `rem:poles` accordingly; recompiled `paper1_farfield.pdf`.
+  - Next queued section: Paper 1 — (none; Paper 1 remains complete; only minor typos/formatting remain)
+
+- **Session 55 (2026-01-03):** completed
+  - Paper 1 polish: revised `\section{Schur/Herglotz pinch mechanism}` by strengthening Corollary~`cor:no-poles` so it no longer assumes (implicitly) that \(\Theta\) has no Cayley-singularities: it now starts from \(\Theta\) meromorphic on \(U\) and \(|\Theta|\le 1\) away from poles, deduces holomorphic extension across all poles by removability, and then applies the Maximum Modulus Principle to exclude \(\Theta=1\) (hence deduce holomorphicity of the Cayley inverse and absence of poles of \(\mathcal J\)); recompiled `paper1_farfield.pdf`.
+  - Next queued section: Paper 1 — (none; Paper 1 remains complete; only minor typos/formatting remain)
+
+- **Session 56 (2026-01-03):** completed
+  - Paper 1 polish: replaced the non-explicit large-$|t|$ tail lemma in `\section{Hybrid certification: rectangle + Pick + asymptotics}` with an explicit certified Pick-matrix half-plane certificate at $\sigma_0=0.599$ (new artifact `pick_sigma0599_raw_zeta_N16.json`), so the claimed line $\Re s=0.6$ is an interior subset of the certified Schur domain; removed Lemma~`lem:tail-bound`; updated Table~`tab:artifact-data`, Remark~`rem:artifact-repro`, the audit manifest Appendix, and `README.md` accordingly; recompiled `paper1_farfield.pdf`.
+  - Next queued section: Paper 1 — (none; Paper 1 remains complete; only minor typos/formatting remain)
 
 

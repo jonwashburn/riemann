@@ -61,7 +61,9 @@ pip install python-flint
 
 - `verify_attachment_arb.py` — the main verifier (ARB / ball arithmetic).
 - `theta_certify_sigma06_07_t0_20_outer_zeta_proj.json` — rectangle certification artifact for \([0.6,0.7]\times[0,20]\) (this matches Table `tab:artifact-data`).
-- `pick_sigma07_raw_zeta_N16.json` — Pick certificate artifact at \(\sigma_0=0.7\) with \(N=16\) (this matches Table `tab:artifact-data`).
+- `pick_sigma0599_raw_zeta_N16.json` — Pick certificate artifact at \(\sigma_0=0.599\) with \(N=16\) (this matches Table `tab:artifact-data`; this is the primary half-plane certificate used to cover \(\Re s\ge 0.6\) without a separate tail lemma).
+- `pick_sigma06_raw_zeta_N16.json` — Pick certificate artifact at \(\sigma_0=0.6\) with \(N=16\) (cross-check; matches Table `tab:artifact-data`).
+- `pick_sigma07_raw_zeta_N16.json` — Pick certificate artifact at \(\sigma_0=0.7\) with \(N=16\) (cross-check; matches Table `tab:artifact-data`).
 
 ## Quick Start (recommended)
 
@@ -77,9 +79,12 @@ There are two sensible audit modes:
   - `results.theta_hi < 1`
   - `results.processed_boxes = 380764`
 
-- **Pick artifact:** open `pick_sigma07_raw_zeta_N16.json` and check:
+- **Pick artifact (primary):** open `pick_sigma0599_raw_zeta_N16.json` and check:
   - `pick.delta_cert` matches Table `tab:artifact-data`
   - `pick.P_spd_at_0` is `true`
+  - `pick.tail_weighted_l2_partial_hi` matches Table `tab:artifact-data`
+
+- **Pick artifacts (cross-checks):** open `pick_sigma06_raw_zeta_N16.json` and `pick_sigma07_raw_zeta_N16.json` and check the same fields.
 
 ### Full regeneration (optional)
 
@@ -90,10 +95,10 @@ cd /path/to/this/repository
 python verify_attachment_arb.py --help
 ```
 
-The two key audit modes corresponding to Table `tab:artifact-data` are:
+The key audit modes corresponding to Table `tab:artifact-data` are:
 
 1. **Rectangle audit** (`theta_certify`) for \([0.6,0.7]\times[0,20]\) in the far-field.
-2. **Pick certificate audit** (`pick_certify`) at \(\sigma_0=0.7\), \(N=16\), plus the tail bound check.
+2. **Pick certificate audit** (`pick_certify`) at \(\sigma_0=0.599\), \(N=16\), plus the tail bound check.
 
 ## Verification Manifest (how Table `tab:artifact-data` is produced)
 
@@ -133,27 +138,27 @@ python verify_attachment_arb.py \
   --progress
 ```
 
-### 2) Pick Matrix Certificate (Schur on \(\{\Re s>0.7\}\))
+### 2) Pick Matrix Certificate (Schur on \(\{\Re s>0.599\}\))
 
-**Goal:** certify a strict Pick gap at \(\sigma_0=0.7\) for the \(16\times 16\) arithmetic Pick minor \(P_{16}(\sigma_0)\):
+**Goal:** certify a strict Pick gap at \(\sigma_0=0.599\) for the \(16\times 16\) arithmetic Pick minor \(P_{16}(\sigma_0)\):
 \[
-P_{16}(0.7) \succeq \delta I,\qquad \delta>0.
+P_{16}(0.599) \succeq \delta I,\qquad \delta>0.
 \]
 
-**Artifact file (included):** `pick_sigma07_raw_zeta_N16.json`
+**Artifact file (included):** `pick_sigma0599_raw_zeta_N16.json`
 
 Key fields in that JSON (expected):
 
-- `pick.delta_cert = 0.6273368611...`
+- `pick.delta_cert = 0.5944375202...`
 - `pick.P_spd_at_0 = true`
-- `pick.tail_weighted_l2_partial_hi = 0.01272011...`
+- `pick.tail_weighted_l2_partial_hi = 0.0137007383...`
 
 **Optional regeneration command (writes a new artifact):**
 
 ```bash
 python verify_attachment_arb.py \
   --pick-certify \
-  --pick-sigma0 0.7 \
+  --pick-sigma0 0.599 \
   --pick-N 16 \
   --pick-coeff-count 32 \
   --pick-K 256 \
@@ -161,12 +166,11 @@ python verify_attachment_arb.py \
   --pick-rho-bound 0.2 \
   --arith-gauge raw_zeta \
   --arith-P-cut 2000 \
-  --outer-mode rigorous \
-  --outer-P-cut 20000 \
-  --outer-T 10 --outer-n 200 \
   --prec 260 \
-  --pick-out pick_sigma07_raw_zeta_N16.json
+  --pick-out pick_sigma0599_raw_zeta_N16.json
 ```
+
+Optional cross-check regenerations can be done by changing `--pick-sigma0` and `--pick-out` to reproduce `pick_sigma06_raw_zeta_N16.json` and `pick_sigma07_raw_zeta_N16.json` (see Table `tab:artifact-data`).
 
 ### 3) Tail Bound Audit (stability of the infinite Pick matrix)
 

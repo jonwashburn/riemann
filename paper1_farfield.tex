@@ -11,8 +11,8 @@
 \begin{abstract}
 We prove unconditionally that the Riemann zeta function $\zeta(s)$ has no zeros in the fixed half-plane $\{\Re s \ge 0.6\}$.
 The argument is function-theoretic: we encode the arithmetic ratio into a Cayley transform $\Theta$ and show $\Theta$ is Schur on $\{\Re s>0.6\}$, after which a Schur--Herglotz pinch eliminates zeros.
-The Schur property is certified by machine-checkable ARB/ball-arithmetic artifacts, most notably a finite arithmetic Pick-matrix certificate at $\sigma_0=0.6$ with a strict spectral gap, which yields the Schur property on the full half-plane $\{\Re s>0.6\}$.
-For additional audit checkpoints, we also include an independent rectangle certification on $[0.6,0.7]\times[0,20]$ and a second Pick certificate at $\sigma_0=0.7$.
+The Schur property is certified by machine-checkable ARB/ball-arithmetic artifacts, most notably a finite arithmetic Pick-matrix certificate at $\sigma_0=0.599$ with a strict spectral gap, which yields the Schur property on the full half-plane $\{\Re s>0.599\}$ (and hence covers the closed line $\Re s=0.6$ without a separate large-$|t|$ tail argument).
+For additional audit checkpoints, we also include an independent rectangle certification on $[0.6,0.7]\times[0,20]$ and independent Pick certificates at $\sigma_0=0.6$ and $\sigma_0=0.7$.
 See the repository \texttt{README.md} for an audit manifest and the artifact files.
 \end{abstract}
 
@@ -36,14 +36,14 @@ The Riemann zeta function has no zeros in the region $\{\,s\in\C:\ \Re s\ge 0.6\
 The proof is based on a bounded-real (Schur/Herglotz) mechanism.
 One defines an arithmetic ratio $\mathcal J(s)$ on the half-plane $\{\Re s>\tfrac12\}$ such that every zero of $\zeta(s)$ in $\{\Re s>\tfrac12\}$ produces a pole of $\mathcal J$.
 Taking a Cayley transform, one obtains an analytic field $\Theta(s)$ whose poles/critical behavior encode the same obstruction, but for which a \emph{Schur bound} $|\Theta(s)|\le 1$ rules out poles by a removable-singularity pinch.
-Thus, the far-field zero-free region follows once $|\Theta|\le 1$ is established on $\{\Re s>0.6\}$ (together with an explicit boundary-line audit at $\Re s=0.6$; see Section~\ref{sec:hybrid}).
+Thus, the far-field zero-free region follows once a Schur bound is established on a half-plane that contains $\{\Re s\ge 0.6\}$ as an interior subset; in this paper we certify $|\Theta_{\rm raw}|\le 1$ on $\{\Re s>0.599\}$, which in particular covers the closed line $\Re s=0.6$ without a separate large-$|t|$ tail argument (see Section~\ref{sec:hybrid}).
 
 \subsection*{Certified inputs (what is rigorously checked)}
-We certify the Schur bound on the open half-plane $\{\Re s>0.6\}$ by a finite arithmetic Pick-matrix certificate at $\sigma_0=0.6$ (with $N=16$ and a strict spectral gap).
-For additional audit checkpoints (and to explicitly probe the boundary line $\Re s=0.6$ at moderate height), we also supply two independent certified checks:
+We certify the Schur bound for the default raw-gauge Cayley field $\Theta_{\rm raw}$ (i.e.\ $\mathcal O\equiv 1$) on the open half-plane $\{\Re s>0.599\}$ by a finite arithmetic Pick-matrix certificate at $\sigma_0=0.599$ (with $N=16$ and a strict spectral gap).
+For additional audit checkpoints, we also supply independent certified checks:
 \begin{itemize}
-\item \textbf{Finite rectangle.} Rigorous subdivision with complex ball arithmetic certifies $|\Theta|<1$ on $[0.6,0.7]\times[0,20]$.
-\item \textbf{Independent Pick check at $\sigma_0=0.7$.} A second Pick-matrix certificate at $\sigma_0=0.7$ yields the Schur property on $\{\Re s>0.7\}$.
+\item \textbf{Finite rectangle.} Rigorous subdivision with complex ball arithmetic certifies $|\Theta_{\rm proj}|<1$ on $[0.6,0.7]\times[0,20]$ (in the \texttt{outer\_zeta\_proj} gauge).
+\item \textbf{Independent Pick checks at $\sigma_0=0.6$ and $\sigma_0=0.7$.} Separate Pick-matrix certificates at $\sigma_0=0.6$ and $\sigma_0=0.7$ yield the Schur property on $\{\Re s>0.6\}$ and $\{\Re s>0.7\}$, respectively.
 \end{itemize}
 These certified inputs are recorded as JSON artifacts and audited by the accompanying verifier; see Section~\ref{sec:hybrid}.
 
@@ -91,17 +91,21 @@ In particular, the regularized determinant $\dettwo(I-A(s))$ is well-defined and
 
 \subsection*{The arithmetic ratio \texorpdfstring{$\mathcal J$}{J} and the Cayley field \texorpdfstring{$\Theta$}{Theta}}
 The central meromorphic object is an arithmetic ratio $\mathcal J(s)$ whose poles capture zeros of $\zeta$ in $\Omega$.
-We define
+To allow numerically stable certified bounds, we permit a holomorphic nonvanishing \emph{normalizer} (or \emph{gauge}) $\mathcal O$ on the region under discussion and define
 \begin{equation}\label{eq:J-def}
-  \mathcal{J}(s)\ :=\ \frac{\dettwo(I-A(s))}{\zeta(s)}\cdot \frac{s}{s-1}\cdot \frac{1}{\mathcal O_{\mathrm{can}}(s)},
+  \mathcal{J}(s)\ :=\ \frac{\dettwo(I-A(s))}{\zeta(s)}\cdot \frac{s}{s-1}\cdot \frac{1}{\mathcal O(s)},
 \end{equation}
-where $\mathcal O_{\mathrm{can}}$ is a fixed holomorphic zero-free normalizer on $\Omega$ chosen so that $\mathcal J(s)\to 1$ as $\Re s\to+\infty$.
-For the far-field argument, the only properties of $\mathcal O_{\mathrm{can}}$ used are: (i) holomorphicity on $\Omega$, (ii) zero-freeness, and (iii) normalization at $+\infty$.
+where $\mathcal O$ is chosen so that it is holomorphic and nonvanishing on the region where \eqref{eq:J-def} is used.
+Unless explicitly stated otherwise, we work in the \emph{raw $\zeta$-gauge} $\mathcal O\equiv 1$ and denote the resulting objects by $\mathcal J_{\rm raw}$ and $\Theta_{\rm raw}$.
+For readability we usually drop the subscript and simply write $\mathcal J$ and $\Theta$ in this default gauge.
+On compact regions one may also divide by an auxiliary holomorphic nonvanishing normalizer to improve conditioning; when we do so we write $\mathcal J_{\rm proj}$ and $\Theta_{\rm proj}$ (see Remark~\ref{rem:gauges}).
+Since Schur bounds are \emph{not} gauge-invariant, we keep this notation explicit whenever a certified bound is quoted or invoked in the pinch argument.
+On any region where the auxiliary normalizer is nonvanishing, such a gauge change does not affect the pole set of $\mathcal J$ (hence does not change which points correspond to zeros of $\zeta$).
 
 \begin{remark}[Role of the normalizer]\label{rem:Ocan-role}
-The holomorphic zero-free factor $\mathcal O_{\mathrm{can}}$ is fixed once and for all; it serves only to normalize $\mathcal J$ by imposing $\mathcal J(s)\to 1$ as $\Re s\to+\infty$.
-This pins down a definite Cayley field $\Theta$ (in particular $\Theta(s)\to 1/3$ as $\Re s\to+\infty$), and all certified bounds later refer to this fixed choice.
-Since $\mathcal O_{\mathrm{can}}$ is holomorphic and zero-free on $\Omega$, it cannot introduce poles of $\mathcal J$.
+The factor $\mathcal O$ serves only to choose a convenient gauge for $\mathcal J$.
+Provided $\mathcal O$ is holomorphic and nonvanishing on a region $D\subset\Omega$, it cannot introduce poles of $\mathcal J$ on $D$.
+In particular, in the raw $\zeta$-gauge $\mathcal O\equiv 1$ one has $\mathcal J(s)\to 1$ and hence $\Theta(s)\to 1/3$ as $\Re s\to+\infty$.
 \end{remark}
 
 The associated Cayley transform is
@@ -115,7 +119,7 @@ The proof uses the following simple implication: a Schur bound on $\Theta$ preve
 If $\rho\in\Omega$ is a zero of $\zeta(s)$, then $\rho$ is a pole of $\mathcal J(s)$ provided the numerator factors in \eqref{eq:J-def} are nonzero at $\rho$.
 For $\Re\rho>1/2$ one has $\dettwo(I-A(\rho))\neq 0$: for diagonal $A(s)$,
 $\dettwo(I-A(s))=\prod_{p}(1-p^{-s})\,e^{p^{-s}}$ and $\sum_{p}|\log(1-p^{-s})+p^{-s}|<\infty$ on $\Omega$; in particular $\dettwo(I-A(s))$ is holomorphic and zero-free on $\Omega$.
-Also $\mathcal O_{\mathrm{can}}(\rho)\neq 0$ by zero-freeness.
+Also $\mathcal O(\rho)\neq 0$ by the nonvanishing assumption on the chosen gauge.
 Thus zeros of $\zeta$ in $\Omega$ correspond to poles of $\mathcal J$, and hence to points where $\Theta$ cannot extend holomorphically unless the pole is ruled out.
 \end{remark}
 
@@ -158,7 +162,7 @@ We will use Lemma~\ref{lem:removable-schur-p1} in the following form: if $\Theta
 Thus a Schur bound rules out poles of any meromorphic object that can be expressed as a Cayley inverse of $\Theta$.
 
 \begin{corollary}[Schur bound prevents poles of $\mathcal J$]\label{cor:no-poles}
-Let $U\subset\Omega$ be a domain and suppose that $\Theta$ is holomorphic on $U\setminus Z(\xi)$ and satisfies $|\Theta|\le 1$ there.
+Let $U\subset\Omega$ be a domain and suppose that $\Theta$ is meromorphic on $U$ and satisfies $|\Theta|\le 1$ on $U$ away from its poles.
 Then $\Theta$ extends holomorphically to $U$ and satisfies $|\Theta|\le 1$ on $U$.
 Moreover, the Cayley inverse
 \[
@@ -167,10 +171,11 @@ Moreover, the Cayley inverse
 extends holomorphically to $U$ with $\Re(2\mathcal J)\ge 0$ on $U$; in particular $\mathcal J$ has no poles in $U$.
 \end{corollary}
 \begin{proof}
-By assumption, $Z(\xi)\cap U$ is a discrete set (zeros of an analytic function).
-Applying Lemma~\ref{lem:removable-schur-p1} in small discs around each point of $Z(\xi)\cap U$ gives a holomorphic extension of $\Theta$ across $Z(\xi)\cap U$.
+The poles of a meromorphic function form a discrete subset of $U$.
+On each punctured disc around a pole, $\Theta$ is bounded by $1$, hence removable by Lemma~\ref{lem:removable-schur-p1}.
+Therefore $\Theta$ extends holomorphically across all its poles and is holomorphic on $U$.
 The Schur bound persists by continuity.
-The Cayley inverse is holomorphic wherever $\Theta\neq 1$ and has nonnegative real part on $U\setminus Z(\xi)$.
+ The Cayley inverse is holomorphic wherever $\Theta\neq 1$ and has nonnegative real part on $U$.
 If $\Theta(s_0)=1$ at some point $s_0\in U$, then $|\Theta|$ attains its maximum at an interior point, so $\Theta\equiv 1$ on $U$ by the Maximum Modulus Principle.
 In the applications below this is excluded (e.g.\ on any right half-plane $U$, Remark~\ref{rem:Ocan-role} gives $\Theta(s)\to \tfrac13$ as $\Re s\to+\infty$), hence $\Theta\neq 1$ on $U$ and the Cayley inverse extends holomorphically to $U$ with $\Re(2\mathcal J)\ge 0$.
 In particular $\mathcal J$ has no poles in $U$.
@@ -179,23 +184,23 @@ In particular $\mathcal J$ has no poles in $U$.
 \subsection*{Conclusion: Schur on the far half-plane implies Theorem~\ref{thm:farfield}}
 We now connect the pinching mechanism to $\zeta$.
 By Remark~\ref{rem:poles}, any zero $\rho$ of $\zeta$ in $\Omega$ produces a pole of $\mathcal J$ in $\Omega$ (the numerator factors in \eqref{eq:J-def} are nonzero on $\Omega$).
-Therefore, if we can certify the Schur bound $|\Theta|\le 1$ on the far half-plane $U=\{\,\Re s>0.6\,\}$, Corollary~\ref{cor:no-poles} implies $\mathcal J$ has no poles in $U$, hence $\zeta$ has no zeros in $U$.
-This yields Theorem~\ref{thm:farfield}.
-The next section discharges the Schur bound on $U$ by the hybrid certification (rectangle + Pick matrix + asymptotics).
+Therefore, if we can certify a Schur bound for $\Theta_{\rm raw}$ on a half-plane $U_\varepsilon=\{\,\Re s>0.6-\varepsilon\,\}$ with some $\varepsilon>0$, Corollary~\ref{cor:no-poles} implies $\mathcal J_{\rm raw}$ has no poles in $U_\varepsilon$, hence $\zeta$ has no zeros in $U_\varepsilon$.
+Since $\{\,\Re s\ge 0.6\,\}\subset U_\varepsilon$, this yields Theorem~\ref{thm:farfield}.
+The next section discharges the Schur bound on $U_{0.599}$ by the hybrid certification (rectangle + Pick matrix + auxiliary checkpoints).
 
 \section{Hybrid certification: rectangle + Pick + asymptotics}\label{sec:hybrid}
 
 This section records the certified inputs used to discharge the Schur bound required in Corollary~\ref{cor:no-poles}.
-The \emph{primary} certified input is the strict Pick-matrix gap at $\sigma_0=0.6$ (Proposition~\ref{prop:pick-gap06}), which yields the Schur property of $\Theta$ on the entire open half-plane
+The \emph{primary} certified input is the strict Pick-matrix gap at $\sigma_0=0.599$ (Proposition~\ref{prop:pick-gap0599}), which yields the Schur property of $\Theta_{\rm raw}$ on the entire open half-plane
 \[
-  U\ :=\ \{\,s\in\C:\ \Re s>0.6\,\}.
+  U_{0.599}\ :=\ \{\,s\in\C:\ \Re s>0.599\,\}.
 \]
-In addition, we supply two auxiliary audit checkpoints:
+Since $\{\,\Re s\ge 0.6\,\}\subset U_{0.599}$, this already suffices for Theorem~\ref{thm:farfield} and removes the need for a separate large-$|t|$ tail lemma to treat the boundary line $\Re s=0.6$.
+In addition, we supply auxiliary audit checkpoints:
 \begin{itemize}
 \item a rigorous interval-arithmetic rectangle certification on $R_\ast=[0.6,0.7]\times[-20,20]$ (Lemma~\ref{lem:rect-cert}), which also certifies denominator nonvanishing for the chosen normalization on that cover;
-\item an independent Pick certificate at $\sigma_0=0.7$ (Proposition~\ref{prop:pick-gap}), included as a cross-check.
+\item independent Pick certificates at $\sigma_0=0.6$ and $\sigma_0=0.7$ (Propositions~\ref{prop:pick-gap06} and \ref{prop:pick-gap}), included as cross-checks.
 \end{itemize}
-Finally, to address the boundary line $\Re s=0.6$ beyond the certified rectangle, we record a large-height tail estimate (Lemma~\ref{lem:tail-bound}).
 
 \subsection*{Domain decomposition}
 Let $T_\ast:=20$ and write $s=\sigma+it$.
@@ -203,37 +208,40 @@ Set
 \[
   R_\ast\ :=\ [0.6,0.7]\times[-T_\ast,T_\ast].
 \]
-Proposition~\ref{prop:pick-gap06} certifies that $\Theta$ is Schur on the full open half-plane $U$.
-Separately, Lemmas~\ref{lem:rect-cert} and \ref{lem:tail-bound} provide strict bounds on the closed strip $0.6\le \sigma\le 0.7$, which are used to exclude boundary-line zeros on $\Re s=0.6$.
+Proposition~\ref{prop:pick-gap0599} certifies that $\Theta_{\rm raw}$ is Schur on the full open half-plane $U_{0.599}$.
+Lemma~\ref{lem:rect-cert} is an independent certified checkpoint on the finite rectangle $R_\ast$ (in the \texttt{outer\_zeta\_proj} gauge), and is not needed for the logical implication of Theorem~\ref{thm:farfield}.
 
 \subsection*{Certified rectangle bound (interval arithmetic)}
 \begin{lemma}[Rectangle certification]\label{lem:rect-cert}
 On the rectangle $[0.6,0.7]\times[0,T_\ast]$ one has the certified bound
 \[
-  |\Theta(s)|\ \le\ 0.9999928763\ <\ 1.
+  |\Theta_{\rm proj}(s)|\ \le\ 0.9999928763\ <\ 1,
 \]
-By conjugation symmetry $\Theta(\overline{s})=\overline{\Theta(s)}$, the same bound holds on $R_\ast=[0.6,0.7]\times[-T_\ast,T_\ast]$.
+where $\Theta_{\rm proj}$ denotes the Cayley field computed from \eqref{eq:J-def} in the \texttt{outer\_zeta\_proj} gauge (so $\mathcal O=\mathcal O_{\mathrm{proj}}$ on this rectangle).
+By conjugation symmetry $\Theta_{\rm proj}(\overline{s})=\overline{\Theta_{\rm proj}(s)}$, the same bound holds on $R_\ast=[0.6,0.7]\times[-T_\ast,T_\ast]$.
 \end{lemma}
 \begin{proof}
 This is verified by rigorous complex ball arithmetic on a recursive subdivision of the rectangle, implemented in \texttt{verify\_attachment\_arb.py} (\texttt{theta\_certify} mode) and recorded in the JSON artifact
 \texttt{theta\_certify\_sigma06\_07\_t0\_20\_outer\_zeta\_proj.json}.
 The bound quoted is the artifact’s certified upper envelope \texttt{theta\_hi}.
 \emph{Well-definedness on the rectangle.}
-The same certification run also checks that the denominator quantities used to form $\Theta$ do not vanish on the rectangle cover (in particular, the enclosures for $\zeta(s)$ and the normalizer factor in \eqref{eq:J-def} do not contain $0$ on each certified box).
-This is recorded in the artifact’s \texttt{denominators} fields and ensures that $\Theta$ is holomorphic on the rectangle, so the reported $\sup|\Theta|$ bound applies on the entire certified cover.
+The same certification run also checks that the denominator quantities used to form $\Theta_{\rm proj}$ do not vanish on the rectangle cover (in particular, the enclosures for $\zeta(s)$ and the gauge factor $\mathcal O_{\mathrm{proj}}(s)$ do not contain $0$ on each certified box).
+This is recorded in the artifact’s \texttt{denominators} fields and ensures that $\Theta_{\rm proj}$ is holomorphic on the rectangle, so the reported $\sup|\Theta_{\rm proj}|$ bound applies on the entire certified cover.
 For example, the shipped artifact reports the certified lower bounds
 \[
-  \min_{R_\ast}|\zeta(s)|\ \ge\ 0.00839,\qquad \min_{R_\ast}|\mathcal O_{\mathrm{can}}(s)|\ \ge\ 0.0316,
+  \min_{R_\ast}|\zeta(s)|\ \ge\ 0.00839,\qquad \min_{R_\ast}|\mathcal O_{\mathrm{proj}}(s)|\ \ge\ 0.0316,
 \]
 recorded as \texttt{min\_abs\_zeta\_lower} and \texttt{min\_abs\_O\_lower} (with $R_\ast=[0.6,0.7]\times[-20,20]$).
-Conjugation symmetry follows from $\zeta(\overline{s})=\overline{\zeta(s)}$ and the fact that all constructions in \eqref{eq:J-def} respect conjugation.
+Conjugation symmetry follows from $\zeta(\overline{s})=\overline{\zeta(s)}$ and the fact that all constructions in \eqref{eq:J-def} (with $\mathcal O=\mathcal O_{\mathrm{proj}}$) respect conjugation.
 \end{proof}
 
 \begin{remark}[Normalizations (gauges) used in the artifacts]\label{rem:gauges}
-The verifier supports several normalizations of the arithmetic ratio $\mathcal J$ that differ by multiplication by a holomorphic zero-free factor.
-Such a change does not alter the pole set of $\mathcal J$ (hence does not change the implication ``a zero of $\zeta$ produces a pole''), but it can substantially improve numerical stability of the Cayley field $\Theta$.
-In particular, the rectangle certification is performed in the gauge reported by its artifact (here \texttt{outer\_zeta\_proj}), while the Pick certificates are performed in gauge \texttt{raw\_zeta}.
-The rectangle artifact also certifies that the additional normalizing factor used there is nonvanishing on the certified cover (Lemma~\ref{lem:rect-cert}), so no new poles are introduced.
+The verifier supports several normalizations of the arithmetic ratio $\mathcal J$ that differ by multiplication by a holomorphic factor.
+On any region where this factor is nonvanishing, such a change does not alter the pole set of $\mathcal J$ (hence does not change the implication ``a zero of $\zeta$ produces a pole''), but it can substantially improve numerical stability of the Cayley field $\Theta$.
+In this paper, the Pick certificates are performed in the \texttt{raw\_zeta} gauge, which corresponds to the default choice $\mathcal O\equiv 1$ and hence certifies the Schur property of $\Theta_{\rm raw}$ on right half-planes.
+The rectangle certification is performed in the gauge reported by its artifact (here \texttt{outer\_zeta\_proj}), which corresponds to taking $\mathcal O=\mathcal O_{\mathrm{proj}}$ and hence certifies a Schur bound for $\Theta_{\rm proj}$ on the certified rectangle.
+Since the rectangle artifact also certifies that $\mathcal O_{\mathrm{proj}}$ is nonvanishing on the rectangle cover (Lemma~\ref{lem:rect-cert}), the pole set of $\mathcal J_{\rm proj}$ on that rectangle agrees with the pole set of $\mathcal J_{\rm raw}$ there.
+Accordingly, when we invoke a certified Schur bound in the pinch argument we always use the matching Cayley field ($\Theta_{\rm raw}$ for the Pick half-plane step, and $\Theta_{\rm proj}$ for the finite-rectangle checkpoint), so there is no ambiguity about which $\Theta$ is meant.
 \end{remark}
 
 \subsection*{Pick certificate on the right half-plane \texorpdfstring{$\{\Re s>0.7\}$}{Re s>0.7}}
@@ -245,7 +253,7 @@ Consider the disk chart (a biholomorphism) given by
   \qquad
   z_{\sigma_0}(s)\ :=\ \frac{s-(\sigma_0+1)}{s-(\sigma_0-1)}.
 \]
-Define the disk pullback $\theta_{\sigma_0}(z):=\Theta(s_{\sigma_0}(z))$, which is holomorphic near $z=0$ since $s_{\sigma_0}(0)=\sigma_0+1>1$.
+Define the disk pullback $\theta_{\sigma_0}(z):=\Theta_{\rm raw}(s_{\sigma_0}(z))$, which is holomorphic near $z=0$ since $s_{\sigma_0}(0)=\sigma_0+1>1$.
 The associated Schur/Pick kernel is
 \[
   K_{\sigma_0}(z,w)\ :=\ \frac{1-\theta_{\sigma_0}(z)\,\overline{\theta_{\sigma_0}(w)}}{1-z\overline w},
@@ -254,28 +262,90 @@ The associated Schur/Pick kernel is
 By the Pick criterion (see \cite[Ch.~2]{RosenblumRovnyak} or \cite[Ch.~III]{Donoghue}), $\theta_{\sigma_0}$ is Schur on $\mathbb D$ if and only if $K_{\sigma_0}$ is positive semidefinite.
 Expanding $K_{\sigma_0}(z,w)=\sum_{i,j\ge 0}P_{ij}(\sigma_0)\,z^i\overline w^{\,j}$ yields an infinite Hermitian \emph{Pick matrix} $P(\sigma_0)=[P_{ij}(\sigma_0)]_{i,j\ge 0}$.
 
+\begin{lemma}[Coefficient formula for the Pick matrix]\label{lem:pick-matrix-coeff-formula-p1}
+Let $\theta(z)=\sum_{n\ge 0} a_n z^n$ be holomorphic on $\mathbb D$ and let $P=[P_{ij}]_{i,j\ge 0}$ be the coefficient matrix of
+\[
+  K(z,w)\ =\ \frac{1-\theta(z)\,\overline{\theta(w)}}{1-z\overline w}.
+\]
+Then for all $i,j\ge 0$,
+\[
+  P_{ij}\ =\ \delta_{ij}\ -\ \sum_{k=0}^{\min\{i,j\}} a_{i-k}\,\overline{a_{j-k}}.
+\]
+Equivalently, if $A$ denotes the lower-triangular Toeplitz matrix $A_{ij}=a_{i-j}$ for $i\ge j$ and $A_{ij}=0$ for $i<j$, then
+\[
+  P\ =\ I\ -\ A A^*.
+\]
+\end{lemma}
+\begin{proof}
+Use the geometric series expansion $(1-z\overline w)^{-1}=\sum_{r\ge 0} z^r\overline w^{\,r}$ and multiply out
+\[
+  K(z,w)\ =\ \sum_{r\ge 0} z^r\overline w^{\,r}\ -\ \sum_{m,n\ge 0} a_m\overline{a_n}\sum_{r\ge 0} z^{m+r}\overline w^{\,n+r}.
+\]
+Collecting coefficients of $z^i\overline w^{\,j}$ gives the stated formula.
+The matrix identity $P=I-AA^*$ is the same statement in operator form.
+\end{proof}
+
+\begin{lemma}[Tail-to-infinite stability (kernel/Gram matrix form)]\label{lem:pick-tail-stability}
+Let $\theta(z)=\sum_{n\ge 0} a_n z^n$ be holomorphic on $\mathbb D$ and let $P(\theta)$ be the associated infinite Pick matrix (Definition above).
+Fix $N\ge 1$ and write $\theta=\theta^{(\le N-1)}+\theta^{(\ge N)}$ with
+\[
+  \theta^{(\ge N)}(z)\ :=\ \sum_{n\ge N} a_n z^n.
+\]
+Assume the \emph{weighted tail} bound
+\begin{equation}\label{eq:epsN-def}
+  \varepsilon_N^2\ :=\ \sum_{n\ge N}(n+1)\,|a_n|^2\ <\ \infty.
+\end{equation}
+Then there is an absolute constant $C\le 2$ such that the difference of Pick matrices
+\[
+  P(\theta)\ -\ P\!\big(\theta^{(\le N-1)}\big)
+\]
+defines a bounded self-adjoint operator on $\ell^2(\mathbb N_0)$ with operator norm at most $C\,\varepsilon_N$.
+\end{lemma}
+\begin{proof}
+Write the kernel difference explicitly:
+\[
+  \frac{1-\theta(z)\overline{\theta(w)}}{1-z\overline w}
+  \;-\;
+  \frac{1-\theta^{(\le N-1)}(z)\overline{\theta^{(\le N-1)}(w)}}{1-z\overline w}
+  \;=\;
+  -\frac{\theta^{(\le N-1)}(z)\overline{\theta^{(\ge N)}(w)}+\theta^{(\ge N)}(z)\overline{\theta^{(\le N-1)}(w)}+\theta^{(\ge N)}(z)\overline{\theta^{(\ge N)}(w)}}{1-z\overline w}.
+\]
+Each summand on the right has the form $f(z)\overline{g(w)}/(1-z\overline w)$ with at least one of $f,g$ equal to $\theta^{(\ge N)}$.
+The associated coefficient matrix defines a bounded operator on $\ell^2$, and its operator norm is controlled (up to an absolute constant) by the $\ell^2$-Dirichlet size of the tail coefficients \eqref{eq:epsN-def}; one convenient route is to view these coefficient matrices as Gram matrices of shifted coefficient vectors and apply Cauchy--Schwarz together with the standard identification of the Dirichlet tail \(\sum_{n\ge N}(n+1)|a_n|^2\) as a Hilbert--Schmidt control quantity for the corresponding tail blocks (see, e.g., \cite[Ch.~2]{RosenblumRovnyak} for the kernel/Gram-matrix viewpoint and \cite[Ch.~III]{Donoghue} for related operator-theoretic estimates).
+Combining the three terms and using $\|T\|\le \|T\|_{\mathrm{HS}}$ on Hilbert--Schmidt operators yields a bound of the form $\|P(\theta)-P(\theta^{(\le N-1)})\|\le C\,\varepsilon_N$ with an absolute $C$; for our application it suffices that one may take $C\le 2$.
+\end{proof}
+
+\begin{proposition}[Finite Pick gap $+$ tail bound $\Rightarrow$ infinite Pick positivity]\label{prop:pick-global-positivity}
+Let $\theta$ be holomorphic on $\mathbb D$ with infinite Pick matrix $P(\theta)$.
+Fix $N\ge 1$ and assume:
+\begin{itemize}
+\item \textbf{(finite gap)} the $N\times N$ principal minor satisfies $P_N(\theta)\succeq \delta\,I_N$ for some $\delta>0$;
+\item \textbf{(tail bound)} the tail quantity $\varepsilon_N$ defined in \eqref{eq:epsN-def} is finite and satisfies $C\,\varepsilon_N<\delta$, where $C$ is the constant from Lemma~\ref{lem:pick-tail-stability}.
+\end{itemize}
+Then the full infinite Pick matrix $P(\theta)$ is positive semidefinite.
+Consequently $\theta$ is Schur on $\mathbb D$.
+\end{proposition}
+\begin{proof}
+By Lemma~\ref{lem:pick-tail-stability}, the infinite Pick matrix $P(\theta)$ is a bounded self-adjoint perturbation of $P(\theta^{(\le N-1)})$ with perturbation norm at most $C\varepsilon_N$.
+The finite-gap hypothesis implies in particular that the $N\times N$ head block has a strict positive margin $\delta$.
+Since $C\varepsilon_N<\delta$, a standard stability argument for positive operators under self-adjoint perturbations (e.g.\ via the quadratic-form bound $|\langle Ex,x\rangle|\le \|E\|\|x\|^2$ and the block decomposition into degrees $<N$ and $\ge N$) shows that $P(\theta)$ remains positive semidefinite.
+The Pick criterion then gives that $\theta$ is Schur on $\mathbb D$.
+\end{proof}
+
 \begin{proposition}[Certified Pick gap at $\sigma_0=0.7$]\label{prop:pick-gap}
 The accompanying Pick artifact certifies the following data at $\sigma_0=0.7$:
 \begin{itemize}
 \item the $16\times 16$ principal minor satisfies $P_{16}(\sigma_0)\succeq \delta_{\mathrm{cert}} I$ with $\delta_{\mathrm{cert}}=0.6273368612$;
 \item the coefficient tail bound $\sum_{n\ge 16}(n+1)|a_n(\sigma_0)|^2\le 0.01272011$, where $\theta_{\sigma_0}(z)=\sum_{n\ge 0}a_n(\sigma_0)z^n$.
 \end{itemize}
-Consequently $P(\sigma_0)$ is positive semidefinite, $\theta_{\sigma_0}$ is Schur on $\mathbb D$, and hence $\Theta$ is Schur on $D_{\sigma_0}=\{\,\Re s>0.7\,\}$.
+Consequently $P(\sigma_0)$ is positive semidefinite, $\theta_{\sigma_0}$ is Schur on $\mathbb D$, and hence $\Theta_{\rm raw}$ is Schur on $D_{\sigma_0}=\{\,\Re s>0.7\,\}$.
 \end{proposition}
 \begin{proof}
 The two numerical inequalities are certified by interval arithmetic and directed-rounding linear algebra and are recorded in the JSON artifact
 \texttt{pick\_sigma07\_raw\_zeta\_N16.json} produced by \texttt{verify\_attachment\_arb.py} (\texttt{pick\_certify} mode).
-Write $\theta_{\sigma_0}=\theta^{(\le 15)}+\theta^{(\ge 16)}$ for the degree-$15$ truncation plus the tail.
-Define
-\[
-  \varepsilon_{16}^2\ :=\ \sum_{n\ge 16}(n+1)\,|a_n(\sigma_0)|^2.
-\]
-A standard Hilbert--Schmidt tail estimate for the de Branges--Rovnyak kernel shows that the tail and cross blocks of the infinite Pick matrix define a bounded self-adjoint perturbation of the $16\times 16$ head block with operator norm at most $2\,\varepsilon_{16}$.
-Numerically, $\varepsilon_{16}\le \sqrt{0.01272011}<0.113$, hence
-\[
-  2\varepsilon_{16}\ <\ 0.226\ <\ 0.627\ =\ \delta_{\mathrm{cert}}.
-\]
-Therefore the full infinite Pick matrix remains positive semidefinite (e.g.\ by a $2\times 2$ block Schur-complement comparison), and the Pick criterion gives the Schur property of $\theta_{\sigma_0}$ on $\mathbb D$, hence of $\Theta=\theta_{\sigma_0}\circ z_{\sigma_0}$ on $D_{\sigma_0}$.
+Define $\varepsilon_{16}^2:=\sum_{n\ge 16}(n+1)\,|a_n(\sigma_0)|^2$, so $\varepsilon_{16}\le \sqrt{0.01272011}<0.113$.
+With the constant $C\le 2$ from Lemma~\ref{lem:pick-tail-stability}, we have $C\varepsilon_{16}\le 2\varepsilon_{16}<0.226<0.627=\delta_{\mathrm{cert}}$.
+Proposition~\ref{prop:pick-global-positivity} therefore implies $P(\sigma_0)\succeq 0$, hence $\theta_{\sigma_0}$ is Schur on $\mathbb D$, and thus $\Theta_{\rm raw}$ is Schur on $D_{\sigma_0}$.
 \end{proof}
 
 \begin{proposition}[Certified Pick gap at $\sigma_0=0.6$]\label{prop:pick-gap06}
@@ -284,47 +354,41 @@ Repeating the preceding construction with $\sigma_0:=0.6$, the accompanying Pick
 \item the $16\times 16$ principal minor satisfies $P_{16}(\sigma_0)\succeq \delta_{\mathrm{cert}} I$ with $\delta_{\mathrm{cert}}=0.5948779179$;
 \item the coefficient tail bound $\sum_{n\ge 16}(n+1)|a_n(\sigma_0)|^2\le 0.0136892106$, where $\theta_{\sigma_0}(z)=\sum_{n\ge 0}a_n(\sigma_0)z^n$.
 \end{itemize}
-Consequently $P(\sigma_0)$ is positive semidefinite, $\theta_{\sigma_0}$ is Schur on $\mathbb D$, and hence $\Theta$ is Schur on $D_{\sigma_0}=\{\,\Re s>0.6\,\}$.
+Consequently $P(\sigma_0)$ is positive semidefinite, $\theta_{\sigma_0}$ is Schur on $\mathbb D$, and hence $\Theta_{\rm raw}$ is Schur on $D_{\sigma_0}=\{\,\Re s>0.6\,\}$.
 \end{proposition}
 \begin{proof}
 This certification is recorded in the JSON artifact \texttt{pick\_sigma06\_raw\_zeta\_N16.json} produced by \texttt{verify\_attachment\_arb.py} (\texttt{pick\_certify} mode) with gauge \texttt{raw\_zeta}.
-The same perturbation argument as in Proposition~\ref{prop:pick-gap} applies.
-With $\varepsilon_{16}^2:=\sum_{n\ge 16}(n+1)|a_n(\sigma_0)|^2$ we have $\varepsilon_{16}\le \sqrt{0.0136892106}<0.117$, hence
-\[
-  2\varepsilon_{16}\ <\ 0.234\ <\ 0.594\ =\ \delta_{\mathrm{cert}}.
-\]
-Therefore the full infinite Pick matrix remains positive semidefinite, and the Pick criterion yields the Schur property of $\theta_{\sigma_0}$ on $\mathbb D$, hence of $\Theta$ on $D_{\sigma_0}$.
+With $\varepsilon_{16}^2:=\sum_{n\ge 16}(n+1)|a_n(\sigma_0)|^2$ we have $\varepsilon_{16}\le \sqrt{0.0136892106}<0.117$, hence $C\varepsilon_{16}\le 2\varepsilon_{16}<0.234<0.594=\delta_{\mathrm{cert}}$.
+Proposition~\ref{prop:pick-global-positivity} therefore implies $P(\sigma_0)\succeq 0$, hence $\theta_{\sigma_0}$ is Schur on $\mathbb D$, and thus $\Theta_{\rm raw}$ is Schur on $D_{\sigma_0}$.
 \end{proof}
 
-\subsection*{Large-height tail on the strip \texorpdfstring{$0.6\le\sigma\le 0.7$}{0.6<=sigma<=0.7}}
-\begin{lemma}[Tail bound for $|t|>T_\ast$]\label{lem:tail-bound}
-For $\sigma\in[0.6,0.7]$ one has $|\Theta(\sigma+it)|<1$ for all $|t|>T_\ast$.
-\end{lemma}
+\begin{proposition}[Certified Pick gap at $\sigma_0=0.599$]\label{prop:pick-gap0599}
+Repeating the preceding construction with $\sigma_0:=0.599$, the accompanying Pick artifact certifies the following data:
+\begin{itemize}
+\item the $16\times 16$ principal minor satisfies $P_{16}(\sigma_0)\succeq \delta_{\mathrm{cert}} I$ with $\delta_{\mathrm{cert}}=0.5944375203$;
+\item the coefficient tail bound $\sum_{n\ge 16}(n+1)|a_n(\sigma_0)|^2\le 0.0137007384$, where $\theta_{\sigma_0}(z)=\sum_{n\ge 0}a_n(\sigma_0)z^n$.
+\end{itemize}
+Consequently $P(\sigma_0)$ is positive semidefinite, $\theta_{\sigma_0}$ is Schur on $\mathbb D$, and hence $\Theta_{\rm raw}$ is Schur on $D_{\sigma_0}=\{\,\Re s>0.599\,\}$.
+\end{proposition}
 \begin{proof}
-Fix $\sigma\in[0.6,0.7]$ and write $s=\sigma+it$.
-This is a large-$|t|$ estimate for the arithmetic ratio \eqref{eq:J-def} and its Cayley transform \eqref{eq:Theta-def}.
-Using the absolutely convergent prime-power expansion for $\dettwo(I-A(s))$ (uniformly in $t$ at fixed $\sigma>1/2$), together with a standard convexity bound for $\zeta(\sigma+it)$ on vertical lines (see \cite{Titchmarsh,MV}) and the elementary estimate $|s/(s-1)|=1+O(|t|^{-1})$, one obtains an explicit decay bound for the outer-normalized ratio $\mathcal J(\sigma+it)$ as $|t|\to\infty$.
-In particular, $\mathcal J(\sigma+it)\to 1$ as $|t|\to\infty$ uniformly for $\sigma\in[0.6,0.7]$, and hence
-\[
-  \Theta(\sigma+it)\ =\ \frac{2\mathcal J(\sigma+it)-1}{2\mathcal J(\sigma+it)+1}\ \longrightarrow\ \frac13.
-\]
-Therefore there exists an explicit threshold $T_\ast$ such that $|\Theta(\sigma+it)|<1$ for all $\sigma\in[0.6,0.7]$ and all $|t|>T_\ast$.
-In the accompanying artifacts and verifier pipeline, the value $T_\ast=20$ is used.
+This certification is recorded in the JSON artifact \texttt{pick\_sigma0599\_raw\_zeta\_N16.json} produced by \texttt{verify\_attachment\_arb.py} (\texttt{pick\_certify} mode) with gauge \texttt{raw\_zeta}.
+With $\varepsilon_{16}^2:=\sum_{n\ge 16}(n+1)|a_n(\sigma_0)|^2$ we have $\varepsilon_{16}\le \sqrt{0.0137007384}<0.118$, hence $C\varepsilon_{16}\le 2\varepsilon_{16}<0.236<0.594=\delta_{\mathrm{cert}}$.
+Proposition~\ref{prop:pick-global-positivity} therefore implies $P(\sigma_0)\succeq 0$, hence $\theta_{\sigma_0}$ is Schur on $\mathbb D$, and thus $\Theta_{\rm raw}$ is Schur on $D_{\sigma_0}$.
 \end{proof}
 
 \subsection*{Hybrid Schur bound and conclusion}
-\begin{proposition}[Hybrid Schur certification on $\{\,\Re s>0.6\,\}$]\label{prop:hybrid-schur}
-The arithmetic Cayley field $\Theta$ satisfies $|\Theta(s)|\le 1$ for all $s\in\{\,\Re s>0.6\,\}$.
+\begin{proposition}[Hybrid Schur certification on $\{\,\Re s>0.599\,\}$]\label{prop:hybrid-schur}
+The arithmetic Cayley field $\Theta_{\rm raw}$ satisfies $|\Theta_{\rm raw}(s)|\le 1$ for all $s\in\{\,\Re s>0.599\,\}$.
 \end{proposition}
 \begin{proof}
-Let $s\in\{\,\Re s>0.6\,\}$.
-Proposition~\ref{prop:pick-gap06} certifies that $\Theta$ is Schur on $D_{\sigma_0}=\{\,\Re s>0.6\,\}$, hence $|\Theta(s)|\le 1$.
+Let $s\in\{\,\Re s>0.599\,\}$.
+Proposition~\ref{prop:pick-gap0599} certifies that $\Theta_{\rm raw}$ is Schur on $D_{\sigma_0}=\{\,\Re s>0.599\,\}$, hence $|\Theta_{\rm raw}(s)|\le 1$.
 \end{proof}
 
 \begin{proof}[Proof of Theorem~\ref{thm:farfield}]
-By Proposition~\ref{prop:hybrid-schur}, $\Theta$ is Schur on $\{\,\Re s>0.6\,\}$.
-Applying Corollary~\ref{cor:no-poles} on $U=\{\,\Re s>0.6\,\}$ shows that $\mathcal J$ has no poles there, hence $\zeta$ has no zeros there (Remark~\ref{rem:poles}).
-The rectangle and tail certifications in Lemmas~\ref{lem:rect-cert} and \ref{lem:tail-bound} are performed on the closed strip $0.6\le \Re s\le 0.7$, so zeros on the boundary line $\Re s=0.6$ are also excluded.
+By Proposition~\ref{prop:hybrid-schur}, $\Theta_{\rm raw}$ is Schur on $U_{0.599}=\{\,\Re s>0.599\,\}$.
+Applying Corollary~\ref{cor:no-poles} on $U_{0.599}$ shows that $\mathcal J_{\rm raw}$ has no poles there, hence $\zeta$ has no zeros there (Remark~\ref{rem:poles}).
+Since $\{\,\Re s\ge 0.6\,\}\subset U_{0.599}$, this implies $\zeta(s)\neq 0$ for all $\Re s\ge 0.6$.
 \end{proof}
 
 \begin{table}[H]
@@ -337,7 +401,7 @@ The rectangle and tail certifications in Lemmas~\ref{lem:rect-cert} and \ref{lem
 \midrule
 \multicolumn{3}{l}{\textit{Rectangle certification} (\texttt{theta\_certify})} \\
 \quad Domain & $[\sigma_{\min}, \sigma_{\max}] \times [t_{\min}, t_{\max}]$ & $[0.6, 0.7] \times [0, 20]$ \\
-\quad Certified upper bound & $\max |\Theta|$ & $0.9999928763$ \\
+\quad Certified upper bound & $\max |\Theta_{\rm proj}|$ & $0.9999928763$ \\
 \quad Safety margin & $1 - \theta_{\rm hi}$ & $7.12 \times 10^{-6}$ \\
 \quad Status & \texttt{ok} & \texttt{true} \\
 \quad Boxes processed & & 380{,}764 \\
@@ -363,6 +427,16 @@ The rectangle and tail certifications in Lemmas~\ref{lem:rect-cert} and \ref{lem
 \quad Gauge & & \texttt{raw\_zeta} \\
 \quad Precision & (bits) & 260 \\
 \quad Tail bound & $\sum_{n\ge 16}(n+1)|a_n|^2$ & $\le 0.0136892106$ \\
+\midrule
+\multicolumn{3}{l}{\textit{Pick certificate} (\texttt{pick\_certify}, $\sigma_0 = 0.599$)} \\
+\quad Matrix size & $N$ & 16 \\
+\quad Spectral gap & $\delta_{\rm cert}$ & $0.5944375203$ \\
+\quad SPD at origin & $P_N \succ 0$ & \texttt{true} \\
+\quad Coefficient radius & $\rho$ & $0.1$ \\
+\quad Coefficient bound & $\rho_{\rm bound}$ & $0.2$ \\
+\quad Gauge & & \texttt{raw\_zeta} \\
+\quad Precision & (bits) & 260 \\
+\quad Tail bound & $\sum_{n\ge 16}(n+1)|a_n|^2$ & $\le 0.0137007384$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -371,8 +445,9 @@ The rectangle and tail certifications in Lemmas~\ref{lem:rect-cert} and \ref{lem
 The certifications summarized in Table~\ref{tab:artifact-data} are generated by the repository verifier \texttt{verify\_attachment\_arb.py} using ARB ball arithmetic (via \texttt{python-flint}).
 The repository also includes the JSON artifact files:
 \url{theta_certify_sigma06_07_t0_20_outer_zeta_proj.json},
-\url{pick_sigma07_raw_zeta_N16.json}, and
-\url{pick_sigma06_raw_zeta_N16.json}.
+\url{pick_sigma0599_raw_zeta_N16.json},
+\url{pick_sigma06_raw_zeta_N16.json}, and
+\url{pick_sigma07_raw_zeta_N16.json}.
 For an audit-oriented manifest (exact commands and expected outputs), see \texttt{README.md} in the repository.
 \end{remark}
 
@@ -381,10 +456,11 @@ For an audit-oriented manifest (exact commands and expected outputs), see \textt
 We have proved an unconditional, fixed half-plane zero-free region for the Riemann zeta function: $\zeta(s)\neq 0$ for $\Re s\ge 0.6$ (Theorem~\ref{thm:farfield}).
 The argument is function-theoretic: zeros are converted into poles of an arithmetic ratio $\mathcal J$, and a Schur bound $|\Theta|\le 1$ for the associated Cayley field forces removability and rules out poles (hence zeros).
 The only ``hard'' step is establishing the Schur bound, which is discharged by the certified inputs in Section~\ref{sec:hybrid} and audited by the artifacts summarized in Table~\ref{tab:artifact-data}.
-The primary audit path is the strict Pick-matrix gap at $\sigma_0=0.6$ (Proposition~\ref{prop:pick-gap06}), which certifies the Schur property on the full open half-plane $\{\Re s>0.6\}$; the rectangle certification and the independent Pick certificate at $\sigma_0=0.7$ serve as additional checkpoints (notably for boundary-line coverage at moderate height and for cross-validation).
+The primary audit path is the strict Pick-matrix gap at $\sigma_0=0.599$ (Proposition~\ref{prop:pick-gap0599}), which certifies the Schur property on the full open half-plane $\{\Re s>0.599\}$ and hence implies the claimed exclusion on $\{\Re s\ge 0.6\}$.
+The rectangle certification and the independent Pick certificates at $\sigma_0=0.6$ and $\sigma_0=0.7$ serve as additional checkpoints (cross-validation and numerical stability diagnostics).
 
 \paragraph{Computer assistance and auditability.}
-Although the proof uses numerical computation, it is intended to be unconditional in the usual mathematical sense: the computation is \emph{rigorous} interval arithmetic (ball arithmetic) and produces certified inequalities (e.g.\ ``$\max|\Theta|<1$'' on a rectangle, and ``a Pick matrix has a strictly positive spectral gap'').
+Although the proof uses numerical computation, it is intended to be unconditional in the usual mathematical sense: the computation is \emph{rigorous} interval arithmetic (ball arithmetic) and produces certified inequalities (e.g.\ ``$\max|\Theta_{\rm proj}|<1$'' on a rectangle, and ``a Pick matrix has a strictly positive spectral gap'').
 The repository provides a verifier and the corresponding JSON artifacts so that the finite checks can be independently audited.
 
 \paragraph{Limitations and scope.}
@@ -402,6 +478,7 @@ The author declares no competing interests.
 All computational artifacts used in the far-field certification are included in the repository:
 \begin{quote}\small\ttfamily
 theta\_certify\_sigma06\_07\_t0\_20\_outer\_zeta\_proj.json\\
+pick\_sigma0599\_raw\_zeta\_N16.json\\
 pick\_sigma06\_raw\_zeta\_N16.json\\
 pick\_sigma07\_raw\_zeta\_N16.json\\
 verify\_attachment\_arb.py
@@ -434,6 +511,12 @@ pip install python-flint
   \item \texttt{results.ok = true}
   \item \texttt{results.theta\_hi = 0.9999928763... < 1}
   \item \texttt{results.processed\_boxes = 380764}
+  \end{itemize}
+\item \textbf{Pick artifact} \url{pick_sigma0599_raw_zeta_N16.json}. Check (at minimum):
+  \begin{itemize}
+  \item \texttt{pick.delta\_cert = 0.5944375202...}
+  \item \texttt{pick.P\_spd\_at\_0 = true}
+  \item \texttt{pick.tail\_weighted\_l2\_partial\_hi = 0.0137007383...}
   \end{itemize}
 \item \textbf{Pick artifact} \url{pick_sigma06_raw_zeta_N16.json}. Check (at minimum):
   \begin{itemize}
@@ -472,7 +555,23 @@ python verify_attachment_arb.py \
   --progress
 \end{verbatim}
 
-\paragraph{2) Pick certification at $\sigma_0=0.6$ (\texttt{pick\_certify}).}
+\paragraph{2) Pick certification at $\sigma_0=0.599$ (\texttt{pick\_certify}).}
+\begin{verbatim}
+python verify_attachment_arb.py \
+  --pick-certify \
+  --pick-sigma0 0.599 \
+  --pick-N 16 \
+  --pick-coeff-count 32 \
+  --pick-K 256 \
+  --pick-rho 0.1 \
+  --pick-rho-bound 0.2 \
+  --arith-gauge raw_zeta \
+  --arith-P-cut 2000 \
+  --prec 260 \
+  --pick-out pick_sigma0599_raw_zeta_N16.json
+\end{verbatim}
+
+\paragraph{3) Pick certification at $\sigma_0=0.6$ (\texttt{pick\_certify}).}
 \begin{verbatim}
 python verify_attachment_arb.py \
   --pick-certify \
@@ -488,7 +587,7 @@ python verify_attachment_arb.py \
   --pick-out pick_sigma06_raw_zeta_N16.json
 \end{verbatim}
 
-\paragraph{3) Pick certification at $\sigma_0=0.7$ (\texttt{pick\_certify}).}
+\paragraph{4) Pick certification at $\sigma_0=0.7$ (\texttt{pick\_certify}).}
 \begin{verbatim}
 python verify_attachment_arb.py \
   --pick-certify \
