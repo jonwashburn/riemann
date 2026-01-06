@@ -1,0 +1,25 @@
+InnerProductSpace.HarmonicOnNhd.{u_1, u_2} {E : Type u_1} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+  [FiniteDimensional ℝ E] {F : Type u_2} [NormedAddCommGroup F] [NormedSpace ℝ F] (f : E → F) (s : Set E) : Prop
+HarmonicOnNhd.circleAverage_eq {f : ℂ → ℝ} {c : ℂ} {R : ℝ}
+  (hf : InnerProductSpace.HarmonicOnNhd f (Metric.closedBall c |R|)) : Real.circleAverage f c R = f c
+HarmonicOnNhd.circleAverage_eq {f : ℂ → ℝ} {c : ℂ} {R : ℝ}
+  (hf : InnerProductSpace.HarmonicOnNhd f (Metric.closedBall c |R|)) : Real.circleAverage f c R = f c
+InnerProductSpace.HarmonicOnNhd.{u_1, u_2} {E : Type u_1} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+  [FiniteDimensional ℝ E] {F : Type u_2} [NormedAddCommGroup F] [NormedSpace ℝ F] (f : E → F) (s : Set E) : Prop
+InnerProductSpace.HarmonicOnNhd.add.{u_1, u_2} {E : Type u_1} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+  [FiniteDimensional ℝ E] {F : Type u_2} [NormedAddCommGroup F] [NormedSpace ℝ F] {f₁ f₂ : E → F} {s : Set E}
+  (h₁ : InnerProductSpace.HarmonicOnNhd f₁ s) (h₂ : InnerProductSpace.HarmonicOnNhd f₂ s) :
+  InnerProductSpace.HarmonicOnNhd (f₁ + f₂) s
+InnerProductSpace.HarmonicOnNhd.comp_CLM.{u_1, u_2, u_3} {E : Type u_1} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+  [FiniteDimensional ℝ E] {F : Type u_2} [NormedAddCommGroup F] [NormedSpace ℝ F] {G : Type u_3} [NormedAddCommGroup G]
+  [NormedSpace ℝ G] {f : E → F} {s : Set E} (h : InnerProductSpace.HarmonicOnNhd f s) (l : F →L[ℝ] G) :
+  InnerProductSpace.HarmonicOnNhd (⇑l ∘ f) s
+InnerProductSpace.HarmonicOnNhd.congr_simp.{u_1, u_2} {E : Type u_1} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+  [FiniteDimensional ℝ E] {F : Type u_2} [NormedAddCommGroup F] [NormedSpace ℝ F] (f f✝ : E → F) (e_f : f = f✝)
+  (s s✝ : Set E) (e_s : s = s✝) : InnerProductSpace.HarmonicOnNhd f s = InnerProductSpace.HarmonicOnNhd f✝ s✝
+InnerProductSpace.HarmonicOnNhd.const_smul.{u_1, u_2} {E : Type u_1} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+  [FiniteDimensional ℝ E] {F : Type u_2} [NormedAddCommGroup F] [NormedSpace ℝ F] {f : E → F} {s : Set E} {c : ℝ}
+  (h : InnerProductSpace.HarmonicOnNhd f s) : InnerProductSpace.HarmonicOnNhd (c • f) s
+InnerProductSpace.HarmonicOnNhd.mono.{u_1, u_2} {E : Type u_1} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+  [FiniteDimensional ℝ E] {F : Type u_2} [NormedAddCommGroup F] [NormedSpace ℝ F] {f : E → F} {s t : Set E}
+  (h : InnerProductSpace.HarmonicOnNhd f s) (hst : t ⊆ s) : InnerProductSpace.HarmonicOnNhd f t
