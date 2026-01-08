@@ -5,6 +5,7 @@ import Mathlib.Order.BourbakiWitt
 import PrimeNumberTheoremAnd.DerivativeBound
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.HarmonicBounds
 import Riemann.academic_framework.HadamardFactorization.Basic
+import Mathlib.FieldTheory.IsAlgClosed.Basic
 
 noncomputable section
 
@@ -2621,6 +2622,301 @@ We establish that the quotient `H = f / F` of an entire function by its canonica
 has finite order. This relies on bounding the characteristic function of `H` and using
 the Poisson-Jensen formula.
 -/
+
+/-!
+## Cartan / minimum-modulus style lower bounds (Tao, Theorem 22)
+
+The “missing” step to get the sharp polynomial degree bound `≤ ⌊ρ⌋` is to control how small
+the canonical product can get on a *sequence of circles* `‖z‖ = R_k`.  This matches Tao’s
+probabilistic-radius argument in `academic_framework/HadamardFactorization/hadamard.md`.
+
+We begin with pointwise lower bounds for the Weierstrass factors in the far/near regimes.
+-/
+
+open scoped BigOperators
+
+lemma log_norm_weierstrassFactor_ge_neg_two_pow {m : ℕ} {z : ℂ} (hz : ‖z‖ ≤ (1 / 2 : ℝ)) :
+    (-2 : ℝ) * ‖z‖ ^ (m + 1) ≤ Real.log ‖weierstrassFactor m z‖ := by
+  -- Use the exact representation from `WeierstrassFactorBound`: `E_m(z) = exp(-logTail)`.
+  have hz_lt : ‖z‖ < (1 : ℝ) := lt_of_le_of_lt hz (by norm_num)
+  have hz1 : z ≠ (1 : ℂ) := by
+    intro h
+    have : (1 : ℝ) ≤ (1 / 2 : ℝ) := by
+      simpa [h] using hz
+    norm_num at this
+  have hEq' : weierstrassFactor' m z = Complex.exp (-logTail m z) :=
+    weierstrassFactor_eq_exp_neg_tail m hz_lt hz1
+  have hEq : weierstrassFactor m z = Complex.exp (-logTail m z) := by
+    -- `weierstrassFactor = weierstrassFactor'` by unfolding definitions.
+    simpa [weierstrassFactor, weierstrassFactor', partialLogSum'] using hEq'
+  -- Take `Real.log ‖·‖` and bound the real part.
+  have hlog :
+      Real.log ‖weierstrassFactor m z‖ = (-logTail m z).re := by
+    -- `‖exp w‖ = exp (Re w)` and `log (exp x) = x`.
+    simp [hEq, Complex.norm_exp, Real.log_exp]
+  -- `Re w ≥ -‖w‖`.
+  have hre : (-logTail m z).re ≥ -‖logTail m z‖ := by
+    have habs : |(-logTail m z).re| ≤ ‖-logTail m z‖ := Complex.abs_re_le_norm _
+    have : (-‖-logTail m z‖) ≤ (-logTail m z).re := by
+      -- From `|re| ≤ ‖·‖` deduce `-‖·‖ ≤ re`.
+      have := neg_le_of_abs_le habs
+      simpa using this
+    simpa [norm_neg] using this
+  -- Tail norm bound: `‖logTail m z‖ ≤ 2‖z‖^(m+1)` when `‖z‖ ≤ 1/2`.
+  have htail :
+      ‖logTail m z‖ ≤ 2 * ‖z‖ ^ (m + 1) := by
+    have h1 : ‖logTail m z‖ ≤ ‖z‖ ^ (m + 1) / (1 - ‖z‖) :=
+      norm_logTail_le hz_lt m
+    have h2 : ‖z‖ ^ (m + 1) / (1 - ‖z‖) ≤ 2 * ‖z‖ ^ (m + 1) :=
+      norm_pow_div_one_sub_le_two hz m
+    exact h1.trans h2
+  -- Assemble.
+  have : (-logTail m z).re ≥ (-2 : ℝ) * ‖z‖ ^ (m + 1) := by
+    calc
+      (-logTail m z).re ≥ -‖logTail m z‖ := hre
+      _ ≥ (-2 : ℝ) * ‖z‖ ^ (m + 1) := by
+            -- rewrite `-‖tail‖ ≥ - (2 * ‖z‖^(m+1))`
+            nlinarith [htail]
+  simpa [hlog, mul_assoc, mul_left_comm, mul_comm] using this
+
+lemma log_norm_weierstrassFactor_ge_log_norm_one_sub_sub
+    (m : ℕ) (z : ℂ) :
+    Real.log ‖1 - z‖ - (m : ℝ) * max 1 (‖z‖ ^ m) ≤ Real.log ‖weierstrassFactor m z‖ := by
+  classical
+  by_cases hz1 : z = (1 : ℂ)
+  · subst hz1
+    -- `log ‖1 - 1‖ = 0` and `weierstrassFactor m 1 = 0`, so the claim is trivial.
+    simp [weierstrassFactor]
+  -- Expand `weierstrassFactor` and take logs (now `‖1 - z‖ > 0`).
+  set S : ℂ := ∑ k ∈ Finset.range m, z ^ (k + 1) / (k + 1)
+  have hS :
+      weierstrassFactor m z = (1 - z) * Complex.exp S := by
+    simp [weierstrassFactor, S]
+  have hnorm_pos : 0 < ‖(1 : ℂ) - z‖ :=
+    norm_pos_iff.mpr (sub_ne_zero.mpr (Ne.symm hz1))
+  -- `log ‖(1-z) * exp S‖ = log ‖1-z‖ + Re S`.
+  have hlog :
+      Real.log ‖weierstrassFactor m z‖ = Real.log ‖1 - z‖ + S.re := by
+    -- `‖uv‖ = ‖u‖*‖v‖`, and `‖exp S‖ = exp (Re S)`.
+    have hne : ‖(1 : ℂ) - z‖ ≠ 0 := ne_of_gt hnorm_pos
+    calc
+      Real.log ‖weierstrassFactor m z‖
+          = Real.log (‖(1 : ℂ) - z‖ * ‖Complex.exp S‖) := by
+                simp [hS]
+      _ = Real.log ‖(1 : ℂ) - z‖ + Real.log ‖Complex.exp S‖ := by
+            simpa using (Real.log_mul hne (by
+              -- `‖exp S‖ ≠ 0`
+              exact (ne_of_gt (by simp))))
+      _ = Real.log ‖(1 : ℂ) - z‖ + S.re := by
+            simp [Complex.norm_exp, Real.log_exp]
+      _ = Real.log ‖1 - z‖ + S.re := by simp [sub_eq_add_neg, add_comm]
+  -- Bound `S.re` from below by `-‖S‖`, then by a crude dyadic bound.
+  have hre : S.re ≥ -‖S‖ := by
+    have habs : |S.re| ≤ ‖S‖ := Complex.abs_re_le_norm _
+    have := neg_le_of_abs_le habs
+    simpa using this
+  have hnormS :
+      ‖S‖ ≤ (m : ℝ) * max 1 (‖z‖ ^ m) := by
+    -- `‖∑ t‖ ≤ ∑ ‖t‖` and each term is bounded by `max 1 (‖z‖^m)`.
+    have hsum :
+        ‖S‖ ≤ ∑ k ∈ Finset.range m, ‖z ^ (k + 1) / (k + 1)‖ := by
+      simpa [S] using
+        (norm_sum_le (s := Finset.range m) (f := fun k => z ^ (k + 1) / (k + 1)))
+    have hterm :
+        ∀ k ∈ Finset.range m, ‖z ^ (k + 1) / (k + 1)‖ ≤ max 1 (‖z‖ ^ m) := by
+      intro k hk
+      have hk' : k + 1 ≤ m := Nat.succ_le_of_lt (Finset.mem_range.1 hk)
+      -- `‖z^(k+1)/(k+1)‖ ≤ ‖z‖^(k+1)` and `‖z‖^(k+1) ≤ max 1 (‖z‖^m)`.
+      have hdiv : ‖z ^ (k + 1) / (k + 1)‖ ≤ ‖z‖ ^ (k + 1) := by
+        -- denominator has norm ≥ 1
+        have hden : (1 : ℝ) ≤ (k + 1 : ℝ) := by norm_cast; omega
+        have hden' : (1 : ℝ) ≤ ‖((k + 1 : ℕ) : ℂ)‖ := by
+          have hn : ‖((k + 1 : ℕ) : ℂ)‖ = (k + 1 : ℝ) := by
+            simpa using (Complex.norm_natCast (k + 1))
+          -- Avoid `simpa` here: in this toolchain `simp` turns `1 ≤ (k+1:ℝ)` into `True`.
+          rw [hn]
+          exact hden
+        -- rewrite the norm of the quotient
+        have hnorm :
+            ‖z ^ (k + 1) / (k + 1)‖ = ‖z‖ ^ (k + 1) / ‖((k + 1 : ℕ) : ℂ)‖ := by
+          simp [norm_pow, Nat.cast_add_one]
+        -- now `a / b ≤ a` since `1 ≤ b`
+        rw [hnorm]
+        exact div_le_self (pow_nonneg (norm_nonneg z) _) hden'
+      have hpow : ‖z‖ ^ (k + 1) ≤ max 1 (‖z‖ ^ m) := by
+        by_cases hz1 : ‖z‖ ≤ 1
+        · -- if `‖z‖ ≤ 1`, then `‖z‖^(k+1) ≤ 1`
+          have hle1 : ‖z‖ ^ (k + 1) ≤ (1 : ℝ) := by
+            exact pow_le_one₀ (norm_nonneg z) hz1
+          exact le_trans hle1 (le_max_left _ _)
+        · -- if `‖z‖ > 1`, monotonicity of powers gives `‖z‖^(k+1) ≤ ‖z‖^m`
+          have hz1' : 1 ≤ ‖z‖ := le_of_not_ge hz1
+          have hle : ‖z‖ ^ (k + 1) ≤ ‖z‖ ^ m := by
+            exact pow_le_pow_right₀ hz1' hk'
+          exact le_trans hle (le_max_right _ _)
+      exact hdiv.trans hpow
+    have hsum' :
+        ∑ k ∈ Finset.range m, ‖z ^ (k + 1) / (k + 1)‖
+          ≤ ∑ _k ∈ Finset.range m, max 1 (‖z‖ ^ m) := by
+      exact Finset.sum_le_sum (fun k hk => hterm k hk)
+    have hconst :
+        (∑ _k ∈ Finset.range m, max 1 (‖z‖ ^ m))
+          = (m : ℝ) * max 1 (‖z‖ ^ m) := by
+      simp [Finset.sum_const, nsmul_eq_mul]
+    have := le_trans hsum (le_trans hsum' (le_of_eq hconst))
+    exact this
+  have hSre : S.re ≥ -(m : ℝ) * max 1 (‖z‖ ^ m) := by
+    calc
+      S.re ≥ -‖S‖ := hre
+      _ ≥ -(m : ℝ) * max 1 (‖z‖ ^ m) := by
+            nlinarith [hnormS]
+  -- Finish.
+  -- Move `S.re` to the RHS via `hlog`.
+  calc
+    Real.log ‖1 - z‖ - (m : ℝ) * max 1 (‖z‖ ^ m)
+        ≤ Real.log ‖1 - z‖ + S.re := by linarith [hSre]
+    _ = Real.log ‖weierstrassFactor m z‖ := by
+          simp [hlog]
+
+/-!
+### Averages of the logarithmic singularity (Tao's probabilistic radius step)
+
+We control the *average* size of the positive part of `log (1 / |1 - t|)` near `t = 1`
+by dominating it with an integrable power singularity. This is the analytic core of the
+probabilistic method used in Tao's proof of Hadamard factorization.
+-/
+
+lemma neg_log_le_sqrt_two_div {x : ℝ} (hx : 0 < x) (hx1 : x ≤ 1) :
+    -Real.log x ≤ Real.sqrt (2 / x) := by
+  -- Let `t := -log x ≥ 0`.
+  have ht : 0 ≤ -Real.log x := by
+    have hlog_le0 : Real.log x ≤ 0 := by
+      -- `log x ≤ x - 1 ≤ 0` for `x ≤ 1`.
+      have h := Real.log_le_sub_one_of_pos hx
+      linarith
+    linarith
+  -- `1 + t + t^2/2 ≤ exp t`, and `exp(-log x) = 1/x`.
+  have hquad := Real.quadratic_le_exp_of_nonneg ht
+  have hexp : Real.exp (-Real.log x) = x⁻¹ := by
+    simp [Real.exp_neg, Real.exp_log hx]
+  -- Drop the nonnegative terms `1 + t` from the LHS.
+  have hsq :
+      (-Real.log x) ^ 2 / 2 ≤ x⁻¹ := by
+    have : (-Real.log x) ^ 2 / 2 ≤ Real.exp (-Real.log x) := by
+      have hle : (-Real.log x) ^ 2 / 2 ≤ 1 + (-Real.log x) + (-Real.log x) ^ 2 / 2 := by
+        have : 0 ≤ (1 : ℝ) + (-Real.log x) := by linarith [ht]
+        linarith
+      exact hle.trans hquad
+    simpa [hexp] using this
+  -- Take square roots.
+  have hx_inv : 0 ≤ x⁻¹ := by exact inv_nonneg.2 (le_of_lt hx)
+  have h2x_inv : 0 ≤ (2 / x) := by
+    have : 0 ≤ (2 : ℝ) := by norm_num
+    exact div_nonneg this (le_of_lt hx)
+  have hsqrt :
+      |(-Real.log x)| ≤ Real.sqrt (2 / x) := by
+    -- From `t^2 ≤ 2/x`, we get `|t| ≤ sqrt(2/x)`.
+    have hsq' : (-Real.log x) ^ 2 ≤ 2 / x := by
+      -- `t^2 / 2 ≤ x⁻¹`  ->  `t^2 ≤ 2 * x⁻¹`  ->  `t^2 ≤ 2 / x`
+      have hmul : 2 * ((-Real.log x) ^ 2 / 2) ≤ 2 * x⁻¹ :=
+        mul_le_mul_of_nonneg_left hsq (by norm_num : (0 : ℝ) ≤ 2)
+      have hmul' : (-Real.log x) ^ 2 ≤ 2 * x⁻¹ := by
+        calc
+          (-Real.log x) ^ 2 = 2 * ((-Real.log x) ^ 2 / 2) := by ring
+          _ ≤ 2 * x⁻¹ := hmul
+      simpa [div_eq_mul_inv, mul_assoc] using hmul'
+    -- rewrite `t^2` as `|t|^2` and take square roots
+    have habs : |(-Real.log x)| ^ 2 ≤ 2 / x := by
+      simpa [sq_abs] using hsq'
+    have := Real.sqrt_le_sqrt habs
+    -- `sqrt(|t|^2) = |t|`
+    simpa [Real.sqrt_sq_eq_abs] using this
+  -- Since `t ≥ 0`, `|t| = t`.
+  have habs_t : |(-Real.log x)| = -Real.log x := by
+    simp [abs_of_nonneg ht]
+  -- Finish.
+  simpa [habs_t] using hsqrt
+
+lemma posLog_log_one_div_abs_one_sub_le_sqrt {t : ℝ} :
+    max 0 (Real.log (1 / |1 - t|)) ≤ Real.sqrt (2 / |1 - t|) := by
+  by_cases ht : |1 - t| ≤ 1
+  · by_cases h0 : |1 - t| = 0
+    · -- then `t = 1`, both sides are 0
+      have : t = 1 := by
+        have : 1 - t = 0 := by simpa [abs_eq_zero] using h0
+        linarith
+      subst this
+      simp
+    · have hpos : 0 < |1 - t| := lt_of_le_of_ne (abs_nonneg _) (Ne.symm h0)
+      have hle : -Real.log |1 - t| ≤ Real.sqrt (2 / |1 - t|) :=
+        neg_log_le_sqrt_two_div (x := |1 - t|) hpos ht
+      -- On `|1-t| ≤ 1`, the log is nonnegative: `log(1/|1-t|) = -log|1-t|`.
+      have hlog : Real.log (1 / |1 - t|) = -Real.log |1 - t| := by
+        simp [Real.log_inv]
+      have hnonneg : 0 ≤ Real.log (1 / |1 - t|) := by
+        -- `1 / |1-t| ≥ 1` since `|1-t| ≤ 1`
+        have : (1 : ℝ) ≤ 1 / |1 - t| := by
+          have hpos' : 0 < |1 - t| := hpos
+          -- `1 ≤ 1 / a` iff `a ≤ 1` for `a > 0`
+          exact (one_le_div hpos').2 ht
+        exact Real.log_nonneg this
+      have hmax : max 0 (Real.log (1 / |1 - t|)) = Real.log (1 / |1 - t|) :=
+        max_eq_right hnonneg
+      -- Avoid `simp`: it rewrites `max ≤ _` into a conjunction via `max_le_iff`.
+      calc
+        max 0 (Real.log (1 / |1 - t|))
+            = Real.log (1 / |1 - t|) := hmax
+        _ = -Real.log |1 - t| := hlog
+        _ ≤ Real.sqrt (2 / |1 - t|) := hle
+  · -- If `|1-t| > 1`, then `log(1/|1-t|) ≤ 0`, so LHS is 0.
+    have hlt : 1 < |1 - t| := lt_of_not_ge ht
+    have hle0 : Real.log (1 / |1 - t|) ≤ 0 := by
+      have hpos : 0 < |1 - t| := lt_trans (by norm_num) hlt
+      have : (1 / |1 - t|) ≤ 1 := by
+        -- `a / b ≤ 1 ↔ a ≤ b` for `b > 0`, with `a = 1`, `b = |1-t|`.
+        exact (div_le_one hpos).2 (le_of_lt hlt)
+      have h1 : 0 < (1 / |1 - t|) := by positivity
+      exact le_trans (Real.log_le_log h1 this) (by simp)
+    have hmax : max 0 (Real.log (1 / |1 - t|)) = 0 := max_eq_left hle0
+    have hrhs : 0 ≤ Real.sqrt (2 / |1 - t|) := by
+      have : 0 ≤ 2 / |1 - t| := by
+        exact div_nonneg (by norm_num : (0 : ℝ) ≤ 2) (abs_nonneg _)
+      exact Real.sqrt_nonneg _
+    -- Avoid `simp`: it rewrites `max ≤ _` into a conjunction via `max_le_iff`.
+    rw [hmax]
+    exact hrhs
+
+/-!
+### Algebraic and growth lemmas for `exp (Polynomial.eval z P)`
+
+To upgrade the degree bound from `≤ ⌈ρ⌉` to `≤ ⌊ρ⌋`, we use the fact that the order of
+an exponential of a nonzero polynomial is an **integer**: it equals the degree.
+
+The key input is a lower bound: if `P.natDegree = n` and the leading coefficient is nonzero,
+then along a suitable ray we have `Re (P z) ≳ ‖z‖^n`, hence `log(1+‖exp(P z)‖) ≳ ‖z‖^n`.
+-/
+
+open Polynomial
+
+lemma exists_pow_eq_complex {n : ℕ} (hn : 0 < n) (w : ℂ) : ∃ z : ℂ, z ^ n = w := by
+  classical
+  by_cases hw : w = 0
+  · subst hw
+    refine ⟨0, ?_⟩
+    have hn0 : n ≠ 0 := Nat.ne_of_gt hn
+    simp [hn0]
+  · refine ⟨Complex.exp (Complex.log w / n), ?_⟩
+    have hn0 : (n : ℂ) ≠ 0 := by
+      exact_mod_cast (Nat.ne_of_gt hn)
+    calc
+      (Complex.exp (Complex.log w / n)) ^ n
+          = Complex.exp ((n : ℂ) * (Complex.log w / n)) := by
+              -- `(exp x)^n = exp(n*x)`
+              simpa using (Complex.exp_nat_mul (Complex.log w / n) n).symm
+      _ = Complex.exp (Complex.log w) := by
+            -- cancel `n` against `/ n`
+            simp [div_eq_mul_inv, hn0]; grind
+      _ = w := by simpa using (Complex.exp_log hw)
 
 /--
 **Poisson-Jensen Upper Bound for Entire Functions**
