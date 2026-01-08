@@ -2915,7 +2915,7 @@ lemma exists_pow_eq_complex {n : ℕ} (hn : 0 < n) (w : ℂ) : ∃ z : ℂ, z ^ 
               simpa using (Complex.exp_nat_mul (Complex.log w / n) n).symm
       _ = Complex.exp (Complex.log w) := by
             -- cancel `n` against `/ n`
-            simp [div_eq_mul_inv, hn0]; grind
+            simp [div_eq_mul_inv]; grind
       _ = w := by simpa using (Complex.exp_log hw)
 
 /--
