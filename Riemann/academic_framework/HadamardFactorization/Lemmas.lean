@@ -811,9 +811,6 @@ lemma zeroData_not_all_zero {f : ℂ → ℂ} (hz : ZeroData f) : ¬ (∀ z : �
 open Complex Real BigOperators Finset Set Filter Topology Metric ValueDistribution
 open scoped Topology
 
-namespace ComplexAnalysis
-namespace Hadamard
-
 /-!
 ## Analytic Estimates for the Hadamard Quotient
 

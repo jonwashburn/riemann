@@ -43,6 +43,7 @@ for some polynomial {g} of degree at most {d}. The convergence in the infinite p
 -/
 theorem hadamard_factorization
     {ρ : ℝ} {f : ℂ → ℂ}
+    (hρ : 0 ≤ ρ)
     (hf : EntireOfFiniteOrder ρ f)
     (hz : ZeroData f) :
     ∃ (P : Polynomial ℂ),
@@ -270,7 +271,7 @@ theorem hadamard_factorization
         -- `G w = ∏' fW`
         have : G w = ∏' n : ℕ, fW n := by rfl
         -- rewrite using `hmul` and `hA`
-        simp [this, hmul, hA, mul_assoc]
+        simp [this, hmul, hA]
       -- Finally, unfold `fW`.
       simpa [fW, G', hB, mul_assoc, G] using this
 
@@ -304,7 +305,7 @@ theorem hadamard_factorization
           have hn' : hz.zeros n = z := (hs_mem n).1 hn
           simp [hn']
         -- constant finset product
-        simpa [this, Finset.prod_const]
+        simp [this, Finset.prod_const]
       -- compute analytic order of the power at `z`
       have hfac_order :
           analyticOrderAt (fun w : ℂ => weierstrassFactor m (w / z)) z = (1 : ℕ∞) := by
@@ -317,7 +318,7 @@ theorem hadamard_factorization
             = s.card • analyticOrderAt (fun w : ℂ => weierstrassFactor m (w / z)) z :=
         analyticOrderAt_pow (𝕜 := ℂ) (f := fun w : ℂ => weierstrassFactor m (w / z)) (z₀ := z) hfac_an s.card
       -- finish
-      simpa [hEq, hpow, hfac_order]
+      simp [hEq, hpow, hfac_order]
 
     have horder_G' : analyticOrderAt G' z = 0 := by
       exact (hG'_an.analyticOrderAt_eq_zero).2 hG'_ne
@@ -325,12 +326,12 @@ theorem hadamard_factorization
     -- Now `G = A * G'`, hence order is sum.
     have hG_eq : G = fun w : ℂ => (∏ n ∈ s, weierstrassFactor m (w / hz.zeros n)) * G' w := by
       funext w
-      simpa [h_decomp w]
+      simp [h_decomp w]
     have hG_order_finset : analyticOrderAt G z = (s.card : ℕ∞) := by
       calc
       analyticOrderAt G z
           = analyticOrderAt (fun w : ℂ => (∏ n ∈ s, weierstrassFactor m (w / hz.zeros n)) * G' w) z := by
-              simpa [hG_eq]
+              simp [hG_eq]
       _ = analyticOrderAt (fun w : ℂ => ∏ n ∈ s, weierstrassFactor m (w / hz.zeros n)) z
             + analyticOrderAt G' z := by
               simpa [Pi.mul_apply] using (analyticOrderAt_mul (𝕜 := ℂ) (f := fun w : ℂ => ∏ n ∈ s, weierstrassFactor m (w / hz.zeros n))
@@ -363,7 +364,7 @@ theorem hadamard_factorization
         have hs1 : Fintype.card (↥s) = Fintype.card {n : ℕ // hz.zeros n = z} := Fintype.card_congr e
         exact hs0.symm.trans hs1
       exact hs_fin.trans (by
-        simpa using (Nat.card_eq_fintype_card (α := {n : ℕ // hz.zeros n = z})).symm)
+        simp)
 
     -- Final form.
     simpa [hs_card] using hG_order_finset
@@ -376,7 +377,7 @@ theorem hadamard_factorization
       -- `G 0 = 1`, hence `analyticOrderAt G 0 = 0`.
       have hG0 : G (0 : ℂ) = 1 := by
         simp [G, weierstrassFactor_zero, tprod_one]
-      have hG0_ne : G (0 : ℂ) ≠ 0 := by simpa [hG0]
+      have hG0_ne : G (0 : ℂ) ≠ 0 := by simp [hG0]
       have hG0_order : analyticOrderAt G (0 : ℂ) = 0 :=
         (hG_entire.analyticAt 0).analyticOrderAt_eq_zero.2 hG0_ne
       have hpow_order : analyticOrderAt (fun w : ℂ => w ^ hz.ord0) (0 : ℂ) = (hz.ord0 : ℕ∞) := by
@@ -412,11 +413,11 @@ theorem hadamard_factorization
       have hGz : analyticOrderAt G z = (Nat.card {n : ℕ // hz.zeros n = z} : ℕ∞) :=
         horder_G_nonzero (z := z) hz0
       -- conclude
-      simpa [hF_order, hpow_order, hfz, hGz]
+      simp [hF_order, hpow_order, hfz, hGz]
 
   have h_ord : ∀ z : ℂ, analyticOrderAt F z ≤ analyticOrderAt f z := by
     intro z
-    simpa [horder_F z] using le_rfl
+    simp [horder_F z]
 
   -- Entire quotient `H = f / F`.
   have hF_nontrivial : ∃ z : ℂ, F z ≠ 0 := by
@@ -446,7 +447,7 @@ theorem hadamard_factorization
       calc
         f z = (f z / F z) * F z := by
               simpa using (div_mul_cancel₀ (f z) hFz).symm
-        _ = H z * F z := by simpa [hHz, mul_assoc]
+        _ = H z * F z := by simp [hHz]
 
   have hH_nz : ∀ z : ℂ, H z ≠ 0 := by
     intro z
@@ -457,13 +458,13 @@ theorem hadamard_factorization
       -- rewrite `f` as `H*F`
       have hEq : f = fun w : ℂ => H w * F w := by
         funext w
-        simpa [h_prod_eq w]
+        simp [h_prod_eq w]
       -- `analyticOrderAt (H*F) = ...`
       have := analyticOrderAt_mul (𝕜 := ℂ) (f := H) (g := F) (z₀ := z) hH_an hF_an
       simpa [hEq] using this
     -- since `analyticOrderAt f z = analyticOrderAt F z`, the order of `H` is zero
     have hH0 : analyticOrderAt H z = 0 := by
-      have hf_eq : analyticOrderAt f z = analyticOrderAt F z := by simpa [horder_F z] using rfl
+      have hf_eq : analyticOrderAt f z = analyticOrderAt F z := by simp [horder_F z]
       -- rearrange
       have : analyticOrderAt H z + analyticOrderAt F z = analyticOrderAt F z := by
         simpa [hmul] using hf_eq
@@ -476,16 +477,56 @@ theorem hadamard_factorization
       exact (ENat.add_left_injective_of_ne_top hF_not_top) this
     exact (hH_an.analyticOrderAt_eq_zero).1 hH0
 
-  -- 4. H has finite order m+1
+  -- 4. H has finite order at most ρ (Tao's Theorem 22 sharp step)
+  -- 4a. Coarse bound: H has finite order `m+1` (needed to identify H as exp of a polynomial).
   have hH_bound := hadamard_quotient_growth_bound hf hz m hσ F H hH_ent hH_nz hH_eq rfl
 
-  -- 5. H = exp(P) with deg P ≤ m+1
-  obtain ⟨P, hP_deg, hP_eq⟩ := zero_free_polynomial_growth_is_exp_poly hH_ent hH_nz
-      (by obtain ⟨C, _, h⟩ := hH_bound; use C, (by positivity), h)
+  -- 4b. Sharp bound: H has finite order at most any `τ` with `ρ < τ < m+1`
+  -- (Cartan/minimum-modulus step; this matches Tao's use of an arbitrary ε > 0).
+  set τ : ℝ := (ρ + (m + 1 : ℝ)) / 2
+  have hρτ : ρ < τ := by
+    dsimp [τ]
+    linarith [hσ]
+  have hτ_lt : τ < (m + 1 : ℝ) := by
+    dsimp [τ]
+    linarith [hσ]
+  have hτ_nonneg : 0 ≤ τ := by
+    dsimp [τ]
+    linarith [hρ]
+  have hH_order : EntireOfFiniteOrder τ H :=
+    hadamard_quotient_entireOfFiniteOrder_lt
+      (hτ := hρτ) (hτ_lt := hτ_lt) (hf := hf) (hz := hz)
+      (m := m) (hσ := hσ) (F := F) (H := H) (hH_entire := hH_ent) (hH_nonzero := hH_nz)
+      (hH_eq := hH_eq) (hF_def := rfl)
 
-  -- 6. Degree bound (current): `deg P ≤ m+1`.
-  have hP_final : P.degree ≤ m + 1 :=
-    Polynomial.degree_le_of_natDegree_le hP_deg
+  -- 5. H = exp(P) with polynomial degree control from order
+  obtain ⟨P, hP_deg, hP_eq⟩ := zero_free_polynomial_growth_is_exp_poly hH_ent hH_nz
+      (by
+        obtain ⟨C, _, h⟩ := hH_bound
+        refine ⟨C, (by positivity), h⟩)
+
+  -- 6. Degree bound: `deg P ≤ ⌊ρ⌋` (integer-order obstruction for exp-polynomials).
+  have hP_nat : P.natDegree ≤ Nat.floor ρ := by
+    -- Rewrite the `EntireOfFiniteOrder` hypothesis along `H = exp(P.eval)`,
+    -- and apply the integer-order obstruction at exponent `τ < m+1`.
+    have hfun : H = (fun z : ℂ => Complex.exp (Polynomial.eval z P)) := by
+      funext z
+      simp [hP_eq z]
+    have hExp : EntireOfFiniteOrder τ (fun z : ℂ => Complex.exp (Polynomial.eval z P)) := by
+      simpa [hfun] using hH_order
+    have hPτ : P.natDegree ≤ Nat.floor τ :=
+      natDegree_le_floor_of_entireOfFiniteOrder_exp_eval (hρ := hτ_nonneg) P hExp
+    -- Use `τ < m+1` to show `Nat.floor τ ≤ m`, then conclude.
+    have hfloorτ_le_m : Nat.floor τ ≤ m := by
+      have hlt : Nat.floor τ < m + 1 := by
+        -- `Nat.floor τ < m+1 ↔ τ < (m+1 : ℝ)`
+        have : Nat.floor τ < m + 1 ↔ τ < (m + 1 : ℝ) := by
+          simpa using (Nat.floor_lt (n := m + 1) hτ_nonneg)
+        exact this.2 (by simpa using hτ_lt)
+      exact Nat.le_of_lt_succ hlt
+    exact le_trans hPτ hfloorτ_le_m
+  have hP_final : P.degree ≤ (Nat.floor ρ) :=
+    Polynomial.degree_le_of_natDegree_le hP_nat
 
   refine ⟨P, hP_final, ?_⟩
   intro z
@@ -493,7 +534,7 @@ theorem hadamard_factorization
   calc
     f z = H z * F z := (h_prod_eq z)
     _ = Complex.exp (Polynomial.eval z P) * (z ^ hz.ord0 * G z) := by
-          simp [hP_eq z, F, mul_assoc, mul_left_comm, mul_comm]
+          simp [hP_eq z, F, mul_left_comm]
     _ = Complex.exp (Polynomial.eval z P) * z ^ hz.ord0 * G z := by
           simp [mul_assoc]
     _ = Complex.exp (Polynomial.eval z P) * z ^ hz.ord0 *
@@ -514,11 +555,11 @@ theorem ComplexAnalysis.hadamard_factorization_main
     (hf : ComplexAnalysis.Hadamard.EntireOfFiniteOrder ρ f)
     (hz : ComplexAnalysis.Hadamard.ZeroData f) :
     ∃ (P : Polynomial ℂ),
-      P.degree ≤ (Nat.floor ρ + 1) ∧
+      P.degree ≤ (Nat.floor ρ) ∧
       ∀ z : ℂ,
         f z = Complex.exp (Polynomial.eval z P) *
           z ^ hz.ord0 *
           ∏' n : ℕ, (ComplexAnalysis.Hadamard.weierstrassFactor (Nat.floor ρ) (z / hz.zeros n)) :=
-  ComplexAnalysis.Hadamard.hadamard_factorization hρ hf hz
+  ComplexAnalysis.Hadamard.hadamard_factorization (hρ := hρ) hf hz
 
 end
