@@ -179,6 +179,211 @@ lemma intervalIntegrable_sqrt_two_div_abs_one_sub_Icc :
 
   exact hleft.trans hright
 
+lemma integral_phi_le_Cφ_mul {A : ℝ} (hA : 0 ≤ A) :
+    (∫ (t : ℝ) in A..(2 * A), φ t ∂volume) ≤ Cφ * A := by
+  classical
+  by_cases hA0 : A = 0
+  · subst hA0
+    simp [Cφ, φ, K]
+  have hApos : 0 < A := lt_of_le_of_ne hA (Ne.symm hA0)
+  have hA_le : A ≤ 2 * A := by nlinarith
+  have hCφ_nn : 0 ≤ Cφ := le_of_lt Cφ_pos
+
+  -- Small scale: `A ≤ 1/4`, hence `t ≤ 1/2` on `[A,2A]` and `φ t ≤ log 2`.
+  cases le_total A (1 / 4 : ℝ) with
+  | inl hsmall =>
+      have hφ_le : ∀ t ∈ Set.Icc A (2 * A), φ t ≤ Real.log 2 := by
+        intro t ht
+        have ht0 : 0 ≤ t := le_trans hA ht.1
+        have ht_le : t ≤ (1 / 2 : ℝ) := by
+          have : t ≤ 2 * A := ht.2
+          have : t ≤ (1 / 2 : ℝ) := this.trans (by nlinarith [hsmall])
+          exact this
+        -- Bound `log(1/|1-t|)` by `log 2`.
+        have hlog2_nonneg : 0 ≤ Real.log 2 := by
+          have : (1 : ℝ) ≤ 2 := by norm_num
+          exact Real.log_nonneg this
+        have hden : (1 / 2 : ℝ) ≤ |1 - t| := by
+          have hnonneg : 0 ≤ (1 - t : ℝ) := by linarith
+          have : (1 / 2 : ℝ) ≤ (1 - t : ℝ) := by linarith
+          simpa [abs_of_nonneg hnonneg] using this
+        have hfrac : (1 / |1 - t| : ℝ) ≤ 2 := by
+          have hhalfpos : (0 : ℝ) < (1 / 2 : ℝ) := by norm_num
+          -- `1/|1-t| ≤ 1/(1/2) = 2`
+          have := one_div_le_one_div_of_le hhalfpos hden
+          simpa [one_div, div_eq_mul_inv] using this
+        have hxpos : 0 < (1 / |1 - t| : ℝ) := by positivity
+        have hlog : Real.log (1 / |1 - t|) ≤ Real.log 2 := Real.log_le_log hxpos hfrac
+        -- Convert to `max 0 _`.
+        have : max 0 (Real.log (1 / |1 - t|)) ≤ Real.log 2 := by
+          simpa [max_le_iff] using And.intro hlog2_nonneg hlog
+        simpa [φ] using this
+
+      -- Integrability: bounded by the constant `log 2` on a finite interval.
+      have hconst : IntervalIntegrable (fun _ : ℝ => (Real.log 2 : ℝ)) volume A (2 * A) :=
+        intervalIntegral.intervalIntegrable_const
+      have hmeas : AEStronglyMeasurable (fun t : ℝ => φ t) (volume.restrict (Set.uIoc A (2 * A))) := by
+        -- `φ` is measurable, hence a.e. strongly measurable for any measure.
+        have : Measurable φ := by
+          unfold φ
+          fun_prop
+        exact this.aestronglyMeasurable
+      have hdom : (fun t : ℝ => ‖φ t‖) ≤ᶠ[ae (volume.restrict (Set.uIoc A (2 * A)))] fun _ => ‖(Real.log 2 : ℝ)‖ := by
+        -- Prove the bound pointwise on the interval, then restrict.
+        refine MeasureTheory.ae_restrict_of_forall_mem
+          (μ := (volume : MeasureTheory.Measure ℝ)) (s := Set.uIoc A (2 * A))
+          (by simpa using (measurableSet_uIoc : MeasurableSet (Set.uIoc A (2 * A)))) ?_
+        intro t ht
+        have htIoc : t ∈ Set.Ioc A (2 * A) := by
+          simpa [Set.uIoc_of_le hA_le] using ht
+        have ht' : t ∈ Set.Icc A (2 * A) := ⟨le_of_lt htIoc.1, htIoc.2⟩
+        have hφt : φ t ≤ Real.log 2 := hφ_le t ht'
+        have hφt0 : 0 ≤ φ t := φ_nonneg t
+        have hlog2_nn : 0 ≤ (Real.log 2 : ℝ) := by
+          have : (1 : ℝ) ≤ 2 := by norm_num
+          exact Real.log_nonneg this
+        -- norms are absolute values on ℝ
+        simpa [Real.norm_eq_abs, abs_of_nonneg hφt0, abs_of_nonneg hlog2_nn] using hφt
+      have hφ_int : IntervalIntegrable φ volume A (2 * A) :=
+        IntervalIntegrable.mono_fun hconst hmeas hdom
+
+      have hle_int :
+          (∫ (t : ℝ) in A..(2 * A), φ t ∂volume) ≤ ∫ (t : ℝ) in A..(2 * A), (Real.log 2 : ℝ) ∂volume := by
+        refine intervalIntegral.integral_mono_on (μ := (volume : MeasureTheory.Measure ℝ)) hA_le hφ_int hconst ?_
+        intro t ht
+        exact hφ_le t ht
+
+      -- Compute the RHS and finish.
+      have hRHS : (∫ (t : ℝ) in A..(2 * A), (Real.log 2 : ℝ) ∂volume) = A * Real.log 2 := by
+        -- `∫ c = (b-a)*c`
+        simpa [intervalIntegral.integral_const, sub_eq_add_neg, add_assoc, add_comm, add_left_comm, two_mul, mul_assoc]
+      -- `A*log2 ≤ Cφ*A`
+      have hcoef : A * Real.log 2 ≤ Cφ * A := by
+        have hlog_le : Real.log 2 ≤ Cφ := by
+          -- `log 2 ≤ log 2 + 4*K + 1`
+          dsimp [Cφ]
+          have hK : 0 ≤ K := K_nonneg
+          linarith [hK]
+        have := mul_le_mul_of_nonneg_left hlog_le hA
+        -- rewrite `A * Cφ` as `Cφ * A`
+        simpa [mul_assoc, mul_left_comm, mul_comm] using this
+      -- Chain inequalities.
+      calc
+        (∫ (t : ℝ) in A..(2 * A), φ t ∂volume)
+            ≤ A * Real.log 2 := by simpa [hRHS] using hle_int
+        _ ≤ Cφ * A := hcoef
+
+  | inr hge_quarter =>
+      -- Large scale: if `2 ≤ A`, then `φ` vanishes on `[A,2A]`.
+      cases le_total (2 : ℝ) A with
+      | inl hbig =>
+          have hφ0 : Set.EqOn (fun t : ℝ => φ t) (fun _ => (0 : ℝ)) (Set.uIcc A (2 * A)) := by
+            intro t ht
+            have ht' : t ∈ Set.Icc A (2 * A) := by
+              simpa [Set.uIcc_of_le hA_le] using ht
+            have htA : A ≤ t := ht'.1
+            have ht2 : 2 ≤ t := le_trans hbig htA
+            have hden : 1 ≤ |1 - t| := by
+              -- for `t ≥ 2`, `|1-t| = t-1 ≥ 1`
+              have : (1 : ℝ) ≤ t - 1 := by linarith
+              have : (1 : ℝ) ≤ |t - 1| := by simpa [abs_of_nonneg (by linarith : 0 ≤ t - 1)] using this
+              simpa [abs_sub_comm] using this
+            have hfrac : (1 / |1 - t| : ℝ) ≤ 1 := by
+              have hpos : 0 < |1 - t| := lt_of_lt_of_le (by norm_num) hden
+              exact (div_le_one hpos).2 hden
+            have hlog : Real.log (1 / |1 - t|) ≤ 0 := by
+              have hpos : 0 < (1 / |1 - t| : ℝ) := by positivity
+              exact le_trans (Real.log_le_log hpos hfrac) (by simp)
+            -- so `max 0` is zero
+            have hmax : max 0 (Real.log (1 / |1 - t|)) = 0 := max_eq_left hlog
+            simpa [φ] using hmax
+          have : (∫ (t : ℝ) in A..(2 * A), φ t ∂volume) = 0 := by
+            simpa using intervalIntegral.integral_congr (μ := (volume : MeasureTheory.Measure ℝ)) hφ0
+          -- RHS is nonnegative, so done.
+          have hnonneg : (0 : ℝ) ≤ Cφ * A := mul_nonneg hCφ_nn hA
+          simpa [this] using hnonneg
+      | inr hA_le_two =>
+          -- Middle scale: `A ∈ [1/4,2]`. Compare to the sqrt bound and then to `K`.
+          have hA_lower : (1 / 4 : ℝ) ≤ A := hge_quarter
+          have hA_upper : (2 * A : ℝ) ≤ 4 := by nlinarith [hA_le_two]
+
+          -- Sqrt integrable on `[A,2A]` by restriction.
+          let s (t : ℝ) : ℝ := Real.sqrt (2 / |1 - t|)
+          have hsqrt_big :
+              IntervalIntegrable s volume (1 / 4 : ℝ) (4 : ℝ) :=
+            intervalIntegrable_sqrt_two_div_abs_one_sub_Icc
+          have hsqrt :
+              IntervalIntegrable s volume A (2 * A) := by
+            refine hsqrt_big.mono_set ?_
+            -- `uIcc A (2A) ⊆ uIcc (1/4) 4`
+            refine Set.uIcc_subset_uIcc ?_ ?_
+            · exact (Set.mem_uIcc).2 (Or.inl ⟨hA_lower, by nlinarith [hA_le_two]⟩)
+            · exact (Set.mem_uIcc).2 (Or.inl ⟨by nlinarith [hA_lower], hA_upper⟩)
+          have hmeasφ : AEStronglyMeasurable (fun t : ℝ => φ t) (volume.restrict (Set.uIoc A (2 * A))) := by
+            have : Measurable φ := by
+              unfold φ
+              fun_prop
+            exact this.aestronglyMeasurable
+          have hdomφ : (fun t : ℝ => ‖φ t‖) ≤ᶠ[ae (volume.restrict (Set.uIoc A (2 * A)))] fun t => ‖s t‖ := by
+            refine MeasureTheory.ae_restrict_of_forall_mem
+              (μ := (volume : MeasureTheory.Measure ℝ)) (s := Set.uIoc A (2 * A))
+              (by simpa using (measurableSet_uIoc : MeasurableSet (Set.uIoc A (2 * A)))) ?_
+            intro t ht
+            have htIoc : t ∈ Set.Ioc A (2 * A) := by
+              simpa [Set.uIoc_of_le hA_le] using ht
+            have ht' : t ∈ Set.Icc A (2 * A) := ⟨le_of_lt htIoc.1, htIoc.2⟩
+            have hle : φ t ≤ s t := φ_le_sqrt t
+            have hφ0 : 0 ≤ φ t := φ_nonneg t
+            have hs0 : 0 ≤ s t := Real.sqrt_nonneg _
+            simpa [Real.norm_eq_abs, abs_of_nonneg hφ0, abs_of_nonneg hs0] using hle
+          have hφ_int : IntervalIntegrable φ volume A (2 * A) :=
+            IntervalIntegrable.mono_fun hsqrt hmeasφ hdomφ
+
+          have hle_int :
+              (∫ (t : ℝ) in A..(2 * A), φ t ∂volume)
+                ≤ ∫ (t : ℝ) in A..(2 * A), s t ∂volume := by
+            refine intervalIntegral.integral_mono_on (μ := (volume : MeasureTheory.Measure ℝ)) hA_le hφ_int hsqrt ?_
+            intro t ht
+            exact φ_le_sqrt t
+          have hle_K :
+              (∫ (t : ℝ) in A..(2 * A), s t ∂volume)
+                ≤ ∫ (t : ℝ) in (1 / 4 : ℝ)..(4 : ℝ), s t ∂volume := by
+            refine intervalIntegral.integral_mono_interval (μ := (volume : MeasureTheory.Measure ℝ))
+              (c := (1 / 4 : ℝ)) (d := (4 : ℝ)) (a := A) (b := (2 * A))
+              hA_lower hA_le hA_upper ?_ hsqrt_big
+            -- a.e. nonnegativity on the big interval
+            exact Filter.Eventually.of_forall (fun _t => Real.sqrt_nonneg _)
+          have hKdef : (∫ (t : ℝ) in (1 / 4 : ℝ)..(4 : ℝ), s t ∂volume) = K := by
+            rfl
+          have hKbound : K ≤ (4 * K) * A := by
+            have hK0 : 0 ≤ K := K_nonneg
+            have hA' : (1 : ℝ) ≤ 4 * A := by nlinarith [hA_lower]
+            calc
+              K = K * 1 := by simp
+              _ ≤ K * (4 * A) := mul_le_mul_of_nonneg_left hA' hK0
+              _ = (4 * K) * A := by ring
+          have hfinal :
+              (∫ (t : ℝ) in A..(2 * A), φ t ∂volume) ≤ Cφ * A := by
+            have : (∫ (t : ℝ) in A..(2 * A), φ t ∂volume) ≤ K := by
+              calc
+                (∫ (t : ℝ) in A..(2 * A), φ t ∂volume)
+                    ≤ ∫ (t : ℝ) in A..(2 * A), s t ∂volume := hle_int
+                _ ≤ ∫ (t : ℝ) in (1 / 4 : ℝ)..(4 : ℝ), s t ∂volume := hle_K
+                _ = K := by simpa [K, s]
+            have h1 : (∫ (t : ℝ) in A..(2 * A), φ t ∂volume) ≤ (4 * K) * A :=
+              this.trans hKbound
+            -- `(4*K)*A ≤ Cφ*A`
+            have hcoef : (4 * K : ℝ) ≤ Cφ := by
+              have hlog2 : 0 ≤ Real.log 2 := by
+                have : (1 : ℝ) ≤ 2 := by norm_num
+                exact Real.log_nonneg this
+              have hK : 0 ≤ K := K_nonneg
+              dsimp [Cφ]
+              linarith [hlog2, hK]
+            have h2 : (4 * K) * A ≤ Cφ * A := mul_le_mul_of_nonneg_right hcoef hA
+            exact h1.trans h2
+          exact hfinal
+
 end LogSingularity
 
 /-! ### Counting zeros in balls from Lindelöf summability -/
