@@ -1,17 +1,4 @@
-import Mathlib.Analysis.Complex.CauchyIntegral
-import PrimeNumberTheoremAnd.BorelCaratheodory
-import PrimeNumberTheoremAnd.DerivativeBound
-import Mathlib.Analysis.Calculus.Deriv.Polynomial
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Analysis.Analytic.Order
-import Mathlib.Analysis.Normed.Group.FunctionSeries
-import Mathlib.Analysis.Complex.ValueDistribution.FirstMainTheorem
-import Mathlib.Analysis.Complex.JensenFormula
-import Mathlib.Analysis.Complex.Cardinality
-import Mathlib.Topology.Algebra.InfiniteSum.UniformOn
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.HarmonicBounds
 import Riemann.academic_framework.HadamardFactorization.GrowthBound
-import Riemann
 
 noncomputable section
 
@@ -22,7 +9,7 @@ open Complex Real BigOperators Finset Set Filter Topology Metric ValueDistributi
 open scoped Topology
 
 
-set_option maxHeartbeats 0 in
+--set_option maxHeartbeats 0 in
 /--
 **Hadamard Factorization Theorem**
 
@@ -55,6 +42,9 @@ theorem hadamard_factorization
   classical
   -- 1. Choose genus m = floor(ρ)
   set m : ℕ := Nat.floor ρ
+  have hmρ : (m : ℝ) ≤ ρ := by
+    -- `floor ρ ≤ ρ`
+    simpa [m] using (Nat.floor_le hρ)
   have hσ : ρ < (m + 1 : ℝ) := Nat.lt_floor_add_one ρ
 
   -- 2. Construct Canonical Product F
@@ -495,8 +485,9 @@ theorem hadamard_factorization
     linarith [hρ]
   have hH_order : EntireOfFiniteOrder τ H :=
     hadamard_quotient_entireOfFiniteOrder_lt
-      (hτ := hρτ) (hτ_lt := hτ_lt) (hf := hf) (hz := hz)
-      (m := m) (hσ := hσ) (F := F) (H := H) (hH_entire := hH_ent) (hH_nonzero := hH_nz)
+      (m := m) (hρ := hρ) (hmρ := hmρ) (hτ := hρτ) (hτ_lt := hτ_lt)
+      (hf := hf) (hz := hz)
+      (F := F) (H := H) (hH_entire := hH_ent) (hH_nonzero := hH_nz)
       (hH_eq := hH_eq) (hF_def := rfl)
 
   -- 5. H = exp(P) with polynomial degree control from order
@@ -549,7 +540,7 @@ end ComplexAnalysis
 /-! ## Part 8: Exports and Compatibility -/
 
 /-- Re-export the main theorem for convenient access. -/
-theorem ComplexAnalysis.hadamard_factorization_main
+theorem Complex.hadamard_factorization_main
     {ρ : ℝ} {f : ℂ → ℂ}
     (hρ : 0 ≤ ρ)
     (hf : ComplexAnalysis.Hadamard.EntireOfFiniteOrder ρ f)
