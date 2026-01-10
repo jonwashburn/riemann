@@ -1,18 +1,5 @@
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.JensenFormula
-import Mathlib.Analysis.Analytic.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.PosLog
-import Mathlib.Topology.MetricSpace.Basic
-import Mathlib.Topology.ContinuousOn
-import Mathlib.MeasureTheory.Integral.CircleAverage
-import Mathlib.Analysis.InnerProductSpace.Harmonic.Basic
 import Riemann.Mathlib.Analysis.Complex.Cartan
 import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.CircleAverageLemmas
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.PosLogLemmas
-import Riemann.Mathlib.Analysis.Complex.DeBranges.Nevanlinna.HarmonicBounds
-import PrimeNumberTheoremAnd.BorelCaratheodory
-import Riemann.academic_framework.DiskHardy
 
 /-!
 # Minimum Modulus Principle for Analytic Functions
@@ -667,89 +654,5 @@ lemma circleAverage_posLog_inv_analytic_nonvanishing_bound
   use log⁺ M - Real.log ‖H 0‖
   exact sub_le_sub_right h_bound_mH _
 
-/-- **Growth estimate for analytic nonvanishing functions**.
-
-For H analytic and nonvanishing on `closedBall 0 R`, the circle average of `log⁺ ‖H⁻¹‖`
-on the inner circle of radius r is bounded by the supremum of `|log ‖H‖|` on the outer
-sphere of radius R. This follows from the maximum principle for harmonic functions. -/
-lemma circleAverage_posLog_inv_analytic_growth_bound
-    {H : ℂ → ℂ} {R : ℝ} (hR : 0 < R)
-    (hH_an : AnalyticOnNhd ℂ H (Metric.closedBall 0 R))
-    (hH_ne : ∀ z ∈ Metric.closedBall 0 R, H z ≠ 0)
-    {r : ℝ} (hr0 : 0 < r) (hrR : r < R) :
-    circleAverage (fun z => log⁺ ‖(H z)⁻¹‖) 0 r ≤
-        ⨆ w ∈ Metric.sphere (0 : ℂ) R, |Real.log ‖H w‖| := by
-  -- For analytic nonvanishing H, Jensen's formula gives:
-  -- circleAverage (log ‖H‖) 0 r = log ‖H 0‖
-  have hr_ne : r ≠ 0 := ne_of_gt hr0
-  have hr_abs : |r| = r := abs_of_pos hr0
-
-  have hH_an_r : AnalyticOnNhd ℂ H (Metric.closedBall 0 r) :=
-    hH_an.mono (Metric.closedBall_subset_closedBall (le_of_lt hrR))
-  have hH_ne_r : ∀ z ∈ Metric.closedBall 0 r, H z ≠ 0 :=
-    fun z hz => hH_ne z (Metric.closedBall_subset_closedBall (le_of_lt hrR) hz)
-
-  -- Mean value property
-  have h_avg : circleAverage (Real.log ‖H ·‖) 0 r = Real.log ‖H 0‖ := by
-    apply AnalyticOnNhd.circleAverage_log_norm_of_ne_zero
-    · rw [hr_abs]; exact hH_an_r
-    · intro u hu; rw [hr_abs] at hu; exact hH_ne_r u hu
-
-  -- Key: log⁺(1/x) ≤ |log x| for x > 0
-  have h_poslog_le_abs : ∀ z ∈ Metric.sphere (0 : ℂ) r,
-      log⁺ ‖(H z)⁻¹‖ ≤ |Real.log ‖H z‖| := by
-    intro z hz
-    simp only [Metric.mem_sphere, dist_zero_right] at hz
-    have hz_ball : z ∈ Metric.closedBall 0 R :=
-      Metric.closedBall_subset_closedBall (le_of_lt hrR) (by simp [hz])
-    have hHz_ne : H z ≠ 0 := hH_ne z hz_ball
-    have hHz_pos : 0 < ‖H z‖ := norm_pos_iff.mpr hHz_ne
-    rw [norm_inv]
-    simp only [posLog_def, Real.log_inv]
-    exact sup_le (abs_nonneg _) (neg_le_abs _)
-
-  -- The proof strategy:
-  -- 1. log⁺ ‖H⁻¹(z)‖ ≤ |log ‖H(z)‖| pointwise (from h_poslog_le_abs)
-  -- 2. circleAverage of smaller function ≤ circleAverage of larger function
-  -- 3. circleAverage(|log ‖H‖|, r) ≤ sup on sphere R (from HarmonicBounds)
-
-  -- Circle integrability of log⁺ ‖H⁻¹‖
-  have h_int_poslog : CircleIntegrable (fun z => log⁺ ‖(H z)⁻¹‖) 0 r := by
-    apply circleIntegrable_continuous_on_closedBall hr0
-    have h_cont := hH_an_r.continuousOn
-    have h_inv_cont : ContinuousOn (fun z => (H z)⁻¹) (Metric.closedBall 0 r) :=
-      ContinuousOn.inv₀ h_cont hH_ne_r
-    exact ValueDistribution.continuous_posLog.comp_continuousOn
-      (continuous_norm.comp_continuousOn h_inv_cont)
-
-  -- Circle integrability of |log ‖H‖|
-  have h_int_abs_log : CircleIntegrable (fun z => |Real.log ‖H z‖|) 0 r := by
-    apply circleIntegrable_continuous_on_closedBall hr0
-    have h_cont := hH_an_r.continuousOn
-    have h_norm_pos : ∀ z ∈ Metric.closedBall 0 r, ‖H z‖ ≠ 0 :=
-      fun z hz => (norm_pos_iff.mpr (hH_ne_r z hz)).ne'
-    have h_log_cont : ContinuousOn (fun z => Real.log ‖H z‖) (Metric.closedBall 0 r) :=
-      ContinuousOn.log (continuous_norm.comp_continuousOn h_cont) h_norm_pos
-    exact continuous_abs.comp_continuousOn h_log_cont
-
-  -- Step 1: circleAverage(log⁺ ‖H⁻¹‖) ≤ circleAverage(|log ‖H‖|)
-  have h_avg_le : circleAverage (fun z => log⁺ ‖(H z)⁻¹‖) 0 r ≤
-      circleAverage (fun z => |Real.log ‖H z‖|) 0 r := by
-    have h_mono : ∀ z ∈ Metric.sphere (0 : ℂ) |r|,
-        log⁺ ‖(H z)⁻¹‖ ≤ |Real.log ‖H z‖| := by
-      intro z hz
-      rw [hr_abs] at hz
-      exact h_poslog_le_abs z hz
-    apply circleAverage_mono h_int_poslog h_int_abs_log h_mono
-
-  -- Step 2: circleAverage(|log ‖H‖|) ≤ sup on sphere R
-  have h_sup_bound : circleAverage (fun z => |Real.log ‖H z‖|) 0 r ≤
-      ⨆ w ∈ Metric.sphere (0 : ℂ) R, |Real.log ‖H w‖| :=
-    Nevanlinna.AnalyticOnNhd.circleAverage_abs_log_norm_le_sup hR hH_an hH_ne hr0 hrR
-
-  -- Combine the bounds
-  calc circleAverage (fun z => log⁺ ‖(H z)⁻¹‖) 0 r
-      ≤ circleAverage (fun z => |Real.log ‖H z‖|) 0 r := h_avg_le
-    _ ≤ ⨆ w ∈ Metric.sphere (0 : ℂ) R, |Real.log ‖H w‖| := h_sup_bound
 
 end Nevanlinna
