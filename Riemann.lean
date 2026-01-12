@@ -111,6 +111,8 @@ import Riemann.academic_framework.HadamardFactorization.GrowthBound
 import Riemann.academic_framework.HadamardFactorization.Lindelof
 import Riemann.academic_framework.HadamardFactorization.CartanBound
 import Riemann.academic_framework.HadamardFactorization.Main
+import Riemann.academic_framework.StirlingBounds
+import Riemann.academic_framework.StirlingB
 
 import Riemann.PhysLean.SpinGlass.Defs
 import Riemann.PhysLean.SpinGlass.Algebra
