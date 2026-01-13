@@ -1,8 +1,4 @@
-import Mathlib
-import Riemann.Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
-import Riemann.academic_framework.GammaBounds
-import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.BinetFormula
-import Riemann.academic_framework.GammaStirlingAux
+import Mathlib.Tactic.NormNum.RealSqrt
 import Riemann.Mathlib.Analysis.SpecialFunctions.Gamma.StripBounds
 
 /-!
