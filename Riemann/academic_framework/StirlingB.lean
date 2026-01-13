@@ -1,5 +1,3 @@
-import Mathlib
-import Riemann.academic_framework.GammaBounds
 import Riemann.academic_framework.GammaStirlingAux
 
 /-!
