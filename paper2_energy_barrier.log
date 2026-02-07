@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  2 JAN 2026 17:58
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  8 JAN 2026 18:07
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -621,19 +621,19 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <5> on input line 12.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10.95> on input line 18.
+(Font)              <10.95> on input line 20.
 
 
 [1
 
 {/Users/jonathanwashburn/Library/texlive/2025basic/texmf-var/fonts/map/pdftex/u
 pdmap/pdftex.map}{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-e
-c.enc}{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-mathit.enc}{
-/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-rm.enc}{/Users/jona
+c.enc}{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-rm.enc}{/Use
+rs/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-mathit.enc}{/Users/jona
 thanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-mathsy.enc}{/Users/jonathanwas
 hburn/Library/texmf/fonts/enc/dvips/lm/lm-mathex.enc}]
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 5
-9.
+8.
 
 (/Users/jonathanwashburn/Library/texmf/tex/latex/lm/ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
@@ -647,7 +647,7 @@ File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 
 [5]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <14.4> on input line 302.
+(Font)              <14.4> on input line 301.
 
 
 [6]
@@ -667,13 +667,13 @@ Package rerunfilecheck Info: File `paper2_energy_barrier.out' has not changed.
 (rerunfilecheck)             Checksum: E89B3DE8BB20B95DC071EFAA30BBECD5;1656.
  ) 
 Here is how much of TeX's memory you used:
- 14201 strings out of 474662
- 223480 string characters out of 5751110
+ 14193 strings out of 474662
+ 223385 string characters out of 5751110
  661422 words of memory out of 5000000
- 36724 multiletter control sequences out of 15000+600000
- 653335 words of font info for 210 fonts, out of 8000000 for 9000
+ 36722 multiletter control sequences out of 15000+600000
+ 648783 words of font info for 207 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 80i,12n,82p,1018b,566s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 80i,12n,82p,1018b,597s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmbx10.pfb></Use
 rs/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmbx12.pfb></Users/jona
 thanwashburn/Library/texmf/fonts/type1/public/lm/lmbxi10.pfb></Users/jonathanwa
@@ -692,10 +692,10 @@ texmf/fonts/type1/public/lm/lmsy6.pfb></Users/jonathanwashburn/Library/texmf/fo
 nts/type1/public/lm/lmsy8.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/ty
 pe1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/2025basic/texmf-dist
 /fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on paper2_energy_barrier.pdf (10 pages, 359875 bytes).
+Output written on paper2_energy_barrier.pdf (10 pages, 360108 bytes).
 PDF statistics:
- 308 PDF objects out of 1000 (max. 8388607)
- 252 compressed objects within 3 object streams
+ 306 PDF objects out of 1000 (max. 8388607)
+ 250 compressed objects within 3 object streams
  67 named destinations out of 1000 (max. 500000)
- 49201 words of extra memory for PDF output out of 51595 (max. 10000000)
+ 47153 words of extra memory for PDF output out of 51595 (max. 10000000)
 

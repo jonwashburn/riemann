@@ -1,0 +1,21 @@
+Riemann handoff environment notes (captured on 2026-01-29)
+
+OS:
+  - platform.platform(): macOS-26.2-arm64-arm-64bit
+  - (host) Darwin 25.2.0
+
+Python:
+  - python3 --version: Python 3.9.6
+
+Key packages (for verifier):
+  - python-flint: 0.6.0
+  - numpy: 1.26.4
+
+TeX engine (for compiling the papers):
+  - pdfTeX 3.141592653-2.6-1.40.27 (TeX Live 2025)
+
+Reproduce these lines on your machine:
+  python3 --version
+  python3 -c "import sys,platform; import flint, numpy; print('platform:', platform.platform()); print('python:', sys.version.replace('
+',' ')); print('python-flint:', getattr(flint,'__version__','(no __version__)')); print('numpy:', numpy.__version__)"
+  pdflatex --version

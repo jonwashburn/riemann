@@ -34,3 +34,12 @@
 *.synctex.gz
 *.synctex.gz(busy)
 *.pdfsync
+
+# Local secrets / SSH keys (never commit)
+lambda-b200-private-key
+lambda-b200-public-key.pub
+
+# Embedded git repos
+Riemann-final/
+riemann-geometry-rs/
+riemann-main/

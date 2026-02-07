@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  2 JAN 2026 19:00
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  8 JAN 2026 18:34
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -615,7 +615,13 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10.95> on input line 19.
+(Font)              <10> on input line 13.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <7> on input line 13.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <5> on input line 13.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <10.95> on input line 21.
 
 
 [1
@@ -628,15 +634,15 @@ thanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-mathsy.enc}{/Users/jonathanwas
 hburn/Library/texmf/fonts/enc/dvips/lm/lm-mathex.enc}]
 
 [2]
+
+[3]
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 1
-40.
+54.
  (/Users/jonathanwashburn/Library/texmf/tex/latex/lm/ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 
-[3{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-ts1.enc}]
-
-[4]
+[4{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-ts1.enc}]
 
 [5]
 
@@ -644,7 +650,7 @@ File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 
 [7]
 LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 3
-51.
+68.
  (/Users/jonathanwashburn/Library/texmf/tex/latex/lm/t1lmtt.fd
 File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
@@ -653,9 +659,11 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
 
-(./riemann_bibliography.tex)
+(./riemann_bibliography.tex
 
-[8] (./paper3_cutoff_conditional.aux)
+[8])
+
+[9] (./paper3_cutoff_conditional.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
@@ -665,13 +673,13 @@ ed.
 (rerunfilecheck)             Checksum: 0F0295DD13386ACE43F7D7A9D1AD55F9;989.
  ) 
 Here is how much of TeX's memory you used:
- 14119 strings out of 474662
- 222600 string characters out of 5751110
- 661070 words of memory out of 5000000
- 36708 multiletter control sequences out of 15000+600000
- 625465 words of font info for 166 fonts, out of 8000000 for 9000
+ 14202 strings out of 474662
+ 223696 string characters out of 5751110
+ 659155 words of memory out of 5000000
+ 36745 multiletter control sequences out of 15000+600000
+ 638964 words of font info for 199 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 80i,6n,82p,1022b,620s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 80i,6n,82p,1022b,607s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmbx10.pfb></Use
 rs/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmbx12.pfb></Users/jona
 thanwashburn/Library/texmf/fonts/type1/public/lm/lmex10.pfb></Users/jonathanwas
@@ -680,17 +688,19 @@ ibrary/texmf/fonts/type1/public/lm/lmmi6.pfb></Users/jonathanwashburn/Library/t
 exmf/fonts/type1/public/lm/lmmi8.pfb></Users/jonathanwashburn/Library/texmf/fon
 ts/type1/public/lm/lmr10.pfb></Users/jonathanwashburn/Library/texmf/fonts/type1
 /public/lm/lmr12.pfb></Users/jonathanwashburn/Library/texmf/fonts/type1/public/
-lm/lmr17.pfb></Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmr6.
-pfb></Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmr8.pfb></Use
-rs/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmri10.pfb></Users/jona
-thanwashburn/Library/texmf/fonts/type1/public/lm/lmsy10.pfb></Users/jonathanwas
-hburn/Library/texmf/fonts/type1/public/lm/lmsy8.pfb></Users/jonathanwashburn/Li
-brary/texmf/fonts/type1/public/lm/lmtt10.pfb></usr/local/texlive/2025basic/texm
-f-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on paper3_cutoff_conditional.pdf (8 pages, 328723 bytes).
+lm/lmr17.pfb></Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmr5.
+pfb></Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmr6.pfb></Use
+rs/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmr7.pfb></Users/jonath
+anwashburn/Library/texmf/fonts/type1/public/lm/lmr8.pfb></Users/jonathanwashbur
+n/Library/texmf/fonts/type1/public/lm/lmri10.pfb></Users/jonathanwashburn/Libra
+ry/texmf/fonts/type1/public/lm/lmsy10.pfb></Users/jonathanwashburn/Library/texm
+f/fonts/type1/public/lm/lmsy8.pfb></Users/jonathanwashburn/Library/texmf/fonts/
+type1/public/lm/lmtt10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1
+/public/amsfonts/symbols/msbm10.pfb>
+Output written on paper3_cutoff_conditional.pdf (9 pages, 370504 bytes).
 PDF statistics:
- 279 PDF objects out of 1000 (max. 8388607)
- 232 compressed objects within 3 object streams
- 52 named destinations out of 1000 (max. 500000)
- 35361 words of extra memory for PDF output out of 35830 (max. 10000000)
+ 302 PDF objects out of 1000 (max. 8388607)
+ 250 compressed objects within 3 object streams
+ 54 named destinations out of 1000 (max. 500000)
+ 41505 words of extra memory for PDF output out of 42996 (max. 10000000)
 

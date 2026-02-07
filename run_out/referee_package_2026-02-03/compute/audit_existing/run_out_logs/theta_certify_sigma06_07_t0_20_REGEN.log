@@ -1,0 +1,23 @@
+
+[theta] certify |Theta_arith| < 1 on: [0.6,0.7] × [0.0,20.0]
+[theta] gauge: outer_zeta_proj | det2_mode: trunc | outer: OuterNormalizerEngineMidpointZetaProject
+[theta] caps: time_limit=0.0s, max_boxes=500000, min_sigma_w=0.0001, min_t_w=0.001
+[theta] passed 2000 boxes (processed 4003, stack 503, theta_hi≈0.999847, elapsed 11.9s)
+[theta] passed 4000 boxes (processed 8005, stack 505, theta_hi≈0.999847, elapsed 23.9s)
+[theta] passed 6000 boxes (processed 12005, stack 505, theta_hi≈0.999945, elapsed 35.8s)
+[theta] passed 8000 boxes (processed 114153, stack 507, theta_hi≈0.999996, elapsed 343.5s)
+[theta] passed 10000 boxes (processed 118147, stack 501, theta_hi≈0.999996, elapsed 355.6s)
+[theta] passed 12000 boxes (processed 122148, stack 502, theta_hi≈0.999996, elapsed 367.7s)
+[theta] passed 14000 boxes (processed 388291, stack 501, theta_hi≈0.999996, elapsed 1178.5s)
+
+[theta] DONE. ok=False  passed_boxes=15979  processed=499500  refined_splits=249751  elapsed=1524.3s
+[theta] theta_hi_seen (diagnostic) ≤ 0.999999672
+[theta] zeta: contains0_hits=13, min_abs_lower≈0.0202829
+[theta] outer: contains0_hits=9, min_abs_lower≈0.00773423
+[theta] failures: 233771 (showing up to 5)
+  - {'reason': 'theta_not_lt_one_min_width', 'sigma': [0.69, 0.6900781249999999], 't': [18.400000000000002, 18.40078125], 'abs_theta_upper': 1.7585279047489166}
+  - {'reason': 'theta_not_lt_one_min_width', 'sigma': [0.6900781249999999, 0.6901562499999999], 't': [18.400000000000002, 18.40078125], 'abs_theta_upper': 1.7583035845309496}
+  - {'reason': 'theta_not_lt_one_min_width', 'sigma': [0.6901562499999999, 0.690234375], 't': [18.400000000000002, 18.40078125], 'abs_theta_upper': 1.7580792773514986}
+  - {'reason': 'theta_not_lt_one_min_width', 'sigma': [0.690234375, 0.6903124999999999], 't': [18.400000000000002, 18.40078125], 'abs_theta_upper': 1.7578549776226282}
+  - {'reason': 'theta_not_lt_one_min_width', 'sigma': [0.6903124999999999, 0.6903906249999999], 't': [18.400000000000002, 18.40078125], 'abs_theta_upper': 1.7576307747513056}
+[theta] wrote JSON: run_out/theta_certify_sigma06_07_t0_20_outer_zeta_proj_REGEN.json

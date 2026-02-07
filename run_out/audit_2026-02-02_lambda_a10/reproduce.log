@@ -1,0 +1,45 @@
+=== Starting Independent Reproduction Audit ===
+Date: Mon Feb  2 04:12:53 UTC 2026
+Host: 163-192-15-161
+--- System Information ---
+Linux 163-192-15-161 6.8.0-1040-nvidia #43~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep 19 23:28:27 UTC 2 x86_64 x86_64 x86_64 GNU/Linux
+Python 3.10.12
+--- Setting up Virtual Environment ---
+Requirement already satisfied: pip in ./venv/lib/python3.10/site-packages (22.0.2)
+Collecting pip
+  Using cached pip-26.0-py3-none-any.whl (1.8 MB)
+Installing collected packages: pip
+  Attempting uninstall: pip
+    Found existing installation: pip 22.0.2
+    Uninstalling pip-22.0.2:
+      Successfully uninstalled pip-22.0.2
+Successfully installed pip-26.0
+Collecting python-flint==0.6.0 (from -r requirements.txt (line 1))
+  Using cached python_flint-0.6.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (8.4 kB)
+Collecting numpy (from -r requirements.txt (line 2))
+  Using cached numpy-2.2.6-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (62 kB)
+Using cached python_flint-0.6.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (41.1 MB)
+Using cached numpy-2.2.6-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (16.8 MB)
+Installing collected packages: python-flint, numpy
+
+Successfully installed numpy-2.2.6 python-flint-0.6.0
+--- 1/2: Verifying Low-Height Zeta Non-Vanishing (Left Rectangle) ---
+
+[zeta] certify ζ(s) != 0 on: [0.6,0.7] × [0.0,20.0]
+[zeta] caps: time_limit=0.0s, max_boxes=500000, min_sigma_w=0.0001, min_t_w=0.001
+[zeta] passed 2000 boxes (processed 3721, stack 221, elapsed 0.4s)
+[zeta] passed 4000 boxes (processed 7542, stack 42, elapsed 0.8s)
+
+[zeta] DONE. ok=True  passed_boxes=4680  processed=8860  refined_splits=4180  elapsed=0.9s
+[zeta] ζ(s): contains0_hits=4180, min_abs_lower≈9.43252e-06
+[zeta] wrote JSON: audit_zeta_left.json
+--- 2/2: Verifying Low-Height Zeta Non-Vanishing (Right Rectangle) ---
+
+[zeta] certify ζ(s) != 0 on: [0.7,0.999] × [0.0,20.0]
+[zeta] caps: time_limit=0.0s, max_boxes=500000, min_sigma_w=0.0001, min_t_w=0.001
+[zeta] passed 2000 boxes (processed 3588, stack 88, elapsed 0.4s)
+
+[zeta] DONE. ok=True  passed_boxes=3574  processed=6648  refined_splits=3074  elapsed=0.7s
+[zeta] ζ(s): contains0_hits=3074, min_abs_lower≈1.99838e-05
+[zeta] wrote JSON: audit_zeta_right.json
+=== Audit Complete: SUCCESS ===

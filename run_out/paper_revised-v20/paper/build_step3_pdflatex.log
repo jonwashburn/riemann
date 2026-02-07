@@ -1,0 +1,320 @@
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex)
+ restricted \write18 enabled.
+entering extended mode
+(./paper1_farfield.tex
+LaTeX2e <2024-11-01> patch level 2
+L3 programming layer <2025-01-18>
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2024/06/29 v1.4n Standard LaTeX document class
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/base/size11.clo))
+(./riemann_common_preamble.tex
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/geometry/geometry.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics/keyval.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/iftex/ifvtex.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/iftex/iftex.sty)))
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/booktabs/booktabs.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/float/float.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsmath/amsmath.sty
+For additional information on amsmath, use the `?' option.
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsmath/amstext.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsmath/amsgen.sty))
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsmath/amsbsy.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsmath/amsopn.sty))
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsfonts/amssymb.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsfonts/amsfonts.sty))
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amscls/amsthm.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/mathtools/mathtools.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/tools/calc.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/mathtools/mhsetup.sty))
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/base/fontenc.sty)
+(/Users/jonathanwashburn/Library/texmf/tex/latex/lm/lmodern.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/base/inputenc.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/microtype.sty
+(/Users/jonathanwashburn/Library/texmf/tex/latex/etoolbox/etoolbox.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/microtype-pdftex.d
+ef) (/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/microtype.cfg)
+) (/usr/local/texlive/2025basic/texmf-dist/tex/latex/hyperref/hyperref.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/kvsetkeys/kvsetkeys.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/kvdefinekeys/kvdefinekeys.
+sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/pdfescape/pdfescape.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/ltxcmds/ltxcmds.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/pdftexcmds/pdftexcmds.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/infwarerr/infwarerr.sty)))
+ (/usr/local/texlive/2025basic/texmf-dist/tex/latex/hycolor/hycolor.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/hyperref/nameref.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/refcount/refcount.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/gettitlestring/gettitlestr
+ing.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/kvoptions/kvoptions.sty)))
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/stringenc/stringenc.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/hyperref/pd1enc.def)
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/intcalc/intcalc.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/hyperref/puenc.def)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/url/url.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/bitset/bitset.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/bigintcalc/bigintcalc.sty)
+) (/usr/local/texlive/2025basic/texmf-dist/tex/latex/base/atbegshi-ltx.sty))
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/hyperref/hpdftex.def
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/base/atveryend-ltx.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/rerunfilecheck/rerunfilechec
+k.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/uniquecounter/uniquecounte
+r.sty))) (/Users/jonathanwashburn/Library/texmf/tex/latex/natbib/natbib.sty))
+(/Users/jonathanwashburn/Library/texmf/tex/latex/lm/t1lmr.fd)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/l3backend/l3backend-pdftex.d
+ef) (./paper1_farfield.aux)
+*geometry* driver: auto-detecting
+*geometry* detected driver: pdftex
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics/graphicx.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics/graphics.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics/trig.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics-cfg/graphics.cfg)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics-def/pdftex.def
+(/usr/local/texlive/2025basic/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+)))
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.s
+ty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
+))) (/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/mt-cmr.cfg)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics/color.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics-cfg/color.cfg)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics/mathcolor.ltx))
+(./paper1_farfield.out) (./paper1_farfield.out)
+(/Users/jonathanwashburn/Library/texmf/tex/latex/lm/ot1lmr.fd)
+(/Users/jonathanwashburn/Library/texmf/tex/latex/lm/omllmm.fd)
+(/Users/jonathanwashburn/Library/texmf/tex/latex/lm/omslmsy.fd)
+(/Users/jonathanwashburn/Library/texmf/tex/latex/lm/omxlmex.fd)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsfonts/umsa.fd)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/mt-msa.cfg)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsfonts/umsb.fd)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/mt-msb.cfg)
+(/Users/jonathanwashburn/Library/texmf/tex/latex/lm/ts1lmr.fd)
+[1{/Users/jonathanwashburn/Library/texlive/2025basic/texmf-var/fonts/map/pdftex
+/updmap/pdftex.map}{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm
+-ec.enc}{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-mathsy.enc
+}{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-mathit.enc}{/User
+s/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-rm.enc}{/Users/jonathanw
+ashburn/Library/texmf/fonts/enc/dvips/lm/lm-mathex.enc}]
+(/Users/jonathanwashburn/Library/texmf/tex/latex/lm/t1lmtt.fd)
+[2{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-ts1.enc}]
+[3]
+[4]
+[5]
+[6]
+[7]
+[8]
+[9] (./paper1_pplus_proof.tex
+[10]
+[11]
+[12]
+[13]
+[14]
+[15]
+[16]
+[17]
+[18]
+Overfull \hbox (2.9316pt too wide) in paragraph at lines 552--553
+[]\T1/lmr/m/n/10.95 (-20) Apply Lemma [][]28[][] with $\OML/lmm/m/it/10.95 ^^^ 
+\OMS/lmsy/m/n/10.95 2 W[]\OT1/lmr/m/n/10.95 (-20) (\OML/lmm/m/it/10.95 I\OT1/lm
+r/m/n/10.95 (-20) ; \OML/lmm/m/it/10.95 "\OT1/lmr/m/n/10.95 (-20) )$ \T1/lmr/m/
+n/10.95 (-20) and ab-sorb the window-side con-stants into $\OML/lmm/m/it/10.95 
+C[]\OT1/lmr/m/n/10.95 (-20) (\OML/lmm/m/it/10.95  ; "; []\OT1/lmr/m/n/10.95 (-
+20) )$\T1/lmr/m/n/10.95 (-20) .
+)
+[19]
+Overfull \hbox (7.04625pt too wide) in paragraph at lines 523--524
+[]\T1/lmr/bx/n/10.95 (-20) Rectangle ar-ti-fact [][]$\T1/lmtt/m/n/10.95 artifac
+ts / theta _ certify _ sigma06 _ 07 _ t0 _ 20 _ outer _ zeta _ proj . json$[][]
+\T1/lmr/m/n/10.95 (-20) .
+
+[20]
+[21] (./riemann_bibliography.tex)
+[22] (./paper1_farfield.aux)
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+ )
+(see the transcript file for additional information)</Users/jonathanwashburn/Li
+brary/texmf/fonts/type1/public/lm/lmbx10.pfb></Users/jonathanwashburn/Library/t
+exmf/fonts/type1/public/lm/lmbx12.pfb></Users/jonathanwashburn/Library/texmf/fo
+nts/type1/public/lm/lmex10.pfb></Users/jonathanwashburn/Library/texmf/fonts/typ
+e1/public/lm/lmmi10.pfb></Users/jonathanwashburn/Library/texmf/fonts/type1/publ
+ic/lm/lmmi12.pfb></Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/l
+mmi6.pfb></Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmmi7.pfb
+></Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmmi8.pfb></Users
+/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmr10.pfb></Users/jonatha
+nwashburn/Library/texmf/fonts/type1/public/lm/lmr12.pfb></Users/jonathanwashbur
+n/Library/texmf/fonts/type1/public/lm/lmr17.pfb></Users/jonathanwashburn/Librar
+y/texmf/fonts/type1/public/lm/lmr6.pfb></Users/jonathanwashburn/Library/texmf/f
+onts/type1/public/lm/lmr7.pfb></Users/jonathanwashburn/Library/texmf/fonts/type
+1/public/lm/lmr8.pfb></Users/jonathanwashburn/Library/texmf/fonts/type1/public/
+lm/lmri10.pfb></Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmsy
+10.pfb></Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmsy6.pfb><
+/Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmsy7.pfb></Users/j
+onathanwashburn/Library/texmf/fonts/type1/public/lm/lmsy8.pfb></Users/jonathanw
+ashburn/Library/texmf/fonts/type1/public/lm/lmtk10.pfb></Users/jonathanwashburn
+/Library/texmf/fonts/type1/public/lm/lmtt10.pfb></usr/local/texlive/2025basic/t
+exmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/20
+25basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
+Output written on paper1_farfield.pdf (22 pages, 496934 bytes).
+Transcript written on paper1_farfield.log.
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex)
+ restricted \write18 enabled.
+entering extended mode
+(./paper1_farfield.tex
+LaTeX2e <2024-11-01> patch level 2
+L3 programming layer <2025-01-18>
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2024/06/29 v1.4n Standard LaTeX document class
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/base/size11.clo))
+(./riemann_common_preamble.tex
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/geometry/geometry.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics/keyval.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/iftex/ifvtex.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/iftex/iftex.sty)))
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/booktabs/booktabs.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/float/float.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsmath/amsmath.sty
+For additional information on amsmath, use the `?' option.
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsmath/amstext.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsmath/amsgen.sty))
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsmath/amsbsy.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsmath/amsopn.sty))
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsfonts/amssymb.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsfonts/amsfonts.sty))
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amscls/amsthm.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/mathtools/mathtools.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/tools/calc.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/mathtools/mhsetup.sty))
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/base/fontenc.sty)
+(/Users/jonathanwashburn/Library/texmf/tex/latex/lm/lmodern.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/base/inputenc.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/microtype.sty
+(/Users/jonathanwashburn/Library/texmf/tex/latex/etoolbox/etoolbox.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/microtype-pdftex.d
+ef) (/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/microtype.cfg)
+) (/usr/local/texlive/2025basic/texmf-dist/tex/latex/hyperref/hyperref.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/kvsetkeys/kvsetkeys.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/kvdefinekeys/kvdefinekeys.
+sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/pdfescape/pdfescape.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/ltxcmds/ltxcmds.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/pdftexcmds/pdftexcmds.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/infwarerr/infwarerr.sty)))
+ (/usr/local/texlive/2025basic/texmf-dist/tex/latex/hycolor/hycolor.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/hyperref/nameref.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/refcount/refcount.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/gettitlestring/gettitlestr
+ing.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/kvoptions/kvoptions.sty)))
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/stringenc/stringenc.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/hyperref/pd1enc.def)
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/intcalc/intcalc.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/hyperref/puenc.def)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/url/url.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/bitset/bitset.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/bigintcalc/bigintcalc.sty)
+) (/usr/local/texlive/2025basic/texmf-dist/tex/latex/base/atbegshi-ltx.sty))
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/hyperref/hpdftex.def
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/base/atveryend-ltx.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/rerunfilecheck/rerunfilechec
+k.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/generic/uniquecounter/uniquecounte
+r.sty))) (/Users/jonathanwashburn/Library/texmf/tex/latex/natbib/natbib.sty))
+(/Users/jonathanwashburn/Library/texmf/tex/latex/lm/t1lmr.fd)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/l3backend/l3backend-pdftex.d
+ef) (./paper1_farfield.aux)
+*geometry* driver: auto-detecting
+*geometry* detected driver: pdftex
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics/graphicx.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics/graphics.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics/trig.sty)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics-cfg/graphics.cfg)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics-def/pdftex.def
+(/usr/local/texlive/2025basic/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+)))
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.s
+ty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
+))) (/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/mt-cmr.cfg)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics/color.sty
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics-cfg/color.cfg)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/graphics/mathcolor.ltx))
+(./paper1_farfield.out) (./paper1_farfield.out)
+(/Users/jonathanwashburn/Library/texmf/tex/latex/lm/ot1lmr.fd)
+(/Users/jonathanwashburn/Library/texmf/tex/latex/lm/omllmm.fd)
+(/Users/jonathanwashburn/Library/texmf/tex/latex/lm/omslmsy.fd)
+(/Users/jonathanwashburn/Library/texmf/tex/latex/lm/omxlmex.fd)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsfonts/umsa.fd)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/mt-msa.cfg)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/amsfonts/umsb.fd)
+(/usr/local/texlive/2025basic/texmf-dist/tex/latex/microtype/mt-msb.cfg)
+(/Users/jonathanwashburn/Library/texmf/tex/latex/lm/ts1lmr.fd)
+[1{/Users/jonathanwashburn/Library/texlive/2025basic/texmf-var/fonts/map/pdftex
+/updmap/pdftex.map}{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm
+-ec.enc}{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-mathsy.enc
+}{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-mathit.enc}{/User
+s/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-rm.enc}{/Users/jonathanw
+ashburn/Library/texmf/fonts/enc/dvips/lm/lm-mathex.enc}]
+(/Users/jonathanwashburn/Library/texmf/tex/latex/lm/t1lmtt.fd)
+[2{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-ts1.enc}]
+[3]
+[4]
+[5]
+[6]
+[7]
+[8]
+[9] (./paper1_pplus_proof.tex
+[10]
+[11]
+[12]
+[13]
+[14]
+[15]
+[16]
+[17]
+[18]
+Overfull \hbox (2.9316pt too wide) in paragraph at lines 552--553
+[]\T1/lmr/m/n/10.95 (-20) Apply Lemma [][]28[][] with $\OML/lmm/m/it/10.95 ^^^ 
+\OMS/lmsy/m/n/10.95 2 W[]\OT1/lmr/m/n/10.95 (-20) (\OML/lmm/m/it/10.95 I\OT1/lm
+r/m/n/10.95 (-20) ; \OML/lmm/m/it/10.95 "\OT1/lmr/m/n/10.95 (-20) )$ \T1/lmr/m/
+n/10.95 (-20) and ab-sorb the window-side con-stants into $\OML/lmm/m/it/10.95 
+C[]\OT1/lmr/m/n/10.95 (-20) (\OML/lmm/m/it/10.95  ; "; []\OT1/lmr/m/n/10.95 (-
+20) )$\T1/lmr/m/n/10.95 (-20) .
+)
+[19]
+Overfull \hbox (7.04625pt too wide) in paragraph at lines 523--524
+[]\T1/lmr/bx/n/10.95 (-20) Rectangle ar-ti-fact [][]$\T1/lmtt/m/n/10.95 artifac
+ts / theta _ certify _ sigma06 _ 07 _ t0 _ 20 _ outer _ zeta _ proj . json$[][]
+\T1/lmr/m/n/10.95 (-20) .
+
+[20]
+[21] (./riemann_bibliography.tex)
+[22] (./paper1_farfield.aux) )
+(see the transcript file for additional information)</Users/jonathanwashburn/Li
+brary/texmf/fonts/type1/public/lm/lmbx10.pfb></Users/jonathanwashburn/Library/t
+exmf/fonts/type1/public/lm/lmbx12.pfb></Users/jonathanwashburn/Library/texmf/fo
+nts/type1/public/lm/lmex10.pfb></Users/jonathanwashburn/Library/texmf/fonts/typ
+e1/public/lm/lmmi10.pfb></Users/jonathanwashburn/Library/texmf/fonts/type1/publ
+ic/lm/lmmi12.pfb></Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/l
+mmi6.pfb></Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmmi7.pfb
+></Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmmi8.pfb></Users
+/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmr10.pfb></Users/jonatha
+nwashburn/Library/texmf/fonts/type1/public/lm/lmr12.pfb></Users/jonathanwashbur
+n/Library/texmf/fonts/type1/public/lm/lmr17.pfb></Users/jonathanwashburn/Librar
+y/texmf/fonts/type1/public/lm/lmr6.pfb></Users/jonathanwashburn/Library/texmf/f
+onts/type1/public/lm/lmr7.pfb></Users/jonathanwashburn/Library/texmf/fonts/type
+1/public/lm/lmr8.pfb></Users/jonathanwashburn/Library/texmf/fonts/type1/public/
+lm/lmri10.pfb></Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmsy
+10.pfb></Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmsy6.pfb><
+/Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmsy7.pfb></Users/j
+onathanwashburn/Library/texmf/fonts/type1/public/lm/lmsy8.pfb></Users/jonathanw
+ashburn/Library/texmf/fonts/type1/public/lm/lmtk10.pfb></Users/jonathanwashburn
+/Library/texmf/fonts/type1/public/lm/lmtt10.pfb></usr/local/texlive/2025basic/t
+exmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/local/texlive/20
+25basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
+Output written on paper1_farfield.pdf (22 pages, 496934 bytes).
+Transcript written on paper1_farfield.log.
