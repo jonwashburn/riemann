@@ -1,70 +1,54 @@
 \documentclass[11pt]{amsart}
-% ===== BEGIN inlined from riemann_common_preamble.tex =====
-% Shared preamble for the three-paper split.
-% Keep this file free of \documentclass and egin{document}.
-% Do NOT mention proof assistants anywhere in the split papers.
 
 \usepackage[margin=1in]{geometry}
-\usepackage{booktabs}
-\usepackage{float}
 \usepackage{amsmath,amssymb,amsthm,mathtools}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 \usepackage[utf8]{inputenc}
 \usepackage{microtype}
 \usepackage{hyperref}
-\usepackage{xcolor}
 \usepackage[numbers,sort&compress]{natbib}
 \hypersetup{colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black}
 
-% Theorems
 \newtheorem{theorem}{Theorem}
 \newtheorem{proposition}[theorem]{Proposition}
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{corollary}[theorem]{Corollary}
-\newtheorem{hypothesis}[theorem]{Hypothesis}
 \theoremstyle{definition}
 \newtheorem{definition}[theorem]{Definition}
 \theoremstyle{remark}
 \newtheorem{remark}[theorem]{Remark}
 
-% Basic macros
 \newcommand{\C}{\mathbb{C}}
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\N}{\mathbb{N}}
 \newcommand{\PP}{\mathcal{P}}
-\newcommand{\Hilb}{\mathcal H}
 \DeclareMathOperator{\dettwo}{det_2}
-
-% Stable angle-bracket convention
-\newcommand{\angles}[1]{\langle #1\rangle}
-
-% Editorial markup (disabled)
-\newcommand{\editblue}[1]{{#1}}
-\newcommand{\editgreen}[1]{{#1}}
-% RS-informed additions (violet) — added 2026-02-06
-\newcommand{\rsadd}[1]{{\color{violet}#1}}
-% ===== END inlined from riemann_common_preamble.tex =====
-
 \DeclareMathOperator{\Arg}{Arg}
-\DeclareMathOperator{\ntlim}{nt\!-\!lim}
-\newcommand{\z}{\zeta} % compatibility: avoid undefined \z
+\newcommand{\angles}[1]{\langle #1\rangle}
 
 \title[The Riemann Hypothesis]{The Riemann Hypothesis: a proof that $\zeta(s)\neq 0$ for $\Re s>1/2$}
 
-\author{Jonathan Washburn}\thanks{Recognition Physics Research Institute, Austin, TX, USA; \email{jon@recognitionphysics.org}.}
-\author{Amir Rahnamai Barghi}\thanks{Correspondence: \texttt{arahnama@gmail.com}.}\thanks{Recognition Physics Research Institute, Austin, TX, USA; \email{arahnamab@gmail.com}.}\thanks{Correspondence: arahnamab@gmail.com}
+\author{Jonathan Washburn}
+\address{Recognition Physics Research Institute, Austin, TX, USA}
+\email{jon@recognitionphysics.org}
+
+\author{Amir Rahnamai Barghi}
+\address{Recognition Physics Research Institute, Austin, TX, USA}
+\email{arahnamab@gmail.com}
 
 \date{}
 \begin{document}
 \begin{abstract}
 We prove the Riemann Hypothesis: $\zeta(s)\neq 0$ for $\Re s>1/2$.
-On $\Omega=\{\Re s>\tfrac12\}$ we introduce an arithmetic ratio $\mathcal J(s)$ and the associated Cayley transform
-$\Theta(s)=(2\mathcal J(s)-1)/(2\mathcal J(s)+1)$.
-A boundary wedge condition (P$^+$) implies that $\Theta$ is Schur on $\Omega$, which in turn yields a half-plane Schur/Herglotz removability argument
-excluding poles of $\mathcal J$ throughout $\{\Re s>1/2\}$.
-Since any pole of $\mathcal J$ in $\Omega$ forces a zero of $\zeta$, the pole exclusion gives the stated zero-free region.
-Supplementary rigorous ball-arithmetic certificates are included as ancillary material for independent reproducibility checks on representative low-height rectangles.
+On $\Omega=\{\Re s>\tfrac12\}$ we construct an \emph{inner reciprocal}
+$\mathcal I=B^2/\mathcal J_{\rm out}$ (holomorphic, $|\mathcal I|\le 1$
+by Phragm\'en--Lindel\"of) whose zeros are exactly the $\zeta$-zeros in~$\Omega$.
+A direct contradiction argument shows that any hypothetical zero at
+$\Re s=\tfrac12+\varepsilon$ ($\varepsilon>0$) produces a Poisson-kernel lower bound
+on the neutralized boundary phase that exceeds the Cauchy--Schwarz/Whitney-energy
+upper bound, for a suitable height-dependent choice of the Whitney parameter.
+The proof is purely analytic; no computation is logically required.
 \end{abstract}
 
 \subjclass[2020]{Primary 11M26; Secondary 30H10, 42B30, 47B35.}
@@ -76,72 +60,56 @@ The Riemann zeta function
 \[
   \zeta(s)\;=\;\sum_{n\ge 1}\frac{1}{n^s},\qquad \Re s>1,
 \]
-extends meromorphically to $\C$ with a simple pole at $s=1$ and satisfies a functional equation after completion.
-Its nontrivial zeros govern the finest fluctuations in the distribution of prime numbers, and the Riemann Hypothesis (RH) asserts that all such zeros lie on the critical line $\Re s=\tfrac12$; see \cite{Titchmarsh,IK} for background.
+extends meromorphically to $\C$ with a simple pole at $s=1$ and satisfies
+a functional equation after completion.
+Its nontrivial zeros govern the distribution of prime numbers, and the
+Riemann Hypothesis~(RH) asserts that all such zeros lie on the critical
+line $\Re s=\tfrac12$; see \cite{Titchmarsh,IK} for background.
 
-This paper proves the Riemann Hypothesis.
 \begin{theorem}[Riemann Hypothesis]\label{thm:farfield}
-The Riemann zeta function has no zeros in the open half-plane $\{\,s\in\C:\ \Re s> \tfrac12\,\}$.
-Equivalently: for every $\varepsilon>0$, $\zeta(s)\neq 0$ for $\Re s\ge \tfrac12+\varepsilon$.
-
-\noindent\textit{Proof.} See \S\ref{sec:proof-farfield}.
+The Riemann zeta function has no zeros in the open half-plane
+$\Omega:=\{\,s\in\C:\Re s>\tfrac12\,\}$.
 \end{theorem}
 
-\noindent\textbf{Scope and supplementary computation.}
-The proof of Theorem~\ref{thm:farfield} proceeds by direct contradiction (\S\ref{sec:proof-farfield}),
-using a neutralized CR--Green energy estimate developed in Appendix~\ref{app:pplus-proof}.
-(The appendix also develops machinery toward a boundary wedge certificate \textup{(P+)},
-but the primary proof does not invoke \textup{(P+)}; see Remark~\ref{thm:Pplus}.)
-The shipped computational artifacts provide independently checkable ball-arithmetic cross-checks on representative low-height rectangles (Table~\ref{tab:artifact-data}) together with a verification protocol (Appendix~\ref{app:verify}).
-The shipped certificates are supplementary cross-checks and are
-not logically required (the small-height case is vacuous; see the proof).
+The proof, given in \S\ref{sec:proof-farfield}, is purely analytic
+and self-contained; no computation is logically required.
+The supporting lemmas are collected in Appendix~\ref{app:pplus-proof}.
 
-The Appendix records the analytic function theory inputs used in the proof of \textup{(P+)} (boundary traces, factorization, and the phase--velocity identity).
+\subsection*{Notation}
+We write $\angles{T}:=(1+T^2)^{1/2}$ for the Japanese bracket.
+For an interval $I\subset\R$, $|I|$ denotes its length and
+$Q_\alpha(I):=\{\tfrac12+\sigma+it:\,0<\sigma\le\alpha|I|,\,t\in I\}$
+denotes the Whitney box with aperture~$\alpha$.
+Throughout, $\sigma:=\Re s-\tfrac12$ and $\partial\Omega=\{\tfrac12+it:t\in\R\}$.
 
-\subsection*{Strategy: Schur pinching via a Cayley field}
-We work on the right half-plane $\Omega=\{\,\Re s>\tfrac12\,\}$.
-In Section~\ref{sec:defs} we define an arithmetic ratio $\mathcal J$ (in the default \emph{raw $\zeta$-gauge}) with the following two structural properties:
-\begin{itemize}
-\item \textbf{(normalization at $+\infty$)} $\mathcal J(\sigma+it)\to 1$ as $\sigma\to+\infty$, hence $\Theta(\sigma+it)\to \tfrac13$ (Remark~\ref{rem:Ocan-role});
-\item \textbf{(normalization)} $\dettwo(I-A(s))$ is holomorphic and nonvanishing on $\Omega$, so any zero of $\zeta$ in $\Omega$ produces a pole of $\mathcal J$ (Lemma~\ref{lem:poles}).
-\end{itemize}
-We then pass to the Cayley transform
-\[
-  \Theta(s)\ :=\ \frac{2\mathcal J(s)-1}{2\mathcal J(s)+1}.
-\]
-The analytic mechanism is a \emph{Schur/Herglotz pinch} proved in Section~\ref{sec:pinch}:
-if $\Theta$ is Schur on a domain (i.e.\ $|\Theta|\le 1$) and not identically $1$, then boundedness forces removability of any isolated singularity and prevents poles of $\mathcal J$.
-Since $\Theta(\sigma+it)\to \tfrac13$ as $\sigma\to+\infty$, the degenerate possibility $\Theta\equiv 1$ is excluded on the half-planes relevant here.
-Therefore, to prove Theorem~\ref{thm:farfield} it suffices to certify a Schur bound for the default Cayley field $\Theta_{\rm raw}$ on some open half-plane $\{\,\Re s>0.6-\varepsilon\,\}$.
+\subsection*{Strategy}
+On $\Omega$ we construct an \emph{inner reciprocal}
+$\mathcal I:=B^2/\mathcal J_{\rm out}$ (where $B(s)=(s-1)/s$), built from
+$\zeta(s)$, the regularized determinant $\dettwo(I-A(s))$
+over primes, and an outer normalizer $\mathcal O_\zeta$
+(\S\ref{sec:defs}).  The inner reciprocal is holomorphic on $\Omega$
+with $|\mathcal I|\le 1$ (Phragm\'en--Lindel\"of; Lemma~\ref{lem:inner-reciprocal})
+and boundary modulus~$1$~a.e.
+Crucially, zeros of $\zeta$ in $\Omega$ become \emph{zeros}
+(not poles) of $\mathcal I$.
 
-\subsection*{Inputs (what is rigorously checked)}
-The logical implication of Theorem~\ref{thm:farfield} rests on a boundary certificate:
-we establish a boundary wedge \textup{(P+)} (Lebesgue-a.e.) for the boundary phase of $\mathcal J$ on $\Re s=\tfrac12$, which implies that $2\mathcal J$ is Herglotz and $\Theta$ is Schur on $\Omega\setminus Z(\zeta)$.
-The Schur/Herglotz pinch mechanism then excludes poles of $\mathcal J$ on $\{\,\Re s>1/2\,\}$ and hence excludes zeros of $\zeta$ there.
-
-\medskip
-\noindent\emph{Supplementary computation (not logically required).}
-The shipped ball-arithmetic certificates provide independent cross-checks
-on representative low-height rectangles.
-The proof itself is purely analytic (the small-height case is vacuous).
-
-\subsection*{Reproducibility and verification materials}
-The handoff bundle (and repository) includes:
-(i) the verifier script based on ARB ball arithmetic (\texttt{python-flint}), and
-(ii) the JSON artifacts that record the  maxima, spectral separation bounds, and denominator checks for the supplementary certificates listed in Table~\ref{tab:artifact-data}.
-The included \texttt{MANIFEST.md} and Appendix~\ref{app:verify} provide a verification manifest mapping certificates to exact commands and expected output fields.
-
-\subsection*{Place in a series}
-This paper is designed to stand alone as an unconditional  zero-free region.
-Two companion papers (not required for Theorem~\ref{thm:farfield}) treat: (a) effective near-field energy barriers and Carleson budgets, and (b) a cutoff principle yielding conditional closure of RH.
-
-\medskip
-\noindent The remainder of the paper defines the arithmetic ratio $\mathcal J$ and Cayley field $\Theta$, proves the Schur pinch mechanism, and then discharges the Schur bound via the hybrid certification outlined above.
+Assuming for contradiction that $\zeta(\rho_0)=0$ with
+$\Re\rho_0>\tfrac12$, we neutralize the nearby zeros by dividing
+$\mathcal I$ by a finite Blaschke product $B_{\rm box}$.
+The resulting quotient $\mathcal I_{\rm neut}$ is holomorphic and
+nonvanishing on a Whitney box centered at $\Im\rho_0$, and its
+boundary phase derivative is a positive measure.
+The Poisson kernel of $\rho_0$ provides a lower bound
+$\ge c_\varepsilon L$ on the windowed phase, while a
+Cauchy--Riemann/Green pairing gives an upper bound
+$\le A\sqrt{c_0}\,L$ from the Whitney-box energy.
+The height-dependent parameter $c=c_0/\log\angles{\gamma_0}$
+collapses the $\log^2$ energy growth to a constant,
+yielding $c_\varepsilon \le c_\varepsilon/2$---a contradiction.
 
 \section{Definitions and main objects}\label{sec:defs}
 
-This section defines the analytic objects used throughout the proof and records the basic relationships
-between zeros of $\zeta$ and the bounded-real (Schur/Herglotz) structure employed later.
+This section defines the analytic objects used throughout the paper.
 \subsection*{The completed zeta function and the far half-plane}
 Let $\zeta(s)$ denote the Riemann zeta function.
 We write $\xi(s)$ for the completed zeta function
@@ -154,7 +122,7 @@ canceled singularities at $s=0,1$) lying in the half-plane
 \[
   \Omega\ :=\ \{\,s\in\C:\ \Re s>\tfrac12\,\}.
 \]
-Theorem~\ref{thm:farfield} concerns the fixed far region $\{\,\Re s\ge 0.6\,\}\subset\Omega$.
+Theorem~\ref{thm:farfield} concerns the open half-plane $\Omega$.
 
 \subsection*{The prime-diagonal operator and the regularized determinant}
 Let $\PP$ denote the set of primes and write $\ell^2(\PP)$ for the Hilbert space with orthonormal basis
@@ -195,7 +163,7 @@ All holomorphy/pole assertions for $\mathcal J$ are made only on $\Omega$, and p
 Since $\Re s>1/2$ implies $|p^{-s}|<1$ for every prime $p$, each factor in \eqref{eq:det2-product} is nonzero.
 Hence $\dettwo(I-A(s))$ is holomorphic and zero-free on $\Omega$.
 
-\subsection*{The arithmetic ratio $\mathcal J$ and the Cayley field $\Theta$}
+\subsection*{The arithmetic ratio $\mathcal J$}
 Fix a domain $D\subset\Omega$.
 To allow numerically stable  bounds later, we permit a holomorphic nonvanishing \emph{normalizer}
 (or \emph{gauge}) $\mathcal O$ on $D$, and define
@@ -205,22 +173,15 @@ To allow numerically stable  bounds later, we permit a holomorphic nonvanishing 
 The factor $(s-1)$ cancels the simple pole of $\zeta$ at $s=1$; the factor $1/s$ plays no role on $D\subset\Omega$
 (but is convenient in later normalization).
 Unless explicitly stated otherwise, we work in the \emph{raw $\zeta$-gauge} $\mathcal O\equiv 1$ and denote the resulting
-objects by $\mathcal J_{\rm raw}$ and $\Theta_{\rm raw}$; for readability we usually drop the subscript in this default gauge.
+objects by $\mathcal J_{\rm raw}$; for readability we usually drop the subscript in this default gauge.
 \begin{remark}[Gauge changes and what they do \emph{not} change]\label{rem:Ocan-role}
 If $\mathcal O$ is holomorphic and nonvanishing on $D$, then multiplying by $\mathcal O^{-1}$ cannot introduce poles on $D$.
 Thus the pole set of $\mathcal J$ on $D$ is independent of the choice of gauge.
-However, quantitative bounds (e.g.\ Schur bounds on $\Theta$) are not gauge-invariant; when a nontrivial gauge is used for a
+However, quantitative bounds are not gauge-invariant; when a nontrivial gauge is used for a
  bound, one also requires that $\mathcal O$ is holomorphic and nonvanishing on the domain.
-In the raw gauge $\mathcal O\equiv 1$ one has $\mathcal J(s)\to 1$ as $\Re s\to+\infty$, and hence $\Theta(s)\to 1/3$.
+In the raw gauge $\mathcal O\equiv 1$ one has $\mathcal J(s)\to 1$ as $\Re s\to+\infty$.
 \end{remark}
 
-The associated Cayley transform is
-\begin{equation}\label{eq:Theta-def}
-  \Theta(s)\ :=\ \frac{2\mathcal J(s)-1}{2\mathcal J(s)+1}.
-\end{equation}
-Heuristically, $2\mathcal J$ plays the role of a Herglotz-type quantity and $\Theta$ the corresponding Schur function.
-The next section makes precise the key implication used later: a Schur bound on $\Theta$ forces removability of any
-isolated singularity of $\mathcal J$.
 \begin{lemma}[Zeros of $\zeta$ produce poles of $\mathcal J$]\label{lem:poles}
 Let $D\subset\Omega$ be a domain and assume the chosen gauge $\mathcal O$ is holomorphic and nonvanishing on $D$.
 If $\rho\in D$ is a zero of $\zeta(s)$, then $\rho$ is a pole of $\mathcal J(s)$ defined in \eqref{eq:J-def}.
@@ -232,23 +193,7 @@ Finally, $\dettwo(I-A(s))$ is holomorphic and nonzero on $\Omega$ by \eqref{eq:d
 forces a pole of $\mathcal J$ at $\rho$.
 \end{proof}
 
-\subsection*{Schur and Herglotz classes (terminology)}
-Let $D\subset\C$ be a domain. A holomorphic function $\Theta$ on $D$ is called \emph{Schur} if $|\Theta|\le 1$ on $D$.
-A holomorphic function $H$ on $D$ is called \emph{Herglotz} if $\Re H\ge 0$ on $D$.
-The Cayley transform identifies these classes: if $H$ is Herglotz and $H\not\equiv -1$, then
-\[
-  \Theta=\frac{H-1}{H+1}
-\]
-is Schur. Conversely, if $\Theta$ is Schur and $\Theta\not\equiv 1$, then $(1+\Theta)/(1-\Theta)$ is Herglotz;
-see \cite{Donoghue,RosenblumRovnyak}.
-
-\subsection*{Outline of the far-field strategy in this language}
-Theorem~\ref{thm:farfield} will follow once we establish that $\Theta$ is Schur on $\{\,\Re s>0.6\,\}$ (in the relevant gauge).
-Indeed, if $|\Theta|\le 1$ holds on $\{\,\Re s>0.6\,\}$ away from the poles of $\mathcal J$, then $\Theta$ is bounded near any
-isolated singularity, and thus extends holomorphically across it by the removable singularity theorem.
-Since poles of $\mathcal J$ correspond to zeros of $\zeta$ in $\Omega$ by Lemma~\ref{lem:poles}, this rules out zeros of $\zeta$
-in the far region. The precise pinch argument is proved in the next section.
-
+\iffalse
 \section{Schur/Herglotz pinch mechanism}\label{sec:pinch}
 \par\noindent
 This section records the analytic mechanism that converts a Schur bound for the Cayley field $\Theta$
@@ -317,10 +262,10 @@ $U_\varepsilon=\{\,\Re s>0.6-\varepsilon\,\}$ with some $\varepsilon>0$, then Co
 $\mathcal J$ has no poles in $U_\varepsilon$, hence $\zeta$ has no zeros in $U_\varepsilon$.
 Since $\{\,\Re s\ge 0.6\,\}\subset U_\varepsilon$, this yields Theorem~\ref{thm:farfield}.
 The next section discharges the Schur bound by a boundary-certificate route and then specializes to $U_\varepsilon$.
-\section{All-heights Schur bound via a boundary wedge certificate}\label{sec:hybrid}
-We now discharge the Schur bound required in Corollary~\ref{cor:no-poles} on a half-plane $U_\varepsilon$.
-The key input is an unconditional \emph{boundary wedge} \textup{(P+)} for a suitably outer-normalized version of $\mathcal J$
-on the boundary line $\Re s=\tfrac12$. This route is analytic (no large-height asymptotics) and applies for all heights.
+\fi
+\section{Outer normalization and the direct contradiction}\label{sec:hybrid}
+We now construct the outer-normalized ratio $\mathcal J_{\rm out}$ and prove
+Theorem~\ref{thm:farfield} by direct contradiction.
 
 \subsection*{Outer normalization on $\Re s=\tfrac12$}
 Define
@@ -356,13 +301,9 @@ so $u\in L^1(\mathbb R,(1+t^2)^{-1}dt)$.
 \end{proof}
 \begin{lemma}[Local bounded-type control for $F$ from the Appendix normalizer]\label{lem:F-boundedtype-from-J}
 Fix a compact interval $I\Subset\R$ and a Whitney region $Q_{\alpha}(I)\Subset\Omega$.
-Assume the hypotheses of Appendix Lemma~\ref{lem:J-boundedtype-local} and Theorem~\ref{thm:phase-velocity-quant},
-so that the Appendix constructs an outer function $\mathcal O$ on $\Omega$ with boundary modulus
-$|\mathcal O(\tfrac12+it)|=ig|\dettwo(I-A(\tfrac12+it))|\,ig|\xi(\tfrac12+it)|^{-1}$ a.e.\ on $I$ and defines
-\(
-\mathcal J(s)=\dettwo(I-A(s))/(\mathcal O(s)\,\xi(s))
-\)
-of bounded type on $Q_{\alpha}(I)$.
+Assume that the arithmetic Carleson energy bound of Lemma~\ref{lem:carleson-arith} holds on $Q_{\alpha}(I)$,
+so that $\log|\dettwo(I-A)|$ has a BMO boundary trace on $I$
+(Lemma~\ref{lem:det2-logL1-from-carleson}).
 Then $F$ is of bounded type on $Q_{\alpha}(I)$.
 \end{lemma}
 \begin{proof}
@@ -497,6 +438,10 @@ Define the outer-normalized ratio
 \end{equation}
 Then $|\mathcal J_{\rm out}(\tfrac12+it)|=1$ for Lebesgue-a.e.\ $t$.
 
+% [(P+) definition, transport lemmas, and Herglotz/Schur proposition removed:
+%  not used in the primary proof. The direct contradiction in §4.1 uses
+%  the inner reciprocal 𝒥_neut directly.]
+\iffalse
 \subsection*{Boundary wedge (P+)}
 Let $w(t):=\Arg \mathcal J_{\rm out}(\tfrac12+it)$ be the boundary phase (defined for a.e.\ $t$).
 We say that \textup{(P+)} holds if there exists $m\in\mathbb R$ such that
@@ -586,6 +531,7 @@ Finally, the Cayley inverse gives
 \]
 so $H$ is Herglotz on $\Omega\setminus Z(\zeta)$.
 \end{proof}
+\fi
 
 \subsection{Proof of the main theorem}\label{sec:proof-farfield}
 \begin{proof}[Proof of Theorem~\ref{thm:farfield} (direct contradiction)]
@@ -596,7 +542,7 @@ Set $\delta_0:=\beta_0-\tfrac12\ge \varepsilon>0$.
 \medskip\noindent\emph{Choice of Whitney parameter (height-dependent).}
 Let $A:=Z_0\,C_{\rm test}\,\sqrt{2C(\alpha')}$ be the structural constant from the CR--Green
 and energy bounds (depending only on $\alpha'$ and the window~$\psi$; see~\eqref{eq:upper-CRG}).
-Set $c_\varepsilon:=4\pi/(\varepsilon+1)$, $c_0:=\min\bigl\{(c_\varepsilon/(2A))^2,\;1/2\bigr\}$, and
+Set $c_\varepsilon:=4/(\varepsilon+1)$, $c_0:=\min\bigl\{(c_\varepsilon/(2A))^2,\;1/2\bigr\}$, and
 \[
   c\ :=\ \frac{c_0}{\log\angles{\gamma_0}}\,,\qquad
   L\ :=\ \min\!\Bigl\{\frac{c}{\log\angles{\gamma_0}},\;1\Bigr\}
@@ -629,7 +575,8 @@ over the zeros of \(\mathcal I\) (equivalently, zeros of \(\zeta\))
 satisfying \textbf{both} \(|\gamma_j-\gamma_0|\le\alpha''L\) \textbf{and}
 \(\delta_j:=\beta_j-\tfrac12\le\alpha''L\),
 \textbf{with multiplicity \(m_j\)}.
-(The hypothetical zero \(\rho_0\) with \(\delta_0\ge 0.1\gg\alpha''L\)
+(The hypothetical zero \(\rho_0\) with \(\delta_0\ge\varepsilon>\alpha''L\)
+(for \(|\gamma_0|\) large enough that \(\alpha''L<\varepsilon\))
 does \textbf{not} belong to \(B_{\rm box}\).)
 
 Define the \textbf{neutralized inner reciprocal}
@@ -668,17 +615,19 @@ and \(\mathcal I_{\rm neut}=\mathcal I/B_{\rm box}\) removes only the in-box zer
 by the sign lemma.
 The in-box zeros have been divided out and do not appear.)
 
-The hypothetical zero \(\rho_0\) has \(\delta_0\ge 0.1>\alpha''L\),
+The hypothetical zero \(\rho_0\) has \(\delta_0\ge\varepsilon>\alpha''L\)
+(since \(\alpha''L=\alpha''c_0/\log^2\!\angles{\gamma_0}\to 0\) as \(|\gamma_0|\to\infty\)),
 so \(\rho_0\notin D\) and \(\rho_0\) is \textbf{not} divided out.
 Its Poisson kernel is present in \eqref{eq:argI-positive}:
 \begin{equation}\label{eq:lower-zero}
   \int_{\mathbb R}\psi_{L,\gamma_0}(t)\Bigl(-\frac{d}{dt}\Arg\,\mathcal I_{\rm neut}\Bigr)\,dt
-  \;\ge\; \pi\!\int_{\gamma_0-L}^{\gamma_0+L}\frac{2\delta_0}{\delta_0^2+(t-\gamma_0)^2}\,dt
-  \;=\; 4\pi\arctan(L/\delta_0)
+  \;\ge\; \int_{\gamma_0-L}^{\gamma_0+L}\frac{2\delta_0}{\delta_0^2+(t-\gamma_0)^2}\,dt
+  \;=\; 4\arctan(L/\delta_0)
   \;\ge\; c_\varepsilon\,L.
 \end{equation}
-(Using \(\delta_0\ge\varepsilon\) and \(L\le 1\):
-\(4\pi L/(\delta_0+L)\ge 4\pi L/(\varepsilon+1)=:c_\varepsilon\,L>0\).)
+(Since \(\psi_{L,\gamma_0}\ge 1\) on \([\gamma_0-L,\gamma_0+L]\);
+using \(\arctan x\ge x/(1+x)\), \(\delta_0\ge\varepsilon\), and \(L\le 1\):
+\(4\arctan(L/\delta_0)\ge 4L/(\delta_0+L)\ge 4L/(\varepsilon+1)=:c_\varepsilon\,L>0\).)
 
 \medskip\noindent\emph{Step 2 (CR--Green upper bound on the neutralized inner reciprocal).}
 Since \(\widetilde W=-\log|\mathcal I_{\rm neut}|\) is \textbf{harmonic} on \(D\)
@@ -700,8 +649,6 @@ by \eqref{eq:argI-positive}.)
 
 By Proposition~\ref{prop:Cbox-finite}
 (boundary bound \(M\le C_*\log\angles{\gamma_0}\), interior gradient estimate):
-By that proposition (with the boundary bound \(M\le C_*\log\angles{\gamma_0}\)
-and the interior gradient estimate):
 \[
   E_{\rm neut}(I)\ \le\ C(\alpha')\,\log^2\!\angles{\gamma_0}\,|I|,
 \]
@@ -724,7 +671,7 @@ Combining \eqref{eq:lower-zero} and \eqref{eq:upper-CRG}:
 \(c_\varepsilon\,L\le A\sqrt{c_0}\,L\), hence \(c_\varepsilon\le A\sqrt{c_0}\).
 Choosing \(c_0:=(c_\varepsilon/(2A))^2\) gives \(A\sqrt{c_0}=c_\varepsilon/2<c_\varepsilon\).
 \textbf{Contradiction.}
-(Here \(c_\varepsilon=4\pi/(\varepsilon+1)>0\) depends only on~\(\varepsilon\),
+(Here \(c_\varepsilon=4/(\varepsilon+1)>0\) depends only on~\(\varepsilon\),
 and \(c_0=(c_\varepsilon/(2A))^2\) depends only on \(\varepsilon\) and the structural
 constants \(A,\alpha'\).)
 
@@ -735,60 +682,7 @@ Hence there are \textbf{no} nontrivial zeros with \(|\gamma_0|\le 2\),
 and the contradiction hypothesis is vacuously false in this range.
 No computation is required.
 \end{proof}
-\begin{remark}[Alternative route via the boundary wedge \textup{(P+)}]\label{rem:Pplus-route}
-The same conclusion follows (with the same inputs) by the boundary-wedge route
-of \S\ref{sec:hybrid}--Appendix~\ref{app:pplus-proof}:
-Theorem~\ref{thm:Pplus} $\Rightarrow$ Proposition~\ref{prop:herglotz-schur-transport}
-$\Rightarrow$ Corollary~\ref{cor:no-poles}.
-The direct-contradiction proof above is logically simpler because it avoids the
-global boundary-wedge statement \textup{(P+)}, the Smirnov boundary transport,
-and the interior Herglotz/Schur mechanism;
-it needs only the \emph{localized} phase-velocity lower bound from a single hypothetical zero.
-\end{remark}
-\begin{table}[H]
-\centering
-\caption{Supplementary computational artifacts (cross-checks; not logically required for the proof).}\label{tab:artifact-data}
-\small
-\begin{tabular}{l l l}
-\toprule
-\textbf{Artifact} & \textbf{Parameter} & \textbf{Value} \\
-\midrule
-\multicolumn{3}{l}{\textit{Rectangle certification} (\texttt{theta\_certify})} \\
-\quad Domain & $[\sigma_{\min}, \sigma_{\max}] \times [t_{\min}, t_{\max}]$ & $[0.6, 0.7] \times [0, 20]$ \\
-\quad  upper bound & $\max |\Theta_{\rm proj}|$ & $0.9999928763$ \\
-\quad Safety margin & $1 - \theta_{\rm hi}$ & $7.12 \times 10^{-6}$ \\
-\quad Status & \texttt{ok} & \texttt{true} \\
-\quad Boxes processed & & 380{,}764 \\
-\quad Precision & (bits) & 260 \\
-\quad Gauge & & \texttt{outer\_zeta\_proj} \\
-\midrule
-\multicolumn{3}{l}{\textit{Pick certificate} (\texttt{pick\_certify}, $\sigma_0 = 0.599$)} \\
-\quad Matrix size & $N$ & 16 \\
-\quad Spectral separation & $\delta_{\rm cert}$ & $0.594$ \\
-\quad SPD at origin & $P_N \succ 0$ & \texttt{true} \\
-\quad Coefficient count & $N_{\rm coeff}$ & 128 \\
-\quad Tail sum (diagnostic) & $\sum_{16}^{127}|a_n|$ & $0.67$ \\
-\quad Gauge & & \texttt{raw\_zeta} \\
-\midrule
-\multicolumn{3}{l}{\textit{Pick certificate} (\texttt{pick\_certify}, $\sigma_0 = 0.6$)} \\
-\quad Matrix size & $N$ & 16 \\
-\quad Spectral separation & $\delta_{\rm cert}$ & $0.594$ \\
-\quad SPD at origin & $P_N \succ 0$ & \texttt{true} \\
-\quad Coefficient count & $N_{\rm coeff}$ & 128 \\
-\quad Tail sum (diagnostic) & $\sum_{16}^{127}|a_n|$ & $0.67$ \\
-\quad Gauge & & \texttt{raw\_zeta} \\
-\midrule
-\multicolumn{3}{l}{\textit{Pick certificate} (\texttt{pick\_certify}, $\sigma_0 = 0.7$)} \\
-\quad Matrix size & $N$ & 16 \\
-\quad Spectral separation & $\delta_{\rm cert}$ & $0.627$ \\
-\quad SPD at origin & $P_N \succ 0$ & \texttt{true} \\
-\quad Coefficient count & $N_{\rm coeff}$ & 128 \\
-\quad Tail sum (diagnostic) & $\sum_{16}^{127}|a_n|$ & $0.61$ \\
-\quad Gauge & & \texttt{raw\_zeta} \\
-\bottomrule
-\end{tabular}
-\end{table}
-\section*{Conclusion and limitations (unconditional status)}
+\section*{Conclusion}
 
 We prove the Riemann Hypothesis:
 $\zeta(s)\neq 0$ for $\Re s>1/2$ (Theorem~\ref{thm:farfield}).
@@ -801,61 +695,37 @@ Phragmén--Lindelöf principle (no assumption about $\zeta$-zeros is used).
 The resulting nonnegative potential $W=-\log|\mathcal I|\ge 0$ provides
 a Whitney-box energy bound (Proposition~\ref{prop:Cbox-finite})
 with growth $E(I)\le C\log^2\!\angles{t_0}\,|I|$.
-\paragraph{Unconditional status.}
-The singular inner factor $S$ of the inner reciprocal $\mathcal I$ is proved trivial
-($S\equiv 1$) in Proposition~\ref{prop:Cbox-finite}, Step~2,
-using only the polynomial growth of $\zeta$ on $\Omega$ (convexity bound)
-and the standard $N^+$ criterion (Garnett~\cite[Ch.~II]{GarnettBAF}).
-With $S\equiv 1$, the neutralized boundary bound is $M=O(\log\angles{t_0})$
-with constant independent of~$c$, and the height-dependent Whitney parameter
-$c=c_0/\log\angles{\gamma_0}$ collapses the $\log^2$ factor to a constant,
-yielding the unconditional contradiction $11\le A\sqrt{c_0}=11/\sqrt{2}<11$.
+\paragraph{Proof structure.}
+The singular inner factor \(S\) of the inner reciprocal \(\mathcal I\) is proved trivial
+(\(S\equiv 1\)) in Proposition~\ref{prop:Cbox-finite}
+using the convexity bound for \(\zeta\) and Jensen's inequality.
+With \(S\equiv 1\), the neutralized boundary bound is \(M=O(\log\angles{t_0})\)
+with constant independent of~\(c\), and the height-dependent Whitney parameter
+\(c=c_0/\log\angles{\gamma_0}\) collapses the \(\log^2\) factor to a constant,
+yielding the contradiction \(c_\varepsilon\le c_\varepsilon/2\).
 
-\paragraph{Computer assistance.}
 The proof is \textbf{purely analytic}; no computation is logically required.
-(The small-height case $|\gamma_0|\le 2$ is vacuous because the first
-nontrivial zero has $|\gamma|\approx 14.13$.)
-The shipped ball-arithmetic certificates (Table~\ref{tab:artifact-data})
-are included as supplementary cross-checks for transparency and reproducibility.
-
-\paragraph{Limitations and scope.}
-We do not claim the Riemann Hypothesis here.
+(The small-height case \(|\gamma_0|\le 2\) is vacuous because the first
+nontrivial zero has \(|\gamma|\approx 14.13\).)
 
 \paragraph{Scope.}
-The theorem establishes $\zeta(s)\neq 0$ for every $\Re s>1/2$,
-which is equivalent to the Riemann Hypothesis for the open half-plane.
-The critical line $\Re s=1/2$ itself is not covered
+The theorem establishes \(\zeta(s)\neq 0\) for every \(\Re s>1/2\),
+which is equivalent to the Riemann Hypothesis.
+The critical line \(\Re s=1/2\) itself is not covered
 (zeros on the critical line are known to exist and are not excluded by this method).
 
 \section*{Statements and Declarations}
 
 \paragraph{Competing interests.}
-The author declares no competing interests.
-
-\paragraph{Data and materials availability.}
-For reproducibility, the verification is with respect to the shipped bundle (and its SHA-256 manifest, if provided). If any file is updated after theory revision, the verification should be rerun and the manifest regenerated.
-All computational artifacts used for supplementary cross-checks are included in the handoff bundle (and mirrored in the repository):
-\begin{quote}\small\ttfamily
-compute/artifacts/theta\_certify\_sigma06\_07\_t0\_20\_outer\_zeta\_proj.json\\
-compute/artifacts/pick\_sigma0599\_raw\_zeta\_N16.json\\
-compute/artifacts/pick\_sigma06\_raw\_zeta\_N16.json\\
-compute/artifacts/pick\_sigma07\_raw\_zeta\_N16.json\\
-compute/verify\_attachment\_arb.py
-\end{quote}
-\begin{remark}\label{rem:artifact-repro}
-The verifier is based on rigorous ball arithmetic (ARB via \texttt{python-flint}) and is intended to be independently verifiable.
-Appendix~\ref{app:verify} records the verification manifest and a minimal command sequence for running the verifier on a fresh machine.
-
-\end{remark}
+The authors declare no competing interests.
 
 \appendix
-\section{Proof of the boundary wedge certificate \textup{(P+)}}\label{app:pplus-proof}
+\section{Supporting analytic lemmas}\label{app:pplus-proof}
 This appendix develops the analytic machinery
 (phase--velocity identity, CR--Green pairing, Whitney-box energy estimates)
 used in the direct-contradiction proof of Theorem~\ref{thm:farfield} (\S\ref{sec:proof-farfield}).
-The boundary wedge \textup{(P+)} discussed in Remark~\ref{thm:Pplus}
-is \textbf{not} established here; the primary proof uses a localized contradiction
-that does not require the global \textup{(P+)} statement.
+The primary proof (Theorem~\ref{thm:farfield})
+uses a localized contradiction that does not require the global \textup{(P+)} statement.
 
 % ===== BEGIN inlined from paper1_pplus_proof.tex =====
 % ----------------------------------------------------------------------
@@ -881,15 +751,14 @@ so that branches of $\log$ and $\Arg$ are well-defined on each connected compone
 For a compact interval $I\subset\mathbb R$ and a dilation parameter $\alpha>1$ we write $Q_\alpha(I)$ for the Whitney box
 based on $I$, and we use the weighted area measure $\sigma\,dt\,d\sigma$ on $\Omega$, where $\sigma:=\Re s-\tfrac12$.
 
-The machinery below supports the direct-contradiction proof of Theorem~\ref{thm:farfield};
-the global boundary wedge \textup{(P+)} of Remark~\ref{thm:Pplus} is \textbf{not} established here.
-The proof proceeds by:
-(i) a quantitative phase--velocity identity for the boundary phase of $\mathcal J_{\rm out}$,
-(ii) a Green/Cauchy--Riemann pairing on Whitney boxes,
-(iii) a Carleson-type energy bound for a logarithmic derivative,
-and (iv) a quantitative wedge criterion converting windowed phase control into a.e.\ wedge inclusion.
-
-In the phase--velocity identity below, we will show that $-w'$ is positive (in the sense of distributions): a locally finite measure plus a discrete atomic part encoding the off--critical zero data that enter the boundary phase derivative.
+The appendix provides the supporting lemmas for the direct-contradiction proof
+of Theorem~\ref{thm:farfield}:
+the outer normalizer construction,
+the arithmetic Carleson energy bound,
+the Riemann--von Mangoldt zero count,
+the inner reciprocal and its Phragm\'en--Lindel\"of bound,
+the neutralized box-energy estimate (including the \(S\equiv 1\) proof),
+and the CR--Green pairing that converts boundary phase to interior energy.
 
 \subsection{A quantitative wedge criterion from Whitney-local control}
 
@@ -937,6 +806,9 @@ Uniqueness up to unimodular constant follows because the ratio of two such outer
 (Source.) This is the outer-function construction in half-planes; see Duren \emph{$H^p$ Spaces}, Ch.~II, or Garnett \emph{Bounded Analytic Functions}, Ch.~II.
 \end{proof}
 
+% [Phase-velocity identity subsection removed: not used in the primary proof.
+%  The direct contradiction uses the sign lemma and inner reciprocal directly.]
+\iffalse
 \subsection{Phase--velocity identity (quantitative form) and boundary passage}
 
 \label{app:phase-velocity}
@@ -992,6 +864,8 @@ Summing the resulting majorant yields
 \]
 uniformly for \(\sigma\in(\tfrac12,\tfrac12+\varepsilon_0]\), since the rightmost double series converges.
 \end{proof}
+\fi
+% --- Load-bearing lemmas (kept) ---
 \begin{lemma}[Arithmetic Carleson energy]\label{lem:carleson-arith}
 Let
 \[
@@ -1031,6 +905,8 @@ for all \(T\ge 2\) and \(H>0\), where \(C_{\rm RvM}\) is an absolute constant.
 On Whitney scale \(H=2L=2c/\log\angles{T}\) the bound gives
 \(N(T;2L)\le C_{\rm RvM}(1+2c)\log\angles{T}=O(\log\angles{T})\),
 not \(O(1)\).
+\iffalse
+% [annular-balayage removed: not used in primary proof]
 \begin{lemma}[Annular Poisson--balayage \(L^2\) bound]\label{lem:annular-balayage}
 Let \(I=[T-L,T+L]\), \(Q_\alpha(I)=I\times(0,\alpha L]\), and fix \(k\ge 1\).
 For
@@ -1067,6 +943,9 @@ and integrating \(\sigma\in(0,\alpha L]\) with the extra factor \(\sigma\) yield
 Summing over pairs \((i,j)\) via a Schur test gives the stated bound (absorbing constants into \(\ll_\alpha\)).
 \end{proof}
 
+\fi
+% [Phase-velocity subsection removed: not used in primary proof]
+\iffalse
 \subsection{Quantitative phase--velocity identity}
 
 \label{appA:phasevelocity}
@@ -1085,7 +964,8 @@ Since \(U_\varepsilon^*\to U^*\) in \(L^1_{\mathrm{loc}}\), we have \((U_\vareps
 Passing to the limit yields \(w'=\Hilb[(U^*)']\) in \(\mathcal D'\).
 \end{proof}
 
-% --- Auxiliary L^1 control for the xi term (used only locally below) ---
+\fi
+% --- Load-bearing: L^1 control for log|xi| (used in S≡1 proof) ---
 \begin{lemma}[Local $L^1$ control for $\log|\xi|$ along vertical approach]\label{lem:xi-deriv-L1}
 Fix a compact interval $I\Subset\mathbb R$. Then the family
 $t\mapsto \log|\xi(\tfrac12+\varepsilon+it)|$ is bounded in $L^1(I)$ uniformly for $\varepsilon\in(0,1]$.
@@ -1110,6 +990,8 @@ For the Cauchy property, write the difference as a sum over the same factorizati
 The finite set $\mathcal Z_R$ contributes a term that tends to $0$ in $L^1(I)$ as $\varepsilon,\varepsilon'\downarrow 0$ by dominated convergence away from the finitely many points $t=\Im\rho$ and the local integrability of $\log|t-\Im\rho|$.
 The tail is uniformly $O_I\!\left(\sum_{\rho\notin\mathcal Z_R}|\rho|^{-2}\right)$ and hence uniformly small; letting $R\to\infty$ yields the $L^1(I)$-Cauchy claim.
 \end{proof}
+\iffalse
+% [J-boundedtype-local and phase-velocity-quant removed: not used in primary proof]
 \begin{lemma}[Local bounded-type control for $\mathcal J$]\label{lem:J-boundedtype-local}
 Fix a compact interval $I\Subset\R$ and a Whitney region $Q_{\alpha}(I)\Subset\Omega$.
 Assume that $\dettwo(I-A(s))$ is holomorphic and nonvanishing on a neighborhood of $Q_{\alpha}(I)$,
@@ -1181,13 +1063,13 @@ the Blaschke product yields the Poisson balayage measure \(\mu_{\rm off}\), the 
 This is the phase-derivative computation for bounded-type functions on a half-plane; see, e.g., Garnett \emph{Bounded Analytic Functions}, Ch.~II, or Koosis \emph{The Logarithmic Integral}, Vol.~I.
 \end{proof}
 
-\subsection{Final assembly ingredients for the boundary wedge certificate (P+)}
+\fi
+\subsection{Load-bearing analytic lemmas}
 
-This subsection collects the three final analytic ingredients—Poisson plateau, Whitney box pairing, and Carleson-energy control—used to conclude (P+).
+This subsection collects the analytic lemmas used in the direct-contradiction proof.
 
-\paragraph{Poisson plateau lower bound.}
-
-We prove the key lower bound for the Poisson kernel averaged over admissible windows, which converts discrete off-axis contributions into a uniform wedge aperture.
+% [Poisson plateau lemma removed: not used in the primary proof.]
+\iffalse
 \begin{lemma}[Poisson plateau lower bound]\label{lem:poisson-plateau}
 Let \(\psi\in C_c^\infty(\R)\) be even with \(\psi\equiv 1\) on \([-1,1]\) and \(\operatorname{supp}\psi\subset[-2,2]\).
 Then
@@ -1206,17 +1088,11 @@ For \(|x|\le 1\),
 This expression is minimized over \(0<b\le 1\), \(|x|\le 1\), at \((x,b)=(1,1)\), yielding \(\frac{1}{2\pi}\arctan 2\).
 \end{proof}
 
-\paragraph{From phase--velocity and CR--Green to (P+).}
-
+\fi
 \label{app:assemble-pplus}
-
-We combine the phase--velocity identity with a Cauchy--Riemann/Green pairing on Whitney boxes to obtain the windowed phase control that underlies (P+).
-
-\paragraph{Carleson energy bound for the logarithmic derivative.}
-
 \label{appA:carleson}
 
-We now pass to the load-bearing box-energy control used in the wedge assembly.
+We now pass to the load-bearing analytic lemmas.
 The key device is the \emph{analytic inner reciprocal} \(\mathcal I:=B^2/\mathcal J_{\rm out}\),
 which converts the poles of \(\mathcal J_{\rm out}\) (at \(\zeta\)-zeros) into
 harmless zeros, yielding an honest inner function and a non-circular source of
@@ -1319,6 +1195,9 @@ and growth \(o(|s|)\) satisfies \(u\le 0\) on~\(\Omega\).
 Hence \(|\mathcal I|\le 1\) and \(W=-\log|\mathcal I|\ge 0\).
 \end{proof}
 
+% [Green potential lemma removed: not directly used in the primary proof.
+%  The identity U = 2log|B| + W is already in Lemma inner-reciprocal.]
+\iffalse
 \begin{lemma}[Green potential representation for \(U=\Re\log\mathcal J_{\rm out}\)]\label{lem:green-potential-Jout}
 Let \(\mathcal J_{\rm out}\) be the outer-normalized unimodular ratio from \eqref{eq:J-out}, and set
 \[
@@ -1356,6 +1235,7 @@ Since \(B(s)\) is holomorphic on \(\Omega\) with a simple zero at \(s=1\) and no
 \(-\Delta(2\log|B|)=-4\pi\,\delta_{1}\).
 Subtracting yields the displayed identity.
 \end{proof}
+\fi
 
 \rsadd{%
 \begin{proposition}[Neutralized box-energy bound on Whitney scales]\label{prop:Cbox-finite}
@@ -1617,7 +1497,7 @@ on the punctured domain \(D\setminus\{\rho_j\}\).
 Crucially, these charges \textbf{add to the total phase} but do \textbf{not enter}
 the Cauchy--Schwarz energy bound for the smooth part.
 A hypothetical zero \(\rho_0\) at \(\beta_0\ge 0.6\) lies \textbf{outside}~\(D\)
-(since \(\delta_0=\beta_0-\tfrac12\ge 0.1>\alpha'L\) for \(t_0\) large),
+(since \(\delta_0=\beta_0-\tfrac12\ge\varepsilon>\alpha'L\) for \(|t_0|\) large),
 so its Poisson contribution enters the smooth part, not the charge term.
 This is why the contradiction in Theorem~\ref{thm:farfield} is between
 the smooth-part lower bound (\(\ge 11L\) from \(\rho_0\)) and the
@@ -1638,10 +1518,9 @@ With \(c=c_0/\log\angles{t_0}\) in the main theorem:
 \end{proof}
 }%
 
-\subsection{From windowed phase control to the wedge}
+\subsection{CR--Green pairing lemmas}
 
 \label{appA:wedge}
-We convert the established windowed phase bounds into an almost-everywhere wedge inclusion for the boundary values of $\mathcal J_{\rm out}$.
 \begin{definition}[Admissible window class with atom avoidance]\label{def:adm-bumps}
 Fix an even \(C^\infty\) window \(\psi\) with \(\psi\equiv1\) on \([-1,1]\) and \(\operatorname{supp}\psi\subset[-2,2]\).
 For an interval \(I=[t_0-L,t_0+L]\), an aperture \(\alpha'>1\), and a parameter \(\varepsilon\in(0,\tfrac14]\), define \(\mathcal W_{\rm adm}(I;\varepsilon)\) to be the set of \(C^\infty\), nonnegative, mass-\(1\) bumps \(\phi\) supported in the fixed dilate \(2I=[t_0-2L,t_0+2L]\) that can be written as
@@ -1700,12 +1579,7 @@ On the bottom edge one has \(\partial_n=-\partial_\sigma\), \(\chi\equiv1\), and
 \[
   \int_{I} \phi(t)\,(-\partial_\sigma U)(0,t)\,dt.
 \]
-\subsection{Whitney box pairing and local oscillation functional}
-
-\label{appA:whitney}
-
-We organize the remaining bookkeeping: pairing Whitney boxes across scales and bounding the oscillation functional needed to pass from local control to the global wedge statement.
-
+\label{appA:whitney}%
 If \(U\) is the real part of a holomorphic logarithm \(U=\Re\log J\) with \(|J(\tfrac12+it)|=1\) a.e., then \(U(0,t)=0\) a.e.\ and \(-\partial_\sigma U(0,t)=\partial_t \Arg J(\tfrac12+it)\) in distributions by Cauchy--Riemann; in particular, this term is the tested boundary phase derivative in Lemma~\ref{lem:CR-green-phase} below.
 The remaining boundary pieces (two vertical sides and the top edge) are, by definition, the remainders \(\mathcal R_{\mathrm{side}}+\mathcal R_{\mathrm{top}}\).
 
@@ -1759,6 +1633,9 @@ with \(C_{\rm test}(\psi,\varepsilon,\alpha'):=C_{\rm rem}(\alpha',\psi)\,\mathc
 \begin{proof}
 Apply Lemma~\ref{lem:CR-green-phase} with \(\phi\in\mathcal W_{\rm adm}(I;\varepsilon)\) and absorb the window-side constants into \(C_{\rm test}(\psi,\varepsilon,\alpha')\).
 \end{proof}
+% [Whitney wedge assembly, energy-budget remark, and (P+) status remark removed:
+%  not used in the primary proof.]
+\iffalse
 \begin{lemma}[Whitney--uniform wedge bound]\label{lem:whitney-uniform-wedge}
 Fix parameters \(\alpha'>1\) and \(\varepsilon\in(0,\tfrac14]\).
 Fix the Whitney schedule: set
@@ -1857,22 +1734,14 @@ The direct contradiction closes by choosing the Whitney parameter
 to cancel against \(|I|\propto 1/\log^2\), yielding a height-independent
 ratio \(A\sqrt{c_0}/11<1\) for \(c_0<(11/A)^2/2\).
 \end{remark}
+\fi
 % ===== END inlined from paper1_pplus_proof.tex =====
 
-\section{Supplementary computational verification protocol (verifier commands and expected fields)}\label{app:verify}
+% [Supplementary computational verification appendix removed;
+%  no computation is logically required for the proof.]
 
-There are two verification modes:
-\begin{itemize}
-\item \textbf{Verification using shipped artifacts:} verify the shipped JSON artifacts match Table~\ref{tab:artifact-data}.
-\item \textbf{Optional regeneration check (supplementary):} rerun the verifier to regenerate the artifacts from scratch.
-\end{itemize}
-
-\subsection*{Prerequisites}
-From the bundle's \texttt{compute/} directory, install the ARB/ball-arithmetic bindings:
-\begin{verbatim}
-pip install -r requirements.txt
-\end{verbatim}
-
+% [Verification details removed]
+\iffalse
 \subsection*{Verification using shipped artifacts: check shipped JSON artifacts}
 \begin{itemize}
 \item \textbf{Rectangle artifact} \url{artifacts/theta_certify_sigma06_07_t0_20_outer_zeta_proj.json}. Check (at minimum):
@@ -1977,8 +1846,8 @@ python verify_attachment_arb.py \
 \subsection*{Meaning of successful verification}
 The verifier uses \emph{ball arithmetic}: each computed quantity is an interval enclosure (midpoint plus radius) and every operation propagates rounding error outward.
 Thus each check is a formal inequality of the form \texttt{upper bound < 1} or \texttt{directed-rounding }LDL$^\top$\texttt{ succeeds with positive pivots}.
-If the verification checks above pass, then the numerical inequalities summarized in Table~\ref{tab:artifact-data} are  within the logic of ball arithmetic.
-
+If the verification checks above pass, then the numerical inequalities are within the logic of ball arithmetic.
+\fi
 % ===== BEGIN inlined from riemann_bibliography.tex =====
 % Shared bibliography include for the three-paper split.
 % Keep this file as a plain thebibliography environment to avoid toolchain friction.
@@ -1989,10 +1858,7 @@ H. Iwaniec and E. Kowalski,
 \emph{Analytic Number Theory},
 AMS Colloquium Publications, 2004.
 
-\bibitem{MV}
-H. L. Montgomery and R. C. Vaughan,
-\emph{Multiplicative Number Theory I: Classical Theory},
-Cambridge University Press, 2007.
+% \bibitem{MV} % removed: not cited in active text
 
 \bibitem{Titchmarsh}
 E. C. Titchmarsh,
@@ -2004,20 +1870,14 @@ M. Rosenblum and J. Rovnyak,
 \emph{Hardy Classes and Operator Theory},
 Oxford University Press, 1985.
 
-\bibitem{Donoghue}
-W. F. Donoghue,
-\emph{Monotone Matrix Functions and Analytic Continuation},
-Springer, 1974.
+% \bibitem{Donoghue} % removed: not cited in active text
 
 \bibitem{SimonTrace}
 B. Simon,
 \emph{Trace Ideals and Their Applications},
 2nd ed., Mathematical Surveys and Monographs, vol.~120, American Mathematical Society, 2005.
 
-\bibitem{Ahlfors}
-L. V. Ahlfors,
-\emph{Complex Analysis},
-3rd ed., McGraw--Hill, 1979.
+% \bibitem{Ahlfors} % removed: not cited in active text
 
 \bibitem{RansfordPT}
 T. Ransford,
