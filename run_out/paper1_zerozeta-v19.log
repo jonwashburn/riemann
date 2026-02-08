@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  7 FEB 2026 13:11
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  8 FEB 2026 11:47
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -652,31 +652,31 @@ Package microtype Info: Character `029' is missing
 
 [1{/Users/jonathanwashburn/Library/texlive/2025basic/texmf-var/fonts/map/pdftex
 /updmap/pdftex.map}{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm
--ec.enc}{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-mathsy.enc
-}{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-mathit.enc}{/User
-s/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-rm.enc}{/Users/jonathanw
+-ec.enc}{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-mathit.enc
+}{/Users/jonathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-rm.enc}{/Users/jo
+nathanwashburn/Library/texmf/fonts/enc/dvips/lm/lm-mathsy.enc}{/Users/jonathanw
 ashburn/Library/texmf/fonts/enc/dvips/lm/lm-mathex.enc}]
 
 [2]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 193.
+(hyperref)                removing `math shift' on input line 199.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 193.
+(hyperref)                removing `math shift' on input line 199.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 193.
+(hyperref)                removing `math shift' on input line 199.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\Theta' on input line 193.
+(hyperref)                removing `\Theta' on input line 199.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 193.
+(hyperref)                removing `math shift' on input line 199.
 
 
 
@@ -685,31 +685,31 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 [4]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 320.
+(hyperref)                removing `math shift' on input line 326.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\Re' on input line 320.
+(hyperref)                removing `\Re' on input line 326.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\<def>-command' on input line 320.
+(hyperref)                removing `\<def>-command' on input line 326.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\@tempa' on input line 320.
+(hyperref)                removing `\@tempa' on input line 326.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\<def>-command' on input line 320.
+(hyperref)                removing `\<def>-command' on input line 326.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\@tempb' on input line 320.
+(hyperref)                removing `\@tempb' on input line 326.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 320.
+(hyperref)                removing `math shift' on input line 326.
 
 
 
@@ -722,16 +722,13 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 [8]
 
 [9]
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 657.
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 657.
-
-Underfull \vbox (badness 3302) has occurred while \output is active []
-
-
 
 [10]
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <10> on input line 752.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <7> on input line 752.
+
 
 [11]
 
@@ -752,9 +749,26 @@ Underfull \vbox (badness 3302) has occurred while \output is active []
 [19]
 
 [20]
+Overfull \hbox (33.64056pt too wide) in paragraph at lines 1639--1639
+[]\T1/lmr/m/it/10.95 (-20) Term $[] \OMS/lmsy/m/n/10.95 j [] j$\T1/lmr/m/it/10.
+95 (-20) . \T1/lmr/m/n/10.95 (-20) By ex-plicit Fourier com-pu-ta-tion: $[] [] 
+\OMS/lmsy/m/n/10.95 j []\OT1/lmr/m/n/10.95 (-20) (\OML/lmm/m/it/10.95 ^^[; t\OT
+1/lmr/m/n/10.95 (-20) )\OMS/lmsy/m/n/10.95 j\OML/lmm/m/it/10.95 =\OT1/lmr/m/n/1
+0.95 (-20) (1 + \OML/lmm/m/it/10.95 t[]\OT1/lmr/m/n/10.95 (-20) ) \OML/lmm/m/it
+/10.95 dt \OT1/lmr/m/n/10.95 (-20) = \OMS/lmsy/m/n/10.95 ^^@\OML/lmm/m/it/10.95
+ ^^Y [][] [][] p[]=k$\T1/lmr/m/n/10.95 (-20) ,
+ []
+
+
 
 [21]
-Overfull \hbox (2.45659pt too wide) in paragraph at lines 1489--1490
+
+[22]
+
+[23]
+
+[24]
+Overfull \hbox (2.45659pt too wide) in paragraph at lines 1760--1761
 []\T1/lmr/m/n/10.95 (-20) Apply Lemma [][]37[][] with $\OML/lmm/m/it/10.95 ^^^ 
 \OMS/lmsy/m/n/10.95 2 W[]\OT1/lmr/m/n/10.95 (-20) (\OML/lmm/m/it/10.95 I\OT1/lm
 r/m/n/10.95 (-20) ; \OML/lmm/m/it/10.95 "\OT1/lmr/m/n/10.95 (-20) )$ \T1/lmr/m/
@@ -764,7 +778,7 @@ C[]\OT1/lmr/m/n/10.95 (-20) (\OML/lmm/m/it/10.95  ; "; []\OT1/lmr/m/n/10.95 (-
  []
 
 
-Overfull \hbox (30.98471pt too wide) detected at line 1505
+Overfull \hbox (14.54652pt too wide) detected at line 1776
 [][] \OML/lmm/m/it/10.95  []\OT1/lmr/m/n/10.95 (\OML/lmm/m/it/10.95 t\OT1/lmr/m
 /n/10.95 ) (\OMS/lmsy/m/n/10.95 ^^@\OML/lmm/m/it/10.95 w[]\OT1/lmr/m/n/10.95 (\
 OML/lmm/m/it/10.95 t\OT1/lmr/m/n/10.95 )) \OML/lmm/m/it/10.95 dt  \OMS/lmsy/m/n
@@ -777,8 +791,8 @@ mm/m/it/10.95 :
 
 
 
-[22]
-Overfull \hbox (16.13808pt too wide) in paragraph at lines 1604--1605
+[25]
+Overfull \hbox (16.13808pt too wide) in paragraph at lines 1878--1879
 []\T1/lmr/bx/n/10.95 (-20) Rectangle ar-ti-fact [][]$\T1/lmtt/m/n/10.95 artifac
 ts / theta _ certify _ sigma06 _ 07 _ t0 _ 20 _ outer _ zeta _ proj . json$[][]
 \T1/lmr/m/n/10.95 (-20) .
@@ -786,26 +800,26 @@ ts / theta _ certify _ sigma06 _ 07 _ t0 _ 20 _ outer _ zeta _ proj . json$[][]
 
 
 
-[23]
+[26]
 
-[24]
+[27]
 
-[25] (./paper1_zerozeta-v19.aux)
+[28] (./paper1_zerozeta-v19.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
 Package rerunfilecheck Info: File `paper1_zerozeta-v19.out' has not changed.
-(rerunfilecheck)             Checksum: 43BB511BF4BFFDC04BC79971C7F1F190;10465.
+(rerunfilecheck)             Checksum: C250D8E24F4F814F1B2463725E010B4C;10613.
  ) 
 Here is how much of TeX's memory you used:
- 15293 strings out of 474662
- 235925 string characters out of 5751110
- 683953 words of memory out of 5000000
- 37446 multiletter control sequences out of 15000+600000
- 670695 words of font info for 278 fonts, out of 8000000 for 9000
+ 15297 strings out of 474662
+ 235932 string characters out of 5751110
+ 684941 words of memory out of 5000000
+ 37444 multiletter control sequences out of 15000+600000
+ 667984 words of font info for 279 fonts, out of 8000000 for 9000
  480 hyphenation exceptions out of 8191
- 75i,11n,79p,1016b,682s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,13n,79p,1016b,682s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </Users/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmbx10.pfb></Use
 rs/jonathanwashburn/Library/texmf/fonts/type1/public/lm/lmbxi10.pfb></Users/jon
 athanwashburn/Library/texmf/fonts/type1/public/lm/lmcsc10.pfb></Users/jonathanw
@@ -830,10 +844,10 @@ nathanwashburn/Library/texmf/fonts/type1/public/lm/lmtt9.pfb></usr/local/texliv
 e/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/loc
 al/texlive/2025basic/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
 
-Output written on paper1_zerozeta-v19.pdf (25 pages, 571130 bytes).
+Output written on paper1_zerozeta-v19.pdf (28 pages, 596547 bytes).
 PDF statistics:
- 668 PDF objects out of 1000 (max. 8388607)
- 581 compressed objects within 6 object streams
- 146 named destinations out of 1000 (max. 500000)
- 53025 words of extra memory for PDF output out of 61914 (max. 10000000)
+ 696 PDF objects out of 1000 (max. 8388607)
+ 605 compressed objects within 7 object streams
+ 149 named destinations out of 1000 (max. 500000)
+ 50977 words of extra memory for PDF output out of 51595 (max. 10000000)
 
